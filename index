@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>INOVTEC CONTROL – Accueil</title>
+
+  <!-- iPhone friendly -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#16a34a">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f1f5f9;
+      --panel:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:rgba(148,163,184,.4);
+      --brand:#16a34a;
+      --brand-2:#22c55e;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    html{-webkit-text-size-adjust:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font:500 17px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      padding: max(env(safe-area-inset-top), 0px) 0 max(env(safe-area-inset-bottom), 0px) 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    header.hero{
+      padding:18px 16px 14px;
+      border-bottom:1px solid var(--border);
+      text-align:center;
+      background:linear-gradient(135deg,#16a34a12,#22c55e18);
+    }
+    h1{
+      margin:0 0 6px;
+      font-weight:800;
+      letter-spacing:.2px;
+      font-size:24px;
+    }
+    .tagline{
+      color:var(--muted);
+      font-size:14px;
+      letter-spacing:.2px;
+      display:inline-block;
+      padding:6px 12px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:rgba(255,255,255,.92);
+    }
+
+    main{
+      max-width:960px;
+      margin:0 auto;
+      padding:18px 12px 80px;
+    }
+
+    .intro{
+      margin-bottom:14px;
+      color:var(--muted);
+      font-size:14px;
+      text-align:center;
+    }
+
+    .app-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+      gap:12px;
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 14px 16px;
+      box-shadow:0 10px 30px rgba(15,23,42,.04);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .card-header{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .icon-pill{
+      width:40px;
+      height:40px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#ecfdf3;
+      border:1px solid rgba(34,197,94,.35);
+      font-size:20px;
+    }
+    .card h2{
+      margin:0;
+      font-size:17px;
+      font-weight:700;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:3px 9px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.5);
+      background:#f8fafc;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .card-desc{
+      font-size:14px;
+      color:var(--muted);
+    }
+
+    .card-footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-top:4px;
+      flex-wrap:wrap;
+    }
+    .tag-small{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .btn-row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    a.btn, button.btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      min-height:40px;
+      padding:9px 14px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      cursor:pointer;
+      text-decoration:none;
+      font-size:14px;
+      font-weight:600;
+      color:var(--text);
+      background:#e5f9f0;
+      touch-action:manipulation;
+      transition:transform .06s ease, border-color .15s, background .15s, box-shadow .15s;
+    }
+    a.btn:active, button.btn:active{
+      transform:translateY(1px);
+    }
+    .btn.primary{
+      background:linear-gradient(90deg, var(--brand), var(--brand-2));
+      border-color:transparent;
+      color:#f8fafc;
+      box-shadow:0 8px 24px rgba(34,197,94,.35);
+    }
+    .btn.ghost{
+      background:#ffffff;
+      border-color:rgba(148,163,184,.8);
+    }
+    .btn.ghost:hover{
+      border-color:#22c55e;
+      box-shadow:0 4px 12px rgba(15,23,42,.08);
+    }
+
+    footer{
+      margin-top:20px;
+      font-size:11px;
+      color:var(--muted);
+      text-align:center;
+    }
+
+    @media (min-width:700px){
+      main{padding-bottom:24px;}
+    }
+
+    @media print{
+      body{background:#fff; color:#000;}
+      header.hero{background:#fff;}
+      .card{box-shadow:none;}
+      a.btn, button.btn{display:none;}
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>INOVTEC CONTROL</h1>
+  <div class="tagline">Accueil des applications • Qualité • Chantiers • Planning</div>
+</header>
+
+<main>
+  <p class="intro">
+    Sélectionne une application pour l’ouvrir. Tu pourras revenir à cette page d’accueil
+    depuis ton navigateur (bouton « précédent » ou favoris sur iPhone).
+  </p>
+
+  <section class="app-grid" aria-label="Liste des applications">
+    <!-- App 1 : Contrôle Qualité -->
+    <article class="card">
+      <div class="card-header">
+        <div class="icon-pill">✅</div>
+        <div>
+          <h2>Contrôle Qualité Résidence / Bureaux</h2>
+          <span class="badge">Audit terrain • PDF • Photos</span>
+        </div>
+      </div>
+      <p class="card-desc">
+        Fiche de contrôle complète : tâches, statuts (bien fait / passable / mal fait / pas faits),
+        commentaires, note globale avec graphique, génération de PDF et ajout de photos.
+      </p>
+      <div class="card-footer">
+        <span class="tag-small">Fichier : <code>controle-qualite.html</code></span>
+        <div class="btn-row">
+          <!-- IMPORTANT : ce lien pointe vers TON fichier d’app de contrôle -->
+          <a class="btn primary" href="controle-qualite.html">
+            Ouvrir l’app
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <!-- App 2 : Base chantiers (exemple / futur) -->
+    <article class="card">
+      <div class="card-header">
+        <div class="icon-pill">📁</div>
+        <div>
+          <h2>Base de données chantiers</h2>
+          <span class="badge">Chantiers • Clients • Sites</span>
+        </div>
+      </div>
+      <p class="card-desc">
+        (À venir) Fiche complète par chantier : coordonnées, fréquence, tâches, spécificités,
+        contrôles liés… Idéal pour que direction, chef d’équipe et responsable de secteur
+        aient la même base.
+      </p>
+      <div class="card-footer">
+        <span class="tag-small">Prévu : <code>base-chantiers.html</code></span>
+        <div class="btn-row">
+          <!-- Quand tu auras créé l’app, remplace "#" par base-chantiers.html -->
+          <a class="btn ghost" href="#" onclick="alert('App non encore créée. À connecter quand le fichier sera prêt 🙂'); return false;">
+            Bientôt disponible
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <!-- App 3 : Planning / Pointage (exemple / futur) -->
+    <article class="card">
+      <div class="card-header">
+        <div class="icon-pill">🕒</div>
+        <div>
+          <h2>Planning & Pointage</h2>
+          <span class="badge">Horaires • Multi-sites</span>
+        </div>
+      </div>
+      <p class="card-desc">
+        (À venir) Vue planning des agents par site, alerte si un agent n’est pas sur place,
+        suivi des multi-sites… Pensée pour être lisible sur iPhone.
+      </p>
+      <div class="card-footer">
+        <span class="tag-small">Prévu : <code>planning.html</code></span>
+        <div class="btn-row">
+          <!-- Idem : à brancher sur ton futur fichier -->
+          <a class="btn ghost" href="#" onclick="alert('App planning non encore créée. Tu pourras lier planning.html ici.'); return false;">
+            Bientôt disponible
+          </a>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <footer>
+    INOVTEC • Contrôle & gestion des chantiers – Version accueil GitHub Pages
+  </footer>
+</main>
+
+</body>
+</html>
