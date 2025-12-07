@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tableau de bord – Mes applications</title>
+
+  <!-- iPhone / Android friendly -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#16a34a">
+
+  <!-- Police Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f1f5f9;
+      --panel:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:rgba(148,163,184,.4);
+      --brand:#16a34a;
+      --brand-soft:rgba(22,163,74,.08);
+      --danger:#dc2626;
+      --radius-xl:20px;
+      --shadow-soft:0 14px 35px rgba(15,23,42,.25);
+    }
+
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    html,body{
+      margin:0;
+      padding:0;
+      height:100%;
+    }
+
+    body{
+      font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:radial-gradient(circle at top,#d1fae5 0,#f1f5f9 45%,#e2e8f0 100%);
+      color:var(--text);
+      display:flex;
+      justify-content:center;
+      align-items:stretch;
+      padding:12px;
+      padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    }
+
+    .app-shell{
+      width:100%;
+      max-width:520px;
+      background:radial-gradient(circle at top left,#22c55e 0,#16a34a 38%,#022c22 100%);
+      border-radius:26px;
+      padding:10px;
+      box-shadow:var(--shadow-soft);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    /* Top status bar style */
+    .status-bar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      color:#e5f9ed;
+      font-size:11px;
+      padding:4px 6px 0;
+      opacity:.9;
+    }
+
+    .status-bar-right{
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+
+    .pill-signal{
+      width:36px;
+      height:16px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.6);
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      padding:0 4px;
+      gap:2px;
+      font-size:10px;
+    }
+
+    .battery-bar{
+      width:16px;
+      height:8px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.7);
+      position:relative;
+      overflow:hidden;
+    }
+    .battery-bar-fill{
+      position:absolute;
+      inset:1px;
+      border-radius:999px;
+      background:#22c55e;
+    }
+
+    .screen{
+      flex:1;
+      background:radial-gradient(circle at top,#f9fafb 0,#f1f5f9 40%,#e2e8f0 100%);
+      border-radius:20px;
+      padding:16px 14px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      overflow:hidden;
+    }
+
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+    }
+
+    .title-block h1{
+      margin:0;
+      font-size:20px;
+      letter-spacing:-0.03em;
+      color:#020617;
+    }
+    .title-block p{
+      margin:4px 0 0;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .avatar-badge{
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      background:linear-gradient(135deg,#22c55e,#a3e635);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:17px;
+      color:#022c22;
+      box-shadow:0 8px 18px rgba(34,197,94,.35);
+    }
+
+    .search-row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    .search-input{
+      flex:1;
+      background:#e5f2ea;
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:13px;
+      border:1px solid rgba(148,163,184,.6);
+      display:flex;
+      align-items:center;
+      gap:6px;
+      color:var(--muted);
+    }
+    .search-input span{
+      font-size:14px;
+    }
+
+    .quick-btn{
+      width:38px;
+      height:38px;
+      border-radius:999px;
+      border:none;
+      outline:none;
+      background:#022c22;
+      color:#ecfdf5;
+      font-size:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      box-shadow:0 10px 22px rgba(15,23,42,.45);
+    }
+
+    /* HOME GRID */
+
+    #home-screen{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      overflow-y:auto;
+      padding-bottom:4px;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .section-label{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.13em;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+
+    .app-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+      gap:10px;
+    }
+
+    .app-card{
+      background:var(--panel);
+      border-radius:var(--radius-xl);
+      padding:10px 10px 11px;
+      border:1px solid var(--border);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      cursor:pointer;
+      box-shadow:0 8px 18px rgba(15,23,42,.12);
+      transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+      touch-action:manipulation;
+    }
+
+    .app-card:active{
+      transform:scale(.97) translateY(1px);
+      box-shadow:0 3px 10px rgba(15,23,42,.2);
+    }
+
+    .app-icon{
+      width:28px;
+      height:28px;
+      border-radius:999px;
+      background:var(--brand-soft);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+    }
+
+    .app-title{
+      font-size:14px;
+      font-weight:600;
+      color:#020617;
+    }
+    .app-sub{
+      font-size:11px;
+      color:var(--muted);
+    }
+
+    /* APP SCREEN */
+
+    #app-screen{
+      display:none;
+      flex:1;
+      flex-direction:column;
+      overflow:hidden;
+      gap:10px;
+    }
+
+    .app-topbar{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .back-btn{
+      border:none;
+      outline:none;
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:13px;
+      display:flex;
+      align-items:center;
+      gap:4px;
+      background:#e2f5eb;
+      color:#065f46;
+      cursor:pointer;
+    }
+
+    .back-btn span.icon{
+      font-size:14px;
+    }
+
+    .app-topbar-title{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:1px;
+    }
+
+    .app-topbar-title strong{
+      font-size:14px;
+    }
+    .app-topbar-title small{
+      font-size:11px;
+      color:var(--muted);
+    }
+
+    .app-container{
+      flex:1;
+      background:var(--panel);
+      border-radius:18px;
+      border:1px solid var(--border);
+      padding:10px;
+      overflow:hidden;
+      box-shadow:0 10px 20px rgba(15,23,42,.15);
+    }
+
+    .app-inner-scroll{
+      height:100%;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .app-view{
+      display:none;
+    }
+
+    .app-view.active{
+      display:block;
+    }
+
+    .placeholder-info{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.5;
+      padding:6px 2px 0;
+    }
+
+    .placeholder-info code{
+      font-size:12px;
+      background:#e5f2ea;
+      padding:2px 4px;
+      border-radius:4px;
+    }
+
+    /* BOTTOM HOME INDICATOR (style iPhone) */
+    .home-indicator{
+      height:4px;
+      width:82px;
+      border-radius:999px;
+      background:rgba(15,23,42,.85);
+      margin:0 auto 2px;
+      opacity:.9;
+    }
+
+    @media (min-width:600px){
+      body{
+        padding:18px;
+      }
+      .screen{
+        padding:18px 16px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Barre "statut" style smartphone -->
+    <div class="status-bar">
+      <div>Mes apps</div>
+      <div class="status-bar-right">
+        <div>4G</div>
+        <div class="pill-signal">
+          <div class="battery-bar">
+            <div class="battery-bar-fill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <header>
+        <div class="title-block">
+          <h1>Tableau de bord</h1>
+          <p>Choisis une fonctionnalité à ouvrir.</p>
+        </div>
+        <div class="avatar-badge">
+          ✨
+        </div>
+      </header>
+
+      <div class="search-row">
+        <div class="search-input">
+          <span>🔍</span>
+          <span>Rechercher (visuel)</span>
+        </div>
+        <button class="quick-btn" type="button" title="Action rapide">
+          +
+        </button>
+      </div>
+
+      <!-- ÉCRAN D'ACCUEIL AVEC LES CARTES D'APPS -->
+      <div id="home-screen">
+        <div>
+          <div class="section-label">Mes applications</div>
+          <div class="app-grid">
+            <!-- EXEMPLE APP 1 -->
+            <div class="app-card" onclick="openApp('app-qualite','Contrôle qualité')">
+              <div class="app-icon">📋</div>
+              <div class="app-title">Contrôle qualité</div>
+              <div class="app-sub">Résidences, bureaux, fiches terrain…</div>
+            </div>
+
+            <!-- EXEMPLE APP 2 -->
+            <div class="app-card" onclick="openApp('app-chantiers','Planning chantiers')">
+              <div class="app-icon">🧽</div>
+              <div class="app-title">Planning chantiers</div>
+              <div class="app-sub">Sites, horaires, agents, suivi…</div>
+            </div>
+
+            <!-- EXEMPLE APP 3 -->
+            <div class="app-card" onclick="openApp('app-heures','Suivi heures & calculs')">
+              <div class="app-icon">⏱️</div>
+              <div class="app-title">Suivi heures</div>
+              <div class="app-sub">Heures décimales, totaux, salaires…</div>
+            </div>
+
+            <!-- Tu peux dupliquer ce bloc pour ajouter d'autres apps :
+            <div class="app-card" onclick="openApp('ID_DE_TON_APP','Nom affiché')">
+              ...
+            </div>
+            -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ÉCRAN D'UNE APP OU TU COLLES TON CODE -->
+      <div id="app-screen">
+        <div class="app-topbar">
+          <button class="back-btn" type="button" onclick="backHome()">
+            <span class="icon">◀</span> Accueil
+          </button>
+          <div class="app-topbar-title">
+            <strong id="current-app-title">Application</strong>
+            <small>Vue détaillée</small>
+          </div>
+        </div>
+
+        <div class="app-container">
+          <div class="app-inner-scroll">
+            <!-- VUE APP 1 -->
+            <div id="app-qualite" class="app-view active">
+              <!-- 👉 COLLE ICI LE CODE COMPLET DE TON APP "Contrôle qualité" -->
+              <div class="placeholder-info">
+                Ici tu peux coller le code HTML (avec ton CSS/JS)
+                de ton application de <strong>contrôle qualité</strong>.<br><br>
+                Par exemple, remplace ce bloc par le code que tu utilises déjà pour
+                <code>KONTROL</code>, ou une de tes autres pages.
+              </div>
+            </div>
+
+            <!-- VUE APP 2 -->
+            <div id="app-chantiers" class="app-view">
+              <!-- 👉 COLLE ICI LE CODE COMPLET DE TON APP "Planning chantiers" -->
+              <div class="placeholder-info">
+                Ici tu colles ton application <strong>gestion / planning de chantiers</strong> :
+                formulaires, tableaux, filtres, etc.
+              </div>
+            </div>
+
+            <!-- VUE APP 3 -->
+            <div id="app-heures" class="app-view">
+              <!-- 👉 COLLE ICI LE CODE COMPLET DE TON APP "Suivi heures / calculs" -->
+              <div class="placeholder-info">
+                Ici tu colles ton app <strong>conversion heures, suivi temps, calcul salaire</strong>.<br>
+                Tu peux mettre ton convertisseur heures décimales par exemple.
+              </div>
+            </div>
+
+            <!-- 👉 POUR AJOUTER UNE NOUVELLE APP :
+            1) Crée une nouvelle carte dans .app-grid avec openApp('app-nom','Texte à afficher')
+            2) Crée ici un bloc :
+               <div id="app-nom" class="app-view"> ...ton code... </div>
+            -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+
+  <script>
+    function openApp(appId, title){
+      // Masque l'écran d'accueil
+      document.getElementById('home-screen').style.display = 'none';
+      // Affiche l'écran d'app
+      const appScreen = document.getElementById('app-screen');
+      appScreen.style.display = 'flex';
+
+      // Met à jour le titre
+      const titleEl = document.getElementById('current-app-title');
+      if(titleEl && title){
+        titleEl.textContent = title;
+      }
+
+      // Active la bonne vue
+      const views = document.querySelectorAll('.app-view');
+      views.forEach(v => v.classList.remove('active'));
+      const target = document.getElementById(appId);
+      if(target){
+        target.classList.add('active');
+      }
+    }
+
+    function backHome(){
+      // Ferme les vues d'app
+      document.getElementById('app-screen').style.display = 'none';
+      // Ré-affiche l'accueil
+      document.getElementById('home-screen').style.display = 'flex';
+    }
+  </script>
+</body>
+</html>
