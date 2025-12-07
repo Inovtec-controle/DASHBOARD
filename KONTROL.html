@@ -245,6 +245,139 @@
     .card{border-color:#e5e7eb; box-shadow:none}
     header.hero{background:#fff}
   }
+
+  /* ========= OPTIMISATIONS iPHONE / PETITS ÉCRANS ========= */
+  @media (max-width:600px){
+    body{
+      font-size:16px;
+    }
+
+    header.hero{
+      padding:12px 10px 10px;
+    }
+
+    h1{
+      font-size:20px;
+    }
+
+    .tagline{
+      font-size:12px;
+      padding:6px 10px;
+    }
+
+    main{
+      max-width:100%;
+      padding:10px 8px 96px;
+    }
+
+    .card{
+      padding:10px 10px 12px;
+      border-radius:14px;
+    }
+
+    .row{
+      flex-direction:column;
+    }
+    .grow,
+    .grow-lg{
+      min-width:100%;
+      flex:1 1 auto;
+    }
+
+    .task-title-wrap{
+      flex-direction:column;
+      align-items:flex-start;
+      gap:4px;
+    }
+
+    .task-title{
+      white-space:normal;
+    }
+
+    .actions{
+      margin-top:4px;
+      align-self:flex-end;
+    }
+
+    .tasks th,
+    .tasks td{
+      padding:8px 6px;
+      font-size:13px;
+    }
+
+    .status{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+
+    .status label{
+      width:100%;
+      justify-content:flex-start;
+    }
+
+    .add-task{
+      flex-direction:column;
+    }
+
+    .add-task button{
+      width:100%;
+    }
+
+    .photos-head{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+
+    .photos-head > div:last-child{
+      width:100%;
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+
+    .photos-head button{
+      flex:1 1 auto;
+      font-size:14px;
+      padding:8px 10px;
+    }
+
+    .sticky-actions{
+      padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+      gap:6px;
+    }
+
+    .sticky-actions button{
+      font-size:15px;
+      padding:10px;
+    }
+
+    .chip{
+      font-size:12px;
+      padding:5px 8px;
+    }
+
+    .score{
+      font-size:30px;
+    }
+  }
+
+  @media (max-width:380px){
+    main{
+      padding:8px 6px 92px;
+    }
+
+    .card{
+      padding:8px 8px 10px;
+    }
+
+    button{
+      font-size:15px;
+    }
+
+    .photos-grid{
+      grid-template-columns:repeat(2, minmax(0,1fr));
+    }
+  }
 </style>
 </head>
 <body>
