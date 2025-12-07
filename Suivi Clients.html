@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>KONTROL - Suivi des retours</title>
+
+  <!-- iPhone friendly -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#16a34a">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* THÈME CLAIR STYLE KONTROL */
+      --bg:#f1f5f9;
+      --panel:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:rgba(148,163,184,.4);
+      --brand:#16a34a;
+      --brand-soft:rgba(22,163,74,.08);
+      --danger:#ef4444;
+      --danger-soft:rgba(239,68,68,.08);
+      --warning:#f59e0b;
+      --warning-soft:rgba(245,158,11,.08);
+      --radius-lg:18px;
+      --radius-md:12px;
+      --shadow-soft:0 14px 30px rgba(15,23,42,.12);
+    }
+
+    * {
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+      font-family:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    body {
+      min-height:100vh;
+      background:var(--bg);
+      color:var(--text);
+      display:flex;
+      justify-content:center;
+      padding:16px;
+    }
+
+    .app-shell{
+      width:100%;
+      max-width:480px;
+      margin:0 auto;
+      padding-bottom:80px; /* pour laisser la place au bas d’écran iPhone */
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:12px;
+      margin-top:8px;
+    }
+
+    .logo-title{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .logo-dot{
+      width:32px;
+      height:32px;
+      border-radius:12px;
+      background:linear-gradient(135deg,#16a34a,#4ade80);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:white;
+      font-weight:800;
+      font-size:18px;
+      box-shadow:0 10px 20px rgba(22,163,74,.5);
+    }
+
+    .title-block h1{
+      font-size:18px;
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+    .title-block span{
+      display:block;
+      font-size:11px;
+      color:var(--muted);
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      margin-top:2px;
+    }
+
+    .top-actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .icon-btn{
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--panel);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:var(--brand-soft);
+      color:var(--brand);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      border:1px solid rgba(22,163,74,.3);
+    }
+
+    main{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .panel{
+      background:var(--panel);
+      border-radius:var(--radius-lg);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow-soft);
+      padding:12px;
+    }
+
+    .filters{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-bottom:4px;
+    }
+
+    .chip-row{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+
+    .chip{
+      flex:1 1 0;
+      text-align:center;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      font-size:12px;
+      color:var(--muted);
+      background:rgba(248,250,252,.9);
+    }
+
+    .chip.small{
+      flex:0 0 auto;
+      padding:5px 9px;
+      font-size:11px;
+    }
+
+    .chip.active{
+      border-color:var(--brand);
+      background:var(--brand-soft);
+      color:var(--brand);
+      font-weight:600;
+    }
+
+    .chip.secondary.active{
+      border-color:#0ea5e9;
+      background:rgba(56,189,248,.1);
+      color:#0369a1;
+    }
+
+    .subtext{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:2px;
+    }
+
+    .list-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:6px;
+      margin-top:4px;
+    }
+
+    .list-header h2{
+      font-size:14px;
+      font-weight:600;
+    }
+
+    .btn-primary{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:none;
+      font-size:12px;
+      font-weight:600;
+      background:linear-gradient(135deg,#16a34a,#22c55e);
+      color:#f9fafb;
+      box-shadow:0 10px 26px rgba(22,163,74,.45);
+    }
+
+    .btn-primary span.icon{
+      font-size:16px;
+    }
+
+    /* Liste des retours */
+    .retour-list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:6px;
+    }
+
+    .retour-card{
+      border-radius:var(--radius-md);
+      border:1px solid rgba(148,163,184,.45);
+      padding:10px;
+      background:radial-gradient(circle at top,#f9fafb,#eef2ff);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .retour-main-row{
+      display:flex;
+      justify-content:space-between;
+      gap:6px;
+      align-items:flex-start;
+    }
+
+    .retour-title{
+      font-size:13px;
+      font-weight:600;
+    }
+
+    .badge-row{
+      display:flex;
+      gap:5px;
+      flex-wrap:wrap;
+      margin-top:4px;
+    }
+
+    .badge{
+      font-size:10px;
+      padding:2px 7px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.6);
+      background:rgba(248,250,252,.9);
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+    }
+
+    .badge.type-reclam{
+      border-color:#f97316;
+      background:var(--warning-soft);
+      color:#9a3412;
+    }
+
+    .badge.type-oi{
+      border-color:#0ea5e9;
+      background:rgba(56,189,248,.12);
+      color:#075985;
+    }
+
+    .badge.status-en-cours{
+      border-color:var(--brand);
+      background:var(--brand-soft);
+      color:var(--brand);
+    }
+
+    .badge.status-clos{
+      border-color:#22c55e;
+      background:rgba(34,197,94,.12);
+      color:#15803d;
+    }
+
+    .retour-footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-top:4px;
+    }
+
+    .retour-meta{
+      font-size:10px;
+      color:var(--muted);
+    }
+
+    .see-detail{
+      font-size:11px;
+      color:var(--brand);
+      font-weight:600;
+      display:inline-flex;
+      align-items:center;
+      gap:3px;
+    }
+
+    /* Modal générique */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,.35);
+      backdrop-filter:blur(12px);
+      display:none;
+      z-index:20;
+      align-items:flex-end;
+      justify-content:center;
+    }
+
+    .modal-backdrop.active{
+      display:flex;
+    }
+
+    .modal{
+      width:100%;
+      max-width:480px;
+      background:var(--panel);
+      border-radius:22px 22px 0 0;
+      border:1px solid var(--border);
+      box-shadow:0 -10px 26px rgba(15,23,42,.4);
+      padding:14px 14px 18px;
+      max-height:92vh;
+      overflow:auto;
+    }
+
+    .modal-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:8px;
+    }
+
+    .modal-header h2{
+      font-size:15px;
+      font-weight:700;
+    }
+
+    .modal-close-btn{
+      width:28px;
+      height:28px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+      background:var(--panel);
+    }
+
+    .modal-section-title{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--muted);
+      margin-top:6px;
+      margin-bottom:4px;
+    }
+
+    .form-grid{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:4px;
+    }
+
+    label{
+      font-size:11px;
+      color:var(--muted);
+      display:block;
+      margin-bottom:2px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select,
+    textarea{
+      width:100%;
+      border-radius:10px;
+      border:1px solid var(--border);
+      padding:7px 9px;
+      font-size:12px;
+      background:#f8fafc;
+    }
+
+    textarea{
+      min-height:70px;
+      resize:vertical;
+    }
+
+    .btn-row{
+      display:flex;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .btn-secondary{
+      flex:1;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      font-size:12px;
+      background:#f8fafc;
+      color:var(--text);
+      font-weight:500;
+    }
+
+    .btn-primary.full{
+      width:100%;
+      justify-content:center;
+    }
+
+    /* Détail d’un retour */
+    .status-steps{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-top:4px;
+    }
+
+    .step-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:6px 8px;
+      border-radius:10px;
+      border:1px dashed rgba(148,163,184,.7);
+      background:#f8fafc;
+    }
+
+    .step-main{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+    }
+
+    .step-main .icon{
+      width:22px;
+      height:22px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:14px;
+      background:#e5e7eb;
+    }
+
+    .step-main strong{
+      font-size:12px;
+    }
+
+    .step-sub{
+      font-size:10px;
+      color:var(--muted);
+    }
+
+    .step-row.done{
+      border-style:solid;
+      border-color:var(--brand);
+      background:var(--brand-soft);
+    }
+
+    .step-row.done .step-main .icon{
+      background:#22c55e;
+      color:white;
+    }
+
+    .step-row.done .step-sub{
+      color:#166534;
+    }
+
+    .step-action-btn{
+      font-size:10px;
+      padding:4px 7px;
+      border-radius:999px;
+      border:none;
+      background:#0f172a;
+      color:#f9fafb;
+    }
+
+    .step-row.done .step-action-btn{
+      background:#111827;
+      opacity:.85;
+    }
+
+    .timeline{
+      margin-top:10px;
+      border-radius:12px;
+      background:#f8fafc;
+      border:1px solid rgba(148,163,184,.45);
+      padding:8px 9px;
+      max-height:160px;
+      overflow:auto;
+    }
+
+    .timeline-item{
+      position:relative;
+      padding-left:14px;
+      margin-bottom:4px;
+    }
+
+    .timeline-item::before{
+      content:"";
+      position:absolute;
+      left:4px;
+      top:4px;
+      width:3px;
+      height:3px;
+      border-radius:999px;
+      background:#16a34a;
+    }
+
+    .timeline-date{
+      font-size:10px;
+      color:var(--muted);
+    }
+
+    .timeline-text{
+      font-size:11px;
+    }
+
+    .photos-grid{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-top:6px;
+    }
+
+    .photo-thumb{
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      overflow:hidden;
+      border:1px solid rgba(148,163,184,.5);
+      background:#020617;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .photo-thumb img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .photo-label{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+
+    .danger-zone{
+      margin-top:10px;
+      padding:7px 8px;
+      border-radius:12px;
+      background:var(--danger-soft);
+      border:1px dashed var(--danger);
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      align-items:center;
+    }
+
+    .danger-zone p{
+      font-size:11px;
+      color:#7f1d1d;
+    }
+
+    .btn-danger{
+      font-size:11px;
+      padding:5px 9px;
+      border-radius:999px;
+      border:1px solid var(--danger);
+      background:#fee2e2;
+      color:#b91c1c;
+    }
+
+    .no-data{
+      font-size:12px;
+      color:var(--muted);
+      padding:10px 4px 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <div class="logo-title">
+        <div class="logo-dot">K</div>
+        <div class="title-block">
+          <h1>Suivi des retours</h1>
+          <span>Réclamations & Ordres d’intervention</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="pill">
+          <span class="icon">📲</span> iPhone ready
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="filters">
+          <div class="chip-row" id="filter-status-row">
+            <button class="chip active" data-status-filter="all">Tous</button>
+            <button class="chip" data-status-filter="open">En cours</button>
+            <button class="chip" data-status-filter="closed">Clôturés</button>
+          </div>
+          <div class="chip-row" id="filter-type-row">
+            <button class="chip small active secondary" data-type-filter="all">Tout type</button>
+            <button class="chip small secondary" data-type-filter="reclamation">Réclamations</button>
+            <button class="chip small secondary" data-type-filter="oi">Ordres d’intervention</button>
+          </div>
+          <p class="subtext">
+            Suis chaque retour de A à Z : réception, consigne agent, correction, photo, validation client.
+          </p>
+        </div>
+
+        <div class="list-header">
+          <h2>Retours en cours</h2>
+          <button class="btn-primary" id="open-create-modal">
+            <span class="icon">➕</span>
+            Nouveau retour
+          </button>
+        </div>
+
+        <div id="retourList" class="retour-list"></div>
+        <p id="noRetours" class="no-data" style="display:none;">
+          Aucun retour pour l’instant. Clique sur <strong>Nouveau retour</strong> pour en créer un.
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL CRÉATION -->
+  <div class="modal-backdrop" id="create-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Nouvelle réclamation / OI</h2>
+        <button class="modal-close-btn" data-close-create>✕</button>
+      </div>
+
+      <div>
+        <p class="modal-section-title">Informations générales</p>
+        <div class="form-grid">
+          <div>
+            <label for="create-type">Type de retour</label>
+            <select id="create-type">
+              <option value="reclamation">Réclamation client</option>
+              <option value="oi">Ordre d’intervention</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="create-site-type">Site</label>
+            <select id="create-site-type">
+              <option value="copro">Contrôle copropriété</option>
+              <option value="bureaux">Bureaux / Locaux tertiaires</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="create-title">Titre / Référence</label>
+            <input type="text" id="create-title" placeholder="Ex : Réclamation cage B – Résidence X">
+          </div>
+
+          <div>
+            <label for="create-client">Client / Contact</label>
+            <input type="text" id="create-client" placeholder="Nom du client, syndic, gérant...">
+          </div>
+
+          <div>
+            <label for="create-channel">Canal de réception</label>
+            <select id="create-channel">
+              <option value="Mail">Mail</option>
+              <option value="Téléphone">Téléphone</option>
+              <option value="SMS">SMS / WhatsApp</option>
+              <option value="Visite">Visite sur site</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="create-date">Date de réception</label>
+            <input type="date" id="create-date">
+          </div>
+
+          <div>
+            <label for="create-agent">Agent responsable</label>
+            <input type="text" id="create-agent" placeholder="Agent en charge de la correction">
+          </div>
+
+          <div>
+            <label for="create-description">Détail de la réclamation / OI</label>
+            <textarea id="create-description" placeholder="Décris précisément la demande du client ou la non-conformité constatée."></textarea>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" data-close-create>Annuler</button>
+          <button class="btn-primary" id="save-retour">
+            Enregistrer le retour
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DÉTAIL -->
+  <div class="modal-backdrop" id="detail-backdrop">
+    <div class="modal" id="detail-modal-inner">
+      <div class="modal-header">
+        <h2 id="detail-title">Détail du retour</h2>
+        <button class="modal-close-btn" data-close-detail>✕</button>
+      </div>
+
+      <div id="detail-content">
+        <!-- Contenu injecté en JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === DATA ===
+    const STORAGE_KEY = "kontrol_retours_v1";
+    let retours = [];
+    let currentFilters = {
+      status: "all",  // all / open / closed
+      type: "all"     // all / reclamation / oi
+    };
+    let currentDetailId = null;
+
+    function loadRetours(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){
+          retours = JSON.parse(raw);
+        }else{
+          retours = [];
+        }
+      }catch(e){
+        retours = [];
+      }
+    }
+
+    function saveRetours(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(retours));
+    }
+
+    function formatDate(d){
+      if(!d) return "";
+      const dt = new Date(d);
+      if(isNaN(dt)) return d;
+      return dt.toLocaleDateString("fr-FR", {day:"2-digit",month:"2-digit",year:"numeric"});
+    }
+
+    function formatDateTime(d){
+      if(!d) return "";
+      const dt = new Date(d);
+      if(isNaN(dt)) return d;
+      return dt.toLocaleString("fr-FR", {
+        day:"2-digit", month:"2-digit", year:"numeric",
+        hour:"2-digit", minute:"2-digit"
+      });
+    }
+
+    function computeStatus(retour){
+      const s = retour.steps || {};
+      if(s.retourClientOK){
+        return "clos";
+      }
+      if(s.photoOK || s.correctionFaite || s.transmisAgent || s.messageRecu){
+        return "en_cours";
+      }
+      return "en_cours";
+    }
+
+    function isClosed(retour){
+      return computeStatus(retour) === "clos";
+    }
+
+    // === RENDER LIST ===
+    function renderRetours(){
+      const container = document.getElementById("retourList");
+      const emptyLabel = document.getElementById("noRetours");
+      container.innerHTML = "";
+
+      let filtered = retours.slice().sort((a,b)=> (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+
+      filtered = filtered.filter(r=>{
+        const st = computeStatus(r);
+        if(currentFilters.status === "open" && st === "clos") return false;
+        if(currentFilters.status === "closed" && st !== "clos") return false;
+        if(currentFilters.type !== "all" && r.type !== currentFilters.type) return false;
+        return true;
+      });
+
+      if(filtered.length === 0){
+        emptyLabel.style.display = "block";
+        return;
+      }else{
+        emptyLabel.style.display = "none";
+      }
+
+      filtered.forEach(retour=>{
+        const card = document.createElement("article");
+        card.className = "retour-card";
+
+        const typeLabel = retour.type === "reclamation" ? "Réclamation client" : "Ordre d’intervention";
+        const siteLabel = retour.siteType === "copro" ? "Contrôle copro" :
+                          retour.siteType === "bureaux" ? "Bureaux" : "Autre site";
+
+        const status = computeStatus(retour);
+        const statusLabel = status === "clos" ? "Clôturé" : "En cours";
+        const statusClass = status === "clos" ? "badge status-clos" : "badge status-en-cours";
+
+        const lastUpdate = formatDate(retour.updatedAt || retour.createdAt);
+        const client = retour.client || "Client non renseigné";
+
+        card.innerHTML = `
+          <div class="retour-main-row">
+            <div>
+              <div class="retour-title">${retour.title || "(Sans titre)"}</div>
+              <div class="badge-row">
+                <span class="badge ${retour.type === "reclamation" ? "type-reclam" : "type-oi"}">
+                  <span>${retour.type === "reclamation" ? "📣" : "🛠️"}</span>
+                  ${typeLabel}
+                </span>
+                <span class="badge">
+                  <span>📍</span>${siteLabel}
+                </span>
+                <span class="${statusClass}">
+                  <span>${status === "clos" ? "✅" : "⏳"}</span>${statusLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="retour-footer">
+            <div class="retour-meta">
+              <div>Client : <strong>${client}</strong></div>
+              <div>Dernière mise à jour : ${lastUpdate || "—"}</div>
+            </div>
+            <button class="see-detail" data-open-detail="${retour.id}">
+              Détail <span>›</span>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      // Attach detail listeners
+      container.querySelectorAll("[data-open-detail]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const id = btn.getAttribute("data-open-detail");
+          openDetailModal(id);
+        });
+      });
+    }
+
+    // === MODAL CRÉATION ===
+    const createBackdrop = document.getElementById("create-backdrop");
+    const openCreateBtn = document.getElementById("open-create-modal");
+    const saveRetourBtn = document.getElementById("save-retour");
+
+    function openCreateModal(){
+      const dateInput = document.getElementById("create-date");
+      if(dateInput && !dateInput.value){
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth()+1).padStart(2,"0");
+        const dd = String(today.getDate()).padStart(2,"0");
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+      }
+      createBackdrop.classList.add("active");
+    }
+
+    function closeCreateModal(){
+      createBackdrop.classList.remove("active");
+    }
+
+    openCreateBtn.addEventListener("click", openCreateModal);
+    document.querySelectorAll("[data-close-create]").forEach(btn=>{
+      btn.addEventListener("click", closeCreateModal);
+    });
+
+    saveRetourBtn.addEventListener("click", ()=>{
+      const type = document.getElementById("create-type").value;
+      const siteType = document.getElementById("create-site-type").value;
+      const title = document.getElementById("create-title").value.trim();
+      const client = document.getElementById("create-client").value.trim();
+      const channel = document.getElementById("create-channel").value;
+      const date = document.getElementById("create-date").value;
+      const agent = document.getElementById("create-agent").value.trim();
+      const description = document.getElementById("create-description").value.trim();
+
+      const now = Date.now();
+
+      const id = "R" + now.toString(36);
+
+      const retour = {
+        id,
+        type,
+        siteType,
+        title,
+        client,
+        channel,
+        dateReception: date || null,
+        agent,
+        description,
+        createdAt: now,
+        updatedAt: now,
+        steps:{
+          messageRecu:true,
+          transmisAgent:false,
+          correctionFaite:false,
+          photoOK:false,
+          retourClientOK:false
+        },
+        timeline:[
+          {
+            date:now,
+            text:`Retour enregistré (${type === "reclamation" ? "Réclamation client" : "Ordre d’intervention"}) via ${channel}.`
+          }
+        ],
+        photos:[]
+      };
+
+      retours.push(retour);
+      saveRetours();
+      closeCreateModal();
+      renderRetours();
+      openDetailModal(id);
+    });
+
+    // === MODAL DÉTAIL ===
+    const detailBackdrop = document.getElementById("detail-backdrop");
+    const detailContent = document.getElementById("detail-content");
+    const detailTitle = document.getElementById("detail-title");
+
+    function closeDetailModal(){
+      detailBackdrop.classList.remove("active");
+      currentDetailId = null;
+    }
+
+    document.querySelectorAll("[data-close-detail]").forEach(btn=>{
+      btn.addEventListener("click", closeDetailModal);
+    });
+
+    function openDetailModal(id){
+      const retour = retours.find(r=>r.id===id);
+      if(!retour) return;
+      currentDetailId = id;
+      renderDetail(retour);
+      detailBackdrop.classList.add("active");
+    }
+
+    function addTimelineEntry(retour, text){
+      retour.timeline = retour.timeline || [];
+      retour.timeline.unshift({
+        date:Date.now(),
+        text
+      });
+    }
+
+    function renderDetail(retour){
+      detailTitle.textContent = retour.title || "Détail du retour";
+      const typeLabel = retour.type === "reclamation" ? "Réclamation client" : "Ordre d’intervention";
+      const siteLabel = retour.siteType === "copro" ? "Contrôle copropriété" :
+                        retour.siteType === "bureaux" ? "Bureaux / Locaux tertiaires" : "Autre site";
+      const status = computeStatus(retour);
+      const statusLabel = status === "clos" ? "Clôturé" : "En cours";
+
+      const steps = retour.steps || {};
+      const photos = retour.photos || [];
+      const timeline = retour.timeline || [];
+
+      detailContent.innerHTML = `
+        <div>
+          <div class="badge-row" style="margin-bottom:8px;">
+            <span class="badge ${retour.type === "reclamation" ? "type-reclam" : "type-oi"}">
+              <span>${retour.type === "reclamation" ? "📣" : "🛠️"}</span>${typeLabel}
+            </span>
+            <span class="badge">
+              <span>📍</span>${siteLabel}
+            </span>
+            <span class="badge ${status === "clos" ? "status-clos" : "status-en-cours"}">
+              <span>${status === "clos" ? "✅" : "⏳"}</span>${statusLabel}
+            </span>
+          </div>
+
+          <p class="modal-section-title">Données client</p>
+          <div class="form-grid">
+            <div>
+              <label>Client / Contact</label>
+              <div style="font-size:12px;"><strong>${retour.client || "Non renseigné"}</strong></div>
+            </div>
+            <div>
+              <label>Canal de réception</label>
+              <div style="font-size:12px;">${retour.channel || "Non renseigné"}</div>
+            </div>
+            <div>
+              <label>Date de réception</label>
+              <div style="font-size:12px;">${formatDate(retour.dateReception)}</div>
+            </div>
+            <div>
+              <label>Agent responsable</label>
+              <div style="font-size:12px;">${retour.agent || "Non défini"}</div>
+            </div>
+            <div>
+              <label>Description initiale</label>
+              <div style="font-size:12px;">${retour.description || "—"}</div>
+            </div>
+          </div>
+
+          <p class="modal-section-title">Étapes du suivi</p>
+          <div class="status-steps">
+            <div class="step-row ${steps.messageRecu ? "done" : ""}" data-step="messageRecu">
+              <div class="step-main">
+                <div class="icon">📩</div>
+                <div>
+                  <strong>Message reçu</strong>
+                  <div class="step-sub">Réclamation / OI enregistrée dans KONTROL.</div>
+                </div>
+              </div>
+              ${steps.messageRecu ? `<button class="step-action-btn" data-toggle-step="messageRecu">Annuler</button>` :
+                `<button class="step-action-btn" data-toggle-step="messageRecu">Valider</button>`}
+            </div>
+
+            <div class="step-row ${steps.transmisAgent ? "done" : ""}" data-step="transmisAgent">
+              <div class="step-main">
+                <div class="icon">📤</div>
+                <div>
+                  <strong>Consigne envoyée à l’agent</strong>
+                  <div class="step-sub">Instruction transmise (message, appel, etc.).</div>
+                </div>
+              </div>
+              ${steps.transmisAgent ? `<button class="step-action-btn" data-toggle-step="transmisAgent">Annuler</button>` :
+                `<button class="step-action-btn" data-toggle-step="transmisAgent">Valider</button>`}
+            </div>
+
+            <div class="step-row ${steps.correctionFaite ? "done" : ""}" data-step="correctionFaite">
+              <div class="step-main">
+                <div class="icon">✅</div>
+                <div>
+                  <strong>Correction réalisée</strong>
+                  <div class="step-sub">Tâche effectuée sur site par l’agent.</div>
+                </div>
+              </div>
+              ${steps.correctionFaite ? `<button class="step-action-btn" data-toggle-step="correctionFaite">Annuler</button>` :
+                `<button class="step-action-btn" data-toggle-step="correctionFaite">Valider</button>`}
+            </div>
+
+            <div class="step-row ${steps.photoOK ? "done" : ""}" data-step="photoOK">
+              <div class="step-main">
+                <div class="icon">📷</div>
+                <div>
+                  <strong>Photo de la correction</strong>
+                  <div class="step-sub">Preuve visuelle envoyée / stockée.</div>
+                </div>
+              </div>
+              ${steps.photoOK ? `<button class="step-action-btn" data-toggle-step="photoOK">Annuler</button>` :
+                `<button class="step-action-btn" data-toggle-step="photoOK">Valider</button>`}
+            </div>
+
+            <div class="step-row ${steps.retourClientOK ? "done" : ""}" data-step="retourClientOK">
+              <div class="step-main">
+                <div class="icon">😊</div>
+                <div>
+                  <strong>Retour client OK</strong>
+                  <div class="step-sub">Client satisfait, dossier clôturé.</div>
+                </div>
+              </div>
+              ${steps.retourClientOK ? `<button class="step-action-btn" data-toggle-step="retourClientOK">Annuler</button>` :
+                `<button class="step-action-btn" data-toggle-step="retourClientOK">Valider</button>`}
+            </div>
+          </div>
+
+          <p class="modal-section-title">Notes / suivi</p>
+          <div class="form-grid">
+            <div>
+              <label for="detail-new-note">Ajouter une note interne</label>
+              <textarea id="detail-new-note" placeholder="Ex : Agent informé par SMS à 10h15, retour prévu demain matin."></textarea>
+            </div>
+            <button class="btn-primary full" id="detail-add-note">Ajouter la note au suivi</button>
+          </div>
+
+          <div class="timeline" id="detail-timeline">
+            ${timeline.length === 0 ? `<div class="timeline-item"><div class="timeline-text">Aucun historique pour l’instant.</div></div>` :
+              timeline.map(item=>`
+                <div class="timeline-item">
+                  <div class="timeline-date">${formatDateTime(item.date)}</div>
+                  <div class="timeline-text">${item.text}</div>
+                </div>
+              `).join("")}
+          </div>
+
+          <p class="modal-section-title">Photos de la correction</p>
+          <div class="form-grid">
+            <div>
+              <label for="detail-photo-input">Ajouter une photo (prise avec l’iPhone)</label>
+              <input type="file" id="detail-photo-input" accept="image/*" />
+              <div class="photo-label">Les photos sont stockées localement dans ton navigateur (pas d’envoi sur un serveur).</div>
+            </div>
+            <div class="photos-grid" id="detail-photos">
+              ${photos.length === 0 ? `<span style="font-size:11px;color:var(--muted);">Aucune photo ajoutée pour l’instant.</span>` :
+                photos.map(p=>`
+                  <div class="photo-thumb"><img src="${p.dataUrl}" alt="${p.name || "photo"}"></div>
+                `).join("")}
+            </div>
+          </div>
+
+          <div class="danger-zone">
+            <p>Supprimer définitivement ce retour si la réclamation / OI a été archivée ailleurs.</p>
+            <button class="btn-danger" id="detail-delete">Supprimer</button>
+          </div>
+        </div>
+      `;
+
+      // Ajout des listeners pour les étapes
+      detailContent.querySelectorAll("[data-toggle-step]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const stepKey = btn.getAttribute("data-toggle-step");
+          toggleStep(retour.id, stepKey);
+        });
+      });
+
+      // Listener pour ajout de note
+      const addNoteBtn = document.getElementById("detail-add-note");
+      addNoteBtn.addEventListener("click", ()=>{
+        const textarea = document.getElementById("detail-new-note");
+        const value = textarea.value.trim();
+        if(!value) return;
+        const r = retours.find(x=>x.id===retour.id);
+        if(!r) return;
+        addTimelineEntry(r, value);
+        r.updatedAt = Date.now();
+        saveRetours();
+        renderDetail(r);
+        renderRetours();
+      });
+
+      // Listener pour ajout photo
+      const photoInput = document.getElementById("detail-photo-input");
+      photoInput.addEventListener("change", (e)=>{
+        const file = e.target.files && e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev){
+          const dataUrl = ev.target.result;
+          const r = retours.find(x=>x.id===retour.id);
+          if(!r) return;
+          r.photos = r.photos || [];
+          r.photos.push({name:file.name, dataUrl});
+          r.steps = r.steps || {};
+          r.steps.photoOK = true;
+          addTimelineEntry(r,"Photo de la correction ajoutée.");
+          r.updatedAt = Date.now();
+          saveRetours();
+          renderDetail(r);
+          renderRetours();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Listener suppression
+      const deleteBtn = document.getElementById("detail-delete");
+      deleteBtn.addEventListener("click", ()=>{
+        if(!confirm("Supprimer définitivement ce retour ?")){
+          return;
+        }
+        retours = retours.filter(x=>x.id!==retour.id);
+        saveRetours();
+        closeDetailModal();
+        renderRetours();
+      });
+    }
+
+    function toggleStep(id, stepKey){
+      const r = retours.find(x=>x.id===id);
+      if(!r) return;
+      r.steps = r.steps || {};
+      const newValue = !r.steps[stepKey];
+      r.steps[stepKey] = newValue;
+
+      let labelMap = {
+        messageRecu:"Etape “Message reçu” mise à jour.",
+        transmisAgent:"Consigne agent mise à jour.",
+        correctionFaite:"Correction réalisée mise à jour.",
+        photoOK:"Etat de la photo de correction mis à jour.",
+        retourClientOK: newValue ? "Retour client OK, dossier clôturé." : "Retour client OK annulé."
+      };
+      addTimelineEntry(r, labelMap[stepKey] || "Etape mise à jour.");
+      r.updatedAt = Date.now();
+      saveRetours();
+      renderRetours();
+      renderDetail(r);
+    }
+
+    // === FILTRES ===
+    document.getElementById("filter-status-row").addEventListener("click", e=>{
+      const btn = e.target.closest(".chip");
+      if(!btn) return;
+      const value = btn.getAttribute("data-status-filter");
+      if(!value) return;
+      currentFilters.status = value;
+      document.querySelectorAll("[data-status-filter]").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      renderRetours();
+    });
+
+    document.getElementById("filter-type-row").addEventListener("click", e=>{
+      const btn = e.target.closest(".chip");
+      if(!btn) return;
+      const value = btn.getAttribute("data-type-filter");
+      if(!value) return;
+      currentFilters.type = value;
+      document.querySelectorAll("[data-type-filter]").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      renderRetours();
+    });
+
+    // === INIT ===
+    loadRetours();
+    renderRetours();
+  </script>
+</body>
+</html>
