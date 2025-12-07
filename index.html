@@ -24,7 +24,6 @@
       --border:rgba(148,163,184,.4);
       --brand:#16a34a;
       --brand-soft:rgba(22,163,74,.08);
-      --danger:#dc2626;
       --radius-xl:20px;
       --shadow-soft:0 14px 35px rgba(15,23,42,.25);
     }
@@ -65,7 +64,7 @@
       overflow:hidden;
     }
 
-    /* Top status bar style */
+    /* Barre de statut style smartphone */
     .status-bar{
       display:flex;
       justify-content:space-between;
@@ -257,99 +256,6 @@
       color:var(--muted);
     }
 
-    /* lien carte */
-    .app-link{
-      text-decoration:none;
-      color:inherit;
-    }
-
-    /* APP SCREEN */
-
-    #app-screen{
-      display:none;
-      flex:1;
-      flex-direction:column;
-      overflow:hidden;
-      gap:10px;
-    }
-
-    .app-topbar{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-
-    .back-btn{
-      border:none;
-      outline:none;
-      border-radius:999px;
-      padding:7px 10px;
-      font-size:13px;
-      display:flex;
-      align-items:center;
-      gap:4px;
-      background:#e2f5eb;
-      color:#065f46;
-      cursor:pointer;
-    }
-
-    .back-btn span.icon{
-      font-size:14px;
-    }
-
-    .app-topbar-title{
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      gap:1px;
-    }
-
-    .app-topbar-title strong{
-      font-size:14px;
-    }
-    .app-topbar-title small{
-      font-size:11px;
-      color:var(--muted);
-    }
-
-    .app-container{
-      flex:1;
-      background:var(--panel);
-      border-radius:18px;
-      border:1px solid var(--border);
-      padding:10px;
-      overflow:hidden;
-      box-shadow:0 10px 20px rgba(15,23,42,.15);
-    }
-
-    .app-inner-scroll{
-      height:100%;
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
-    }
-
-    .app-view{
-      display:none;
-    }
-
-    .app-view.active{
-      display:block;
-    }
-
-    .placeholder-info{
-      font-size:13px;
-      color:var(--muted);
-      line-height:1.5;
-      padding:6px 2px 0;
-    }
-
-    .placeholder-info code{
-      font-size:12px;
-      background:#e5f2ea;
-      padding:2px 4px;
-      border-radius:4px;
-    }
-
     /* BOTTOM HOME INDICATOR (style iPhone) */
     .home-indicator{
       height:4px;
@@ -411,78 +317,32 @@
         <div>
           <div class="section-label">Mes applications</div>
           <div class="app-grid">
-            <!-- BOUTON QUI OUVRE LA PAGE KONTROL -->
-            <!-- Remplace KONTROL.html par le vrai nom/chemin de ta page KONTROL -->
-            <a href="KONTROL.html" class="app-card app-link">
+            <!-- BOUTON KONTROL : ouvre le fichier KONTROL.html du dépôt -->
+            <div class="app-card" onclick="openFeature('KONTROL.html')">
               <div class="app-icon">📋</div>
               <div class="app-title">KONTROL</div>
-              <div class="app-sub">Ouvrir l’app KONTROL (contrôle qualité)</div>
-            </a>
+              <div class="app-sub">Contrôle qualité – Résidences / Bureaux</div>
+            </div>
 
-            <!-- EXEMPLE APP 2 (vue interne) -->
-            <div class="app-card" onclick="openApp('app-chantiers','Planning chantiers')">
+            <!-- EXEMPLES POUR PLUS TARD : même principe -->
+            <div class="app-card" onclick="openFeature('PlanningChantiers.html')">
               <div class="app-icon">🧽</div>
               <div class="app-title">Planning chantiers</div>
               <div class="app-sub">Sites, horaires, agents, suivi…</div>
             </div>
 
-            <!-- EXEMPLE APP 3 (vue interne) -->
-            <div class="app-card" onclick="openApp('app-heures','Suivi heures & calculs')">
+            <div class="app-card" onclick="openFeature('SuiviHeures.html')">
               <div class="app-icon">⏱️</div>
               <div class="app-title">Suivi heures</div>
               <div class="app-sub">Heures décimales, totaux, salaires…</div>
             </div>
 
-            <!-- Tu peux dupliquer ce bloc pour ajouter d'autres apps internes :
-            <div class="app-card" onclick="openApp('app-nom','Nom affiché')">
-              ...
+            <!-- Pour ajouter une nouvelle fonctionnalité plus tard :
+            <div class="app-card" onclick="openFeature('NomDuFichier.html')">
+              <div class="app-icon">🌟</div>
+              <div class="app-title">Nom de l’app</div>
+              <div class="app-sub">Petite description…</div>
             </div>
-
-            Ou ajouter d'autres liens externes comme KONTROL :
-            <a href="TON_FICHIER.html" class="app-card app-link">
-              ...
-            </a>
-            -->
-          </div>
-        </div>
-      </div>
-
-      <!-- ÉCRAN D'UNE APP INTERNE OU TU COLLES TON CODE -->
-      <div id="app-screen">
-        <div class="app-topbar">
-          <button class="back-btn" type="button" onclick="backHome()">
-            <span class="icon">◀</span> Accueil
-          </button>
-          <div class="app-topbar-title">
-            <strong id="current-app-title">Application</strong>
-            <small>Vue détaillée</small>
-          </div>
-        </div>
-
-        <div class="app-container">
-          <div class="app-inner-scroll">
-            <!-- VUE APP CHANTIERS -->
-            <div id="app-chantiers" class="app-view active">
-              <!-- 👉 COLLE ICI LE CODE COMPLET DE TON APP "Planning chantiers" -->
-              <div class="placeholder-info">
-                Ici tu colles ton application <strong>gestion / planning de chantiers</strong> :
-                formulaires, tableaux, filtres, etc.
-              </div>
-            </div>
-
-            <!-- VUE APP HEURES -->
-            <div id="app-heures" class="app-view">
-              <!-- 👉 COLLE ICI LE CODE COMPLET DE TON APP "Suivi heures / calculs" -->
-              <div class="placeholder-info">
-                Ici tu colles ton app <strong>conversion heures, suivi temps, calcul salaire</strong>.<br>
-                Tu peux mettre ton convertisseur heures décimales par exemple.
-              </div>
-            </div>
-
-            <!-- 👉 POUR AJOUTER UNE NOUVELLE APP INTERNE :
-            1) Crée une nouvelle carte dans .app-grid avec openApp('app-nom','Texte à afficher')
-            2) Crée ici un bloc :
-               <div id="app-nom" class="app-view"> ...ton code... </div>
             -->
           </div>
         </div>
@@ -493,33 +353,25 @@
   </div>
 
   <script>
-    function openApp(appId, title){
-      // Masque l'écran d'accueil
-      document.getElementById('home-screen').style.display = 'none';
-      // Affiche l'écran d'app
-      const appScreen = document.getElementById('app-screen');
-      appScreen.style.display = 'flex';
-
-      // Met à jour le titre
-      const titleEl = document.getElementById('current-app-title');
-      if(titleEl && title){
-        titleEl.textContent = title;
+    // Calcule le "dossier de base" où se trouve index.html
+    function getBasePath(){
+      const path = window.location.pathname; // ex : /CONTROL/index.html ou /CONTROL/
+      if (path.endsWith('index.html')) {
+        return path.slice(0, -'index.html'.length); // /CONTROL/
       }
-
-      // Active la bonne vue
-      const views = document.querySelectorAll('.app-view');
-      views.forEach(v => v.classList.remove('active'));
-      const target = document.getElementById(appId);
-      if(target){
-        target.classList.add('active');
+      if (path.endsWith('/')) {
+        return path; // déjà un dossier /CONTROL/
       }
+      // cas rare : /CONTROL (sans / ni index.html)
+      const lastSlash = path.lastIndexOf('/');
+      return path.substring(0, lastSlash + 1);
     }
 
-    function backHome(){
-      // Ferme les vues d'app
-      document.getElementById('app-screen').style.display = 'none';
-      // Ré-affiche l'accueil
-      document.getElementById('home-screen').style.display = 'flex';
+    // Ouvre un fichier HTML du dépôt (même zone de fichiers que index)
+    function openFeature(fileName){
+      const base = getBasePath();
+      const target = base + fileName; // ex : /CONTROL/KONTROL.html
+      window.location.href = target;
     }
   </script>
 </body>
