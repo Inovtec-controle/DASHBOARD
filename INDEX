@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>INOVTEC – Gestion de chantiers</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Police facultative (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-soft: #111827;
+      --bg-card: #020617;
+      --accent: #22c55e;
+      --accent-soft: rgba(34, 197, 94, 0.15);
+      --accent-strong: #16a34a;
+      --text: #e5e7eb;
+      --text-muted: #9ca3af;
+      --border: #1f2937;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 45%, #020617 100%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to right, rgba(34, 197, 94, 0.10), transparent);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 30%;
+      background: radial-gradient(circle at 30% 20%, #bbf7d0, #22c55e 35%, #16a34a 65%, #065f46 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ecfdf5;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 0 24px rgba(34, 197, 94, 0.55);
+    }
+
+    .brand-text-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .brand-text-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .env-badge {
+      border-radius: 999px;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      padding: 0.25rem 0.7rem;
+      font-size: 0.75rem;
+      color: var(--accent);
+      background: rgba(15, 23, 42, 0.8);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .env-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3);
+    }
+
+    nav {
+      border-top: 1px solid rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0.4rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-tab {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      padding: 0.4rem 0.9rem;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: all 0.15s ease-out;
+    }
+
+    .nav-tab span.icon {
+      font-size: 0.95rem;
+    }
+
+    .nav-tab:hover {
+      border-color: rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text);
+    }
+
+    .nav-tab.active {
+      border-color: rgba(34, 197, 94, 0.5);
+      background: var(--accent-soft);
+      color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 0 18px rgba(34, 197, 94, 0.45);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .user-tag {
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      border: 1px dashed rgba(148, 163, 184, 0.5);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .user-initials {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+    }
+
+    main {
+      flex: 1;
+      padding: 1.5rem 1.25rem 2rem;
+    }
+
+    .main-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: 1.75rem;
+      align-items: flex-start;
+      margin-bottom: 1.75rem;
+    }
+
+    @media (max-width: 840px) {
+      .hero {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      header {
+        position: static;
+      }
+    }
+
+    .hero-left-title {
+      font-size: clamp(1.4rem, 2.2vw, 1.8rem);
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .hero-left-sub {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.9rem;
+    }
+
+    .hero-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1.1rem;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .pill strong {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 0.45rem 0.95rem;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text);
+      text-decoration: none;
+      transition: all 0.16s ease-out;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #022c22;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.45);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-strong);
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(34, 197, 94, 0.6);
+    }
+
+    .btn-outline {
+      border-color: rgba(148, 163, 184, 0.6);
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.75);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    .hero-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .hero-meta span {
+      color: var(--accent);
+    }
+
+    .hero-right {
+      border-radius: 1.1rem;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.10), rgba(15, 23, 42, 0.98));
+      padding: 0.9rem 1rem;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.9);
+    }
+
+    .hero-right-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.4rem;
+    }
+
+    .hero-right-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.9rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .mini-card {
+      border-radius: 0.9rem;
+      border: 1px solid rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.95);
+      padding: 0.65rem 0.7rem;
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .mini-card-label {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    .mini-card-value {
+      font-weight: 500;
+    }
+
+    .mini-card-pill {
+      font-size: 0.7rem;
+      color: var(--accent);
+    }
+
+    .section {
+      display: none;
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .section-title span.icon {
+      font-size: 1rem;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    @media (max-width: 900px) {
+      .cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 600px) {
+      .cards-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card-link {
+      border-radius: 0.9rem;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      background: rgba(15, 23, 42, 0.99);
+      padding: 0.8rem 0.85rem;
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.16s ease-out;
+    }
+
+    .card-link::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.20), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.2s ease-out;
+      pointer-events: none;
+    }
+
+    .card-link:hover {
+      border-color: rgba(34, 197, 94, 0.6);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.95), 0 0 26px rgba(34, 197, 94, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .card-link:hover::before {
+      opacity: 1;
+    }
+
+    .card-link-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .card-link-title {
+      font-weight: 500;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .card-link-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(51, 65, 85, 0.9);
+    }
+
+    .card-link-tag {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-muted);
+      border: 1px solid rgba(51, 65, 85, 0.9);
+    }
+
+    .card-link-body {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .card-link-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .card-link-footer span.accent {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 0.8rem 1.25rem 1.2rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-align: center;
+      background: #020617;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-logo">IC</div>
+      <div>
+        <div class="brand-text-title">INOVTEC CONTROL</div>
+        <div class="brand-text-sub">Base de gestion centralisée des chantiers</div>
+      </div>
+    </div>
+    <div>
+      <div class="env-badge">
+        <span class="env-dot"></span>
+        <span>Projet en développement</span>
+      </div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-section="dashboard">
+          <span class="icon">🏠</span> Accueil
+        </button>
+        <button class="nav-tab" data-section="chantiers">
+          <span class="icon">📋</span> Chantiers
+        </button>
+        <button class="nav-tab" data-section="suivi">
+          <span class="icon">📊</span> Suivi & Qualité
+        </button>
+        <button class="nav-tab" data-section="planning">
+          <span class="icon">🧑‍🤝‍🧑</span> Équipes & Planning
+        </button>
+        <button class="nav-tab" data-section="parametres">
+          <span class="icon">⚙️</span> Paramètres
+        </button>
+      </div>
+      <div class="nav-right">
+        <div class="user-tag">
+          <div class="user-initials">CF</div>
+          <span>Responsable de secteur</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <div class="main-inner">
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-left">
+        <div class="hero-left-title">
+          Centralise tout le <span style="color: var(--accent);">suivi de tes chantiers</span> au même endroit.
+        </div>
+        <div class="hero-left-sub">
+          Cette page est la base de ton application : à partir d’ici, tu accèdes à la gestion des chantiers,
+          au suivi qualité, au planning des équipes et à tous les futurs modules que tu rajouteras.
+        </div>
+
+        <div class="hero-pills">
+          <div class="pill">
+            ✅ <strong>Gestion des chantiers</strong>
+          </div>
+          <div class="pill">
+            ✅ Suivi des contrôles & qualité
+          </div>
+          <div class="pill">
+            ✅ Planning des agents multi-sites
+          </div>
+          <div class="pill">
+            🌐 Hébergé sur GitHub Pages
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <!-- adapte les href selon tes futures pages -->
+          <a href="chantiers.html" class="btn btn-primary">
+            <span>➕ Créer / gérer un chantier</span>
+          </a>
+          <a href="#section-dashboard" class="btn btn-outline">
+            <span>🧭 Explorer les modules</span>
+          </a>
+        </div>
+
+        <div class="hero-meta">
+          Point de départ du projet : <span>index.html</span> – tu peux le versionner sur GitHub et l’améliorer
+          au fur et à mesure.
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="hero-right-title">Vue rapide</div>
+        <div class="hero-right-sub">
+          Quelques indicateurs (tu pourras les connecter plus tard à tes vraies données).
+        </div>
+        <div class="hero-grid">
+          <div class="mini-card">
+            <div class="mini-card-label">Chantiers actifs</div>
+            <div class="mini-card-value">12</div>
+            <div class="mini-card-pill">Résidences, bureaux, copropriétés…</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-label">Agents</div>
+            <div class="mini-card-value">30</div>
+            <div class="mini-card-pill">Multi-sites & temps partiel</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-label">Contrôles cette semaine</div>
+            <div class="mini-card-value">18</div>
+            <div class="mini-card-pill">Suivi qualité & visites terrain</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-label">Alertes</div>
+            <div class="mini-card-value" style="color: var(--danger);">3</div>
+            <div class="mini-card-pill">Retards / anomalies signalées</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION : DASHBOARD / MODULES -->
+    <section class="section active" id="section-dashboard" data-section="dashboard">
+      <h2 class="section-title">
+        <span class="icon">📂</span>
+        Modules principaux de ton application
+      </h2>
+      <div class="cards-grid">
+        <a class="card-link" href="chantiers.html">
+          <div class="card-link-header">
+            <div class="card-link-title">
+              <div class="card-link-icon">📋</div>
+              Gestion des chantiers
+            </div>
+            <div class="card-link-tag">Profil chantier</div>
+          </div>
+          <div class="card-link-body">
+            Crée, modifie et centralise toutes les informations d’un chantier :
+            adresse, syndic, clés, consignes, fréquence, matériel, photos, etc.
+          </div>
+          <div class="card-link-footer">
+            <span class="accent">Accéder à la fiche chantiers</span>
+            <span>chantiers.html</span>
+          </div>
+        </a>
+
+        <a class="card-link" href="suivi-chantier.html">
+          <div class="card-link-header">
+            <div class="card-link-title">
+              <div class="card-link-icon">📊</div>
+              Suivi qualité & visites
+            </div>
+            <div class="card-link-tag">Suivi</div>
+          </div>
+          <div class="card-link-body">
+            Renseigne les contrôles effectués, notes de qualité, remarques clients
+            et actions correctives à prévoir sur chaque chantier.
+          </div>
+          <div class="card-link-footer">
+            <span class="accent">Ouvrir le suivi</span>
+            <span>suivi-chantier.html</span>
+          </div>
+        </a>
+
+        <a class="card-link" href="planning.html">
+          <div class="card-link-header">
+            <div class="card-link-title">
+              <div class="card-link-icon">🧑‍🤝‍🧑</div>
+              Planning des équipes
+            </div>
+            <div class="card-link-tag">Équipes</div>
+          </div>
+          <div class="card-link-body">
+            Organisation des tournées, horaires des agents, multi-sites, remplacement
+            en cas d’absence, vision rapide des équipes du jour.
+          </div>
+          <div class="card-link-footer">
+            <span class="accent">Voir le planning</span>
+            <span>planning.html</span>
+          </div>
+        </a>
+
+        <a class="card-link" href="controle-copropriete.html">
+          <div class="card-link-header">
+            <div class="card-link-title">
+              <div class="card-link-icon">🏢</div>
+              Contrôles copropriété
+            </div>
+            <div class="card-link-tag">Résidences</div>
+          </div>
+          <div class="card-link-body">
+            Fiches de contrôle spécifiques aux résidences, halls, parkings,
+            locaux poubelles, espaces verts, etc.
+          </div>
+          <div class="card-link-footer">
+            <span class="accent">Accéder</span>
+            <span>controle-copropriete.html</span>
+          </div>
+        </a>
+
+        <a class="card-link" href="controle-bureau.html">
+          <div class="card-link-header">
+            <div class="card-link-title">
+              <div class="card-link-icon">🏬</div>
+              Contrôles bureaux / locaux
+            </div>
+            <div class="card-link-tag">Bureaux</div>
+          </div>
+          <div class="card-link-body">
+            Suivi spécifique des prestations en bureaux : sanitaires,
+            postes de travail, salles de réunion, vitres, etc.
+          </div>
+          <div class="card-link-footer">
+            <span class="accent">Accéder</span>
+            <span>controle-bureau.html</span>
+          </div>
+        </a>
+
+        <a class="card-link" href="parametres.html">
+          <div class="card-link-header">
+            <div class="card-link-title">
+              <div class="card-link-icon">⚙️</div>
+              Paramètres & référentiels
+            </div>
+            <div class="card-link-tag">Configuration</div>
+          </div>
+          <div class="card-link-body">
+            Gestion des listes communes : chantiers, clients, agents,
+            fréquences, types de contrôles, matériels, modèles d’e-mails, etc.
+          </div>
+          <div class="card-link-footer">
+            <span class="accent">Configurer</span>
+            <span>parametres.html</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- SECTION : CHANTIERS -->
+    <section class="section" id="section-chantiers" data-section="chantiers">
+      <h2 class="section-title">
+        <span class="icon">📋</span>
+        Gestion des chantiers
+      </h2>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.7rem;">
+        Cette section est une vue simplifiée pour te rappeler à quoi servira le module
+        <strong>Chantiers</strong>. Clique sur le bouton ci-dessous pour aller vers la
+        vraie page dédiée (que tu créeras ou as déjà créée).
+      </p>
+      <div class="hero-actions">
+        <a href="chantiers.html" class="btn btn-primary">
+          <span>📋 Ouvrir la gestion des chantiers</span>
+        </a>
+        <a href="#" class="btn btn-outline">
+          <span>📝 Idée : lier ici la base de données chantiers (localStorage / JSON)</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- SECTION : SUIVI -->
+    <section class="section" id="section-suivi" data-section="suivi">
+      <h2 class="section-title">
+        <span class="icon">📊</span>
+        Suivi qualité & contrôles
+      </h2>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.7rem;">
+        Cette section centralisera les indicateurs de qualité, les derniers contrôles,
+        les chantiers en alerte, etc. Pour l’instant, c’est une base visuelle pour ton projet.
+      </p>
+      <div class="hero-actions">
+        <a href="suivi-chantier.html" class="btn btn-primary">
+          <span>📊 Aller au suivi des chantiers</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- SECTION : PLANNING -->
+    <section class="section" id="section-planning" data-section="planning">
+      <h2 class="section-title">
+        <span class="icon">🧑‍🤝‍🧑</span>
+        Équipes & planning
+      </h2>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.7rem;">
+        Ici tu pourras afficher le planning des agents, les tournées, les absences,
+        et les chantiers non couverts. Pour l’instant, le lien mène vers une future page
+        <code>planning.html</code>.
+      </p>
+      <div class="hero-actions">
+        <a href="planning.html" class="btn btn-primary">
+          <span>🧑‍🤝‍🧑 Ouvrir le planning</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- SECTION : PARAMETRES -->
+    <section class="section" id="section-parametres" data-section="parametres">
+      <h2 class="section-title">
+        <span class="icon">⚙️</span>
+        Paramètres & configuration
+      </h2>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.7rem;">
+        Ici tu pourras gérer toutes les listes partagées (chantiers, agents, clients,
+        types de contrôle, etc.) et connecter tes menus déroulants au même référentiel.
+      </p>
+      <div class="hero-actions">
+        <a href="parametres.html" class="btn btn-primary">
+          <span>⚙️ Ouvrir les paramètres</span>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  INOVTEC CONTROL – Base de projet HTML hébergée sur GitHub Pages.  
+  Tu peux modifier cette page comme tu veux, elle sert de point de départ à toute ton application.
+</footer>
+
+<script>
+  // Gestion des onglets (sections)
+  const tabs = document.querySelectorAll(".nav-tab");
+  const sections = document.querySelectorAll(".section");
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const target = tab.getAttribute("data-section");
+
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      sections.forEach(sec => {
+        if (sec.getAttribute("data-section") === target) {
+          sec.classList.add("active");
+        } else {
+          sec.classList.remove("active");
+        }
+      });
+
+      // Scroll en haut de la page quand on change d’onglet
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+</script>
+</body>
+</html>
