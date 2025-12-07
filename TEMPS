@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>KONTROL – Conversion temps → heure décimale</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- iPhone friendly -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      /* Palette KONTROL – thème clair */
+      --bg: #f1f5f9;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: rgba(148, 163, 184, 0.4);
+      --brand: #16a34a;
+      --brand-soft: rgba(22, 163, 74, 0.08);
+      --danger: #ef4444;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: radial-gradient(circle at top, #e2e8f0, #f1f5f9);
+      color: var(--text);
+    }
+
+    .app {
+      width: 100%;
+      max-width: 440px;
+      background: var(--panel);
+      border-radius: 22px;
+      padding: 22px 20px 20px;
+      box-shadow:
+        0 18px 40px rgba(15, 23, 42, 0.16),
+        0 0 0 1px rgba(148, 163, 184, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at top left, rgba(22, 163, 74, 0.12), transparent 60%),
+        radial-gradient(circle at bottom right, rgba(22, 163, 74, 0.08), transparent 60%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .app-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: var(--brand-soft);
+      color: var(--brand);
+      margin-bottom: 8px;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--brand);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 1.2rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .field-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text);
+      font-size: 0.98rem;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    input[type="text"]::placeholder {
+      color: rgba(148, 163, 184, 0.9);
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.35);
+      background: #ffffff;
+    }
+
+    .examples {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .examples strong {
+      font-weight: 600;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin: 16px 0 18px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.1s ease, box-shadow 0.15s ease,
+        background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #f0fdf4;
+      box-shadow: 0 10px 26px rgba(22, 163, 74, 0.35);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 13px 32px rgba(22, 163, 74, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 7px 18px rgba(22, 163, 74, 0.45);
+    }
+
+    .btn-secondary {
+      padding-inline: 10px;
+      background: #f8fafc;
+      color: var(--muted);
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #ffffff;
+      border-color: rgba(148, 163, 184, 0.9);
+    }
+
+    .btn-icon {
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .result-card {
+      border-radius: var(--radius-lg);
+      background: var(--brand-soft);
+      padding: 12px 14px 10px;
+      display: none;
+      border: 1px solid rgba(22, 163, 74, 0.35);
+      box-shadow: 0 6px 18px rgba(22, 163, 74, 0.15);
+    }
+
+    .result-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #047857;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .result-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .decimal-value {
+      font-size: 1.8rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      color: #022c22;
+    }
+
+    .decimal-unit {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #047857;
+      margin-top: -2px;
+    }
+
+    .result-detail {
+      margin-top: 4px;
+      font-size: 0.8rem;
+      color: #064e3b;
+      text-align: right;
+      flex: 1;
+    }
+
+    .error {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      color: var(--danger);
+      min-height: 1em;
+    }
+
+    .tip {
+      margin-top: 10px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .tip strong {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    @media (max-width: 480px) {
+      .app {
+        padding: 18px 16px 16px;
+        border-radius: 20px;
+      }
+      .decimal-value {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="app-content">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        KONTROL · Outil planning
+      </div>
+
+      <h1>Conversion en heures décimales</h1>
+      <p class="subtitle">
+        Entre un temps “normal” (heures:minutes) et je te donne l’équivalent
+        en heures décimales pour tes plannings et payes.
+      </p>
+
+      <div class="field-group">
+        <label for="timeInput">Temps à convertir</label>
+        <input
+          id="timeInput"
+          type="text"
+          autocomplete="off"
+          placeholder="Ex : 7:30  •  7h30  •  3:45"
+        />
+        <div class="examples">
+          Formats acceptés :
+          <strong>7:30</strong>, <strong>7h30</strong>, <strong>7H30</strong>,
+          <strong>3:15</strong>, etc.
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="convertBtn">
+          <span class="btn-icon">⏱</span>
+          <span>Convertir</span>
+        </button>
+        <button class="btn-secondary" id="clearBtn" title="Effacer">
+          ✕
+        </button>
+      </div>
+
+      <div id="resultCard" class="result-card">
+        <div class="result-label">Résultat</div>
+        <div class="result-main">
+          <div>
+            <div class="decimal-value" id="decimalValue">0,00</div>
+            <div class="decimal-unit">heures décimales</div>
+          </div>
+          <div class="result-detail" id="detailText"></div>
+        </div>
+      </div>
+
+      <div id="errorMsg" class="error"></div>
+
+      <div class="tip">
+        💡 Rappel : <strong>30 minutes = 0,50 h</strong>,
+        <strong>15 minutes = 0,25 h</strong>,
+        <strong>45 minutes = 0,75 h</strong>.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById("timeInput");
+    const convertBtn = document.getElementById("convertBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const resultCard = document.getElementById("resultCard");
+    const decimalValue = document.getElementById("decimalValue");
+    const detailText = document.getElementById("detailText");
+    const errorMsg = document.getElementById("errorMsg");
+
+    /**
+     * Parse un temps "normal" (7:30, 7h30, 7H30...) en nombre d'heures décimales
+     * Retourne un objet { decimal, h, m } ou null si invalide
+     */
+    function parseTimeToDecimal(raw) {
+      if (!raw) return null;
+
+      let value = raw.trim();
+
+      // Remplace virgule par point pour éviter les soucis
+      value = value.replace(",", ".");
+
+      // Si contient ":" ou "h"/"H" → on considère format heures + minutes
+      const hasSeparator =
+        value.includes(":") || value.toLowerCase().includes("h");
+
+      if (hasSeparator) {
+        // On découpe sur ":" ou "h/H"
+        const parts = value.split(/[:hH]/).filter(Boolean);
+
+        if (parts.length === 0 || parts.length > 2) {
+          return null;
+        }
+
+        const hours = Number(parts[0].trim());
+        const minutes = parts[1] !== undefined ? Number(parts[1].trim()) : 0;
+
+        if (
+          Number.isNaN(hours) ||
+          Number.isNaN(minutes) ||
+          minutes < 0 ||
+          minutes >= 60
+        ) {
+          return null;
+        }
+
+        const decimal = hours + minutes / 60;
+        return { decimal, h: hours, m: minutes };
+      }
+
+      // Sinon, si l'utilisateur tape déjà un décimal,
+      // on retourne tout de même la valeur mais sans détail h/m.
+      const decimal = Number(value);
+      if (Number.isNaN(decimal)) {
+        return null;
+      }
+      return { decimal, h: null, m: null };
+    }
+
+    function formatDecimal(decimal) {
+      // Arrondi à 2 décimales, mais garde les zéros si besoin (ex : 7.50)
+      return decimal.toFixed(2).replace(".", ",");
+    }
+
+    function onConvert() {
+      const raw = input.value;
+
+      errorMsg.textContent = "";
+      resultCard.style.display = "none";
+
+      const parsed = parseTimeToDecimal(raw);
+
+      if (!parsed) {
+        errorMsg.textContent =
+          "Format invalide. Exemple : 7:30, 7h30, 3:15, …";
+        return;
+      }
+
+      const dec = parsed.decimal;
+      decimalValue.textContent = formatDecimal(dec);
+
+      if (parsed.h !== null && parsed.m !== null) {
+        detailText.textContent = `${parsed.h} h ${parsed.m
+          .toString()
+          .padStart(2, "0")} = ${formatDecimal(dec)} h`;
+      } else {
+        // Entrée déjà en décimal
+        detailText.textContent = `Valeur saisie déjà en décimal : ${formatDecimal(
+          dec
+        )} h`;
+      }
+
+      resultCard.style.display = "block";
+    }
+
+    function onClear() {
+      input.value = "";
+      resultCard.style.display = "none";
+      errorMsg.textContent = "";
+      input.focus();
+    }
+
+    convertBtn.addEventListener("click", onConvert);
+    clearBtn.addEventListener("click", onClear);
+
+    // Enter pour convertir
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        onConvert();
+      }
+    });
+  </script>
+</body>
+</html>
