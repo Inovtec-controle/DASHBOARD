@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
   <title>KONTROL - Suivi des retours</title>
 
   <!-- iPhone friendly -->
@@ -48,6 +48,9 @@
       display:flex;
       justify-content:center;
       padding:12px;
+      /* safe area iOS pour que rien ne passe sous la barre de Safari / encoche */
+      padding-top:calc(12px + env(safe-area-inset-top, 0px));
+      padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px));
     }
 
     .app-shell{
@@ -336,7 +339,9 @@
       border-radius:22px 22px 0 0;
       border:1px solid var(--border);
       box-shadow:0 -10px 26px rgba(15,23,42,.4);
-      padding:14px 14px 18px;
+      /* on laisse un peu de marge en haut + safe-area pour que la croix soit toujours visible */
+      margin-top:16px;
+      padding:calc(16px + env(safe-area-inset-top, 0px)) 14px 18px;
       max-height:92vh;
       overflow:auto;
       -webkit-overflow-scrolling:touch;
@@ -355,15 +360,16 @@
     }
 
     .modal-close-btn{
-      width:28px;
-      height:28px;
+      width:32px;
+      height:32px;
       border-radius:999px;
       border:1px solid var(--border);
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size:16px;
+      font-size:18px;
       background:var(--panel);
+      flex-shrink:0;
     }
 
     .modal-section-title{
@@ -616,7 +622,15 @@
         <div class="title-block">
           <h1>Suivi des retours</h1>
           <span>Réclamations & Ordres d’intervention</span>
-        </div>   
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="pill">
+          <span>📲</span> iPhone
+        </div>
+      </div>
+    </header>
+
     <main>
       <section class="panel">
         <div class="filters">
@@ -912,6 +926,13 @@
       }
     })();
 
+    // fermer en tapant en dehors du panneau (sur le fond)
+    createBackdrop.addEventListener("click", function(e){
+      if(e.target === createBackdrop){
+        closeCreateModal();
+      }
+    });
+
     saveRetourBtn.addEventListener("click", function(){
       var type = document.getElementById("create-type").value;
       var siteName = document.getElementById("create-site-name").value.trim();
@@ -976,6 +997,13 @@
         closeBtns[i].addEventListener("click", closeDetailModal);
       }
     })();
+
+    // fermer détail en tapant sur le fond
+    detailBackdrop.addEventListener("click", function(e){
+      if(e.target === detailBackdrop){
+        closeDetailModal();
+      }
+    });
 
     function addTimelineEntry(retour, text){
       retour.timeline = retour.timeline || [];
