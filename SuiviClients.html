@@ -46,80 +46,87 @@
       background:var(--bg);
       color:var(--text);
       display:flex;
-      justify-content:center;
+      flex-direction:column;
+      align-items:stretch;
       padding:12px;
-      /* safe area iOS pour que rien ne passe sous la barre de Safari / encoche */
       padding-top:calc(12px + env(safe-area-inset-top, 0px));
       padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px));
     }
 
-    .app-shell{
+    /* Bandeau titre pleine largeur */
+    .page-header{
       width:100%;
-      max-width:480px;
-      margin:0 auto;
-      padding-bottom:96px; /* marge bas pour iPhone (barre navigation / home) */
+      margin:0 auto 12px;
     }
 
-    header{
+    .page-header-inner{
+      max-width:960px;
+      margin:0 auto;
+      padding:10px 14px;
+      border-radius:20px;
+      background:linear-gradient(135deg,#16a34a,#22c55e);
+      color:#ecfdf5;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      margin-bottom:12px;
-      margin-top:4px;
+      gap:10px;
+      box-shadow:0 18px 40px rgba(22,163,74,.35);
     }
 
-    .logo-title{
+    .page-header-left{
       display:flex;
       align-items:center;
       gap:10px;
+      flex:1;
     }
 
-    .logo-dot{
-      width:32px;
-      height:32px;
-      border-radius:12px;
-      background:linear-gradient(135deg,#16a34a,#4ade80);
+    .page-logo-dot{
+      width:38px;
+      height:38px;
+      border-radius:14px;
+      background:rgba(15,23,42,.15);
       display:flex;
       align-items:center;
       justify-content:center;
-      color:white;
       font-weight:800;
-      font-size:18px;
-      box-shadow:0 10px 20px rgba(22,163,74,.5);
+      font-size:20px;
     }
 
-    .title-block h1{
-      font-size:18px;
+    .page-title-text{
+      font-size:16px;
       font-weight:800;
-      letter-spacing:.02em;
-    }
-    .title-block span{
-      display:block;
-      font-size:11px;
-      color:var(--muted);
-      letter-spacing:.08em;
+      letter-spacing:.03em;
       text-transform:uppercase;
+    }
+
+    .page-subtitle{
+      font-size:11px;
+      opacity:.88;
       margin-top:2px;
     }
 
-    .top-actions{
-      display:flex;
-      gap:8px;
-      align-items:center;
+    .page-header-right{
+      font-size:11px;
+      text-align:right;
+      opacity:.9;
     }
 
-    .pill{
+    .pill-infos{
       display:inline-flex;
       align-items:center;
-      gap:6px;
-      padding:4px 10px;
+      gap:5px;
+      padding:3px 9px;
       border-radius:999px;
-      background:var(--brand-soft);
-      color:var(--brand);
+      background:rgba(15,23,42,.2);
       font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:.06em;
-      border:1px solid rgba(22,163,74,.3);
+    }
+
+    /* Conteneur de l'app */
+    .app-shell{
+      width:100%;
+      max-width:960px;
+      margin:0 auto;
+      padding-bottom:32px;
     }
 
     main{
@@ -218,7 +225,6 @@
       font-size:16px;
     }
 
-    /* Liste des retours */
     .retour-list{
       display:flex;
       flex-direction:column;
@@ -316,7 +322,13 @@
       border-radius:999px;
     }
 
-    /* Modal générique */
+    .no-data{
+      font-size:12px;
+      color:var(--muted);
+      padding:10px 4px 4px;
+    }
+
+    /* Modal */
     .modal-backdrop{
       position:fixed;
       inset:0;
@@ -334,12 +346,11 @@
 
     .modal{
       width:100%;
-      max-width:480px;
+      max-width:960px;
       background:var(--panel);
       border-radius:22px 22px 0 0;
       border:1px solid var(--border);
       box-shadow:0 -10px 26px rgba(15,23,42,.4);
-      /* on laisse un peu de marge en haut + safe-area pour que la croix soit toujours visible */
       margin-top:16px;
       padding:calc(16px + env(safe-area-inset-top, 0px)) 14px 18px;
       max-height:92vh;
@@ -352,6 +363,7 @@
       align-items:center;
       justify-content:space-between;
       margin-bottom:8px;
+      gap:8px;
     }
 
     .modal-header h2{
@@ -436,7 +448,6 @@
       margin-top:4px;
     }
 
-    /* Détail d’un retour */
     .status-steps{
       display:flex;
       flex-direction:column;
@@ -607,27 +618,92 @@
       white-space:nowrap;
     }
 
-    .no-data{
-      font-size:12px;
+    /* Archive (pied de page) */
+    .archive-shell{
+      width:100%;
+      margin-top:10px;
+    }
+
+    .archive-panel{
+      max-width:960px;
+      margin:0 auto;
+      background:var(--panel);
+      border-radius:var(--radius-lg);
+      border:1px dashed rgba(148,163,184,.7);
+      padding:10px 12px 12px;
+      box-shadow:0 10px 26px rgba(15,23,42,.08);
+    }
+
+    .archive-header-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:6px;
+    }
+
+    .archive-header-row h2{
+      font-size:13px;
+      font-weight:600;
+    }
+
+    .archive-subtext{
+      font-size:10px;
       color:var(--muted);
-      padding:10px 4px 4px;
+    }
+
+    .archive-search-row{
+      display:flex;
+      gap:6px;
+      margin-top:4px;
+    }
+
+    .archive-search-row input{
+      flex:1;
+      border-radius:999px;
+      border:1px solid var(--border);
+      padding:7px 10px;
+      font-size:12px;
+      background:#f8fafc;
+    }
+
+    .archive-list .retour-card{
+      background:#f9fafb;
+    }
+
+    .archive-tag{
+      font-size:10px;
+      padding:2px 7px;
+      border-radius:999px;
+      background:#e5e7eb;
+      color:#374151;
+      margin-left:4px;
     }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <header>
-      <div class="logo-title">
-        <div class="logo-dot">K</div>
-        <div class="title-block">
-          <h1>Suivi des retours</h1>
-          <span>Réclamations & Ordres d’intervention</span>
+
+  <!-- Titre pleine largeur -->
+  <div class="page-header">
+    <div class="page-header-inner">
+      <div class="page-header-left">
+        <div class="page-logo-dot">K</div>
+        <div>
+          <div class="page-title-text">KONTROL – Suivi des retours</div>
+          <div class="page-subtitle">Réclamations & Ordres d’intervention – de la réception à la clôture</div>
         </div>
       </div>
-      <div class="top-actions">
+      <div class="page-header-right">
+        <div class="pill-infos">
+          <span>📲</span> iPhone ready
+        </div>
+        <div style="margin-top:3px;">GitHub Pages / Stockage local</div>
       </div>
-    </header>
+    </div>
+  </div>
 
+  <!-- Application principale -->
+  <div class="app-shell">
     <main>
       <section class="panel">
         <div class="filters">
@@ -662,11 +738,38 @@
     </main>
   </div>
 
+  <!-- Zone de stockage des actions clôturées -->
+  <div class="archive-shell">
+    <section class="archive-panel">
+      <div class="archive-header-row">
+        <div>
+          <h2>Stockage – actions clôturées</h2>
+          <div class="archive-subtext">
+            Historique des réclamations / interventions terminées, triées de la plus récente à la plus ancienne.
+          </div>
+        </div>
+      </div>
+      <div class="archive-search-row">
+        <input
+          type="text"
+          id="archive-search"
+          placeholder="Rechercher par nom de résidence / chantier / client…"
+          autocomplete="off"
+        >
+      </div>
+
+      <div id="archiveList" class="retour-list archive-list"></div>
+      <p id="archiveEmpty" class="no-data">
+        Aucune action clôturée pour le moment.
+      </p>
+    </section>
+  </div>
+
   <!-- MODAL CRÉATION -->
   <div class="modal-backdrop" id="create-backdrop">
     <div class="modal">
       <div class="modal-header">
-        <h2>Nouvelle réclamation / OI</h2>
+        <h2>Nouvelle réclamation / ordre d’intervention</h2>
         <button class="modal-close-btn" data-close-create>✕</button>
       </div>
 
@@ -811,6 +914,7 @@
       return "en_cours";
     }
 
+    /* === LISTE PRINCIPALE === */
     function renderRetours(){
       var container = document.getElementById("retourList");
       var emptyLabel = document.getElementById("noRetours");
@@ -830,7 +934,6 @@
 
       if(filtered.length === 0){
         emptyLabel.style.display = "block";
-        return;
       }else{
         emptyLabel.style.display = "none";
       }
@@ -891,6 +994,88 @@
           });
         }
       });
+
+      renderArchive(); // mettre à jour la zone de stockage aussi
+    }
+
+    /* === ARCHIVE (ACTIONS CLÔTURÉES) === */
+    function renderArchive(){
+      var list = document.getElementById("archiveList");
+      var empty = document.getElementById("archiveEmpty");
+      if(!list || !empty) return;
+
+      list.innerHTML = "";
+      var searchInput = document.getElementById("archive-search");
+      var q = (searchInput && searchInput.value ? searchInput.value : "").toLowerCase().trim();
+
+      var closed = retours.filter(function(r){
+        return computeStatus(r) === "clos";
+      });
+
+      closed.sort(function(a,b){
+        return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
+      });
+
+      if(q){
+        closed = closed.filter(function(r){
+          var hay = ((r.title || "") + " " + (r.siteName || "") + " " + (r.client || "")).toLowerCase();
+          return hay.indexOf(q) !== -1;
+        });
+      }
+
+      if(closed.length === 0){
+        empty.style.display = "block";
+      }else{
+        empty.style.display = "none";
+      }
+
+      closed.forEach(function(retour){
+        var card = document.createElement("article");
+        card.className = "retour-card";
+
+        var typeLabel = retour.type === "reclamation" ? "Réclamation client" : "Ordre d’intervention";
+        var siteLabel = retour.siteName || "Site non défini";
+        var client = retour.client || "Client non renseigné";
+        var statusDate = formatDate(retour.updatedAt || retour.createdAt);
+
+        card.innerHTML = `
+          <div class="retour-main-row">
+            <div>
+              <div class="retour-title">${retour.title || "(Sans titre)"}<span class="archive-tag">Clôturé</span></div>
+              <div class="badge-row">
+                <span class="badge ${retour.type === "reclamation" ? "type-reclam" : "type-oi"}">
+                  <span>${retour.type === "reclamation" ? "📣" : "🛠️"}</span>
+                  ${typeLabel}
+                </span>
+                <span class="badge">
+                  <span>📍</span>${siteLabel}
+                </span>
+                <span class="badge">
+                  <span>👤</span>${client}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="retour-footer">
+            <div class="retour-meta">
+              <div>Dernière mise à jour : ${statusDate || "—"}</div>
+            </div>
+            <button class="see-detail" data-open-detail="${retour.id}">
+              Ouvrir <span>›</span>
+            </button>
+          </div>
+        `;
+
+        list.appendChild(card);
+
+        var detailBtn = card.querySelector("[data-open-detail]");
+        if(detailBtn){
+          detailBtn.addEventListener("click", function(){
+            var id = detailBtn.getAttribute("data-open-detail");
+            openDetailModal(id);
+          });
+        }
+      });
     }
 
     /* === MODAL CRÉATION === */
@@ -923,7 +1108,7 @@
       }
     })();
 
-    // fermer en tapant en dehors du panneau (sur le fond)
+    // fermer création en tapant sur le fond
     createBackdrop.addEventListener("click", function(e){
       if(e.target === createBackdrop){
         closeCreateModal();
@@ -1224,8 +1409,8 @@
         addTimelineEntry(r, value);
         r.updatedAt = Date.now();
         saveRetours();
-        renderDetail(r);
         renderRetours();
+        openDetailModal(r.id); // re-render détail
       });
 
       // ajout photo
@@ -1251,8 +1436,8 @@
           addTimelineEntry(r,"Photo de la correction ajoutée.");
           r.updatedAt = Date.now();
           saveRetours();
-          renderDetail(r);
           renderRetours();
+          openDetailModal(r.id);
         };
         reader.readAsDataURL(file);
       });
@@ -1294,7 +1479,7 @@
       r.updatedAt = Date.now();
       saveRetours();
       renderRetours();
-      renderDetail(r);
+      openDetailModal(r.id);
     }
 
     /* === FILTRES === */
@@ -1325,6 +1510,12 @@
       btn.classList.add("active");
       renderRetours();
     });
+
+    // Recherche archive
+    var archiveSearchInput = document.getElementById("archive-search");
+    if(archiveSearchInput){
+      archiveSearchInput.addEventListener("input", renderArchive);
+    }
 
     /* === INIT === */
     loadRetours();
