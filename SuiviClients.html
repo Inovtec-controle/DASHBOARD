@@ -30,7 +30,7 @@
       --warning-soft:rgba(245,158,11,.08);
       --radius-lg:18px;
       --radius-md:12px;
-      --shadow-soft:0 14px 30px rgba(15,23,42,.12);
+      --shadow-soft:0 18px 40px rgba(15,23,42,.12);
     }
 
     * {
@@ -53,75 +53,81 @@
       padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px));
     }
 
+    .page{
+      width:100%;
+      max-width:1024px;
+      margin:0 auto;
+    }
+
     /* Bandeau titre pleine largeur */
     .page-header{
       width:100%;
-      margin:0 auto 12px;
+      margin-bottom:14px;
     }
 
     .page-header-inner{
-      max-width:960px;
-      margin:0 auto;
-      padding:10px 14px;
-      border-radius:20px;
+      border-radius:24px;
+      padding:14px 16px;
       background:linear-gradient(135deg,#16a34a,#22c55e);
       color:#ecfdf5;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
-      box-shadow:0 18px 40px rgba(22,163,74,.35);
+      gap:12px;
+      box-shadow:var(--shadow-soft);
     }
 
     .page-header-left{
       display:flex;
       align-items:center;
-      gap:10px;
+      gap:12px;
       flex:1;
     }
 
     .page-logo-dot{
-      width:38px;
-      height:38px;
-      border-radius:14px;
-      background:rgba(15,23,42,.15);
+      width:42px;
+      height:42px;
+      border-radius:16px;
+      background:rgba(15,23,42,.18);
       display:flex;
       align-items:center;
       justify-content:center;
       font-weight:800;
-      font-size:20px;
+      font-size:22px;
     }
 
     .page-title-text{
-      font-size:16px;
+      font-size:17px;
       font-weight:800;
-      letter-spacing:.03em;
+      letter-spacing:.04em;
       text-transform:uppercase;
     }
 
     .page-subtitle{
       font-size:11px;
-      opacity:.88;
-      margin-top:2px;
+      opacity:.9;
+      margin-top:3px;
     }
 
     .page-header-right{
-      font-size:11px;
       text-align:right;
-      opacity:.9;
+      font-size:11px;
     }
 
-    .pill-infos{
+    .pill{
       display:inline-flex;
       align-items:center;
-      gap:5px;
-      padding:3px 9px;
+      gap:6px;
+      padding:4px 10px;
       border-radius:999px;
-      background:rgba(15,23,42,.2);
+      background:rgba(15,23,42,.25);
       font-size:11px;
     }
 
-    /* Conteneur de l'app */
+    .pill span{
+      font-size:13px;
+    }
+
     .app-shell{
       width:100%;
       max-width:960px;
@@ -219,6 +225,7 @@
       background:linear-gradient(135deg,#16a34a,#22c55e);
       color:#f9fafb;
       box-shadow:0 10px 26px rgba(22,163,74,.45);
+      cursor:pointer;
     }
 
     .btn-primary span.icon{
@@ -296,6 +303,15 @@
       color:#15803d;
     }
 
+    .archive-tag{
+      font-size:10px;
+      padding:2px 7px;
+      border-radius:999px;
+      background:#e5e7eb;
+      color:#374151;
+      margin-left:4px;
+    }
+
     .retour-footer{
       display:flex;
       justify-content:space-between;
@@ -320,6 +336,14 @@
       border:none;
       padding:4px 6px;
       border-radius:999px;
+      cursor:pointer;
+    }
+
+    .see-detail.unarchive{
+      color:#0f172a;
+      border:1px solid rgba(148,163,184,.6);
+      background:#f9fafb;
+      margin-left:4px;
     }
 
     .no-data{
@@ -382,6 +406,7 @@
       font-size:18px;
       background:var(--panel);
       flex-shrink:0;
+      cursor:pointer;
     }
 
     .modal-section-title{
@@ -440,6 +465,7 @@
       background:#f8fafc;
       color:var(--text);
       font-weight:500;
+      cursor:pointer;
     }
 
     .btn-primary.full{
@@ -516,6 +542,7 @@
       background:#0f172a;
       color:#f9fafb;
       white-space:nowrap;
+      cursor:pointer;
     }
 
     .step-row.done .step-action-btn{
@@ -616,6 +643,7 @@
       background:#fee2e2;
       color:#b91c1c;
       white-space:nowrap;
+      cursor:pointer;
     }
 
     /* Archive (pied de page) */
@@ -670,99 +698,91 @@
     .archive-list .retour-card{
       background:#f9fafb;
     }
-
-    .archive-tag{
-      font-size:10px;
-      padding:2px 7px;
-      border-radius:999px;
-      background:#e5e7eb;
-      color:#374151;
-      margin-left:4px;
-    }
   </style>
 </head>
 <body>
-
-  <!-- Titre pleine largeur -->
-  <div class="page-header">
-    <div class="page-header-inner">
-      <div class="page-header-left">
-        <div class="page-logo-dot">K</div>
-        <div>
-          <div class="page-title-text">KONTROL – Suivi des retours</div>
-          <div class="page-subtitle">Réclamations & Ordres d’intervention – de la réception à la clôture</div>
+  <div class="page">
+    <!-- Titre pleine largeur -->
+    <header class="page-header">
+      <div class="page-header-inner">
+        <div class="page-header-left">
+          <div class="page-logo-dot">K</div>
+          <div>
+            <div class="page-title-text">KONTROL – Suivi des retours</div>
+            <div class="page-subtitle">Réclamations & Ordres d’intervention – de la réception à la clôture</div>
+          </div>
+        </div>
+        <div class="page-header-right">
+          <div class="pill">
+            <span>📲</span> iPhone ready
+          </div>
+          <div style="margin-top:3px;">GitHub Pages / Stockage local</div>
         </div>
       </div>
-      <div class="page-header-right">
-        <div class="pill-infos">
-          <span>📲</span> iPhone ready
-        </div>
-        <div style="margin-top:3px;">GitHub Pages / Stockage local</div>
-      </div>
-    </div>
-  </div>
+    </header>
 
-  <!-- Application principale -->
-  <div class="app-shell">
-    <main>
-      <section class="panel">
-        <div class="filters">
-          <div class="chip-row" id="filter-status-row">
-            <button class="chip active" data-status-filter="all">Tous</button>
-            <button class="chip" data-status-filter="open">En cours</button>
-            <button class="chip" data-status-filter="closed">Clôturés</button>
+    <!-- Application principale -->
+    <div class="app-shell">
+      <main>
+        <section class="panel">
+          <div class="filters">
+            <div class="chip-row" id="filter-status-row">
+              <button class="chip" data-status-filter="all">Tous</button>
+              <button class="chip active" data-status-filter="open">En cours</button>
+              <button class="chip" data-status-filter="closed">Clôturés</button>
+            </div>
+            <div class="chip-row" id="filter-type-row">
+              <button class="chip small active secondary" data-type-filter="all">Tout type</button>
+              <button class="chip small secondary" data-type-filter="reclamation">Réclamations</button>
+              <button class="chip small secondary" data-type-filter="oi">Ordres d’intervention</button>
+            </div>
+            <p class="subtext">
+              Suis chaque retour de A à Z : réception, consigne agent, correction, photo, validation client.
+            </p>
           </div>
-          <div class="chip-row" id="filter-type-row">
-            <button class="chip small active secondary" data-type-filter="all">Tout type</button>
-            <button class="chip small secondary" data-type-filter="reclamation">Réclamations</button>
-            <button class="chip small secondary" data-type-filter="oi">Ordres d’intervention</button>
+
+          <div class="list-header">
+            <h2>Retours en cours (non clôturés)</h2>
+            <button class="btn-primary" id="open-create-modal">
+              <span class="icon">➕</span>
+              Nouveau
+            </button>
           </div>
-          <p class="subtext">
-            Suis chaque retour de A à Z : réception, consigne agent, correction, photo, validation client.
+
+          <div id="retourList" class="retour-list"></div>
+          <p id="noRetours" class="no-data" style="display:none;">
+            Aucun retour en cours pour l’instant. Clique sur <strong>Nouveau</strong> pour en créer un.
           </p>
+        </section>
+      </main>
+    </div>
+
+    <!-- Zone de stockage des actions clôturées -->
+    <div class="archive-shell">
+      <section class="archive-panel">
+        <div class="archive-header-row">
+          <div>
+            <h2>Stockage – actions clôturées</h2>
+            <div class="archive-subtext">
+              Historique des réclamations / interventions terminées, triées de la plus récente à la plus ancienne.
+            </div>
+          </div>
+        </div>
+        <div class="archive-search-row">
+          <input
+            type="text"
+            id="archive-search"
+            placeholder="Rechercher par nom de résidence / chantier / client…"
+            autocomplete="off"
+          >
         </div>
 
-        <div class="list-header">
-          <h2>Retours en cours</h2>
-          <button class="btn-primary" id="open-create-modal">
-            <span class="icon">➕</span>
-            Nouveau
-          </button>
-        </div>
-
-        <div id="retourList" class="retour-list"></div>
-        <p id="noRetours" class="no-data" style="display:none;">
-          Aucun retour pour l’instant. Clique sur <strong>Nouveau</strong> pour en créer un.
+        <div id="archiveList" class="retour-list archive-list"></div>
+        <p id="archiveEmpty" class="no-data">
+          Aucune action clôturée pour le moment.
         </p>
       </section>
-    </main>
-  </div>
-
-  <!-- Zone de stockage des actions clôturées -->
-  <div class="archive-shell">
-    <section class="archive-panel">
-      <div class="archive-header-row">
-        <div>
-          <h2>Stockage – actions clôturées</h2>
-          <div class="archive-subtext">
-            Historique des réclamations / interventions terminées, triées de la plus récente à la plus ancienne.
-          </div>
-        </div>
-      </div>
-      <div class="archive-search-row">
-        <input
-          type="text"
-          id="archive-search"
-          placeholder="Rechercher par nom de résidence / chantier / client…"
-          autocomplete="off"
-        >
-      </div>
-
-      <div id="archiveList" class="retour-list archive-list"></div>
-      <p id="archiveEmpty" class="no-data">
-        Aucune action clôturée pour le moment.
-      </p>
-    </section>
+    </div>
   </div>
 
   <!-- MODAL CRÉATION -->
@@ -860,8 +880,8 @@
     var STORAGE_KEY = "kontrol_retours_v1";
     var retours = [];
     var currentFilters = {
-      status: "all",  // all / open / closed
-      type: "all"     // all / reclamation / oi
+      status: "open",  // all / open / closed (par défaut : EN COURS)
+      type: "all"      // all / reclamation / oi
     };
     var currentDetailId = null;
 
@@ -914,7 +934,7 @@
       return "en_cours";
     }
 
-    /* === LISTE PRINCIPALE === */
+    /* === LISTE PRINCIPALE (EN COURS) === */
     function renderRetours(){
       var container = document.getElementById("retourList");
       var emptyLabel = document.getElementById("noRetours");
@@ -926,7 +946,7 @@
 
       filtered = filtered.filter(function(r){
         var st = computeStatus(r);
-        if(currentFilters.status === "open" && st === "clos") return false;
+        if(currentFilters.status === "open" && st === "clos") return false;   // ne pas afficher les clos dans "en cours"
         if(currentFilters.status === "closed" && st !== "clos") return false;
         if(currentFilters.type !== "all" && r.type !== currentFilters.type) return false;
         return true;
@@ -1041,7 +1061,10 @@
         card.innerHTML = `
           <div class="retour-main-row">
             <div>
-              <div class="retour-title">${retour.title || "(Sans titre)"}<span class="archive-tag">Clôturé</span></div>
+              <div class="retour-title">
+                ${retour.title || "(Sans titre)"}
+                <span class="archive-tag">Clôturé</span>
+              </div>
               <div class="badge-row">
                 <span class="badge ${retour.type === "reclamation" ? "type-reclam" : "type-oi"}">
                   <span>${retour.type === "reclamation" ? "📣" : "🛠️"}</span>
@@ -1060,9 +1083,14 @@
             <div class="retour-meta">
               <div>Dernière mise à jour : ${statusDate || "—"}</div>
             </div>
-            <button class="see-detail" data-open-detail="${retour.id}">
-              Ouvrir <span>›</span>
-            </button>
+            <div>
+              <button class="see-detail" data-open-detail="${retour.id}">
+                Ouvrir <span>›</span>
+              </button>
+              <button class="see-detail unarchive" data-unarchive="${retour.id}">
+                Désarchiver
+              </button>
+            </div>
           </div>
         `;
 
@@ -1075,7 +1103,35 @@
             openDetailModal(id);
           });
         }
+
+        var unarchiveBtn = card.querySelector("[data-unarchive]");
+        if(unarchiveBtn){
+          unarchiveBtn.addEventListener("click", function(){
+            var id = unarchiveBtn.getAttribute("data-unarchive");
+            unarchiveRetour(id);
+          });
+        }
       });
+    }
+
+    function unarchiveRetour(id){
+      var r = null;
+      for(var i=0;i<retours.length;i++){
+        if(retours[i].id === id){
+          r = retours[i];
+          break;
+        }
+      }
+      if(!r) return;
+      r.steps = r.steps || {};
+      if(!r.steps.retourClientOK){
+        return; // déjà non clos
+      }
+      r.steps.retourClientOK = false; // réouverture
+      addTimelineEntry(r,"Dossier ré-ouvert depuis la zone archivage.");
+      r.updatedAt = Date.now();
+      saveRetours();
+      renderRetours();
     }
 
     /* === MODAL CRÉATION === */
@@ -1410,7 +1466,7 @@
         r.updatedAt = Date.now();
         saveRetours();
         renderRetours();
-        openDetailModal(r.id); // re-render détail
+        openDetailModal(r.id);
       });
 
       // ajout photo
@@ -1519,6 +1575,14 @@
 
     /* === INIT === */
     loadRetours();
+    // forcer l'état visuel du filtre "En cours" (au cas où HTML serait modifié)
+    (function syncStatusChips(){
+      var chips = document.querySelectorAll("[data-status-filter]");
+      for(var i=0;i<chips.length;i++){
+        var v = chips[i].getAttribute("data-status-filter");
+        chips[i].classList.toggle("active", v === currentFilters.status);
+      }
+    })();
     renderRetours();
   </script>
 </body>
