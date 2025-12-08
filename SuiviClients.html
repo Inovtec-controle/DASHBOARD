@@ -38,6 +38,7 @@
       margin:0;
       padding:0;
       font-family:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      -webkit-tap-highlight-color:transparent;
     }
 
     body {
@@ -46,14 +47,14 @@
       color:var(--text);
       display:flex;
       justify-content:center;
-      padding:16px;
+      padding:12px;
     }
 
     .app-shell{
       width:100%;
       max-width:480px;
       margin:0 auto;
-      padding-bottom:80px; /* pour laisser la place au bas d’écran iPhone */
+      padding-bottom:96px; /* marge bas pour iPhone (barre navigation / home) */
     }
 
     header{
@@ -61,7 +62,7 @@
       align-items:center;
       justify-content:space-between;
       margin-bottom:12px;
-      margin-top:8px;
+      margin-top:4px;
     }
 
     .logo-title{
@@ -102,18 +103,6 @@
       display:flex;
       gap:8px;
       align-items:center;
-    }
-
-    .icon-btn{
-      width:32px;
-      height:32px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:var(--panel);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:16px;
     }
 
     .pill{
@@ -199,6 +188,7 @@
       justify-content:space-between;
       margin-bottom:6px;
       margin-top:4px;
+      gap:8px;
     }
 
     .list-header h2{
@@ -211,10 +201,10 @@
       align-items:center;
       justify-content:center;
       gap:6px;
-      padding:7px 10px;
+      padding:8px 12px;
       border-radius:999px;
       border:none;
-      font-size:12px;
+      font-size:13px;
       font-weight:600;
       background:linear-gradient(135deg,#16a34a,#22c55e);
       color:#f9fafb;
@@ -302,6 +292,7 @@
       justify-content:space-between;
       align-items:center;
       margin-top:4px;
+      gap:8px;
     }
 
     .retour-meta{
@@ -316,6 +307,10 @@
       display:inline-flex;
       align-items:center;
       gap:3px;
+      background:none;
+      border:none;
+      padding:4px 6px;
+      border-radius:999px;
     }
 
     /* Modal générique */
@@ -344,6 +339,7 @@
       padding:14px 14px 18px;
       max-height:92vh;
       overflow:auto;
+      -webkit-overflow-scrolling:touch;
     }
 
     .modal-header{
@@ -400,9 +396,10 @@
       width:100%;
       border-radius:10px;
       border:1px solid var(--border);
-      padding:7px 9px;
-      font-size:12px;
+      padding:8px 10px;
+      font-size:13px;
       background:#f8fafc;
+      -webkit-appearance:none;
     }
 
     textarea{
@@ -418,10 +415,10 @@
 
     .btn-secondary{
       flex:1;
-      padding:7px 10px;
+      padding:8px 10px;
       border-radius:999px;
       border:1px solid var(--border);
-      font-size:12px;
+      font-size:13px;
       background:#f8fafc;
       color:var(--text);
       font-weight:500;
@@ -430,6 +427,7 @@
     .btn-primary.full{
       width:100%;
       justify-content:center;
+      margin-top:4px;
     }
 
     /* Détail d’un retour */
@@ -448,6 +446,7 @@
       border-radius:10px;
       border:1px dashed rgba(148,163,184,.7);
       background:#f8fafc;
+      gap:6px;
     }
 
     .step-main{
@@ -499,6 +498,7 @@
       border:none;
       background:#0f172a;
       color:#f9fafb;
+      white-space:nowrap;
     }
 
     .step-row.done .step-action-btn{
@@ -514,6 +514,7 @@
       padding:8px 9px;
       max-height:160px;
       overflow:auto;
+      -webkit-overflow-scrolling:touch;
     }
 
     .timeline-item{
@@ -597,6 +598,7 @@
       border:1px solid var(--danger);
       background:#fee2e2;
       color:#b91c1c;
+      white-space:nowrap;
     }
 
     .no-data{
@@ -618,7 +620,7 @@
       </div>
       <div class="top-actions">
         <div class="pill">
-          <span class="icon">📲</span> iPhone ready
+          <span>📲</span> iPhone
         </div>
       </div>
     </header>
@@ -645,13 +647,13 @@
           <h2>Retours en cours</h2>
           <button class="btn-primary" id="open-create-modal">
             <span class="icon">➕</span>
-            Nouveau retour
+            Nouveau
           </button>
         </div>
 
         <div id="retourList" class="retour-list"></div>
         <p id="noRetours" class="no-data" style="display:none;">
-          Aucun retour pour l’instant. Clique sur <strong>Nouveau retour</strong> pour en créer un.
+          Aucun retour pour l’instant. Clique sur <strong>Nouveau</strong> pour en créer un.
         </p>
       </section>
     </main>
@@ -677,12 +679,13 @@
           </div>
 
           <div>
-            <label for="create-site-type">Site</label>
-            <select id="create-site-type">
-              <option value="copro">Contrôle copropriété</option>
-              <option value="bureaux">Bureaux / Locaux tertiaires</option>
-              <option value="autre">Autre</option>
-            </select>
+            <label for="create-site-name">Résidence / Site</label>
+            <input
+              type="text"
+              id="create-site-name"
+              placeholder="Ex : Résidence Les Chênes – Bât. B"
+              autocomplete="off"
+            >
           </div>
 
           <div>
@@ -725,7 +728,7 @@
         <div class="btn-row">
           <button class="btn-secondary" data-close-create>Annuler</button>
           <button class="btn-primary" id="save-retour">
-            Enregistrer le retour
+            Enregistrer
           </button>
         </div>
       </div>
@@ -747,18 +750,18 @@
   </div>
 
   <script>
-    // === DATA ===
-    const STORAGE_KEY = "kontrol_retours_v1";
-    let retours = [];
-    let currentFilters = {
+    /* === DATA === */
+    var STORAGE_KEY = "kontrol_retours_v1";
+    var retours = [];
+    var currentFilters = {
       status: "all",  // all / open / closed
       type: "all"     // all / reclamation / oi
     };
-    let currentDetailId = null;
+    var currentDetailId = null;
 
     function loadRetours(){
       try{
-        const raw = localStorage.getItem(STORAGE_KEY);
+        var raw = localStorage.getItem(STORAGE_KEY);
         if(raw){
           retours = JSON.parse(raw);
         }else{
@@ -770,19 +773,23 @@
     }
 
     function saveRetours(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(retours));
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(retours));
+      }catch(e){
+        // si localStorage bloqué (mode privé), on ignore
+      }
     }
 
     function formatDate(d){
       if(!d) return "";
-      const dt = new Date(d);
+      var dt = new Date(d);
       if(isNaN(dt)) return d;
       return dt.toLocaleDateString("fr-FR", {day:"2-digit",month:"2-digit",year:"numeric"});
     }
 
     function formatDateTime(d){
       if(!d) return "";
-      const dt = new Date(d);
+      var dt = new Date(d);
       if(isNaN(dt)) return d;
       return dt.toLocaleString("fr-FR", {
         day:"2-digit", month:"2-digit", year:"numeric",
@@ -791,7 +798,7 @@
     }
 
     function computeStatus(retour){
-      const s = retour.steps || {};
+      var s = retour.steps || {};
       if(s.retourClientOK){
         return "clos";
       }
@@ -801,20 +808,17 @@
       return "en_cours";
     }
 
-    function isClosed(retour){
-      return computeStatus(retour) === "clos";
-    }
-
-    // === RENDER LIST ===
     function renderRetours(){
-      const container = document.getElementById("retourList");
-      const emptyLabel = document.getElementById("noRetours");
+      var container = document.getElementById("retourList");
+      var emptyLabel = document.getElementById("noRetours");
       container.innerHTML = "";
 
-      let filtered = retours.slice().sort((a,b)=> (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+      var filtered = retours.slice().sort(function(a,b){
+        return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
+      });
 
-      filtered = filtered.filter(r=>{
-        const st = computeStatus(r);
+      filtered = filtered.filter(function(r){
+        var st = computeStatus(r);
         if(currentFilters.status === "open" && st === "clos") return false;
         if(currentFilters.status === "closed" && st !== "clos") return false;
         if(currentFilters.type !== "all" && r.type !== currentFilters.type) return false;
@@ -828,20 +832,23 @@
         emptyLabel.style.display = "none";
       }
 
-      filtered.forEach(retour=>{
-        const card = document.createElement("article");
+      filtered.forEach(function(retour){
+        var card = document.createElement("article");
         card.className = "retour-card";
 
-        const typeLabel = retour.type === "reclamation" ? "Réclamation client" : "Ordre d’intervention";
-        const siteLabel = retour.siteType === "copro" ? "Contrôle copro" :
-                          retour.siteType === "bureaux" ? "Bureaux" : "Autre site";
+        var typeLabel = retour.type === "reclamation" ? "Réclamation client" : "Ordre d’intervention";
 
-        const status = computeStatus(retour);
-        const statusLabel = status === "clos" ? "Clôturé" : "En cours";
-        const statusClass = status === "clos" ? "badge status-clos" : "badge status-en-cours";
+        var siteLabel = retour.siteName ||
+          (retour.siteType === "copro" ? "Contrôle copropriété" :
+           retour.siteType === "bureaux" ? "Bureaux / Locaux tertiaires" :
+           retour.siteType ? "Autre site" : "Site non défini");
 
-        const lastUpdate = formatDate(retour.updatedAt || retour.createdAt);
-        const client = retour.client || "Client non renseigné";
+        var status = computeStatus(retour);
+        var statusLabel = status === "clos" ? "Clôturé" : "En cours";
+        var statusClass = status === "clos" ? "badge status-clos" : "badge status-en-cours";
+
+        var lastUpdate = formatDate(retour.updatedAt || retour.createdAt);
+        var client = retour.client || "Client non renseigné";
 
         card.innerHTML = `
           <div class="retour-main-row">
@@ -872,30 +879,30 @@
           </div>
         `;
         container.appendChild(card);
-      });
 
-      // Attach detail listeners
-      container.querySelectorAll("[data-open-detail]").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
-          const id = btn.getAttribute("data-open-detail");
-          openDetailModal(id);
-        });
+        var detailBtn = card.querySelector("[data-open-detail]");
+        if(detailBtn){
+          detailBtn.addEventListener("click", function(){
+            var id = detailBtn.getAttribute("data-open-detail");
+            openDetailModal(id);
+          });
+        }
       });
     }
 
-    // === MODAL CRÉATION ===
-    const createBackdrop = document.getElementById("create-backdrop");
-    const openCreateBtn = document.getElementById("open-create-modal");
-    const saveRetourBtn = document.getElementById("save-retour");
+    /* === MODAL CRÉATION === */
+    var createBackdrop = document.getElementById("create-backdrop");
+    var openCreateBtn = document.getElementById("open-create-modal");
+    var saveRetourBtn = document.getElementById("save-retour");
 
     function openCreateModal(){
-      const dateInput = document.getElementById("create-date");
+      var dateInput = document.getElementById("create-date");
       if(dateInput && !dateInput.value){
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth()+1).padStart(2,"0");
-        const dd = String(today.getDate()).padStart(2,"0");
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
+        var today = new Date();
+        var yyyy = today.getFullYear();
+        var mm = String(today.getMonth()+1).padStart(2,"0");
+        var dd = String(today.getDate()).padStart(2,"0");
+        dateInput.value = yyyy + "-" + mm + "-" + dd;
       }
       createBackdrop.classList.add("active");
     }
@@ -905,34 +912,37 @@
     }
 
     openCreateBtn.addEventListener("click", openCreateModal);
-    document.querySelectorAll("[data-close-create]").forEach(btn=>{
-      btn.addEventListener("click", closeCreateModal);
-    });
 
-    saveRetourBtn.addEventListener("click", ()=>{
-      const type = document.getElementById("create-type").value;
-      const siteType = document.getElementById("create-site-type").value;
-      const title = document.getElementById("create-title").value.trim();
-      const client = document.getElementById("create-client").value.trim();
-      const channel = document.getElementById("create-channel").value;
-      const date = document.getElementById("create-date").value;
-      const agent = document.getElementById("create-agent").value.trim();
-      const description = document.getElementById("create-description").value.trim();
+    (function(){
+      var closeBtns = document.querySelectorAll("[data-close-create]");
+      for(var i=0;i<closeBtns.length;i++){
+        closeBtns[i].addEventListener("click", closeCreateModal);
+      }
+    })();
 
-      const now = Date.now();
+    saveRetourBtn.addEventListener("click", function(){
+      var type = document.getElementById("create-type").value;
+      var siteName = document.getElementById("create-site-name").value.trim();
+      var title = document.getElementById("create-title").value.trim();
+      var client = document.getElementById("create-client").value.trim();
+      var channel = document.getElementById("create-channel").value;
+      var date = document.getElementById("create-date").value;
+      var agent = document.getElementById("create-agent").value.trim();
+      var description = document.getElementById("create-description").value.trim();
 
-      const id = "R" + now.toString(36);
+      var now = Date.now();
+      var id = "R" + now.toString(36);
 
-      const retour = {
-        id,
-        type,
-        siteType,
-        title,
-        client,
-        channel,
+      var retour = {
+        id: id,
+        type: type,
+        siteName: siteName,
+        title: title,
+        client: client,
+        channel: channel,
         dateReception: date || null,
-        agent,
-        description,
+        agent: agent,
+        description: description,
         createdAt: now,
         updatedAt: now,
         steps:{
@@ -945,7 +955,7 @@
         timeline:[
           {
             date:now,
-            text:`Retour enregistré (${type === "reclamation" ? "Réclamation client" : "Ordre d’intervention"}) via ${channel}.`
+            text:"Retour enregistré (" + (type === "reclamation" ? "Réclamation client" : "Ordre d’intervention") + ") via " + channel + "."
           }
         ],
         photos:[]
@@ -958,47 +968,83 @@
       openDetailModal(id);
     });
 
-    // === MODAL DÉTAIL ===
-    const detailBackdrop = document.getElementById("detail-backdrop");
-    const detailContent = document.getElementById("detail-content");
-    const detailTitle = document.getElementById("detail-title");
+    /* === MODAL DÉTAIL === */
+    var detailBackdrop = document.getElementById("detail-backdrop");
+    var detailContent = document.getElementById("detail-content");
+    var detailTitle = document.getElementById("detail-title");
 
     function closeDetailModal(){
       detailBackdrop.classList.remove("active");
       currentDetailId = null;
     }
 
-    document.querySelectorAll("[data-close-detail]").forEach(btn=>{
-      btn.addEventListener("click", closeDetailModal);
-    });
+    (function(){
+      var closeBtns = document.querySelectorAll("[data-close-detail]");
+      for(var i=0;i<closeBtns.length;i++){
+        closeBtns[i].addEventListener("click", closeDetailModal);
+      }
+    })();
+
+    function addTimelineEntry(retour, text){
+      retour.timeline = retour.timeline || [];
+      retour.timeline.unshift({
+        date:Date.now(),
+        text:text
+      });
+    }
 
     function openDetailModal(id){
-      const retour = retours.find(r=>r.id===id);
+      var retour = null;
+      for(var i=0;i<retours.length;i++){
+        if(retours[i].id === id){
+          retour = retours[i];
+          break;
+        }
+      }
       if(!retour) return;
       currentDetailId = id;
       renderDetail(retour);
       detailBackdrop.classList.add("active");
     }
 
-    function addTimelineEntry(retour, text){
-      retour.timeline = retour.timeline || [];
-      retour.timeline.unshift({
-        date:Date.now(),
-        text
-      });
-    }
-
     function renderDetail(retour){
       detailTitle.textContent = retour.title || "Détail du retour";
-      const typeLabel = retour.type === "reclamation" ? "Réclamation client" : "Ordre d’intervention";
-      const siteLabel = retour.siteType === "copro" ? "Contrôle copropriété" :
-                        retour.siteType === "bureaux" ? "Bureaux / Locaux tertiaires" : "Autre site";
-      const status = computeStatus(retour);
-      const statusLabel = status === "clos" ? "Clôturé" : "En cours";
+      var typeLabel = retour.type === "reclamation" ? "Réclamation client" : "Ordre d’intervention";
+      var siteLabel = retour.siteName ||
+        (retour.siteType === "copro" ? "Contrôle copropriété" :
+         retour.siteType === "bureaux" ? "Bureaux / Locaux tertiaires" :
+         retour.siteType ? "Autre site" : "Site non défini");
+      var status = computeStatus(retour);
+      var statusLabel = status === "clos" ? "Clôturé" : "En cours";
 
-      const steps = retour.steps || {};
-      const photos = retour.photos || [];
-      const timeline = retour.timeline || [];
+      var steps = retour.steps || {};
+      var photos = retour.photos || [];
+      var timeline = retour.timeline || [];
+
+      var timelineHtml;
+      if(timeline.length === 0){
+        timelineHtml = '<div class="timeline-item"><div class="timeline-text">Aucun historique pour l’instant.</div></div>';
+      }else{
+        timelineHtml = timeline.map(function(item){
+          return `
+            <div class="timeline-item">
+              <div class="timeline-date">${formatDateTime(item.date)}</div>
+              <div class="timeline-text">${item.text}</div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      var photosHtml;
+      if(photos.length === 0){
+        photosHtml = '<span style="font-size:11px;color:var(--muted);">Aucune photo ajoutée pour l’instant.</span>';
+      }else{
+        photosHtml = photos.map(function(p){
+          return `
+            <div class="photo-thumb"><img src="${p.dataUrl}" alt="${p.name || "photo"}"></div>
+          `;
+        }).join("");
+      }
 
       detailContent.innerHTML = `
         <div>
@@ -1048,8 +1094,8 @@
                   <div class="step-sub">Réclamation / OI enregistrée dans KONTROL.</div>
                 </div>
               </div>
-              ${steps.messageRecu ? `<button class="step-action-btn" data-toggle-step="messageRecu">Annuler</button>` :
-                `<button class="step-action-btn" data-toggle-step="messageRecu">Valider</button>`}
+              ${steps.messageRecu ? '<button class="step-action-btn" data-toggle-step="messageRecu">Annuler</button>' :
+                '<button class="step-action-btn" data-toggle-step="messageRecu">Valider</button>'}
             </div>
 
             <div class="step-row ${steps.transmisAgent ? "done" : ""}" data-step="transmisAgent">
@@ -1060,8 +1106,8 @@
                   <div class="step-sub">Instruction transmise (message, appel, etc.).</div>
                 </div>
               </div>
-              ${steps.transmisAgent ? `<button class="step-action-btn" data-toggle-step="transmisAgent">Annuler</button>` :
-                `<button class="step-action-btn" data-toggle-step="transmisAgent">Valider</button>`}
+              ${steps.transmisAgent ? '<button class="step-action-btn" data-toggle-step="transmisAgent">Annuler</button>' :
+                '<button class="step-action-btn" data-toggle-step="transmisAgent">Valider</button>'}
             </div>
 
             <div class="step-row ${steps.correctionFaite ? "done" : ""}" data-step="correctionFaite">
@@ -1072,8 +1118,8 @@
                   <div class="step-sub">Tâche effectuée sur site par l’agent.</div>
                 </div>
               </div>
-              ${steps.correctionFaite ? `<button class="step-action-btn" data-toggle-step="correctionFaite">Annuler</button>` :
-                `<button class="step-action-btn" data-toggle-step="correctionFaite">Valider</button>`}
+              ${steps.correctionFaite ? '<button class="step-action-btn" data-toggle-step="correctionFaite">Annuler</button>' :
+                '<button class="step-action-btn" data-toggle-step="correctionFaite">Valider</button>'}
             </div>
 
             <div class="step-row ${steps.photoOK ? "done" : ""}" data-step="photoOK">
@@ -1084,8 +1130,8 @@
                   <div class="step-sub">Preuve visuelle envoyée / stockée.</div>
                 </div>
               </div>
-              ${steps.photoOK ? `<button class="step-action-btn" data-toggle-step="photoOK">Annuler</button>` :
-                `<button class="step-action-btn" data-toggle-step="photoOK">Valider</button>`}
+              ${steps.photoOK ? '<button class="step-action-btn" data-toggle-step="photoOK">Annuler</button>' :
+                '<button class="step-action-btn" data-toggle-step="photoOK">Valider</button>'}
             </div>
 
             <div class="step-row ${steps.retourClientOK ? "done" : ""}" data-step="retourClientOK">
@@ -1096,8 +1142,8 @@
                   <div class="step-sub">Client satisfait, dossier clôturé.</div>
                 </div>
               </div>
-              ${steps.retourClientOK ? `<button class="step-action-btn" data-toggle-step="retourClientOK">Annuler</button>` :
-                `<button class="step-action-btn" data-toggle-step="retourClientOK">Valider</button>`}
+              ${steps.retourClientOK ? '<button class="step-action-btn" data-toggle-step="retourClientOK">Annuler</button>' :
+                '<button class="step-action-btn" data-toggle-step="retourClientOK">Valider</button>'}
             </div>
           </div>
 
@@ -1111,27 +1157,18 @@
           </div>
 
           <div class="timeline" id="detail-timeline">
-            ${timeline.length === 0 ? `<div class="timeline-item"><div class="timeline-text">Aucun historique pour l’instant.</div></div>` :
-              timeline.map(item=>`
-                <div class="timeline-item">
-                  <div class="timeline-date">${formatDateTime(item.date)}</div>
-                  <div class="timeline-text">${item.text}</div>
-                </div>
-              `).join("")}
+            ${timelineHtml}
           </div>
 
           <p class="modal-section-title">Photos de la correction</p>
           <div class="form-grid">
             <div>
               <label for="detail-photo-input">Ajouter une photo (prise avec l’iPhone)</label>
-              <input type="file" id="detail-photo-input" accept="image/*" />
+              <input type="file" id="detail-photo-input" accept="image/*">
               <div class="photo-label">Les photos sont stockées localement dans ton navigateur (pas d’envoi sur un serveur).</div>
             </div>
             <div class="photos-grid" id="detail-photos">
-              ${photos.length === 0 ? `<span style="font-size:11px;color:var(--muted);">Aucune photo ajoutée pour l’instant.</span>` :
-                photos.map(p=>`
-                  <div class="photo-thumb"><img src="${p.dataUrl}" alt="${p.name || "photo"}"></div>
-                `).join("")}
+              ${photosHtml}
             </div>
           </div>
 
@@ -1142,21 +1179,30 @@
         </div>
       `;
 
-      // Ajout des listeners pour les étapes
-      detailContent.querySelectorAll("[data-toggle-step]").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
-          const stepKey = btn.getAttribute("data-toggle-step");
-          toggleStep(retour.id, stepKey);
-        });
-      });
+      // toggle étapes
+      var stepBtns = detailContent.querySelectorAll("[data-toggle-step]");
+      for(var i=0;i<stepBtns.length;i++){
+        (function(btn){
+          btn.addEventListener("click", function(){
+            var stepKey = btn.getAttribute("data-toggle-step");
+            toggleStep(retour.id, stepKey);
+          });
+        })(stepBtns[i]);
+      }
 
-      // Listener pour ajout de note
-      const addNoteBtn = document.getElementById("detail-add-note");
-      addNoteBtn.addEventListener("click", ()=>{
-        const textarea = document.getElementById("detail-new-note");
-        const value = textarea.value.trim();
+      // ajout de note
+      var addNoteBtn = document.getElementById("detail-add-note");
+      addNoteBtn.addEventListener("click", function(){
+        var textarea = document.getElementById("detail-new-note");
+        var value = textarea.value.trim();
         if(!value) return;
-        const r = retours.find(x=>x.id===retour.id);
+        var r = null;
+        for(var j=0;j<retours.length;j++){
+          if(retours[j].id === retour.id){
+            r = retours[j];
+            break;
+          }
+        }
         if(!r) return;
         addTimelineEntry(r, value);
         r.updatedAt = Date.now();
@@ -1165,18 +1211,24 @@
         renderRetours();
       });
 
-      // Listener pour ajout photo
-      const photoInput = document.getElementById("detail-photo-input");
-      photoInput.addEventListener("change", (e)=>{
-        const file = e.target.files && e.target.files[0];
+      // ajout photo
+      var photoInput = document.getElementById("detail-photo-input");
+      photoInput.addEventListener("change", function(e){
+        var file = e.target.files && e.target.files[0];
         if(!file) return;
-        const reader = new FileReader();
+        var reader = new FileReader();
         reader.onload = function(ev){
-          const dataUrl = ev.target.result;
-          const r = retours.find(x=>x.id===retour.id);
+          var dataUrl = ev.target.result;
+          var r = null;
+          for(var k=0;k<retours.length;k++){
+            if(retours[k].id === retour.id){
+              r = retours[k];
+              break;
+            }
+          }
           if(!r) return;
           r.photos = r.photos || [];
-          r.photos.push({name:file.name, dataUrl});
+          r.photos.push({name:file.name, dataUrl:dataUrl});
           r.steps = r.steps || {};
           r.steps.photoOK = true;
           addTimelineEntry(r,"Photo de la correction ajoutée.");
@@ -1188,13 +1240,13 @@
         reader.readAsDataURL(file);
       });
 
-      // Listener suppression
-      const deleteBtn = document.getElementById("detail-delete");
-      deleteBtn.addEventListener("click", ()=>{
+      // suppression
+      var deleteBtn = document.getElementById("detail-delete");
+      deleteBtn.addEventListener("click", function(){
         if(!confirm("Supprimer définitivement ce retour ?")){
           return;
         }
-        retours = retours.filter(x=>x.id!==retour.id);
+        retours = retours.filter(function(x){ return x.id !== retour.id; });
         saveRetours();
         closeDetailModal();
         renderRetours();
@@ -1202,50 +1254,62 @@
     }
 
     function toggleStep(id, stepKey){
-      const r = retours.find(x=>x.id===id);
+      var r = null;
+      for(var i=0;i<retours.length;i++){
+        if(retours[i].id === id){
+          r = retours[i];
+          break;
+        }
+      }
       if(!r) return;
       r.steps = r.steps || {};
-      const newValue = !r.steps[stepKey];
+      var newValue = !r.steps[stepKey];
       r.steps[stepKey] = newValue;
 
-      let labelMap = {
-        messageRecu:"Etape “Message reçu” mise à jour.",
+      var labelMap = {
+        messageRecu:"Étape « Message reçu » mise à jour.",
         transmisAgent:"Consigne agent mise à jour.",
         correctionFaite:"Correction réalisée mise à jour.",
-        photoOK:"Etat de la photo de correction mis à jour.",
+        photoOK:"État de la photo de correction mis à jour.",
         retourClientOK: newValue ? "Retour client OK, dossier clôturé." : "Retour client OK annulé."
       };
-      addTimelineEntry(r, labelMap[stepKey] || "Etape mise à jour.");
+      addTimelineEntry(r, labelMap[stepKey] || "Étape mise à jour.");
       r.updatedAt = Date.now();
       saveRetours();
       renderRetours();
       renderDetail(r);
     }
 
-    // === FILTRES ===
-    document.getElementById("filter-status-row").addEventListener("click", e=>{
-      const btn = e.target.closest(".chip");
+    /* === FILTRES === */
+    document.getElementById("filter-status-row").addEventListener("click", function(e){
+      var btn = e.target.closest(".chip");
       if(!btn) return;
-      const value = btn.getAttribute("data-status-filter");
+      var value = btn.getAttribute("data-status-filter");
       if(!value) return;
       currentFilters.status = value;
-      document.querySelectorAll("[data-status-filter]").forEach(b=>b.classList.remove("active"));
+      var all = document.querySelectorAll("[data-status-filter]");
+      for(var i=0;i<all.length;i++){
+        all[i].classList.remove("active");
+      }
       btn.classList.add("active");
       renderRetours();
     });
 
-    document.getElementById("filter-type-row").addEventListener("click", e=>{
-      const btn = e.target.closest(".chip");
+    document.getElementById("filter-type-row").addEventListener("click", function(e){
+      var btn = e.target.closest(".chip");
       if(!btn) return;
-      const value = btn.getAttribute("data-type-filter");
+      var value = btn.getAttribute("data-type-filter");
       if(!value) return;
       currentFilters.type = value;
-      document.querySelectorAll("[data-type-filter]").forEach(b=>b.classList.remove("active"));
+      var all = document.querySelectorAll("[data-type-filter]");
+      for(var i=0;i<all.length;i++){
+        all[i].classList.remove("active");
+      }
       btn.classList.add("active");
       renderRetours();
     });
 
-    // === INIT ===
+    /* === INIT === */
     loadRetours();
     renderRetours();
   </script>
