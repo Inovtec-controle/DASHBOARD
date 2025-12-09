@@ -534,12 +534,6 @@
    fallback charts, visibilité “Pas faits”.
    Thème adapté (clair + vert), commentaires sous chaque tâche.
    Bouton "Réinitialiser" = tâches + infos générales.
-
-   ⚠️ Ajustement des coefficients :
-   - La note est maintenant calculée en ne tenant compte que des tâches
-     marquées "Bien fait", "Passable" ou "Mal fait".
-   - Les tâches "Pas faits" (N/A) n'entrent plus dans le calcul du
-     pourcentage global, mais restent visibles dans les barres / camembert.
    ============================================================ */
 (function(){
   /* ===== Données & constantes ===== */
@@ -781,11 +775,10 @@
     ["ok","mid","bad","na"].forEach(key=>{
       const id = `${task.id}_${key}`;
       const lbl = document.createElement('label');
-      const dotClass = key==='ok'?'ok':key==='mid'?'mid'?'':'bad';
-      const realDotClass = key==='ok' ? 'ok' : key==='mid' ? 'mid' : key==='bad' ? 'bad' : 'na';
+      const dotClass = key==='ok'?'ok':key==='mid'?'mid':key==='bad'?'bad':'na';
       lbl.innerHTML =
         `<input type="radio" name="st_${task.id}" id="${id}" value="${key}" ${task.status===key?'checked':''}>
-         <span class="dot ${realDotClass}"></span>${STATUS_LABEL[key]}`;
+         <span class="dot ${dotClass}"></span>${STATUS_LABEL[key]}`;
       wrap.appendChild(lbl);
     });
     wrap.addEventListener('change', ()=>{
@@ -908,27 +901,15 @@
 
   /* ===== Calculs & Affichages ===== */
   function computeMetrics(){
-    const tasks = currentTasks();
-
-    // On ne tient compte que des tâches NOTÉES (ok/mid/bad) pour la note globale.
-    const effective = tasks.filter(t => t.status === 'ok' || t.status === 'mid' || t.status === 'bad');
-
-    const totalPossible = effective.length * 3;
-
+    const tasks = currentTasks(); const totalPossible = tasks.length * 3;
     let nOK=0, nMID=0, nBAD=0, nNA=0;
     tasks.forEach(t=>{
-      if(t.status==='ok') nOK++;
-      else if(t.status==='mid') nMID++;
-      else if(t.status==='bad') nBAD++;
-      else if(t.status==='na') nNA++;
+      if(t.status==='ok') nOK++; else if(t.status==='mid') nMID++;
+      else if(t.status==='bad') nBAD++; else if(t.status==='na') nNA++;
     });
-
-    const totalGot = (nOK*3) + (nMID*1); // "Mal fait" = 0, "Pas faits" = 0
+    const totalGot = (nOK*3) + (nMID*1);
     const pct = totalPossible>0 ? Math.round((totalGot/totalPossible)*100) : NaN;
-
-    // Pour les barres / camembert, on garde le nombre total de tâches (y compris "Pas faits")
     const total = tasks.length || 1;
-
     return { pct, nOK, nMID, nBAD, nNA, total };
   }
 
@@ -1129,12 +1110,7 @@
 
     // Note + visuel
     doc.setFont('helvetica','bold'); doc.setFontSize(11);
-    const noteY = 66 + 5*lineH + 22;
-    doc.text(`Note : ${isFinite(metrics.pct)?metrics.pct+'%':'—'}`, margin, noteY);
-
-    // Phrase demandée sous la note
-    doc.setFont('helvetica','normal'); doc.setFontSize(10);
-    doc.text("La note globale atteindre afin d'avoir une bonne tenue de site est 95%.", margin, noteY + lineH);
+    doc.text(`Note : ${isFinite(metrics.pct)?metrics.pct+'%':'—'}`, margin, 66 + 5*lineH + 22);
 
     let haveChartImage = false;
     try{
