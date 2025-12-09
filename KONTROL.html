@@ -222,9 +222,9 @@
     border-radius:10px; padding:6px 8px; color:var(--text); font-size:14px
   }
 
-  /* Barre d’action collée */
+  /* Barre d’action collée : plus fixe, maintenant en bas de page */
   .sticky-actions{
-    position:fixed; left:0; right:0; bottom:0;
+    position:static;
     background:rgba(255,255,255,0.96);
     border-top:1px solid var(--border);
     padding:10px calc(12px + env(safe-area-inset-right))
@@ -462,7 +462,7 @@
       <div>
         <label class="lbl">Note de qualité</label>
         <div class="score"><span id="score" class="score-badge" aria-live="polite">—</span></div>
-        <!-- Phrase demandée sous la note globale -->
+        <!-- Phrase sous la note globale -->
         <div style="font-size:13px; color:var(--muted); margin-top:4px;">
           La moyenne de référence cible est de 95%
         </div>
@@ -925,7 +925,7 @@
     const totalGot = (nOK * 3) + (nMID * 1); // coefficients inchangés
     const pct = totalPossible > 0 ? Math.round((totalGot / totalPossible) * 100) : NaN;
 
-    const total = rated.length; // pour les barres, même logique : uniquement les tâches renseignées
+    const total = rated.length; // pour les barres : uniquement les tâches renseignées
 
     return { pct, nOK, nMID, nBAD, nNA, total };
   }
@@ -1126,8 +1126,13 @@
     ].forEach((t,i)=> doc.text(t, margin, 66 + i*lineH));
 
     // Note + visuel
+    const noteY = 66 + 5*lineH + 22;
     doc.setFont('helvetica','bold'); doc.setFontSize(11);
-    doc.text(`Note : ${isFinite(metrics.pct)?metrics.pct+'%':'—'}`, margin, 66 + 5*lineH + 22);
+    doc.text(`Note : ${isFinite(metrics.pct)?metrics.pct+'%':'—'}`, margin, noteY);
+
+    // Phrase sous la note dans le PDF
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.text('La moyenne de référence cible est de 95%', margin, noteY + 14);
 
     let haveChartImage = false;
     try{
@@ -1223,4 +1228,3 @@
 </script>
 </body>
 </html>
-
