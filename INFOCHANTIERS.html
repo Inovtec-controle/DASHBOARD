@@ -16,7 +16,6 @@
 
   <style>
     :root{
-      /* CODE COULEUR KONTROL (clair) */
       --bg:#f1f5f9;
       --panel:#ffffff;
       --panel-soft:#e2e8f0;
@@ -39,6 +38,10 @@
       padding:0;
     }
 
+    html, body{
+      height:100%;
+    }
+
     body{
       font-family:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
       background:radial-gradient(circle at top left, rgba(148,163,184,.3), transparent 60%), var(--bg);
@@ -48,7 +51,7 @@
     }
 
     .app-shell{
-      min-height:100vh;
+      height:100vh;
       display:flex;
       justify-content:center;
       padding:16px;
@@ -68,6 +71,7 @@
       display:flex;
       flex-direction:column;
       gap:14px;
+      max-height:100%;
     }
 
     @media (min-width:768px){
@@ -75,8 +79,6 @@
         padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));
       }
     }
-
-    /* HEADER */
 
     .app-header{
       display:flex;
@@ -160,18 +162,21 @@
       white-space:nowrap;
     }
 
-    /* LAYOUT PRINCIPAL */
-
     .content-shell{
       display:grid;
       grid-template-columns: minmax(0,1.1fr) minmax(0,1.9fr);
       gap:14px;
       margin-top:2px;
+      align-items:stretch;
+      flex:1;
+      min-height:0;
+      height:calc(100vh - 150px);
     }
 
     @media (max-width:900px){
       .content-shell{
         grid-template-columns:minmax(0,1fr);
+        height:auto;
       }
     }
 
@@ -184,6 +189,8 @@
       display:flex;
       flex-direction:column;
       gap:10px;
+      min-height:0;
+      height:100%;
     }
 
     @media (min-width:768px){
@@ -197,6 +204,7 @@
       align-items:center;
       justify-content:space-between;
       gap:10px;
+      flex-shrink:0;
     }
 
     .panel-title-block{
@@ -238,13 +246,12 @@
       box-shadow:0 0 0 1px rgba(34,197,94,.4);
     }
 
-    /* FILTRES + LISTE GAUCHE */
-
     .filters{
       display:flex;
       flex-direction:column;
       gap:8px;
       margin-top:4px;
+      flex-shrink:0;
     }
 
     @media (min-width:600px){
@@ -338,6 +345,7 @@
       gap:8px;
       margin-top:6px;
       flex-wrap:wrap;
+      flex-shrink:0;
     }
 
     .stats-main{
@@ -371,22 +379,10 @@
       background:var(--brand);
     }
 
-    .stat-badge{
-      padding:3px 9px;
-      border-radius:999px;
-      font-size:10px;
-      background:var(--brand-soft);
-      border:1px solid rgba(22,163,74,.5);
-      color:#166534;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-    }
-
-    /* LISTE DES RÉSIDENCES (GAUCHE) */
-
     .chantiers-list{
       margin-top:8px;
-      max-height:min(64vh,520px);
+      flex:1;
+      min-height:0;
       overflow:auto;
       padding-right:4px;
       display:flex;
@@ -395,4 +391,2442 @@
     }
 
     .res-item{
-      displa
+      display:flex;
+      align-items:center;
+      gap:8px;
+      width:100%;
+      border-radius:12px;
+      border:1px solid transparent;
+      background:transparent;
+      padding:6px 8px;
+      font-size:13px;
+      color:var(--text);
+      cursor:pointer;
+      text-align:left;
+      transition:background .12s ease, border-color .12s ease, transform .08s ease;
+    }
+
+    .res-item-index{
+      width:22px;
+      height:22px;
+      border-radius:999px;
+      background:#e2e8f0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      font-weight:600;
+      color:#475569;
+      flex-shrink:0;
+    }
+
+    .res-item-label{
+      flex:1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .res-item:hover{
+      background:#ecfdf3;
+      border-color:rgba(22,163,74,.4);
+      transform:translateY(-1px);
+    }
+
+    .res-item.active{
+      background:var(--brand-strong);
+      border-color:rgba(22,163,74,.8);
+    }
+
+    .no-results{
+      margin-top:8px;
+      padding:10px;
+      border-radius:14px;
+      border:1px dashed var(--border);
+      background:#f8fafc;
+      font-size:12px;
+      color:var(--muted);
+      text-align:center;
+    }
+
+    .no-results strong{
+      color:var(--text);
+    }
+
+    .detail-panel{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:0;
+      height:100%;
+    }
+
+    .detail-headline{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      flex-shrink:0;
+    }
+
+    .detail-title-row{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+
+    .detail-main-title{
+      font-size:15px;
+      font-weight:700;
+      letter-spacing:.03em;
+    }
+
+    .detail-subaddress{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:2px;
+    }
+
+    .detail-syndic-pill{
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:rgba(59,130,246,.12);
+      border:1px solid rgba(59,130,246,.5);
+      color:#1d4ed8;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      white-space:nowrap;
+    }
+
+    .detail-hint{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:2px;
+    }
+
+    .detail-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+      margin-top:4px;
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding-right:2px;
+    }
+
+    @media (max-width:700px){
+      .detail-grid{
+        grid-template-columns:minmax(0,1fr);
+      }
+    }
+
+    .detail-block{
+      background:#f8fafc;
+      border-radius:14px;
+      border:1px solid var(--border);
+      padding:9px 9px 8px;
+      font-size:12px;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .detail-block-title{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.10em;
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .detail-row{
+      display:flex;
+      gap:4px;
+      margin-top:2px;
+      line-height:1.4;
+    }
+
+    .detail-label{
+      font-weight:600;
+      color:var(--text);
+      min-width:95px;
+      flex-shrink:0;
+    }
+
+    .detail-value{
+      flex:1;
+    }
+
+    .detail-input,
+    .detail-textarea{
+      width:100%;
+      border-radius:8px;
+      border:1px solid var(--border);
+      padding:4px 6px;
+      font-size:12px;
+      font-family:inherit;
+      color:var(--text);
+      background:#ffffff;
+    }
+
+    .detail-textarea{
+      min-height:52px;
+      resize:vertical;
+      line-height:1.4;
+    }
+
+    .detail-textarea--large{
+      min-height:90px;
+    }
+
+    .detail-footer{
+      font-size:11px;
+      color:var(--muted);
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:4px;
+      flex-shrink:0;
+    }
+
+    .detail-footer--centered{
+      justify-content:center;
+      align-items:center;
+      flex-direction:column;
+    }
+
+    .save-button{
+      padding:7px 18px;
+      border-radius:999px;
+      border:none;
+      background:var(--brand);
+      color:#f9fafb;
+      font-size:12px;
+      font-weight:600;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      cursor:pointer;
+      box-shadow:0 10px 25px rgba(22,163,74,.35);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .save-button:active{
+      transform:translateY(1px);
+      box-shadow:0 4px 12px rgba(22,163,74,.4);
+    }
+
+    .save-button--secondary{
+      background:#e2e8f0;
+      color:#0f172a;
+      box-shadow:none;
+      font-size:11px;
+      padding:6px 14px;
+    }
+
+    .save-button--danger{
+      background:#fee2e2;
+      color:#b91c1c;
+      box-shadow:none;
+      font-size:11px;
+      padding:6px 14px;
+      margin-left:6px;
+    }
+
+    .save-status{
+      margin-top:4px;
+      font-size:10px;
+      color:#16a34a;
+      min-height:14px;
+      text-align:center;
+    }
+
+    .detail-empty-box{
+      margin-top:8px;
+      padding:14px;
+      border-radius:14px;
+      border:1px dashed var(--border);
+      background:#f8fafc;
+      font-size:12px;
+      color:var(--muted);
+      text-align:center;
+      flex:1;
+    }
+
+    .detail-empty-box strong{
+      color:var(--text);
+    }
+
+    .app-footer-note{
+      margin-top:2px;
+      padding-top:8px;
+      border-top:1px solid var(--border);
+      font-size:10px;
+      color:var(--muted);
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .app-footer-note span:last-child{
+      opacity:.9;
+    }
+
+    .detail-hint-inline{
+      display:block;
+      font-size:10px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+
+    #cahierInfo{
+      font-size:10px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+
+    ::-webkit-scrollbar{
+      width:6px;
+    }
+    ::-webkit-scrollbar-track{
+      background:transparent;
+    }
+    ::-webkit-scrollbar-thumb{
+      background:#cbd5f5;
+      border-radius:999px;
+    }
+    ::-webkit-scrollbar-thumb:hover{
+      background:#94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="app-container">
+      <header class="app-header">
+        <div class="app-title-wrap">
+          <div class="app-icon"><span>K</span></div>
+          <div class="app-title-block">
+            <div class="app-title">Base chantiers nettoyage</div>
+            <div class="app-subtitle">Vue rapide de toutes les résidences – style KONTROL</div>
+          </div>
+        </div>
+        <div class="app-badge">INOVTEC · KONTROL</div>
+      </header>
+
+      <div class="content-shell">
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title-block">
+              <div class="panel-title">Résidences</div>
+              <div class="panel-subtitle">Clique sur un nom pour voir et éditer le détail à droite</div>
+            </div>
+            <div class="badge-pill">
+              <span class="pill-dot"></span>
+              Liste compacte
+            </div>
+          </div>
+
+          <div class="filters">
+            <div class="search-box">
+              <div class="search-icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+              </div>
+              <input id="searchInput" class="search-input" type="search" placeholder="Rechercher une résidence, adresse, syndic…" />
+            </div>
+
+            <div class="filter-group">
+              <div class="select-field">
+                <select id="syndicFilter">
+                  <option value="">Tous les syndics</option>
+                </select>
+              </div>
+              <div class="select-field">
+                <select id="triSelect">
+                  <option value="alpha">Tri A → Z (résidence)</option>
+                  <option value="syndic">Trier par syndic</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-header">
+            <div class="stats-main">
+              <div class="stat-pill">
+                <span class="stat-dot"></span>
+                <span><strong id="countVisible">0</strong> résultat(s)</span>
+              </div>
+              <div class="stat-pill">
+                <span>Résidences distinctes : <strong id="countTotal">0</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div id="chantiersList" class="chantiers-list"></div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="panel-header">
+            <div class="panel-title-block">
+              <div class="panel-title">Détail du chantier</div>
+              <div class="panel-subtitle">Toutes les infos sont éditables directement ici</div>
+            </div>
+          </div>
+
+          <div id="detailEmpty" class="detail-empty-box">
+            <strong>Aucun chantier sélectionné.</strong><br>
+            Choisis une résidence dans la liste de gauche pour afficher et modifier les informations.
+          </div>
+
+          <div id="detailContent" style="display:none;">
+            <div class="detail-headline">
+              <div class="detail-title-row">
+                <div>
+                  <div id="detailResidence" class="detail-main-title"></div>
+                  <div id="detailAddress" class="detail-subaddress"></div>
+                </div>
+                <div id="detailSyndicPill" class="detail-syndic-pill"></div>
+              </div>
+              <div id="detailHint" class="detail-hint"></div>
+            </div>
+
+            <div class="detail-grid">
+              <div class="detail-block">
+                <div class="detail-block-title">Infos chantier</div>
+                <div class="detail-row">
+                  <div class="detail-label">Résidence</div>
+                  <div class="detail-value">
+                    <input id="infoResidence" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Adresse</div>
+                  <div class="detail-value">
+                    <input id="infoAdresse" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Syndic</div>
+                  <div class="detail-value">
+                    <input id="infoSyndic" class="detail-input" type="text">
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <div class="detail-block-title">Contacts & syndic</div>
+                <div class="detail-row">
+                  <div class="detail-label">Contact</div>
+                  <div class="detail-value">
+                    <input id="infoContact" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Téléphone</div>
+                  <div class="detail-value">
+                    <input id="infoTelephone" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Mail</div>
+                  <div class="detail-value">
+                    <input id="infoMail" class="detail-input" type="text">
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <div class="detail-block-title">Organisation & agents</div>
+                <div class="detail-row">
+                  <div class="detail-label">Intervention</div>
+                  <div class="detail-value">
+                    <input id="infoIntervention" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Intervention ponctuelle / fréquence</div>
+                  <div class="detail-value">
+                    <textarea id="infoJours" class="detail-textarea" placeholder="Ex : Vitres trimestrielles, parking 1x/an, etc."></textarea>
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Agent(s)</div>
+                  <div class="detail-value">
+                    <input id="infoAgents" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">N° agents</div>
+                  <div class="detail-value">
+                    <input id="infoNumAgents" class="detail-input" type="text">
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <div class="detail-block-title">Accès, OM / TRI</div>
+                <div class="detail-row">
+                  <div class="detail-label">Code / clef</div>
+                  <div class="detail-value">
+                    <input id="infoCodeClef" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Sortie OM</div>
+                  <div class="detail-value">
+                    <input id="infoSortieOm" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Sortie TRI</div>
+                  <div class="detail-value">
+                    <input id="infoSortieTri" class="detail-input" type="text">
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <div class="detail-block-title">Technique & matériel</div>
+                <div class="detail-row">
+                  <div class="detail-label">Frange</div>
+                  <div class="detail-value">
+                    <input id="infoFrange" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Ampoules / néons</div>
+                  <div class="detail-value">
+                    <input id="infoAmpoules" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Sacs poubelle</div>
+                  <div class="detail-value">
+                    <input id="infoSac" class="detail-input" type="text">
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <div class="detail-block-title">Notes d'exploitation</div>
+                <div class="detail-row">
+                  <div class="detail-label">Note</div>
+                  <div class="detail-value">
+                    <textarea id="infoNote" class="detail-textarea" placeholder="Tu peux écrire ici des consignes spécifiques pour ce chantier (clé à récupérer, client sensible, etc.)."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <div class="detail-block-title">Cahier des charges (PDF)</div>
+                <div class="detail-row">
+                  <div class="detail-label">Importer</div>
+                  <div class="detail-value">
+                    <input id="infoCahierFile" type="file" accept="application/pdf" class="detail-input">
+                    <span class="detail-hint-inline">Le PDF est enregistré localement sur cet appareil, pour ce chantier uniquement.</span>
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Consulter</div>
+                  <div class="detail-value">
+                    <button type="button" id="openCahierBtn" class="save-button save-button--secondary">Ouvrir le PDF</button>
+                    <button type="button" id="clearCahierBtn" class="save-button save-button--danger">Supprimer</button>
+                    <div id="cahierInfo"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-footer detail-footer--centered">
+              <button type="button" id="saveButton" class="save-button">
+                <span>Enregistrer les modifications</span>
+              </button>
+              <div id="saveStatus" class="save-status"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="app-footer-note">
+        <span>Données issues de ton fichier Excel (Nom résidence, adresse, syndic, contact, OM, TRI…)</span>
+        <span>Design aligné sur KONTROL – vue mobile iPhone friendly.</span>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // Données initiales injectées depuis l'Excel
+    const CHANTIERS = [
+  {
+    "Nom de la résidence": "69 Strasbourg ",
+    "N° De Clef": "37",
+    "Adresse": "69 boulevard Strasbourg 31000 Toulouse ",
+    "Contact": "Mme Muller Marion ",
+    "Téléphone": "0562268394",
+    "Mails": "Chrystelle.corazza@foncia.fr",
+    "Syndic": "FONCIA ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "Mercredi 1:00 complet",
+    "Code / clef": "Badge",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "",
+    "type  ampoules néons": "E27 4000K",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Abeille ",
+    "N° De Clef": "58",
+    "Adresse": "2 rue roquemaurel toulouse",
+    "Contact": "Mr Fonta",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MnGestion",
+    "Intervention": "Toulouse Métropole",
+    "Agents": "Di Sangro / Leonel Ribiero",
+    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+    "Jour de passage /Tache": "Lundi complet ",
+    "Code / clef": "Telecommande\nVigik\nclef",
+    "Sortie om": "LUNDI \nJEUDI",
+    "Sortie tri": "MERCREDI",
+    "Frange": "Ø",
+    "type  ampoules néons": "E27 4000K",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Alysson",
+    "N° De Clef": "60",
+    "Adresse": "3 rue gaston salvayre Toulouse",
+    "Contact": "Mr Fonta",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MnGestion",
+    "Intervention": "Toulouse Métropole",
+    "Agents": "Di Sangro / Leonel Ribiero",
+    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+    "Jour de passage /Tache": "Mardi complet ",
+    "Code / clef": "Telecommande \nVigik \nclef ",
+    "Sortie om": "MARDI \nJEUDI",
+    "Sortie tri": "JEUDI",
+    "Frange": "Ø",
+    "type  ampoules néons": "E27 4000K",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Améthyste ",
+    "N° De Clef": "43",
+    "Adresse": "2 bis impasse du pradelet 31650",
+    "Contact": "Jonathan NGINAMAU ",
+    "Téléphone": "06 22 67 80 66 ",
+    "Mails": "jonathan.nginamau@foncia.com",
+    "Syndic": "Foncia",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Ginka ",
+    "Numéro Agents": "06 41 45 62 62",
+    "Jour de passage /Tache": "Lundi 2:30 complet 4 bâtiment                                                             Jeudi 2:30 complet 4 bâtiment ",
+    "Code / clef": "Télé commande portail                                    Bat A 0501\nBat B 2605\nBat C 1203\nBat D 1802",
+    "Sortie om": "LUNDI",
+    "Sortie tri": "LUNDI\n1semaine/2",
+    "Frange": "30/mois",
+    "type  ampoules néons": "E27 4000K",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Andes",
+    "N° De Clef": "49",
+    "Adresse": "18 avenue charles de gaulle 31130 balma",
+    "Contact": "",
+    "Téléphone": "0534430518 0695704321",
+    "Mails": "contact@andes.fr",
+    "Syndic": "",
+    "Intervention": "Entreprise",
+    "Agents": "Mr Selamnia",
+    "Numéro Agents": "06 01 94 25 53",
+    "Jour de passage /Tache": "Jeudi complet",
+    "Code / clef": "clef",
+    "Sortie om": "",
+    "Sortie tri": "",
+    "Frange": "10/ mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Arago",
+    "N° De Clef": "26",
+    "Adresse": "12 rue arago 31500 Toulouse",
+    "Contact": "Mme Garraud ",
+    "Téléphone": "0682807388",
+    "Mails": "Syndic@cgpi-sogab.fr ",
+    "Syndic": "Cgpi - Sogab",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "Mercredi 00:45 complet et nettoyage om et locaux ",
+    "Code / clef": "Clef ",
+    "Sortie om": "LUNDI VENDREDI",
+    "Sortie tri": "MARDI",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Aristides avocats",
+    "N° De Clef": "44",
+    "Adresse": "11 rue Antonin mercier 31000 Toulouse ",
+    "Contact": "Mme Mayol ",
+    "Téléphone": "0601763906",
+    "Mails": "Patricia.mayol@aristide-avocats.com",
+    "Syndic": "Tertiaire",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Aboutammame ",
+    "Numéro Agents": "07 52 10 32 64",
+    "Jour de passage /Tache": "Samedi complet",
+    "Code / clef": "Clef",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "10/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Anesthésiste ",
+    "N° De Clef": "50",
+    "Adresse": "Clinique de l'union ",
+    "Contact": "Virgine rodriguez",
+    "Téléphone": "0650249791",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "Mr Gadi",
+    "Numéro Agents": "07 82 13 56 15",
+    "Jour de passage /Tache": "Tous les jours ",
+    "Code / clef": "Clefs",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "40/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Atlanta ",
+    "N° De Clef": "41 ",
+    "Adresse": "27 rue Andre vasseur Toulouse ",
+    "Contact": "Mr Fonta\nMr Alvarez",
+    "Téléphone": "0601654090\n0652341231",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MN gestion",
+    "Intervention": "Entreprise",
+    "Agents": "Mr Samriye",
+    "Numéro Agents": "0641540279",
+    "Jour de passage /Tache": "Tous les jours ",
+    "Code / clef": "Telecomande + vigik + clef",
+    "Sortie om": "Lundi",
+    "Sortie tri": "Mardi ",
+    "Frange": "30/ mois",
+    "type  ampoules néons": "E27 4000K",
+    "sac poubelle": "NON "
+  },
+  {
+    "Nom de la résidence": " Beaupuy  Primaire",
+    "N° De Clef": "16",
+    "Adresse": "Beaupuy",
+    "Contact": "Marc Fernandez ",
+    "Téléphone": "06 62 71 46 70    ",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "Mr El Gurch\nDa Rocha ",
+    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
+    "Jour de passage /Tache": "Lundi Mardi\nJeudi Vendredi 17h - 21h\nMercredi\n17h - 18h50",
+    "Code / clef": "Clef ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "30 / mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": " Beaupuy Maternelle ",
+    "N° De Clef": "16",
+    "Adresse": "",
+    "Contact": "Marc Fernandez ",
+    "Téléphone": "06 62 71 46 70    ",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "Mr El Gurch\nDa Rocha ",
+    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
+    "Jour de passage /Tache": "Lundi Mardi\nJeudi Vendredi 17h - 21h\nMercredi\n17h - 18h50",
+    "Code / clef": "Clef ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "30 / mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": " Mairie Beaupuy",
+    "N° De Clef": "16",
+    "Adresse": "",
+    "Contact": "Marc Fernandez ",
+    "Téléphone": "06 62 71 46 70    ",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "Mr El Gurch\nDa Rocha ",
+    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
+    "Jour de passage /Tache": "Mercredi 1h30",
+    "Code / clef": "Clef ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Club House Beaupuy",
+    "N° De Clef": "16",
+    "Adresse": "",
+    "Contact": "Marc Fernandez ",
+    "Téléphone": "06 62 71 46 70    ",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "Di Sangro / Leonel Ribiero",
+    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+    "Jour de passage /Tache": "Jeudi 10h - 11h",
+    "Code / clef": "Clef ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Salle Poly Beaupuy ",
+    "N° De Clef": "16",
+    "Adresse": "",
+    "Contact": "Marc Fernandez ",
+    "Téléphone": "06 62 71 46 70    ",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "Di Sangro / Leonel Ribiero",
+    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+    "Jour de passage /Tache": "Lundi 10H - 12h30       Jeudi 11H - 12H30",
+    "Code / clef": "Clef ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "5 / mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Bes ",
+    "N° De Clef": "ouverture par le client ",
+    "Adresse": "1 rue Jean Rodier 31400 Toulouse ",
+    "Contact": "Mr Graillât ",
+    "Téléphone": "0562572400 - 0618056645",
+    "Mails": "Olivier.GRAILLAT@kohler.com>",
+    "Syndic": "Tertiaire",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Georgieva ",
+    "Numéro Agents": "0641456262",
+    "Jour de passage /Tache": "Lundi 11:45 - 13:15                    Jeudi 11:45 - 13:15  Complet",
+    "Code / clef": "Sonner Interphone",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "BSK",
+    "N° De Clef": "ouverture par le client",
+    "Adresse": "58 rue de magellan",
+    "Contact": "samuel douchy clinquart ",
+    "Téléphone": "06 11 243674",
+    "Mails": "",
+    "Syndic": "tertiaire",
+    "Intervention": "",
+    "Agents": "Da silva karolaine",
+    "Numéro Agents": "?",
+    "Jour de passage /Tache": "lundi au vendredi 2h30",
+    "Code / clef": "ouvert par le client code portail 1234",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "30/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Cabinet dentaire ",
+    "N° De Clef": "31",
+    "Adresse": "1 bis rue de l'europe Balma ",
+    "Contact": "Lemanier",
+    "Téléphone": "0616306711",
+    "Mails": "",
+    "Syndic": "Ø",
+    "Intervention": "Ø",
+    "Agents": "Da silva karolaine",
+    "Numéro Agents": "?",
+    "Jour de passage /Tache": "Lundi au vendredi 20h",
+    "Code / clef": "clef / code alarme \nActiver\nON \ndésactiver 3592 OFF",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "50 / mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Carré Verdé",
+    "N° De Clef": "Ø",
+    "Adresse": "22 bis chemin d'azas, aucamville",
+    "Contact": "M Fonta ",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "Mngestion",
+    "Intervention": "Toulouse Métropole ",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "Vendredi 2H",
+    "Code / clef": "clef local poubelle \ncode 1898",
+    "Sortie om": "",
+    "Sortie tri": "",
+    "Frange": "10 / mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Castanea ",
+    "N° De Clef": "4",
+    "Adresse": "58 avenue de Toulouse 31320 castanet tolosan ",
+    "Contact": "Mme Iris Ravaillot ",
+    "Téléphone": " 0672967483 ",
+    "Mails": "<iris.revaillot@ca-immobilier.fr>",
+    "Syndic": "CA immo",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mr Mechergui",
+    "Numéro Agents": "0662674109",
+    "Jour de passage /Tache": "Mardi 02:00\nHalls + etages Vendredi 1:15 Halls",
+    "Code / clef": "Clef Badge Bip",
+    "Sortie om": "DIMANCHE \nMERCREDI",
+    "Sortie tri": "MERCREDI",
+    "Frange": "10/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Clos des demoiselles",
+    "N° De Clef": "61",
+    "Adresse": "4 rue des demoiselles de gascogne  Frouzins",
+    "Contact": "Mr Fonta",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MnGestion",
+    "Intervention": "Evacuation\nentreprise",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "Mardi \nComplet",
+    "Code / clef": "Telecommade\nVigik \nclef ",
+    "Sortie om": "LUNDI\nJEUDI",
+    "Sortie tri": "MARDI",
+    "Frange": "?",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Comat ",
+    "N° De Clef": "14",
+    "Adresse": "6 chemin de vignalis, Flourens",
+    "Contact": "Mr Pagot ",
+    "Téléphone": "06 22 43 35 98",
+    "Mails": "b.pagot@comat.space>",
+    "Syndic": "Tertiaire",
+    "Intervention": "Ø",
+    "Agents": "Di Sangro / Leonel Ribiero",
+    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+    "Jour de passage /Tache": "Lundi\nMardi\nMercredi\nJeudi\nVendredi",
+    "Code / clef": "Clef ",
+    "Sortie om": "VENDREDI MATIN",
+    "Sortie tri": "VENDREDI MATIN",
+    "Frange": "43 / mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "OUI"
+  },
+  {
+    "Nom de la résidence": "Chataigners ",
+    "N° De Clef": "10",
+    "Adresse": "Angle avenue mendes France et avenue savary 31520 castanet tolosan ",
+    "Contact": "Mr lefebvre David ",
+    "Téléphone": "0561251845",
+    "Mails": "David.lefebvre@foncia.fr ",
+    "Syndic": "FONCIA ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mr Ben Moindzee",
+    "Numéro Agents": "0620115560",
+    "Jour de passage /Tache": "Lundi - vendredi ",
+    "Code / clef": "B2548 portail \n\nBâtiment A 4561 \nBâtiment B 4562                    bâtiment C 4563\nBâtiment D4567 \nBâtiment E 4568\nBâtiment F 4569",
+    "Sortie om": " Lundi  jeudi",
+    "Sortie tri": "Mercredi ",
+    "Frange": "100/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Cheneraie ",
+    "N° De Clef": "2",
+    "Adresse": "12 avenue pierres Georges latecoere 31520 ramonville n",
+    "Contact": "Mme Coval - Mr Cussac ",
+    "Téléphone": "0534321307 - 0621784182 / 0534321299",
+    "Mails": "Scoval@nexity.fr / cussac@nexity.fr",
+    "Syndic": "Nexity saint Michel ",
+    "Intervention": "Sicoval par syndic ",
+    "Agents": "Mr Mechergui ",
+    "Numéro Agents": "0662674109",
+    "Jour de passage /Tache": "Lundi 07:30 - 11h30              6 complet 12hall                                                      Mardi 07:30 - 09:30               6 etages                                           Mercredi 07:30 - 10:30      Halls                                       Jeudi 07:30 - 09:30               6 etages                                             Vendredi 07:30 - 11:30  6 complet 12hall  ",
+    "Code / clef": "Clef / Badge code 1969",
+    "Sortie om": "Mardi 07:00 repasser le MIDI fermer le portail \nJeudi 07:00 repasser le MIDI pour fermer ",
+    "Sortie tri": "Lundi 12:00 repasser le soir pour fermer",
+    "Frange": "60/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Clos mendel",
+    "N° De Clef": "5",
+    "Adresse": "1 bis rue de gorp 31400 Toulouse ",
+    "Contact": "Iris lugis",
+    "Téléphone": "Tél : 05.34.401.444\nPort : 06.72.96.74.83\n",
+    "Mails": "iris.lugiss@ca-servicesimmobiliers.fr",
+    "Syndic": "CA-immo ",
+    "Intervention": "Toulouse Métropole ",
+    "Agents": "Mr Dupla",
+    "Numéro Agents": "0771577140",
+    "Jour de passage /Tache": "Mardi 01:00                                                    Vendredi 00:30",
+    "Code / clef": "Clef et Bip",
+    "Sortie om": "DIMANCHE \nMARDI \nJEUDI ",
+    "Sortie tri": "JEUDI",
+    "Frange": "10/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Croix benite  ",
+    "N° De Clef": "",
+    "Adresse": "45 rue croix Benite ",
+    "Contact": "Mn gestion ",
+    "Téléphone": "",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "",
+    "Numéro Agents": "",
+    "Jour de passage /Tache": "",
+    "Code / clef": "Code porte 5354",
+    "Sortie om": "",
+    "Sortie tri": "",
+    "Frange": "",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Dauphiné",
+    "N° De Clef": "62",
+    "Adresse": "2 - 4 avenue de l'URSS",
+    "Contact": "Mr FONTA",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MnGestion",
+    "Intervention": "Toulouse Métropole",
+    "Agents": "Mr Perez",
+    "Numéro Agents": "07 83 47 96 85",
+    "Jour de passage /Tache": "Mardi\nBât 2 complet et hall Bâtiment 4\n1h\nVendredi \nBât 4 complet et hall Bâtiment 2\n1h",
+    "Code / clef": "Telecommande\nVigik\nClef ",
+    "Sortie om": "LUNDI \nJEUDI",
+    "Sortie tri": "JEUDI",
+    "Frange": "20/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Domaine ",
+    "N° De Clef": "59",
+    "Adresse": "10 impasse se canto \nCastanet Tolosan",
+    "Contact": "Mr FONTA",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MnGestion",
+    "Intervention": "Toulouse Métropole",
+    "Agents": "Mr El Gurch\nDa Rocha ",
+    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
+    "Jour de passage /Tache": "Lundi \nhall B/C/D\n0h45\nMardi\nHall A/E\n0h40\nMercredi\nEtages et escaliers 5 batiments\n3h\nJeudi\nhall B/C/D\n0h55\nVendredi\nHall A/E\n1h15",
+    "Code / clef": "Telecommande\nVigik\nClef ",
+    "Sortie om": "JEUDI",
+    "Sortie tri": "JEUDI 1/2 SEMAINE",
+    "Frange": "40/mois",
+    "type  ampoules néons": "E27 - ",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Domaine du canal ",
+    "N° De Clef": "36",
+    "Adresse": "22 bis chemin du canal 31170 Tournefeuille",
+    "Contact": "Mme Levanphung",
+    "Téléphone": "0562219876 - 0643402956",
+    "Mails": "Alexandra.levanphung@square.fr",
+    "Syndic": "Square Habitat ",
+    "Intervention": "Évacuation entreprise",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "Mardi 01:15 Complet                                                   Vendredi 01:15          Hall + rentré /nettoyage container + local poubelle et aire de présentation ",
+    "Code / clef": "Clef badge bip",
+    "Sortie om": "jeudi dimanche",
+    "Sortie tri": "mardi 1semaine/2",
+    "Frange": "20 / mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Duméril ",
+    "N° De Clef": "33",
+    "Adresse": "102 rue alfred duméril, Toulouse",
+    "Contact": "Mr FONTA",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MnGestion",
+    "Intervention": "Toulouse Métropole",
+    "Agents": "Di Sangro / Leonel Ribiero",
+    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+    "Jour de passage /Tache": "jeudi complet",
+    "Code / clef": "clef badge télécomande",
+    "Sortie om": "MARDI \nJEUDI",
+    "Sortie tri": "MARDI",
+    "Frange": "10/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Enghien C",
+    "N° De Clef": "53",
+    "Adresse": "43 rue Corneille 31300 Toulouse",
+    "Contact": "Mr Gauze ",
+    "Téléphone": "0562736064",
+    "Mails": "gauze102@foncia.fr",
+    "Syndic": "FONCIA",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mr Posel         Mr Joseph",
+    "Numéro Agents": "",
+    "Jour de passage /Tache": "Ø",
+    "Code / clef": "Bip",
+    "Sortie om": "LUNDI\nJEUDI",
+    "Sortie tri": "MERCREDI",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": "OUI"
+  },
+  {
+    "Nom de la résidence": "Ehghien D",
+    "N° De Clef": "53",
+    "Adresse": "43 rue corneille 31300 Toulouse ",
+    "Contact": "CLEMENTEI Sylvie",
+    "Téléphone": "",
+    "Mails": "sylvie.clementei@foncia.com",
+    "Syndic": "Nexity ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "",
+    "Numéro Agents": "",
+    "Jour de passage /Tache": "Ø",
+    "Code / clef": "Bip",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": "OUI"
+  },
+  {
+    "Nom de la résidence": "Exterion Média",
+    "N° De Clef": "55",
+    "Adresse": "6 avenue Georges Pompidou ",
+    "Contact": "Mme Lafon Anne ",
+    "Téléphone": "0617174808 - 0561619984",
+    "Mails": "Anne.Lafon@exterionmedia.fr",
+    "Syndic": "Tertiaire ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Landi",
+    "Numéro Agents": "0681299244",
+    "Jour de passage /Tache": "Lundi - Vendredi 06:00 - 08:30 complet ",
+    "Code / clef": "Clef Code entre porte 45621 portail appel 07000037678353      téléphone autorisé ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Gonin",
+    "N° De Clef": "18",
+    "Adresse": "9 rue Claude gonin ",
+    "Contact": "Mme Lucie Thibault",
+    "Téléphone": "0562736899",
+    "Mails": "L.thibault@midihabitat.net",
+    "Syndic": "Midi habitat",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Akardad",
+    "Numéro Agents": "0775956868",
+    "Jour de passage /Tache": "Lundi 01:00  hall + escaliers + acces sous sol                                   Mardi 02:00 Etages                                                                               Mercredi 01:00 Hall + espace vert + echanges conteneurs om et tri                                                                                                                    Jeudi 00:15 echanges conteneurs au besoin                                        Vendredi 01:00 echange conteneur ",
+    "Code / clef": "Badge bip clef",
+    "Sortie om": "LUNDI",
+    "Sortie tri": "MARDI\n",
+    "Frange": "20/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "OUI"
+  },
+  {
+    "Nom de la résidence": "Hammeaux de la crousettes ",
+    "N° De Clef": "34",
+    "Adresse": "51 chemin de campferrand 31520 Auzeville tolosan ",
+    "Contact": "Mr Antony ",
+    "Téléphone": "0699140392",
+    "Mails": "kantony@lamy-immobilier.fR",
+    "Syndic": "Nexity saint Michel ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mr Mechergui",
+    "Numéro Agents": "0662674109",
+    "Jour de passage /Tache": "lundi mercredi",
+    "Code / clef": "Badge / télécommande ",
+    "Sortie om": "DIMANCHE",
+    "Sortie tri": "LUNDI 1/2 SEMAINE",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Iconcept capitole ",
+    "N° De Clef": "Ø",
+    "Adresse": "57 rue Alsace et Lorraine 31000 Toulouse ",
+    "Contact": "Laura ",
+    "Téléphone": "06 71 86 96 49",
+    "Mails": "l.vallinot@cec.com",
+    "Syndic": "Commerce ",
+    "Intervention": "Toulouse Métropole",
+    "Agents": "Mokhadam et geik",
+    "Numéro Agents": "0767979067\n0758227029",
+    "Jour de passage /Tache": "Lundi mercredi vendredi 8h30 -> 9h30 ",
+    "Code / clef": "Ouverture par les employés / wc 3105A ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Iconcept Labege ",
+    "N° De Clef": "Ø",
+    "Adresse": "88 rue de Galilée 31670 labege ",
+    "Contact": "Mr Dutilleux ",
+    "Téléphone": "0664440553",
+    "Mails": "Pascal.dutilleux@iconcept.fr",
+    "Syndic": "Commerce ",
+    "Intervention": "Ø",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "Mardi Jeudi 8h30 -> 9h30",
+    "Code / clef": "Ouverture par les employés ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": " Idéa park ",
+    "N° De Clef": "Ø",
+    "Adresse": "9 rue benjamin franklin, launaguet",
+    "Contact": "",
+    "Téléphone": "",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "Charef",
+    "Numéro Agents": "",
+    "Jour de passage /Tache": "Jeudi 1 / mois",
+    "Code / clef": "accés libre",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": "Ø"
+  },
+  {
+    "Nom de la résidence": "Jardin occitans ",
+    "N° De Clef": "40",
+    "Adresse": "Impasse les Jardin Occitans Pompertuzat",
+    "Contact": "",
+    "Téléphone": "",
+    "Mails": "",
+    "Syndic": "Foncia",
+    "Intervention": "toulouse métrople",
+    "Agents": "Mr El Gurch\nDa Rocha ",
+    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
+    "Jour de passage /Tache": "Lundi\ncomplets des entrée 1 et 2 + rentrées conteneurs OM et nettoyage conteneurs et locaux \n1h45\nMardi\n complets des entrée 3, 4 + sortie des conteneurs de tri \n1h15\nrentrée des conteneurs de tri + ramassage des détritus et soufflage des piétonniers+ dépoussiérage des boites aux lettres\n0h40\nJeudi\ncomplets des entrée 1 et 2\n1h30\nVendredi\n complets des entrée 3, 4\n1h30 ",
+    "Code / clef": "Telecommande \nVigik \nClef ",
+    "Sortie om": "DIMANCHE\nJEUDI",
+    "Sortie tri": "MARDI",
+    "Frange": "",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Jimenez ",
+    "N° De Clef": "Ø",
+    "Adresse": "Castelneau d’ Estretefond",
+    "Contact": "Mme Bourdeu ",
+    "Téléphone": "0562849665",
+    "Mails": "Sylvie.bourdeu@jimenezfva.com",
+    "Syndic": "Tertiaire",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Stoian",
+    "Numéro Agents": "0623500218",
+    "Jour de passage /Tache": "Lundi - Samedi ",
+    "Code / clef": "Clef badge",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "120/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Jonquilles",
+    "N° De Clef": "21",
+    "Adresse": "41 rue de limayrac 31500 Toulouse ",
+    "Contact": "Mme Lazaar - Mr Édouard Illescas ",
+    "Téléphone": "? - 0666278766",
+    "Mails": "Fantime.lazaar@foncia.fr - Édouard.illescas@foncia.fr ",
+    "Syndic": "FONCIA ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mr Dupla",
+    "Numéro Agents": "0771577140",
+    "Jour de passage /Tache": "Mardi 14:00 - 15:00                                Vendredi 14:00 - 15:00",
+    "Code / clef": "Badge",
+    "Sortie om": "LUNDI \nJEUDI",
+    "Sortie tri": "MARDI",
+    "Frange": "20/mois ",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Kanopii",
+    "N° De Clef": "54",
+    "Adresse": "25 avenue des arène Balma ",
+    "Contact": "Hadrien",
+    "Téléphone": "0620157286",
+    "Mails": "",
+    "Syndic": "Tertiaire",
+    "Intervention": "Ø",
+    "Agents": "Mr Selamnia",
+    "Numéro Agents": "0601942553",
+    "Jour de passage /Tache": "Mercredi 2h ",
+    "Code / clef": "clef2020 ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Lagravette ",
+    "N° De Clef": "20",
+    "Adresse": "21/23/25 rue de la gravette 31300 Toulouse ",
+    "Contact": "Mme Levanphung",
+    "Téléphone": "0562219876 - 0643502956",
+    "Mails": "Alexandra.levanphung@square.fr ",
+    "Syndic": "Square habitat",
+    "Intervention": "Toulouse métropole ",
+    "Agents": " Mme Di Sangro ",
+    "Numéro Agents": "0636477994",
+    "Jour de passage /Tache": "Mercredi 2H15 complet",
+    "Code / clef": "Bip Clef Badge",
+    "Sortie om": "MARDI\nJEUDI",
+    "Sortie tri": "MARDI",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Lombez Roquemaurel",
+    "N° De Clef": "33",
+    "Adresse": "70 avenue de lombez - 35 rue de roquemaurel",
+    "Contact": "M Fonta",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "mn gestion",
+    "Intervention": "toulouse métrople",
+    "Agents": "Mme Amaral",
+    "Numéro Agents": "0648444310",
+    "Jour de passage /Tache": "Lundi 3H \nJeudi 3H ",
+    "Code / clef": "Clef / badge / télécommande",
+    "Sortie om": "",
+    "Sortie tri": "",
+    "Frange": "",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "magellan ",
+    "N° De Clef": "8",
+    "Adresse": "58 rue de magellan ",
+    "Contact": "Mme Sessen",
+    "Téléphone": "",
+    "Mails": "Sessen",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "lundi au vendredi ",
+    "Code / clef": "code barrière 1234",
+    "Sortie om": "",
+    "Sortie tri": "",
+    "Frange": "",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Matabiau ",
+    "N° De Clef": "",
+    "Adresse": "23 boulevard matabiau toulouse",
+    "Contact": "M Fonta",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MnGestion",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Akardad",
+    "Numéro Agents": "0775956868",
+    "Jour de passage /Tache": "Lundi au vendredi",
+    "Code / clef": "clef",
+    "Sortie om": "mardi",
+    "Sortie tri": "Ø",
+    "Frange": "40/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Mega Sud ",
+    "N° De Clef": "46",
+    "Adresse": "",
+    "Contact": "Mme Bosc ",
+    "Téléphone": "06 99 78 04 75",
+    "Mails": "",
+    "Syndic": "Tertaire",
+    "Intervention": "",
+    "Agents": "Mr Gadi",
+    "Numéro Agents": "0782135615",
+    "Jour de passage /Tache": "Vendredi a partir de 14h",
+    "Code / clef": "Clef",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "40/mlois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Monplaisir ",
+    "N° De Clef": "23",
+    "Adresse": "43 rue monplaisir 31000 Toulouse ",
+    "Contact": "Mr Therin",
+    "Téléphone": "0776907899",
+    "Mails": "Therin@domicimm.fr ",
+    "Syndic": "Domicimm ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Dupla ",
+    "Numéro Agents": "0771577140",
+    "Jour de passage /Tache": "Lundi 14:00 - 16:00                  Jeudi 14:30 - 15:00",
+    "Code / clef": "Badge / bip / clef",
+    "Sortie om": "dimanche mercredi",
+    "Sortie tri": "jeudi",
+    "Frange": "20/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Narbonne",
+    "N° De Clef": "48",
+    "Adresse": "85 route de narbonne, Toulouse",
+    "Contact": "M Fonta",
+    "Téléphone": "0601654090",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MnGestion",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Di Sangro / Leonel Ribiero",
+    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+    "Jour de passage /Tache": "Tous les jours ",
+    "Code / clef": "Clef / badge",
+    "Sortie om": "",
+    "Sortie tri": "",
+    "Frange": "",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Opéra ",
+    "N° De Clef": "12",
+    "Adresse": "31 rue figeac 31200 Toulouse ",
+    "Contact": "Mme Gonzalez Manon ",
+    "Téléphone": "0561361501",
+    "Mails": "Manon.gonzalez@foncia.com",
+    "Syndic": "FONCIA ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "lundi 1:15  complet                                                   Mercredi 1:15 complet                                Vendredi 00:30 hall",
+    "Code / clef": "Clef bip badge",
+    "Sortie om": "lundi jeudi",
+    "Sortie tri": "jeudi",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Orea ",
+    "N° De Clef": "35",
+    "Adresse": "1/5/7 rue pagnol et 26 avenue de Galilée 31130 Balma ",
+    "Contact": "Mr Fonta ",
+    "Téléphone": "06 95 47 19 76",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MN gestion ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Dulceinia",
+    "Numéro Agents": "",
+    "Jour de passage /Tache": "Lundi 2.5 h                                Jeudi 2.5h",
+    "Code / clef": "Clef Badge Bip",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Parc sud ",
+    "N° De Clef": "13",
+    "Adresse": "Place des marronniers 31700 Blagnac ",
+    "Contact": "Mme Castaninel - Mr Gauze Bruno",
+    "Téléphone": "0562268380 - 0627707663 / 0572268386",
+    "Mails": "Laura.castinel@foncia.fr - gauze102@foncia.fr",
+    "Syndic": "FONCIA ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "lundi 2:30 complet partie droite +hall partie gauche + scom                                                         Mardi 00:45 rcom + sctri                                                                     Jeudi 02:15 complet partie gauche +hall partie droite",
+    "Code / clef": "Badge clef porte local technique 31700b ",
+    "Sortie om": "DIMANCHE",
+    "Sortie tri": "mardi 1 semaine/2",
+    "Frange": "50/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "OUI"
+  },
+  {
+    "Nom de la résidence": "Périgord ",
+    "N° De Clef": "57",
+    "Adresse": "60 boulevard des recolets\n9 rue valentin",
+    "Contact": "Mr Fonta ",
+    "Téléphone": "06 95 47 19 76",
+    "Mails": "frederic.fonta@mngestion-immobiliere.com",
+    "Syndic": "MN gestion ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Amaral",
+    "Numéro Agents": "06 48 44 43 10",
+    "Jour de passage /Tache": "Lundi\nMercredi \nVendredi",
+    "Code / clef": "- Telecommande\n- Vigik \n- clef \n - Code \n- Portail 60 boulevard des Recolet : 3355B\n- BAT. A : 3355B\n- BAT. B : 1880A \n - BAT. C : 3355A \n",
+    "Sortie om": "LUNDI\nBAT. AB \nJEUDI \nBAT. ABC ",
+    "Sortie tri": "JEUDI",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Portes d'Albi",
+    "N° De Clef": "29",
+    "Adresse": "2 chemin amouroux , Toulouse ",
+    "Contact": "Mme Levanphung",
+    "Téléphone": "0562219876 - 0643502956",
+    "Mails": "Alexandra.levanphung@square.fr ",
+    "Syndic": "Square habitat",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mr Avit",
+    "Numéro Agents": "0682333491",
+    "Jour de passage /Tache": "Lundi 14h-16h mardi 14h-16h mercredi 14h-17h    jeudi 14h-17h vendredi 14h-16h ",
+    "Code / clef": "Badge clef 7162",
+    "Sortie om": "mardi vendredi",
+    "Sortie tri": "lundi",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Président ",
+    "N° De Clef": "30",
+    "Adresse": "1/3/5 rue des lauriers 31650 saint orens ",
+    "Contact": "Mme castinel - Mr Gauze Bruno ",
+    "Téléphone": "0562268380 - 0627707663 / 0562268386",
+    "Mails": "Laura.castinel@foncia.fr / gauze102@foncia.fr ",
+    "Syndic": "FONCIA ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Georgieva ",
+    "Numéro Agents": "0641456262",
+    "Jour de passage /Tache": "Lundi 09:00 - 12:00                                                Mardi 09:00 - 11:00                                           Mercredi 09:00 - 11:00                                                       Vendredi 09:00 - 13:00",
+    "Code / clef": "Clefs badge  bip",
+    "Sortie om": "dimanche mercredi",
+    "Sortie tri": "Lundi 1semaine/ 2",
+    "Frange": "50/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "OUI"
+  },
+  {
+    "Nom de la résidence": "Prevaly eurocentre ",
+    "N° De Clef": "45",
+    "Adresse": "Rue de l’Europe 31620 Castelneau d’estretefonds ",
+    "Contact": "Mr Frédéric quadrini ",
+    "Téléphone": "0647090990",
+    "Mails": "Frédéric.quadrini@prevaly.fr",
+    "Syndic": "Tertiaire ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Stoian",
+    "Numéro Agents": "0623500218",
+    "Jour de passage /Tache": "Lundi - Vendredi 17:00 - 19:00",
+    "Code / clef": "Clef portail 3265A alarme désactive activé ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "30/mois ",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Prevaly labege ",
+    "N° De Clef": "Ø",
+    "Adresse": "227 rue pierre Gilles de gennes 31650 labege",
+    "Contact": "Fedreric Quadrini ",
+    "Téléphone": "0647090992",
+    "Mails": "Frédéric.quadrini@prevaly.fr ",
+    "Syndic": "Tertiaire",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mr Selamnia",
+    "Numéro Agents": "0601942553",
+    "Jour de passage /Tache": "Lundi - Vendredi 17:00 - 19:40",
+    "Code / clef": "Code porte 7843 - code alarme 1749  eryma code 6729",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "30/mois ",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Prevaly montaudran ",
+    "N° De Clef": "Ø",
+    "Adresse": "26 avenue Didier Daurat 31400 Toulouse ",
+    "Contact": "Mr Frédéric quadrini ",
+    "Téléphone": "0647090992",
+    "Mails": "Frédéric.quadrini@prevaly.fr",
+    "Syndic": "Tertiaire",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Benzianne   Mme Babouri \n???",
+    "Numéro Agents": "0641456262",
+    "Jour de passage /Tache": "Lundi 17:00 - 19:00                                                             Mardi 17:00 - 18:30                                                          Mercredi 17:00 - 19:00                                                  Jeudi 17:00 - 19h30                                                                Vendredi 16:00 - 18:30",
+    "Code / clef": "Code barrière 3265\nCode porte coulissante 7534\nCode alarme \nActivation 3265 A\nDésactivation 3265 enter",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "60/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Prieuré",
+    "N° De Clef": "9",
+    "Adresse": "5 et 5 bis du prieuré 31000 Toulouse ",
+    "Contact": "Nunés",
+    "Téléphone": "0785639862",
+    "Mails": "",
+    "Syndic": "Domicimm ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mr Akardad",
+    "Numéro Agents": "0775956868",
+    "Jour de passage /Tache": "lundi 02:30                                 mercredi 02:30                                                    Jeudi 01:15                                                     Vendredi 01:00",
+    "Code / clef": "Bip Clef Badge ",
+    "Sortie om": "dimanche mardi jeudi",
+    "Sortie tri": "Ø",
+    "Frange": "35/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Provence",
+    "N° De Clef": "3",
+    "Adresse": "10 rue de Provence 31400 Toulouse ",
+    "Contact": "Mme Lalire - Noel Marion ",
+    "Téléphone": "0562736062 - 05 62 73 53 24",
+    "Mails": "Alalire@nexity.fr - MNOEL@lamy-immobilier.fr",
+    "Syndic": "Nexity carnot ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mme Benzianne",
+    "Numéro Agents": "0695095061",
+    "Jour de passage /Tache": "Lundi 01:30 complet                                     Jeudi 00:30 hall",
+    "Code / clef": "Clef Badge",
+    "Sortie om": "lundi jeudi",
+    "Sortie tri": "jeudi",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Quatuhore",
+    "N° De Clef": "6",
+    "Adresse": "14 avenue Charles de Gaulle lot 14 31130 Balma ",
+    "Contact": "Mr ROUX ",
+    "Téléphone": "06 73 38 66 65 ",
+    "Mails": "",
+    "Syndic": "Tertiaire",
+    "Intervention": "Ø",
+    "Agents": "Mr Selamnia",
+    "Numéro Agents": "06 01 95 25 53",
+    "Jour de passage /Tache": "1/semaine",
+    "Code / clef": "Clefs ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "10/ mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Remax ",
+    "N° De Clef": "32",
+    "Adresse": "Chemin de la Madeleine 31130 Flourens ",
+    "Contact": "Mr Bosc    Mr Balsa",
+    "Téléphone": "0680119632 0643056294",
+    "Mails": "",
+    "Syndic": "Industriel ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mr Touil ",
+    "Numéro Agents": "",
+    "Jour de passage /Tache": "Mercredi 17:00-21:00 Sanitaires et vestiaires deux batiments                                                      Samedi 08:00-12:00 complet 2 batiments ",
+    "Code / clef": "Clef ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "RIE ",
+    "N° De Clef": "Ø",
+    "Adresse": "Chemin brindejonc des moulinais, Toulouse",
+    "Contact": "",
+    "Téléphone": "",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "Babouri",
+    "Numéro Agents": "0761225110",
+    "Jour de passage /Tache": "tous les jours  14h -16h",
+    "Code / clef": "Ø",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "20 / mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Route d'Espagne",
+    "N° De Clef": "Ø",
+    "Adresse": "89 route d'espagne, toulouse",
+    "Contact": "",
+    "Téléphone": "",
+    "Mails": "",
+    "Syndic": "",
+    "Intervention": "",
+    "Agents": "",
+    "Numéro Agents": "",
+    "Jour de passage /Tache": "",
+    "Code / clef": "",
+    "Sortie om": "",
+    "Sortie tri": "",
+    "Frange": "",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Sainte Anne ",
+    "N° De Clef": "7",
+    "Adresse": "18 rue saint Anne 31000 Toulouse ",
+    "Contact": "Mme Castinel - Mr Gauze Bruno ",
+    "Téléphone": "0562268380 - 0627707663 / 0562268386",
+    "Mails": "Laura.castinel@foncia.fr - Gauze102@foncia.fr ",
+    "Syndic": "FONCIA ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mr Perez",
+    "Numéro Agents": "07 83 47 96 85",
+    "Jour de passage /Tache": "Lundi 07:00 - 09:00                                           Mardi 07:00 - 08:15                                Mercredi 07:00 - 09:00                                 Jeudi 07:00 - 08:15                                         Vendredi 07:00 - 09:00",
+    "Code / clef": "Clef bip badge code A3270A / 9780B ",
+    "Sortie om": "Rentré si besoin conteneur ",
+    "Sortie tri": "Ø",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Saint exupery ",
+    "N° De Clef": "1",
+    "Adresse": "84 et 86 avenue de saint exupery 31400 Toulouse ",
+    "Contact": "Calatayu",
+    "Téléphone": "06 71 80 09 61",
+    "Mails": "julien.calatayu@domicia-immobilier.fr",
+    "Syndic": "Dommicia",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mr Dupla ",
+    "Numéro Agents": "0771577140",
+    "Jour de passage /Tache": "Lundi 8:15 - 11:15  Batiments    2A/2B/3B + rcom                     Mardi 8:15 - 10:45 Batiments    3A/4A/4B                                Jeudi 8:15 - 11:15 Batiments    2A/2B/3B + rcom + tri                          Vendredi 8:15 - 10h45 Batiments    3A/4A/4B ",
+    "Code / clef": "Clef Badge Bip ",
+    "Sortie om": "dimanche mercredi",
+    "Sortie tri": "mercredi",
+    "Frange": "20 franges scratch / bi mensuel ",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Saint sauveur ",
+    "N° De Clef": "22",
+    "Adresse": "49 boulevard griffoul dorval / 49 avenue de la baraquette",
+    "Contact": "Andrieu     -                        Simon ",
+    "Téléphone": "0660641360    0785520064",
+    "Mails": "",
+    "Syndic": "martin gestion ",
+    "Intervention": "Toulouse Métropole",
+    "Agents": "Akardad",
+    "Numéro Agents": "0775956868",
+    "Jour de passage /Tache": "Lundic c14:00-16:30   Mardi 14:00-17:00 Mercredi 14:00-16:30 Jeudi 14:00-17:00 Vendredi 14:00-16:30",
+    "Code / clef": "Clef - badge - Bip portail code  Batiment A hall 02146 Batiment 01236 Ascenseur 02145 Batiment B hall 02146 Batiment 01235 Ascenseur 02147 Batiment C hall         Badge Batiment   08931 Ascenseur 07513     Accès sous sol 7348",
+    "Sortie om": "Dimanche Mercredi",
+    "Sortie tri": "Mardi",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Seven ",
+    "N° De Clef": "51",
+    "Adresse": "3 avenue de turenne 31000 Toulouse ",
+    "Contact": "Mme Levanphung ",
+    "Téléphone": "0562219876 / 0643502956",
+    "Mails": "Alexandra.Levanphung@square.fr ",
+    "Syndic": "Square habitat",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mr Samriye",
+    "Numéro Agents": "0641540279",
+    "Jour de passage /Tache": "lundi 1:15 complet jeudi",
+    "Code / clef": "Badge / bip / clef",
+    "Sortie om": "lundi jeudi",
+    "Sortie tri": "mercredi",
+    "Frange": "35/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Smart RX",
+    "N° De Clef": "39",
+    "Adresse": "16 av Charles de Gaulle numéro 11",
+    "Contact": "Mr Recor",
+    "Téléphone": "",
+    "Mails": "O.recor@smart-rx.com",
+    "Syndic": "Tertiaire",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mr Dupla ",
+    "Numéro Agents": "0771577140",
+    "Jour de passage /Tache": "Mercredi Complet  12:30 - 15:15",
+    "Code / clef": "Clef ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "10/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Solens ",
+    "N° De Clef": "19",
+    "Adresse": "60 rue du midi 31400 Toulouse ",
+    "Contact": "Cabrol geraud ",
+    "Téléphone": "0561541547",
+    "Mails": "Cabrol@domicimm.fr ",
+    "Syndic": "Domicimm ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mme Benzianne",
+    "Numéro Agents": "0695095061",
+    "Jour de passage /Tache": "Lundi 1h30 Jeudi 0h30",
+    "Code / clef": "Clef bip badge ",
+    "Sortie om": "lundi jeudi",
+    "Sortie tri": "jeudi",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Sopark ",
+    "N° De Clef": "28",
+    "Adresse": "33 avenue tolosane 31520 ramonville ",
+    "Contact": "Mr Antony ",
+    "Téléphone": "0699140392",
+    "Mails": "kantony@lamy-immobilier.fR",
+    "Syndic": "Nexity saint Michel ",
+    "Intervention": "Sicoval - 0562240202",
+    "Agents": "Mr Mechergui",
+    "Numéro Agents": "0662674109",
+    "Jour de passage /Tache": "Lundi hall\nJeudi complet",
+    "Code / clef": "Badge /  télécommande / clef ",
+    "Sortie om": "lundi 12:00-13:30 halls + scom jeudi 9:30-12:30 complet + scom",
+    "Sortie tri": "dimanche ",
+    "Frange": "25/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Synergie",
+    "N° De Clef": "Ø",
+    "Adresse": "6 avenue Georges Pompidou 31130 Balma ",
+    "Contact": "Mme Rémy Alexandra ",
+    "Téléphone": "0562474744",
+    "Mails": "Alexandra.remy@synergie.fr",
+    "Syndic": "Tertiaire ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Da Silva ",
+    "Numéro Agents": "",
+    "Jour de passage /Tache": "Mardi 8:30-9:30",
+    "Code / clef": "Clef                        code porte 45621",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Tendance ",
+    "N° De Clef": "17",
+    "Adresse": "80 route de Grenade 31700 blagnac ",
+    "Contact": "Mr Laurent Paloma",
+    "Téléphone": "0561714833 - 0561714422",
+    "Mails": "Syndic@agence-palomar.fr",
+    "Syndic": "Palomar immobilier ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "Mardi Complet ",
+    "Code / clef": "Badge clef bip",
+    "Sortie om": "jeudi",
+    "Sortie tri": "mercredi 1 semaine/2",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Tso catenaires ",
+    "N° De Clef": "42",
+    "Adresse": "5 rue moulin Balard 31000 Toulouse ",
+    "Contact": "Mr Marques",
+    "Téléphone": "0689543805",
+    "Mails": "Charles.marques@tso-catenaires.fr",
+    "Syndic": "Tertiaire",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mr Bissemo",
+    "Numéro Agents": "0623929722",
+    "Jour de passage /Tache": "Lundi - Vendredi            19:00 - 21:00",
+    "Code / clef": "Badge / 1975A ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "Ø",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Vaughan avocat ",
+    "N° De Clef": "59",
+    "Adresse": "15 rue de la bourse 31000 Toulouse ",
+    "Contact": "Mr Bruno de la portaliere",
+    "Téléphone": "0682992221 / 0561251284",
+    "Mails": "Bdelaportaliere@vaughan-avocats.fr",
+    "Syndic": "Tertiaire ",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Aboutammame",
+    "Numéro Agents": "0752103264",
+    "Jour de passage /Tache": "Samedi ou dimanche ",
+    "Code / clef": "Clef ",
+    "Sortie om": "Ø",
+    "Sortie tri": "Ø",
+    "Frange": "10/ mois",
+    "type  ampoules néons": "",
+    "sac poubelle": ""
+  },
+  {
+    "Nom de la résidence": "Vergers tolosan ",
+    "N° De Clef": "15",
+    "Adresse": "4 chemin de la Flambère 31300 Toulouse ",
+    "Contact": "Mme Levanphung ",
+    "Téléphone": "0562219876 - 0643502956",
+    "Mails": "Alexandra.levanphung@square.fr",
+    "Syndic": "Square habitat ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "Lundi Vendredi                                                02:00/ jour",
+    "Code / clef": "Clef bip badge",
+    "Sortie om": "mardi vendredi",
+    "Sortie tri": "dimanche",
+    "Frange": "80/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Via tolosan ",
+    "N° De Clef": "2",
+    "Adresse": "1 avenue Marcel Dassault",
+    "Contact": "Mr Cussac - Mme Coval ",
+    "Téléphone": "0621784182 / 0534321299",
+    "Mails": "Jcussac@nexity.fr / scoval@nexity.fr ",
+    "Syndic": "Nexity Saint Michel ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Mr Mohkadam",
+    "Numéro Agents": "0767979067     -                       0758227029",
+    "Jour de passage /Tache": "Lundi - Mardi - Mercredi - Jeudi - Vendredi",
+    "Code / clef": "Clef - badge - bip  code cadena portail pompier 1971 ",
+    "Sortie om": "dimanche mercredi",
+    "Sortie tri": "mardi",
+    "Frange": "70/mois",
+    "type  ampoules néons": "",
+    "sac poubelle": "NON"
+  }
+];
+
+    // Si des données existantes ont été enregistrées en localStorage, on les recharge
+    try {
+      const stored = localStorage.getItem("chantiersData_editable");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length) {
+          CHANTIERS.splice(0, CHANTIERS.length, ...parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("Impossible de charger les données locales :", e);
+    }
+
+    const searchInput = document.getElementById("searchInput");
+    const syndicFilter = document.getElementById("syndicFilter");
+    const triSelect = document.getElementById("triSelect");
+    const listEl = document.getElementById("chantiersList");
+    const countVisibleEl = document.getElementById("countVisible");
+    const countTotalEl = document.getElementById("countTotal");
+
+    const detailEmpty = document.getElementById("detailEmpty");
+    const detailContent = document.getElementById("detailContent");
+
+    const detailResidence = document.getElementById("detailResidence");
+    const detailAddress = document.getElementById("detailAddress");
+    const detailSyndicPill = document.getElementById("detailSyndicPill");
+    const detailHint = document.getElementById("detailHint");
+
+    const infoResidence = document.getElementById("infoResidence");
+    const infoAdresse = document.getElementById("infoAdresse");
+    const infoSyndic = document.getElementById("infoSyndic");
+
+    const infoContact = document.getElementById("infoContact");
+    const infoTelephone = document.getElementById("infoTelephone");
+    const infoMail = document.getElementById("infoMail");
+
+    const infoIntervention = document.getElementById("infoIntervention");
+    const infoJours = document.getElementById("infoJours");
+    const infoAgents = document.getElementById("infoAgents");
+    const infoNumAgents = document.getElementById("infoNumAgents");
+
+    const infoCodeClef = document.getElementById("infoCodeClef");
+    const infoSortieOm = document.getElementById("infoSortieOm");
+    const infoSortieTri = document.getElementById("infoSortieTri");
+    const infoSac = document.getElementById("infoSac");
+
+    const infoFrange = document.getElementById("infoFrange");
+    const infoAmpoules = document.getElementById("infoAmpoules");
+    const infoNote = document.getElementById("infoNote");
+
+    const infoCahierFile = document.getElementById("infoCahierFile");
+    const openCahierBtn = document.getElementById("openCahierBtn");
+    const clearCahierBtn = document.getElementById("clearCahierBtn");
+    const cahierInfo = document.getElementById("cahierInfo");
+
+    const saveButton = document.getElementById("saveButton");
+    const saveStatus = document.getElementById("saveStatus");
+
+    let etat = {
+      recherche: "",
+      syndic: "",
+      tri: "alpha",
+      selectionIndex: null
+    };
+
+    function normaliserTexte(str){
+      if (!str) return "";
+      return String(str)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g," ")
+        .trim();
+    }
+
+    const totalDistinct = new Set(
+      CHANTIERS.map(c => (c["Nom de la résidence"] || "").trim()).filter(Boolean)
+    ).size;
+    countTotalEl.textContent = totalDistinct;
+
+    function buildSyndicOptions() {
+      const current = etat.syndic;
+      const syndics = Array.from(
+        new Set(
+          CHANTIERS.map(c => (c["Syndic"] || "").trim()).filter(Boolean)
+        )
+      ).sort((a,b) => a.localeCompare(b,"fr"));
+
+      syndicFilter.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "";
+      optAll.textContent = "Tous les syndics";
+      syndicFilter.appendChild(optAll);
+
+      let stillExists = false;
+      syndics.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        if (s === current) {
+          opt.selected = true;
+          stillExists = true;
+        }
+        syndicFilter.appendChild(opt);
+      });
+
+      if (!stillExists) {
+        etat.syndic = "";
+        syndicFilter.value = "";
+      }
+    }
+
+    function filtrerChantiers(){
+      const term = normaliserTexte(etat.recherche);
+      return CHANTIERS.filter((c) => {
+        if (!c) return false;
+        if (etat.syndic && String(c["Syndic"] || "").trim() !== etat.syndic){
+          return false;
+        }
+        if (!term) return true;
+
+        const champs = [
+          c["Nom de la résidence"],
+          c["Adresse"],
+          c["Syndic"],
+          c["Contact"],
+          c["Agents"],
+          c["Jour de passage /Tache"]
+        ];
+
+        return champs.some(val => normaliserTexte(val).includes(term));
+      });
+    }
+
+    function trierChantiers(liste){
+      const tri = etat.tri;
+      return [...liste].sort((a,b) => {
+        if (tri === "syndic"){
+          const sa = normaliserTexte(a["Syndic"] || "");
+          const sb = normaliserTexte(b["Syndic"] || "");
+          if (sa === sb){
+            const ra = normaliserTexte(a["Nom de la résidence"] || "");
+            const rb = normaliserTexte(b["Nom de la résidence"] || "");
+            return ra.localeCompare(rb,"fr");
+          }
+          return sa.localeCompare(sb,"fr");
+        }
+        const ra = normaliserTexte(a["Nom de la résidence"] || "");
+        const rb = normaliserTexte(b["Nom de la résidence"] || "");
+        return ra.localeCompare(rb,"fr");
+      });
+    }
+
+    function renderListe(){
+      const filtrés = filtrerChantiers();
+      const chantiersAffiches = trierChantiers(filtrés);
+
+      listEl.innerHTML = "";
+      countVisibleEl.textContent = chantiersAffiches.length;
+
+      if (!chantiersAffiches.length){
+        const div = document.createElement("div");
+        div.className = "no-results";
+        div.innerHTML = `
+          <strong>Aucun chantier trouvé.</strong><br>
+          Vérifie l'orthographe ou enlève des filtres (syndic, tri).
+        `;
+        listEl.appendChild(div);
+        detailEmpty.style.display = "block";
+        detailContent.style.display = "none";
+        return;
+      }
+
+      chantiersAffiches.forEach((c) => {
+        const globalIndex = CHANTIERS.indexOf(c);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "res-item";
+
+        const residence = (c["Nom de la résidence"] || "").trim() || "Résidence sans nom";
+
+        const indexSpan = '<span class="res-item-index">' + String(globalIndex + 1).padStart(2,"0") + '</span>';
+        const labelSpan = '<span class="res-item-label">' + residence + '</span>';
+        btn.innerHTML = indexSpan + labelSpan;
+
+        if (etat.selectionIndex === globalIndex){
+          btn.classList.add("active");
+        }
+
+        btn.addEventListener("click", () => {
+          etat.selectionIndex = globalIndex;
+          renderListe();
+          renderDetail();
+        });
+
+        listEl.appendChild(btn);
+      });
+    }
+
+    function loadCahierForIndex(idx) {
+      if (idx === null || idx < 0) return null;
+      try {
+        const raw = localStorage.getItem("chantier_pdf_" + idx);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        console.warn("Impossible de charger le PDF pour ce chantier :", e);
+        return null;
+      }
+    }
+
+    function updateCahierUI() {
+      const idx = etat.selectionIndex;
+      const data = loadCahierForIndex(idx);
+      infoCahierFile.value = "";
+      if (!data) {
+        cahierInfo.textContent = "Aucun cahier des charges PDF enregistré pour ce chantier.";
+        openCahierBtn.disabled = true;
+        clearCahierBtn.disabled = true;
+      } else {
+        cahierInfo.textContent = "PDF enregistré : " + (data.name || "cahier_des_charges.pdf");
+        openCahierBtn.disabled = false;
+        clearCahierBtn.disabled = false;
+      }
+    }
+
+    function renderDetail(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
+        detailEmpty.style.display = "block";
+        detailContent.style.display = "none";
+        return;
+      }
+      const c = CHANTIERS[idx];
+
+      detailEmpty.style.display = "none";
+      detailContent.style.display = "block";
+
+      const residence = (c["Nom de la résidence"] || "").trim() || "Résidence sans nom";
+      const adresse = (c["Adresse"] || "").trim() || "Adresse non renseignée";
+      const syndic = (c["Syndic"] || "").trim() || "Syndic non renseigné";
+
+      const contact = (c["Contact"] || "").trim();
+      const tel = (c["Téléphone"] || "").trim();
+      const mails = (c["Mails"] || "").trim();
+
+      const intervention = (c["Intervention"] || "").trim();
+      const jours = (c["Jour de passage /Tache"] || "").trim();
+      const agents = (c["Agents"] || "").trim();
+      const nAgents = (c["Numéro Agents"] || "").trim();
+
+      const codeClef = (c["Code / clef"] || "").trim();
+      const sortieOm = (c["Sortie om"] || "").trim();
+      const sortieTri = (c["Sortie tri"] || "").trim();
+      const sac = (c["sac poubelle"] || "").trim();
+
+      const frange = (c["Frange"] || "").trim();
+      const ampoules = (c["type  ampoules néons"] || "").trim();
+
+      const note = (c["Note chantier"] || "").trim();
+
+      detailResidence.textContent = residence;
+      detailAddress.textContent = adresse;
+      detailSyndicPill.textContent = syndic;
+      detailHint.textContent = "Tu peux modifier chaque champ ci-dessous, importer un cahier des charges PDF, puis cliquer sur « Enregistrer les modifications ».";
+
+      infoResidence.value = (c["Nom de la résidence"] || "").trim();
+      infoAdresse.value = (c["Adresse"] || "").trim();
+      infoSyndic.value = (c["Syndic"] || "").trim();
+
+      infoContact.value = contact;
+      infoTelephone.value = tel;
+      infoMail.value = mails;
+
+      infoIntervention.value = intervention;
+      infoJours.value = jours;
+      infoAgents.value = agents;
+      infoNumAgents.value = nAgents;
+
+      infoCodeClef.value = codeClef;
+      infoSortieOm.value = sortieOm;
+      infoSortieTri.value = sortieTri;
+      infoSac.value = sac;
+
+      infoFrange.value = frange;
+      infoAmpoules.value = ampoules;
+      infoNote.value = note;
+
+      updateCahierUI();
+      saveStatus.textContent = "";
+    }
+
+    function sauvegarderSelection(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
+        saveStatus.textContent = "Aucun chantier sélectionné.";
+        return;
+      }
+      const c = CHANTIERS[idx];
+
+      c["Nom de la résidence"] = infoResidence.value.trim();
+      c["Adresse"] = infoAdresse.value.trim();
+      c["Syndic"] = infoSyndic.value.trim();
+
+      c["Contact"] = infoContact.value.trim();
+      c["Téléphone"] = infoTelephone.value.trim();
+      c["Mails"] = infoMail.value.trim();
+
+      c["Intervention"] = infoIntervention.value.trim();
+      c["Jour de passage /Tache"] = infoJours.value.trim();
+      c["Agents"] = infoAgents.value.trim();
+      c["Numéro Agents"] = infoNumAgents.value.trim();
+
+      c["Code / clef"] = infoCodeClef.value.trim();
+      c["Sortie om"] = infoSortieOm.value.trim();
+      c["Sortie tri"] = infoSortieTri.value.trim();
+      c["sac poubelle"] = infoSac.value.trim();
+
+      c["Frange"] = infoFrange.value.trim();
+      c["type  ampoules néons"] = infoAmpoules.value.trim();
+
+      c["Note chantier"] = infoNote.value.trim();
+
+      try {
+        localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
+        saveStatus.textContent = "Modifications enregistrées sur cet appareil.";
+      } catch (e) {
+        console.warn("Impossible d'enregistrer en localStorage :", e);
+        saveStatus.textContent = "Modifications appliquées (non stockées en local).";
+      }
+
+      buildSyndicOptions();
+      renderListe();
+      renderDetail();
+    }
+
+    searchInput.addEventListener("input", (e) => {
+      etat.recherche = e.target.value;
+      renderListe();
+    });
+
+    syndicFilter.addEventListener("change", (e) => {
+      etat.syndic = e.target.value;
+      renderListe();
+    });
+
+    triSelect.addEventListener("change", (e) => {
+      etat.tri = e.target.value;
+      renderListe();
+    });
+
+    saveButton.addEventListener("click", sauvegarderSelection);
+
+    infoCahierFile.addEventListener("change", (e) => {
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length) {
+        saveStatus.textContent = "Sélectionne d'abord un chantier.";
+        infoCahierFile.value = "";
+        return;
+      }
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.type !== "application/pdf") {
+        saveStatus.textContent = "Merci de choisir un fichier PDF.";
+        infoCahierFile.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const dataUrl = ev.target.result;
+        try {
+          localStorage.setItem("chantier_pdf_" + idx, JSON.stringify({ name: file.name, dataUrl }));
+          cahierInfo.textContent = "PDF enregistré : " + file.name;
+          openCahierBtn.disabled = false;
+          clearCahierBtn.disabled = false;
+          saveStatus.textContent = "Cahier des charges PDF enregistré pour ce chantier.";
+        } catch (err) {
+          console.warn("Erreur en enregistrant le PDF :", err);
+          saveStatus.textContent = "PDF trop lourd ou stockage indisponible.";
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function updateCahierUIAfterDelete() {
+      cahierInfo.textContent = "Aucun cahier des charges PDF enregistré pour ce chantier.";
+      openCahierBtn.disabled = true;
+      clearCahierBtn.disabled = true;
+    }
+
+    openCahierBtn.addEventListener("click", () => {
+      const idx = etat.selectionIndex;
+      const data = loadCahierForIndex(idx);
+      if (!data || !data.dataUrl) {
+        saveStatus.textContent = "Aucun PDF enregistré pour ce chantier.";
+        updateCahierUIAfterDelete();
+        return;
+      }
+      window.open(data.dataUrl, "_blank");
+    });
+
+    clearCahierBtn.addEventListener("click", () => {
+      const idx = etat.selectionIndex;
+      try {
+        localStorage.removeItem("chantier_pdf_" + idx);
+      } catch (e) {
+        console.warn("Erreur en supprimant le PDF :", e);
+      }
+      updateCahierUIAfterDelete();
+      saveStatus.textContent = "Cahier des charges PDF supprimé pour ce chantier.";
+    });
+
+    buildSyndicOptions();
+    renderListe();
+  </script>
+</body>
+</html>
