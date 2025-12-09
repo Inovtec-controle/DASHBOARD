@@ -462,6 +462,10 @@
       <div>
         <label class="lbl">Note de qualité</label>
         <div class="score"><span id="score" class="score-badge" aria-live="polite">—</span></div>
+        <!-- Phrase demandée sous la note globale -->
+        <div style="font-size:13px; color:var(--muted); margin-top:4px;">
+          La moyenne de référence cible est de 95%
+        </div>
         <div class="legend" style="margin-top:8px">
           <span class="chip"><span class="dot ok"></span>Bien fait</span>
           <span class="chip"><span class="dot mid"></span>Passable</span>
@@ -901,15 +905,28 @@
 
   /* ===== Calculs & Affichages ===== */
   function computeMetrics(){
-    const tasks = currentTasks(); const totalPossible = tasks.length * 3;
-    let nOK=0, nMID=0, nBAD=0, nNA=0;
-    tasks.forEach(t=>{
-      if(t.status==='ok') nOK++; else if(t.status==='mid') nMID++;
-      else if(t.status==='bad') nBAD++; else if(t.status==='na') nNA++;
+    const tasks = currentTasks();
+
+    // On ne prend en compte que les tâches qui ont une entrée de statut
+    const rated = tasks.filter(t =>
+      t.status === 'ok' || t.status === 'mid' || t.status === 'bad' || t.status === 'na'
+    );
+
+    const totalPossible = rated.length * 3;
+    let nOK = 0, nMID = 0, nBAD = 0, nNA = 0;
+
+    rated.forEach(t=>{
+      if(t.status === 'ok')      nOK++;
+      else if(t.status === 'mid') nMID++;
+      else if(t.status === 'bad') nBAD++;
+      else if(t.status === 'na')  nNA++;
     });
-    const totalGot = (nOK*3) + (nMID*1);
-    const pct = totalPossible>0 ? Math.round((totalGot/totalPossible)*100) : NaN;
-    const total = tasks.length || 1;
+
+    const totalGot = (nOK * 3) + (nMID * 1); // coefficients inchangés
+    const pct = totalPossible > 0 ? Math.round((totalGot / totalPossible) * 100) : NaN;
+
+    const total = rated.length; // pour les barres, même logique : uniquement les tâches renseignées
+
     return { pct, nOK, nMID, nBAD, nNA, total };
   }
 
@@ -1206,3 +1223,4 @@
 </script>
 </body>
 </html>
+
