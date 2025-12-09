@@ -303,6 +303,25 @@
       color:#15803d;
     }
 
+    /* PRIORITÉ */
+    .badge-prio-haute{
+      border-color:#b91c1c;
+      background:rgba(248,113,113,.18);
+      color:#7f1d1d;
+    }
+
+    .badge-prio-normale{
+      border-color:#6366f1;
+      background:rgba(129,140,248,.12);
+      color:#3730a3;
+    }
+
+    .badge-prio-basse{
+      border-color:#64748b;
+      background:rgba(148,163,184,.16);
+      color:#475569;
+    }
+
     .archive-tag{
       font-size:10px;
       padding:2px 7px;
@@ -841,6 +860,23 @@
             <input type="text" id="create-agent" placeholder="Agent en charge de la correction">
           </div>
 
+          <!-- NOUVEAU : PRIORITÉ -->
+          <div>
+            <label for="create-priority">Niveau de priorité</label>
+            <select id="create-priority">
+              <option value="normale">Normale</option>
+              <option value="haute">Haute</option>
+              <option value="basse">Basse</option>
+            </select>
+          </div>
+
+          <!-- NOUVEAU : PHOTO ORIGINALE (réclamation / OI d’origine) -->
+          <div>
+            <label for="create-original-photo">Photo de la réclamation / OI d’origine</label>
+            <input type="file" id="create-original-photo" accept="image/*">
+            <div class="photo-label">Ajoute ici la photo du mail, courrier, SMS ou bon d’intervention d’origine.</div>
+          </div>
+
           <div>
             <label for="create-description">Détail de la réclamation / OI</label>
             <textarea id="create-description" placeholder="Décris précisément la demande du client ou la non-conformité constatée."></textarea>
@@ -930,6 +966,25 @@
       return "en_cours";
     }
 
+    // NOUVEAU : utilitaires priorité + date de tri
+    function getPriority(retour){
+      return retour.priority || "normale";
+    }
+
+    function priorityWeight(p){
+      if(p === "haute") return 0;
+      if(p === "normale" || p === "normal") return 1;
+      return 2; // basse ou inconnu
+    }
+
+    function getSortDate(retour){
+      if(retour.dateReception){
+        var t = new Date(retour.dateReception).getTime();
+        if(!isNaN(t)) return t;
+      }
+      return retour.createdAt || 0;
+    }
+
     /* === LISTE PRINCIPALE (EN COURS) === */
     function renderRetours(){
       var container = document.getElementById("retourList");
@@ -937,7 +992,13 @@
       container.innerHTML = "";
 
       var filtered = retours.slice().sort(function(a,b){
-        return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0);
+        // tri par priorité PUIS par date la plus ancienne
+        var pa = priorityWeight(getPriority(a));
+        var pb = priorityWeight(getPriority(b));
+        if(pa !== pb) return pa - pb;
+        var da = getSortDate(a);
+        var db = getSortDate(b);
+        return da - db; // plus ancien en premier
       });
 
       filtered = filtered.filter(function(r){
@@ -972,6 +1033,10 @@
         var lastUpdate = formatDate(retour.updatedAt || retour.createdAt);
         var client = retour.client || "Client non renseigné";
 
+        var prio = getPriority(retour);
+        var prioLabel = prio === "haute" ? "Haute" : prio === "basse" ? "Basse" : "Normale";
+        var prioClass = prio === "haute" ? "badge-prio-haute" : prio === "basse" ? "badge-prio-basse" : "badge-prio-normale";
+
         card.innerHTML = `
           <div class="retour-main-row">
             <div>
@@ -986,6 +1051,9 @@
                 </span>
                 <span class="${statusClass}">
                   <span>${status === "clos" ? "✅" : "⏳"}</span>${statusLabel}
+                </span>
+                <span class="badge ${prioClass}">
+                  <span>⚡</span>Priorité ${prioLabel}
                 </span>
               </div>
             </div>
@@ -1054,6 +1122,10 @@
         var client = retour.client || "Client non renseigné";
         var statusDate = formatDate(retour.updatedAt || retour.createdAt);
 
+        var prio = getPriority(retour);
+        var prioLabel = prio === "haute" ? "Haute" : prio === "basse" ? "Basse" : "Normale";
+        var prioClass = prio === "haute" ? "badge-prio-haute" : prio === "basse" ? "badge-prio-basse" : "badge-prio-normale";
+
         card.innerHTML = `
           <div class="retour-main-row">
             <div>
@@ -1071,6 +1143,9 @@
                 </span>
                 <span class="badge">
                   <span>👤</span>${client}
+                </span>
+                <span class="badge ${prioClass}">
+                  <span>⚡</span>Priorité ${prioLabel}
                 </span>
               </div>
             </div>
@@ -1176,43 +1251,70 @@
       var date = document.getElementById("create-date").value;
       var agent = document.getElementById("create-agent").value.trim();
       var description = document.getElementById("create-description").value.trim();
+      var priority = document.getElementById("create-priority").value || "normale";
+
+      var originalInput = document.getElementById("create-original-photo");
+      var originalFile = originalInput && originalInput.files && originalInput.files[0];
 
       var now = Date.now();
       var id = "R" + now.toString(36);
 
-      var retour = {
-        id: id,
-        type: type,
-        siteName: siteName,
-        title: title,
-        client: client,
-        channel: channel,
-        dateReception: date || null,
-        agent: agent,
-        description: description,
-        createdAt: now,
-        updatedAt: now,
-        steps:{
-          messageRecu:true,
-          transmisAgent:false,
-          correctionFaite:false,
-          photoOK:false,
-          retourClientOK:false
-        },
-        timeline:[
-          {
-            date:now,
-            text:"Retour enregistré (" + (type === "reclamation" ? "Réclamation client" : "Ordre d’intervention") + ") via " + channel + "."
-          }
-        ],
-        photos:[]
-      };
+      function finalizeCreate(originalDocEntry){
+        var retour = {
+          id: id,
+          type: type,
+          siteName: siteName,
+          title: title,
+          client: client,
+          channel: channel,
+          dateReception: date || null,
+          agent: agent,
+          description: description,
+          createdAt: now,
+          updatedAt: now,
+          priority: priority,
+          steps:{
+            messageRecu:true,
+            transmisAgent:false,
+            correctionFaite:false,
+            photoOK:false,
+            retourClientOK:false
+          },
+          timeline:[
+            {
+              date:now,
+              text:"Retour enregistré (" + (type === "reclamation" ? "Réclamation client" : "Ordre d’intervention") + ") via " + channel + "."
+            }
+          ],
+          photos:[],
+          originalDocs: originalDocEntry ? [originalDocEntry] : []
+        };
 
-      retours.push(retour);
-      saveRetours();
-      closeCreateModal();
-      renderRetours();
-      openDetailModal(id);
+        if(originalDocEntry){
+          retour.timeline.unshift({
+            date:now,
+            text:"Pièce d’origine (réclamation / OI) ajoutée lors de la création."
+          });
+        }
+
+        retours.push(retour);
+        saveRetours();
+        closeCreateModal();
+        renderRetours();
+        openDetailModal(id);
+      }
+
+      if(originalFile){
+        var reader = new FileReader();
+        reader.onload = function(ev){
+          var dataUrl = ev.target.result;
+          var entry = { name: originalFile.name, dataUrl: dataUrl };
+          finalizeCreate(entry);
+        };
+        reader.readAsDataURL(originalFile);
+      }else{
+        finalizeCreate(null);
+      }
     });
 
     /* === MODAL DÉTAIL === */
@@ -1274,6 +1376,7 @@
       var steps = retour.steps || {};
       var photos = retour.photos || [];
       var timeline = retour.timeline || [];
+      var originalDocs = retour.originalDocs || [];
 
       var timelineHtml;
       if(timeline.length === 0){
@@ -1300,6 +1403,22 @@
         }).join("");
       }
 
+      // NOUVEAU : affichage pièces originales
+      var originalHtml;
+      if(originalDocs.length === 0){
+        originalHtml = '<span style="font-size:11px;color:var(--muted);">Aucune pièce d’origine enregistrée.</span>';
+      }else{
+        originalHtml = originalDocs.map(function(p){
+          return `
+            <div class="photo-thumb"><img src="${p.dataUrl}" alt="${p.name || "pièce d’origine"}"></div>
+          `;
+        }).join("");
+      }
+
+      var prio = getPriority(retour);
+      var prioLabel = prio === "haute" ? "Haute" : prio === "basse" ? "Basse" : "Normale";
+      var prioClass = prio === "haute" ? "badge-prio-haute" : prio === "basse" ? "badge-prio-basse" : "badge-prio-normale";
+
       detailContent.innerHTML = `
         <div>
           <div class="badge-row" style="margin-bottom:8px;">
@@ -1311,6 +1430,9 @@
             </span>
             <span class="badge ${status === "clos" ? "status-clos" : "status-en-cours"}">
               <span>${status === "clos" ? "✅" : "⏳"}</span>${statusLabel}
+            </span>
+            <span class="badge ${prioClass}">
+              <span>⚡</span>Priorité ${prioLabel}
             </span>
           </div>
 
@@ -1336,6 +1458,11 @@
               <label>Description initiale</label>
               <div style="font-size:12px;">${retour.description || "—"}</div>
             </div>
+          </div>
+
+          <p class="modal-section-title">Pièce(s) d’origine (réclamation / OI)</p>
+          <div class="photos-grid" id="detail-original-photos">
+            ${originalHtml}
           </div>
 
           <p class="modal-section-title">Étapes du suivi</p>
@@ -1465,7 +1592,7 @@
         openDetailModal(r.id);
       });
 
-      // ajout photo
+      // ajout photo correction
       var photoInput = document.getElementById("detail-photo-input");
       photoInput.addEventListener("change", function(e){
         var file = e.target.files && e.target.files[0];
