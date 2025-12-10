@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Boîte à Mails – Nettoyage Pro</title>
+
+  <!-- iPhone friendly -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#16a34a">
+
+  <!-- Police Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-main: #f3f4f6;
+      --bg-card: #ffffff;
+      --border-soft: #e5e7eb;
+      --text-main: #0f172a;
+      --text-muted: #6b7280;
+      --primary: #16a34a;
+      --primary-soft: #dcfce7;
+      --primary-strong: #15803d;
+      --accent: #0f766e;
+      --danger: #dc2626;
+      --radius-lg: 16px;
+      --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at top, #e5f9ed 0, #f3f4f6 45%, #e5f9ed 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 1120px;
+      margin: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    header.app-header {
+      background: linear-gradient(135deg, #16a34a, #0f766e);
+      border-radius: 24px;
+      padding: 16px 18px;
+      color: white;
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .app-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-title-pill {
+      background: rgba(15, 23, 42, 0.15);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .app-subtitle {
+      font-size: 0.85rem;
+      color: rgba(241, 245, 249, 0.9);
+    }
+
+    .header-actions {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      background: rgba(15, 23, 42, 0.14);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .chip-icon {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #bbf7d0;
+    }
+
+    main.app-main {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.4fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      padding: 14px 14px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-title-badge {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+      font-weight: 600;
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .field-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .field-label span.hint {
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 6px;
+    }
+
+    .input, .select, textarea {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border-soft);
+      font-family: inherit;
+      font-size: 0.8rem;
+      padding: 7px 9px;
+      outline: none;
+      background: #f9fafb;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .input:focus, .select:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.25);
+      background: #ffffff;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 140px;
+      max-height: 320px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .input-row > * {
+      flex: 1;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 0.7rem;
+      background: #e5f9ed;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .tag-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #16a34a;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 6px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      background: #e5e7eb;
+      color: #111827;
+      transition: background 0.15s ease, transform 0.07s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn span.icon {
+      font-size: 0.9em;
+    }
+
+    .btn:hover {
+      background: #d1d5db;
+      transform: translateY(-1px);
+      box-shadow: 0 7px 18px rgba(15, 23, 42, 0.14);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #16a34a, #0f766e);
+      color: white;
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 10px 20px rgba(22, 163, 74, 0.55);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #15803d, #0e7490);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: rgba(148, 163, 184, 0.6);
+      color: #4b5563;
+    }
+
+    .btn-ghost:hover {
+      background: #f3f4f6;
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+
+    .btn-danger:hover {
+      background: #fecaca;
+    }
+
+    .btn-xs {
+      font-size: 0.7rem;
+      padding: 4px 7px;
+    }
+
+    .template-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+      overflow-y: auto;
+      padding-right: 2px;
+      max-height: 470px;
+    }
+
+    .template-item {
+      border-radius: 12px;
+      padding: 7px 9px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease;
+      position: relative;
+    }
+
+    .template-item:hover {
+      background: #eef2ff;
+      border-color: #a5b4fc;
+      transform: translateY(-0.5px);
+    }
+
+    .template-item.selected {
+      border-color: #16a34a;
+      background: #ecfdf5;
+      box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.4);
+    }
+
+    .template-name-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .template-name {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .template-category {
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #e5f9ed;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      white-space: nowrap;
+    }
+
+    .template-subject {
+      font-size: 0.75rem;
+      color: #4b5563;
+    }
+
+    .template-meta {
+      font-size: 0.68rem;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 1px;
+    }
+
+    .pill-mini {
+      font-size: 0.65rem;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 4px;
+      margin-bottom: 2px;
+    }
+
+    .search-row .input {
+      font-size: 0.78rem;
+      padding-left: 26px;
+      position: relative;
+    }
+
+    .search-wrapper {
+      position: relative;
+      flex: 1;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .select {
+      font-size: 0.78rem;
+      background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
+      background-position: calc(100% - 11px) calc(50% - 4px), calc(100% - 6px) calc(50% - 4px);
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+      padding-right: 24px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .pill-help {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      padding: 6px 8px;
+      border-radius: 12px;
+      background: #f9fafb;
+      border: 1px dashed #d1d5db;
+    }
+
+    .pill-help strong {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .variables-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .var-tag {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+      cursor: pointer;
+    }
+
+    .var-tag:hover {
+      background: #e0e7ff;
+    }
+
+    .copy-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+      margin-top: 1px;
+    }
+
+    .status-bar {
+      font-size: 0.68rem;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #16a34a;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 15px 30px rgba(22, 163, 74, 0.6);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      z-index: 30;
+    }
+
+    .toast.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -4px);
+    }
+
+    .toast-icon {
+      font-size: 1rem;
+    }
+
+    footer.app-footer {
+      font-size: 0.7rem;
+      color: #9ca3af;
+      text-align: right;
+      padding: 0 2px 2px;
+    }
+
+    footer.app-footer span {
+      color: #16a34a;
+      font-weight: 600;
+    }
+
+    @media (max-width: 900px) {
+      main.app-main {
+        grid-template-columns: 1fr;
+      }
+      .card {
+        padding: 12px;
+      }
+      header.app-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .app-shell {
+        margin: 10px;
+      }
+      .app-title {
+        font-size: 1.1rem;
+      }
+      header.app-header {
+        padding: 12px 12px 10px;
+      }
+      main.app-main {
+        gap: 10px;
+      }
+      .template-list {
+        max-height: 250px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-main">
+        <div class="app-title">
+          Boîte à Mails – Nettoyage Pro
+          <span class="app-title-pill">Kit modèles</span>
+        </div>
+        <div class="app-subtitle">
+          Centralise tes e-mails type : devis, relances, réclamations, consignes agents… et copie en 1 clic.
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="chip">
+          <span class="chip-icon"></span>
+          <span>Nettoyage pro & multisites</span>
+        </div>
+        <div class="chip">
+          <span class="chip-icon"></span>
+          <span>Sauvegarde locale automatique</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <!-- Colonne gauche : liste des modèles -->
+      <section class="card" id="templates-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              Modèles d’e-mails
+              <span class="card-title-badge">Liste</span>
+            </div>
+            <div class="card-subtitle">
+              Sélectionne un modèle ou crée le tien. Tu peux filtrer par type de situation.
+            </div>
+          </div>
+          <button class="btn btn-primary btn-xs" id="btnNewTemplate">
+            <span class="icon">＋</span> Nouveau modèle
+          </button>
+        </div>
+
+        <div class="search-row">
+          <div class="search-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="input" id="searchInput" placeholder="Rechercher (nom, sujet, mots-clés)…">
+          </div>
+          <select class="select" id="filterCategory">
+            <option value="all">Tout type</option>
+            <option value="Client">Clients</option>
+            <option value="Devis">Devis / propositions</option>
+            <option value="Relance">Relances / impayés</option>
+            <option value="Réclamation">Réclamations</option>
+            <option value="Agents">Agents / interne</option>
+            <option value="Autre">Autres</option>
+          </select>
+        </div>
+
+        <div class="pill-row">
+          <div class="pill-help">
+            <strong>Astuce :</strong> crée d’abord 1 modèle par situation fréquente (nouveau client, devis, relance, contrôle qualité…).
+          </div>
+        </div>
+
+        <div class="template-list" id="templateList"></div>
+      </section>
+
+      <!-- Colonne droite : édition du modèle -->
+      <section class="card" id="editor-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              Éditeur de modèle
+              <span class="card-title-badge">Détail</span>
+            </div>
+            <div class="card-subtitle" id="editorHint">
+              Sélectionne un modèle à gauche ou crée-en un nouveau.
+            </div>
+          </div>
+          <div class="toolbar">
+            <button class="btn btn-ghost btn-xs" id="btnDuplicate" disabled>
+              <span class="icon">📄</span> Dupliquer
+            </button>
+            <button class="btn btn-danger btn-xs" id="btnDelete" disabled>
+              <span class="icon">🗑</span> Supprimer
+            </button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            Nom du modèle
+            <span class="hint">Ex : “Devis résidence seniors – 1ère proposition”</span>
+          </label>
+          <input type="text" class="input" id="fieldName" placeholder="Nom interne du modèle (visible seulement par toi)">
+        </div>
+
+        <div class="field-group">
+          <div class="input-row">
+            <div>
+              <label class="field-label">
+                Catégorie
+                <span class="hint">Pour mieux filtrer</span>
+              </label>
+              <select class="select" id="fieldCategory">
+                <option value="Client">Client</option>
+                <option value="Devis">Devis / Proposition</option>
+                <option value="Relance">Relance / Impayé</option>
+                <option value="Réclamation">Réclamation</option>
+                <option value="Agents">Agents / Interne</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">
+                Objet
+                <span class="hint">Ligne objet de l’e-mail</span>
+              </label>
+              <input type="text" class="input" id="fieldSubject" placeholder="Objet de l’e-mail…">
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            Corps du message
+            <span class="hint">Tu peux utiliser les variables ci-dessous</span>
+          </label>
+          <textarea id="fieldBody" placeholder="Bonjour {CIVILITE} {NOM_CLIENT},&#10;&#10;Je vous contacte au sujet de…"></textarea>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            Variables utiles
+            <span class="hint">Cliquer pour insérer</span>
+          </label>
+          <div class="variables-list" id="variablesList">
+            <button type="button" class="var-tag" data-var="{CIVILITE} {NOM_CLIENT}">Client</button>
+            <button type="button" class="var-tag" data-var="{NOM_SITE}">Nom du site</button>
+            <button type="button" class="var-tag" data-var="{ADRESSE_SITE}">Adresse du site</button>
+            <button type="button" class="var-tag" data-var="{TYPE_PRESTATION}">Type de prestation</button>
+            <button type="button" class="var-tag" data-var="{FREQUENCE}">Fréquence</button>
+            <button type="button" class="var-tag" data-var="{MONTANT_HT}">Montant HT</button>
+            <button type="button" class="var-tag" data-var="{MONTANT_TTC}">Montant TTC</button>
+            <button type="button" class="var-tag" data-var="{DATE_INTERVENTION}">Date intervention</button>
+            <button type="button" class="var-tag" data-var="{PLAGE_HORAIRE}">Plage horaire</button>
+            <button type="button" class="var-tag" data-var="{NOM_AGENT}">Nom de l’agent</button>
+          </div>
+        </div>
+
+        <div class="copy-row">
+          <button class="btn btn-ghost btn-xs" id="btnCopySubject">
+            <span class="icon">📧</span> Copier objet
+          </button>
+          <button class="btn btn-ghost btn-xs" id="btnCopyBody">
+            <span class="icon">📋</span> Copier message
+          </button>
+          <button class="btn btn-primary btn-xs" id="btnCopyAll">
+            <span class="icon">⚡</span> Copier e-mail complet
+          </button>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btnSave">
+            <span class="icon">💾</span> Enregistrer le modèle
+          </button>
+          <button class="btn btn-ghost" id="btnReset">
+            <span class="icon">↺</span> Effacer le formulaire
+          </button>
+        </div>
+
+        <div class="status-bar">
+          <div>
+            <span class="status-dot"></span>
+            <span id="statusText">Aucun modèle sélectionné.</span>
+          </div>
+          <div id="countText">0 modèle</div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      Boîte à mails <span>Nettoyage Pro</span> – modèles enregistrés uniquement sur ton appareil.
+    </footer>
+  </div>
+
+  <div class="toast" id="toast">
+    <span class="toast-icon">✅</span>
+    <span id="toastMessage">Copié dans le presse-papiers</span>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'mailTemplatesNettoyagePro_v1';
+
+    const defaultTemplates = [
+      {
+        id: 'prospect-devis-1',
+        name: 'Premier contact – Demande d’infos',
+        category: 'Client',
+        subject: 'Votre demande de prestation de nettoyage – {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Je fais suite à votre demande concernant la prestation de nettoyage pour {NOM_SITE} situé {ADRESSE_SITE}.
+
+Afin de vous proposer un devis précis et adapté à vos besoins, pourriez-vous me confirmer :
+• Le type de locaux : {TYPE_PRESTATION} (bureaux, résidence, parties communes…)
+• La fréquence souhaitée : {FREQUENCE}
+• Les jours / créneaux horaires possibles : {PLAGE_HORAIRE}
+• Les éventuels points spécifiques (vitres, parking, zones techniques, etc.)
+
+Dès réception de vos éléments, je vous adresse une proposition détaillée.
+
+Restant à votre disposition,
+Bien cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'devis-envoi-1',
+        name: 'Envoi de devis – Locaux professionnels',
+        category: 'Devis',
+        subject: 'Envoi de notre devis pour {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Comme convenu, vous trouverez ci-joint notre devis pour la prestation de nettoyage de {NOM_SITE} ({ADRESSE_SITE}).
+
+Détail de notre proposition :
+• Type de prestation : {TYPE_PRESTATION}
+• Fréquence : {FREQUENCE}
+• Jours et horaires d’intervention : {PLAGE_HORAIRE}
+• Montant HT : {MONTANT_HT}
+• Montant TTC : {MONTANT_TTC}
+
+Ce tarif inclut :
+• Les produits et matériels nécessaires
+• Le remplacement de l’agent en cas d’absence
+• Le suivi qualité avec visites sur site et ajustements si besoin
+
+Je reste disponible pour échanger sur ce devis ou adapter certains points selon vos contraintes.
+
+Dans l’attente de votre retour,
+Cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'relance-devis-1',
+        name: 'Relance devis non signé',
+        category: 'Relance',
+        subject: 'Relance – Devis nettoyage {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Je me permets de revenir vers vous concernant le devis pour la prestation de nettoyage de {NOM_SITE}, envoyé le {DATE_ENVOI_DEVIS}.
+
+Avez-vous pu en prendre connaissance ?
+Souhaitez-vous que nous en rediscutions ensemble ou que je vous propose une adaptation (fréquence, horaires, périmètre de prestation…) ?
+
+Je reste bien entendu disponible par retour de mail ou par téléphone au {VOTRE_TELEPHONE}.
+
+Bien cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'reclamation-client-1',
+        name: 'Réponse réclamation client – Excuses + action',
+        category: 'Réclamation',
+        subject: 'Suite à votre retour concernant {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Je vous remercie pour votre retour et je suis désolé(e) de la gêne occasionnée concernant la prestation de nettoyage sur {NOM_SITE}, notamment sur le point suivant :
+• {DETAIL_RECLAMATION}
+
+Après vérification, voici les actions mises en place :
+• Rappel des consignes à l’agent {NOM_AGENT}
+• Contrôle qualité renforcé lors des prochaines interventions
+• Ajustement de la check-list pour éviter que la situation ne se reproduise
+
+Je passerai sur site le {DATE_INTERVENTION} afin de vérifier avec vous que tout est conforme à vos attentes.
+
+Merci encore pour votre vigilance,
+Bien cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'consignes-agent-1',
+        name: 'Consignes intervention à un agent',
+        category: 'Agents',
+        subject: 'Nouvelles consignes – Intervention {NOM_SITE}',
+        body:
+`Bonjour {NOM_AGENT},
+
+Tu interviens sur le site suivant :
+• Site : {NOM_SITE}
+• Adresse : {ADRESSE_SITE}
+• Type de prestation : {TYPE_PRESTATION}
+• Fréquence : {FREQUENCE}
+• Horaires : {PLAGE_HORAIRE}
+
+Points de vigilance :
+• {POINTS_VIGILANCE}
+• Signaler immédiatement toute anomalie (casse, porte ouverte, intrusion…)
+• Envoyer une photo après la première prestation pour validation
+
+Merci de me confirmer réception de ce message et de m’indiquer si tu as des questions.
+
+Bonne intervention,
+{VOTRE_NOM}`
+      },
+      {
+        id: 'compte-rendu-cq-1',
+        name: 'Compte rendu contrôle qualité',
+        category: 'Client',
+        subject: 'Compte rendu de contrôle qualité – {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Je vous fais un retour suite au contrôle qualité réalisé sur {NOM_SITE} le {DATE_INTERVENTION}.
+
+Synthèse :
+• Niveau global : {NIVEAU_GLOBAL} (Conforme / À améliorer / Non conforme)
+• Points positifs : {POINTS_POSITIFS}
+• Points à améliorer : {POINTS_A_AMELIORER}
+
+Actions mises en place :
+• Rappel des consignes à {NOM_AGENT}
+• Ajustement de la check-list d’intervention
+• Nouveau contrôle prévu le {DATE_PROCHAIN_CONTROLE}
+
+Je reste bien sûr à votre disposition si vous souhaitez que l’on en parle plus en détail.
+
+Cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+
+      /* ====== 10 NOUVEAUX MODÈLES ====== */
+
+      {
+        id: 'facture-impayee-1',
+        name: 'Relance facture impayée – 1ère relance',
+        category: 'Relance',
+        subject: 'Relance facture n°{NUM_FACTURE} – {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Je me permets de vous contacter au sujet de la facture n°{NUM_FACTURE} concernant la prestation de nettoyage de {NOM_SITE}, d’un montant de {MONTANT_TTC}, arrivée à échéance le {DATE_ECHEANCE}.
+
+À ce jour, sauf erreur de notre part, cette facture apparaît toujours comme non réglée.
+
+Je vous remercie par avance si le règlement a déjà été effectué de ne pas tenir compte de ce message.
+Dans le cas contraire, pouvez-vous m’indiquer la date de règlement prévue ou si vous souhaitez un échelonnement ?
+
+Je reste bien sûr à votre disposition en cas de question.
+
+Cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}
+RIB : {VOS_COORDONNEES_BANCAIRES}`
+      },
+      {
+        id: 'facture-impayee-2',
+        name: 'Relance facture impayée – 2ème relance',
+        category: 'Relance',
+        subject: 'Deuxième relance facture n°{NUM_FACTURE} – {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Sauf erreur de notre part, nous n’avons pas encore reçu le règlement de la facture n°{NUM_FACTURE}, d’un montant de {MONTANT_TTC}, pour la prestation de nettoyage réalisée sur {NOM_SITE} (période : {PERIODE_FACTUREE}).
+
+Afin d’éviter toute suspension de la prestation, nous vous remercions de bien vouloir procéder au règlement sous {DELAI_REGLEMENT} jours ou de nous contacter pour convenir d’une solution (échelonnement, difficulté ponctuelle, etc.).
+
+Dans l’attente de votre retour,
+Cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'demarrage-presta-1',
+        name: 'Confirmation démarrage prestation',
+        category: 'Client',
+        subject: 'Démarrage de la prestation de nettoyage – {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Je vous confirme la mise en place de la prestation de nettoyage pour {NOM_SITE} à compter du {DATE_DEMARRAGE}.
+
+Détail de l’organisation :
+• Site : {NOM_SITE} – {ADRESSE_SITE}
+• Type de prestation : {TYPE_PRESTATION}
+• Fréquence : {FREQUENCE}
+• Jours et horaires d’intervention : {PLAGE_HORAIRE}
+• Agent en charge du site : {NOM_AGENT}
+
+Un premier point sera réalisé après les {NB_PRESTATIONS} premières interventions afin de vérifier votre satisfaction et ajuster si nécessaire.
+
+Restant à votre disposition,
+Bien cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'suspension-presta-1',
+        name: 'Suspension / réduction de prestation',
+        category: 'Client',
+        subject: 'Organisation des prestations de nettoyage – {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Suite à nos échanges concernant la période de fermeture / travaux / congés sur {NOM_SITE}, je vous confirme l’organisation suivante :
+
+• Période concernée : du {DATE_DEBUT_SUSPENSION} au {DATE_FIN_SUSPENSION}
+• Adaptation de la prestation :
+  - {DETAIL_ADAPTATION} (suspension totale, réduction de fréquence, simple maintien des points sensibles, etc.)
+
+Les interventions reprendront normalement à partir du {DATE_REPRISE}, aux jours et horaires habituels : {PLAGE_HORAIRE}.
+
+N’hésitez pas à me signaler si vous souhaitez une visite de reprise ou un nettoyage renforcé avant réouverture.
+
+Cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'changement-agent-1',
+        name: 'Information changement d’agent',
+        category: 'Client',
+        subject: 'Changement d’agent de nettoyage – {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Je vous informe qu’à compter du {DATE_CHANGEMENT}, c’est {NOM_NOUVEL_AGENT} qui interviendra sur votre site {NOM_SITE} en remplacement de {ANCIEN_NOM_AGENT}.
+
+Organisation maintenue :
+• Jours et horaires : {PLAGE_HORAIRE}
+• Périmètre de prestation : {TYPE_PRESTATION} (inchangé)
+
+J’ai effectué un passage de consignes complet avec {NOM_NOUVEL_AGENT} afin d’assurer la continuité de la qualité sur votre site. Un contrôle qualité sera réalisé après les premières interventions pour vérifier que tout est conforme à vos attentes.
+
+Je reste évidemment disponible pour tout retour.
+
+Bien cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'rappel-procedure-agent-1',
+        name: 'Rappel procédure clés / badge',
+        category: 'Agents',
+        subject: 'Rappel procédure clés et badge – {NOM_SITE}',
+        body:
+`Bonjour {NOM_AGENT},
+
+Petit rappel concernant la procédure clés / badge pour le site {NOM_SITE} ({ADRESSE_SITE}) :
+
+• Récupérer les clés / badge : {LIEU_RECUPERATION}
+• Les déposer impérativement en fin d’intervention à : {LIEU_DEPOT}
+• En cas de perte ou d’oubli : prévenir immédiatement {CONTACT_EN_CAS_PROBLEME} au {NUMERO_TELEPHONE}
+
+Merci également de :
+• Vérifier que toutes les portes soient fermées à clé avant de quitter le site
+• Vérifier que l’alarme est bien remise si nécessaire
+
+Merci d’accuser réception de ce message.
+
+Bonne journée,
+{VOTRE_NOM}`
+      },
+      {
+        id: 'retard-agent-1',
+        name: 'Rappel ponctualité / retards',
+        category: 'Agents',
+        subject: 'Retards sur les interventions – {NOM_SITE}',
+        body:
+`Bonjour {NOM_AGENT},
+
+Je reviens vers toi concernant quelques retards constatés sur les dernières interventions du site {NOM_SITE}.
+
+Pour le client, le respect des horaires est très important, notamment parce que :
+• {RAISON_IMPORTANCE_HORAIRES} (ouverture bureaux, présence résidents, etc.)
+
+Merci de bien veiller à :
+• Arriver pour {HEURE_ARRIVEE_SOUHAITEE}
+• Me prévenir en amont si tu sais que tu risques d’être en retard (bouchons, problème transport, etc.)
+
+L’objectif est de maintenir une bonne relation de confiance avec le client. Si tu rencontres des difficultés d’organisation, dis-le-moi, on regardera ensemble comment adapter.
+
+Merci pour ta compréhension,
+{VOTRE_NOM}`
+      },
+      {
+        id: 'prise-rdv-visite-1',
+        name: 'Prise de rendez-vous pour visite de site',
+        category: 'Client',
+        subject: 'Proposition de rendez-vous pour visite de vos locaux',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Afin de vous proposer une offre de nettoyage adaptée à vos besoins pour {NOM_SITE}, je vous propose que nous réalisions une visite de vos locaux.
+
+Je peux me rendre disponible :
+• {CRENEAU_1}
+• {CRENEAU_2}
+• {CRENEAU_3}
+
+La visite dure généralement entre 20 et 30 minutes et nous permet de :
+• Valider ensemble le périmètre de prestation
+• Identifier les points sensibles
+• Définir la fréquence la plus adaptée
+
+N’hésitez pas à me dire si un autre créneau vous conviendrait mieux.
+
+Dans l’attente de votre retour,
+Cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'remerciement-mission-ponctuelle-1',
+        name: 'Remerciement fin de mission ponctuelle',
+        category: 'Client',
+        subject: 'Fin de prestation ponctuelle – {NOM_SITE}',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Notre prestation ponctuelle de nettoyage sur {NOM_SITE} (période : {PERIODE_PRESTATION}) est désormais terminée.
+
+Je vous remercie pour votre confiance.
+N’hésitez pas à me faire un retour sur votre niveau de satisfaction et les points à améliorer, cela nous permet d’ajuster nos futures interventions.
+
+Si vous avez besoin d’une nouvelle intervention (remise en état, vitrerie, nettoyage renforcé, etc.), je reste bien sûr disponible pour vous établir un devis rapide.
+
+Bien cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      },
+      {
+        id: 'demande-avis-1',
+        name: 'Demande d’avis / témoignage client',
+        category: 'Client',
+        subject: 'Votre avis sur notre prestation de nettoyage',
+        body:
+`Bonjour {CIVILITE} {NOM_CLIENT},
+
+Nous vous remercions de la confiance que vous nous accordez pour la prestation de nettoyage de {NOM_SITE}.
+
+Votre avis est précieux pour nous permettre de continuer à améliorer la qualité de nos services.
+Si vous le souhaitez, vous pouvez prendre quelques minutes pour nous faire un retour :
+
+• Par retour de mail (points positifs, points à améliorer)
+• Ou en laissant un avis sur {PLATEFORME_AVIS} : {LIEN_AVIS}
+
+Merci d’avance pour votre contribution, c’est très précieux pour une petite structure comme la nôtre.
+
+Bien cordialement,
+
+{VOTRE_NOM}
+{VOTRE_STRUCTURE}
+{VOS_COORDONNEES}`
+      }
+    ];
+
+    let templates = [];
+    let selectedId = null;
+    let toastTimeout = null;
+
+    const templateListEl = document.getElementById('templateList');
+    const searchInputEl = document.getElementById('searchInput');
+    const filterCategoryEl = document.getElementById('filterCategory');
+    const fieldNameEl = document.getElementById('fieldName');
+    const fieldCategoryEl = document.getElementById('fieldCategory');
+    const fieldSubjectEl = document.getElementById('fieldSubject');
+    const fieldBodyEl = document.getElementById('fieldBody');
+    const editorHintEl = document.getElementById('editorHint');
+    const statusTextEl = document.getElementById('statusText');
+    const countTextEl = document.getElementById('countText');
+
+    const btnNewTemplate = document.getElementById('btnNewTemplate');
+    const btnSave = document.getElementById('btnSave');
+    const btnReset = document.getElementById('btnReset');
+    const btnDuplicate = document.getElementById('btnDuplicate');
+    const btnDelete = document.getElementById('btnDelete');
+    const btnCopySubject = document.getElementById('btnCopySubject');
+    const btnCopyBody = document.getElementById('btnCopyBody');
+    const btnCopyAll = document.getElementById('btnCopyAll');
+
+    const toastEl = document.getElementById('toast');
+    const toastMessageEl = document.getElementById('toastMessage');
+    const variablesListEl = document.getElementById('variablesList');
+
+    function showToast(message) {
+      toastMessageEl.textContent = message;
+      toastEl.classList.add('visible');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toastEl.classList.remove('visible');
+      }, 1800);
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+      } catch (e) {
+        console.warn('Impossible de sauvegarder dans le localStorage', e);
+      }
+    }
+
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          templates = [...defaultTemplates];
+          saveToStorage();
+        } else {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length) {
+            templates = parsed;
+          } else {
+            templates = [...defaultTemplates];
+          }
+        }
+      } catch (e) {
+        console.warn('Erreur de lecture localStorage, utilisation des modèles par défaut', e);
+        templates = [...defaultTemplates];
+      }
+    }
+
+    function renderTemplateList() {
+      templateListEl.innerHTML = '';
+      const searchTerm = searchInputEl.value.trim().toLowerCase();
+      const categoryFilter = filterCategoryEl.value;
+
+      let filtered = templates.filter(t => {
+        const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
+        const text = (t.name + ' ' + t.subject + ' ' + t.body).toLowerCase();
+        const matchesSearch = !searchTerm || text.includes(searchTerm);
+        return matchesCategory && matchesSearch;
+      });
+
+      if (!filtered.length) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style.fontSize = '0.8rem';
+        emptyDiv.style.color = '#6b7280';
+        emptyDiv.style.padding = '6px 2px';
+        emptyDiv.textContent = 'Aucun modèle pour ce filtre. Crée-en un avec “Nouveau modèle”.';
+        templateListEl.appendChild(emptyDiv);
+      } else {
+        filtered.forEach(t => {
+          const item = document.createElement('div');
+          item.className = 'template-item' + (t.id === selectedId ? ' selected' : '');
+          item.dataset.id = t.id;
+
+          const nameRow = document.createElement('div');
+          nameRow.className = 'template-name-row';
+          const nameEl = document.createElement('div');
+          nameEl.className = 'template-name';
+          nameEl.textContent = t.name || '(Sans nom)';
+          const catEl = document.createElement('div');
+          catEl.className = 'template-category';
+          catEl.textContent = t.category;
+          nameRow.appendChild(nameEl);
+          nameRow.appendChild(catEl);
+
+          const subjEl = document.createElement('div');
+          subjEl.className = 'template-subject';
+          subjEl.textContent = t.subject || '(Sans objet)';
+
+          const metaEl = document.createElement('div');
+          metaEl.className = 'template-meta';
+          const length = (t.body || '').length;
+          const lines = (t.body || '').split(/\r?\n/).length;
+          const lengthText = `${length} car. · ${lines} ligne${lines > 1 ? 's' : ''}`;
+          metaEl.innerHTML = `<span>${lengthText}</span><span class="pill-mini">Clique pour éditer</span>`;
+
+          item.appendChild(nameRow);
+          item.appendChild(subjEl);
+          item.appendChild(metaEl);
+
+          item.addEventListener('click', () => {
+            selectTemplate(t.id);
+          });
+
+          templateListEl.appendChild(item);
+        });
+      }
+
+      const count = templates.length;
+      countTextEl.textContent = count === 0 ? '0 modèle' : `${count} modèle${count > 1 ? 's' : ''}`;
+    }
+
+    function selectTemplate(id) {
+      const t = templates.find(t => t.id === id);
+      if (!t) return;
+
+      selectedId = id;
+      fieldNameEl.value = t.name || '';
+      fieldCategoryEl.value = t.category || 'Autre';
+      fieldSubjectEl.value = t.subject || '';
+      fieldBodyEl.value = t.body || '';
+
+      editorHintEl.textContent = 'Modèle chargé. Tu peux modifier, dupliquer, ou copier le texte.';
+      statusTextEl.textContent = 'Modèle sélectionné : ' + (t.name || '(Sans nom)');
+
+      btnDuplicate.disabled = false;
+      btnDelete.disabled = false;
+
+      renderTemplateList();
+    }
+
+    function clearForm() {
+      selectedId = null;
+      fieldNameEl.value = '';
+      fieldCategoryEl.value = 'Client';
+      fieldSubjectEl.value = '';
+      fieldBodyEl.value = '';
+
+      editorHintEl.textContent = 'Nouveau modèle : remplis les champs et clique sur “Enregistrer le modèle”.';
+      statusTextEl.textContent = 'Aucun modèle sélectionné.';
+      btnDuplicate.disabled = true;
+      btnDelete.disabled = true;
+
+      renderTemplateList();
+    }
+
+    function handleSave() {
+      const name = fieldNameEl.value.trim();
+      const category = fieldCategoryEl.value;
+      const subject = fieldSubjectEl.value.trim();
+      const body = fieldBodyEl.value.trim();
+
+      if (!name && !subject && !body) {
+        showToast('Rien à enregistrer, le modèle est vide.');
+        return;
+      }
+
+      if (!name) {
+        showToast('Ajoute au moins un nom de modèle pour le retrouver facilement.');
+        return;
+      }
+
+      if (selectedId) {
+        const idx = templates.findIndex(t => t.id === selectedId);
+        if (idx !== -1) {
+          templates[idx] = { ...templates[idx], name, category, subject, body };
+        }
+      } else {
+        const newId = 'tpl-' + Date.now().toString(36);
+        templates.push({ id: newId, name, category, subject, body });
+        selectedId = newId;
+      }
+
+      saveToStorage();
+      renderTemplateList();
+      editorHintEl.textContent = 'Modèle enregistré. Tu peux maintenant le copier ou le dupliquer.';
+      statusTextEl.textContent = 'Modèle sélectionné : ' + name;
+      btnDuplicate.disabled = false;
+      btnDelete.disabled = false;
+      showToast('Modèle enregistré ✅');
+    }
+
+    function handleDuplicate() {
+      if (!selectedId) return;
+      const original = templates.find(t => t.id === selectedId);
+      if (!original) return;
+
+      const copy = {
+        ...original,
+        id: 'tpl-' + Date.now().toString(36),
+        name: original.name + ' (copie)'
+      };
+      templates.push(copy);
+      saveToStorage();
+      selectTemplate(copy.id);
+      showToast('Modèle dupliqué');
+    }
+
+    function handleDelete() {
+      if (!selectedId) return;
+      const t = templates.find(t => t.id === selectedId);
+      const label = t ? t.name : '';
+
+      const confirmMsg = label
+        ? `Supprimer le modèle « ${label} » ?`
+        : 'Supprimer ce modèle ?';
+
+      if (!confirm(confirmMsg)) return;
+
+      templates = templates.filter(t => t.id !== selectedId);
+      selectedId = null;
+      saveToStorage();
+      clearForm();
+      showToast('Modèle supprimé');
+    }
+
+    function copyToClipboard(text, message) {
+      if (!text) {
+        showToast('Rien à copier, le champ est vide.');
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(message);
+        }).catch(() => {
+          fallbackCopyText(text, message);
+        });
+      } else {
+        fallbackCopyText(text, message);
+      }
+    }
+
+    function fallbackCopyText(text, message) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast(message);
+      } catch (e) {
+        alert('Impossible de copier automatiquement. Tu peux copier manuellement dans le champ.');
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+
+    function handleCopySubject() {
+      const subject = fieldSubjectEl.value;
+      copyToClipboard(subject, 'Objet copié ✉️');
+    }
+
+    function handleCopyBody() {
+      const body = fieldBodyEl.value;
+      copyToClipboard(body, 'Message copié 📋');
+    }
+
+    function handleCopyAll() {
+      const subject = fieldSubjectEl.value.trim();
+      const body = fieldBodyEl.value.trim();
+
+      if (!subject && !body) {
+        showToast('Rien à copier, le modèle est vide.');
+        return;
+      }
+
+      const full = subject
+        ? `Objet : ${subject}\n\n${body}`
+        : body;
+
+      copyToClipboard(full, 'E-mail complet copié ⚡');
+    }
+
+    function handleInsertVariable(e) {
+      const btn = e.target.closest('.var-tag');
+      if (!btn) return;
+      const variable = btn.getAttribute('data-var');
+      if (!variable) return;
+
+      const textarea = fieldBodyEl;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const value = textarea.value;
+      textarea.value = value.slice(0, start) + variable + value.slice(end);
+      textarea.focus();
+      const caret = start + variable.length;
+      textarea.setSelectionRange(caret, caret);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadFromStorage();
+      renderTemplateList();
+
+      btnNewTemplate.addEventListener('click', clearForm);
+      btnSave.addEventListener('click', handleSave);
+      btnReset.addEventListener('click', () => {
+        fieldNameEl.value = '';
+        fieldSubjectEl.value = '';
+        fieldBodyEl.value = '';
+        fieldCategoryEl.value = 'Client';
+        statusTextEl.textContent = selectedId
+          ? 'Modèle sélectionné, formulaire réinitialisé (non enregistré).'
+          : 'Formulaire vierge. Remplis et enregistre pour créer un modèle.';
+        showToast('Formulaire effacé');
+      });
+
+      btnDuplicate.addEventListener('click', handleDuplicate);
+      btnDelete.addEventListener('click', handleDelete);
+
+      searchInputEl.addEventListener('input', renderTemplateList);
+      filterCategoryEl.addEventListener('change', renderTemplateList);
+
+      btnCopySubject.addEventListener('click', handleCopySubject);
+      btnCopyBody.addEventListener('click', handleCopyBody);
+      btnCopyAll.addEventListener('click', handleCopyAll);
+
+      variablesListEl.addEventListener('click', handleInsertVariable);
+    });
+  </script>
+</body>
+</html>
