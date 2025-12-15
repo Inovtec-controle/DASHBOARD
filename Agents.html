@@ -1,1 +1,1664 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>KONTROL – Base agents & suivi incidents</title>
 
+  <!-- iPhone friendly -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#16a34a">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f1f5f9;
+      --panel:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:rgba(148,163,184,.45);
+      --brand:#16a34a;
+      --brand-2:#22c55e;
+      --danger:#ef4444;
+      --warn:#f59e0b;
+      --shadow: 0 10px 30px rgba(2,6,23,.08);
+      --radius:18px;
+      --radius2:14px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 20% -10%, rgba(34,197,94,.18), transparent 55%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(22,163,74,.14), transparent 50%),
+                  var(--bg);
+      color:var(--text);
+    }
+
+    /* Top bar */
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:10;
+      backdrop-filter: blur(10px);
+      background: rgba(241,245,249,.82);
+      border-bottom:1px solid var(--border);
+    }
+    .topbar-inner{
+      max-width:1200px;
+      margin:0 auto;
+      padding:14px 14px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 210px;
+    }
+    .logo{
+      width:40px;height:40px;border-radius:14px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      box-shadow: 0 10px 18px rgba(22,163,74,.25);
+      position:relative;
+      flex:0 0 auto;
+    }
+    .logo::after{
+      content:"";
+      position:absolute; inset:10px 11px 10px 11px;
+      border-radius:10px;
+      background: rgba(255,255,255,.18);
+      border:1px solid rgba(255,255,255,.25);
+    }
+    .brand h1{
+      margin:0;
+      font-size:16px;
+      line-height:1.15;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .brand p{
+      margin:2px 0 0;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .actions{
+      display:flex; flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      border:1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:700;
+      font-size:13px;
+      cursor:pointer;
+      box-shadow: 0 8px 18px rgba(2,6,23,.05);
+      transition: transform .05s ease, box-shadow .15s ease, border-color .15s ease;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      user-select:none;
+    }
+    .btn:hover{ border-color: rgba(22,163,74,.35); box-shadow: 0 12px 24px rgba(2,6,23,.08); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      color:#fff;
+      border-color: rgba(255,255,255,.18);
+      box-shadow: 0 14px 28px rgba(22,163,74,.24);
+    }
+    .btn.danger{
+      background:#fff;
+      color: var(--danger);
+      border-color: rgba(239,68,68,.25);
+    }
+    .btn.small{ padding:8px 10px; font-size:12px; border-radius:12px; }
+
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(22,163,74,.10);
+      border:1px solid rgba(22,163,74,.18);
+      color: var(--brand);
+      font-weight:800;
+      font-size:12px;
+      white-space:nowrap;
+    }
+
+    /* Layout */
+    .wrap{
+      max-width:1200px;
+      margin:0 auto;
+      padding:14px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+      align-items:stretch;
+    }
+
+    .panel{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      min-height: 70vh;
+    }
+
+    .panel-head{
+      padding:14px;
+      border-bottom:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(22,163,74,.06), transparent);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .panel-head h2{
+      margin:0;
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .panel-head .sub{
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:600;
+    }
+
+    .panel-body{ padding:14px; }
+
+    /* Sidebar list */
+    .search{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-bottom:12px;
+    }
+    .input, .select, .textarea{
+      width:100%;
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:14px;
+      padding:11px 12px;
+      font-size:13px;
+      font-weight:600;
+      outline:none;
+      color:var(--text);
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .textarea{ min-height:110px; resize:vertical; line-height:1.35; font-weight:600; }
+    .input:focus, .select:focus, .textarea:focus{
+      border-color: rgba(22,163,74,.55);
+      box-shadow: 0 0 0 4px rgba(22,163,74,.12);
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      max-height: calc(70vh - 190px);
+      overflow:auto;
+      padding-right:4px;
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius: var(--radius2);
+      padding:12px;
+      background: #fff;
+      cursor:pointer;
+      transition: border-color .15s ease, transform .05s ease, box-shadow .15s ease;
+    }
+    .card:hover{
+      border-color: rgba(22,163,74,.35);
+      box-shadow: 0 12px 20px rgba(2,6,23,.06);
+    }
+    .card:active{ transform: translateY(1px); }
+    .card.active{
+      border-color: rgba(22,163,74,.65);
+      box-shadow: 0 0 0 4px rgba(22,163,74,.10);
+    }
+    .card .top{
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+    }
+    .name{
+      font-weight:900;
+      font-size:13px;
+      line-height:1.2;
+    }
+    .meta{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:650;
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px 10px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      border:1px solid var(--border);
+      background: rgba(2,6,23,.03);
+    }
+    .badge.ok{ background: rgba(22,163,74,.10); border-color: rgba(22,163,74,.18); color: var(--brand); }
+    .badge.off{ background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.18); color: var(--danger); }
+
+    /* Right content */
+    .tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      padding:12px 14px;
+      border-bottom:1px solid var(--border);
+      background: rgba(2,6,23,.02);
+    }
+    .tab{
+      border:1px solid var(--border);
+      background:#fff;
+      padding:9px 11px;
+      border-radius: 999px;
+      font-weight:900;
+      font-size:12px;
+      cursor:pointer;
+      transition: border-color .15s ease, box-shadow .15s ease;
+      user-select:none;
+    }
+    .tab.active{
+      border-color: rgba(22,163,74,.60);
+      box-shadow: 0 0 0 4px rgba(22,163,74,.10);
+      color: var(--brand);
+    }
+
+    .section{
+      padding:14px;
+      display:none;
+    }
+    .section.active{ display:block; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      align-items:start;
+    }
+    .box{
+      border:1px solid var(--border);
+      border-radius: var(--radius2);
+      background:#fff;
+      padding:12px;
+    }
+    .box h3{
+      margin:0 0 10px;
+      font-size:13px;
+      font-weight:900;
+    }
+    .row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .field label{
+      display:block;
+      font-size:11px;
+      color:var(--muted);
+      font-weight:800;
+      margin:0 0 6px;
+      letter-spacing:.2px;
+      text-transform:uppercase;
+    }
+
+    .inline-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:flex-end;
+      margin-top:10px;
+    }
+
+    /* Incidents table */
+    .table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border:1px solid var(--border);
+      border-radius: 14px;
+      background:#fff;
+    }
+    .table th, .table td{
+      padding:10px 10px;
+      font-size:12px;
+      border-bottom:1px solid var(--border);
+      vertical-align:top;
+    }
+    .table th{
+      text-align:left;
+      font-size:11px;
+      color:var(--muted);
+      font-weight:900;
+      letter-spacing:.2px;
+      text-transform:uppercase;
+      background: rgba(2,6,23,.02);
+    }
+    .table tr:last-child td{ border-bottom:none; }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:900;
+      border:1px solid var(--border);
+      background: rgba(2,6,23,.03);
+      white-space:nowrap;
+    }
+    .pill.open{ background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.22); color: #b45309; }
+    .pill.closed{ background: rgba(22,163,74,.10); border-color: rgba(22,163,74,.20); color: var(--brand); }
+    .pill.high{ background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.20); color: var(--danger); }
+
+    .muted{ color:var(--muted); font-weight:650; }
+
+    /* Modal */
+    .modal-backdrop{
+      position:fixed; inset:0;
+      background: rgba(2,6,23,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:50;
+    }
+    .modal{
+      width:min(780px, 100%);
+      background:#fff;
+      border-radius: 20px;
+      border:1px solid rgba(255,255,255,.25);
+      box-shadow: 0 30px 70px rgba(2,6,23,.25);
+      overflow:hidden;
+    }
+    .modal-head{
+      padding:14px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background: linear-gradient(180deg, rgba(22,163,74,.06), transparent);
+    }
+    .modal-head h3{
+      margin:0;
+      font-size:14px;
+      font-weight:950;
+    }
+    .modal-body{ padding:14px; }
+    .modal-foot{
+      padding:14px;
+      border-top:1px solid var(--border);
+      display:flex;
+      gap:8px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      background: rgba(2,6,23,.02);
+    }
+
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:650;
+      line-height:1.35;
+    }
+
+    /* Responsive */
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .panel{ min-height: auto; }
+      .list{ max-height: 42vh; }
+      .grid2{ grid-template-columns: 1fr; }
+      .brand{ min-width: unset; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>KONTROL – Base agents</h1>
+          <p>Fiche agent + suivi incidents (stockage local)</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <span class="chip" id="chipCount">0 agents</span>
+        <button class="btn" id="btnImport">Importer JSON</button>
+        <button class="btn" id="btnExport">Exporter JSON</button>
+        <button class="btn primary" id="btnNewAgent">+ Ajouter un agent</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="grid">
+      <!-- LEFT: Agents -->
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Agents</h2>
+            <div class="sub">Sélectionne un agent pour afficher sa fiche et ses incidents.</div>
+          </div>
+          <button class="btn small danger" id="btnReset" title="Réinitialiser (efface tout)">Reset</button>
+        </div>
+
+        <div class="panel-body">
+          <div class="search">
+            <input class="input" id="searchAgent" placeholder="Rechercher (nom, prénom, matricule, site…)" />
+          </div>
+
+          <div class="search">
+            <select class="select" id="filterStatut">
+              <option value="all">Tous les statuts</option>
+              <option value="Actif">Actif</option>
+              <option value="Inactif">Inactif</option>
+            </select>
+            <select class="select" id="sortAgents">
+              <option value="name">Tri : Nom A→Z</option>
+              <option value="recent">Tri : Récemment modifiés</option>
+              <option value="incidents">Tri : + d’incidents</option>
+            </select>
+          </div>
+
+          <div class="list" id="agentList" aria-live="polite"></div>
+
+          <div class="hint" style="margin-top:12px;">
+            Astuce : tes données restent dans le navigateur (localStorage). Pense à exporter en JSON régulièrement.
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Details -->
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 id="rightTitle">Aucun agent sélectionné</h2>
+            <div class="sub" id="rightSub">Sélectionne un agent dans la liste de gauche.</div>
+          </div>
+          <div class="actions">
+            <button class="btn" id="btnPdfAgent" title="Ouvre l'impression (choisir “Enregistrer en PDF”)">PDF fiche</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" data-tab="fiche">Fiche agent</div>
+          <div class="tab" data-tab="incidents">Suivi incidents</div>
+        </div>
+
+        <!-- Tab: Fiche -->
+        <div class="section active" id="tab-fiche">
+          <div class="grid2">
+            <div class="box">
+              <h3>Informations principales</h3>
+
+              <div class="row">
+                <div class="field">
+                  <label>Nom</label>
+                  <input class="input" id="aNom" placeholder="Nom" />
+                </div>
+                <div class="field">
+                  <label>Prénom</label>
+                  <input class="input" id="aPrenom" placeholder="Prénom" />
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <div class="field">
+                  <label>Matricule</label>
+                  <input class="input" id="aMatricule" placeholder="Matricule / ID interne" />
+                </div>
+                <div class="field">
+                  <label>Statut</label>
+                  <select class="select" id="aStatut">
+                    <option>Actif</option>
+                    <option>Inactif</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <div class="field">
+                  <label>Poste</label>
+                  <input class="input" id="aPoste" placeholder="Ex : Agent d’entretien, Cheffe d’équipe…" />
+                </div>
+                <div class="field">
+                  <label>Site / Affectation</label>
+                  <input class="input" id="aSite" placeholder="Ex : Résidence X, Bureaux Y…" />
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <div class="field">
+                  <label>Téléphone</label>
+                  <input class="input" id="aTel" placeholder="06…" />
+                </div>
+                <div class="field">
+                  <label>Email</label>
+                  <input class="input" id="aEmail" placeholder="email@…" />
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <div class="field">
+                  <label>Date d’entrée</label>
+                  <input class="input" id="aEntree" type="date" />
+                </div>
+                <div class="field">
+                  <label>Dernière mise à jour</label>
+                  <input class="input" id="aUpdated" disabled />
+                </div>
+              </div>
+
+              <div class="inline-actions">
+                <button class="btn primary" id="btnSaveAgent">Enregistrer</button>
+                <button class="btn danger" id="btnDeleteAgent">Supprimer l’agent</button>
+              </div>
+
+              <div class="hint" style="margin-top:10px;">
+                “PDF fiche” ouvre l’impression : sur iPhone/Chrome tu peux choisir “Enregistrer en PDF”.
+              </div>
+            </div>
+
+            <div class="box">
+              <h3>Notes générales (suivi)</h3>
+              <div class="field">
+                <label>Notes</label>
+                <textarea class="textarea" id="aNotes" placeholder="Tout ce qui peut être utile : consignes, remarques, points forts, points à améliorer…"></textarea>
+              </div>
+
+              <div class="hint" style="margin-top:10px;">
+                Ces notes sont liées à l’agent sélectionné.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Incidents -->
+        <div class="section" id="tab-incidents">
+          <div class="box" style="margin-bottom:12px;">
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+              <div>
+                <h3 style="margin:0 0 6px;">Incidents de l’agent</h3>
+                <div class="hint">Ajoute, classe, clôture et conserve un historique. (Les pièces jointes sont stockées en local.)</div>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn primary" id="btnAddIncident">+ Nouvel incident</button>
+                <button class="btn" id="btnPdfIncidents">PDF incidents</button>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+              <input class="input" id="searchIncident" placeholder="Rechercher dans les incidents (mot-clé…)" style="flex:1 1 240px;" />
+              <select class="select" id="filterIncidentStatut" style="flex:0 0 200px;">
+                <option value="all">Tous (ouverts + clos)</option>
+                <option value="Ouvert">Ouverts</option>
+                <option value="Clos">Clos</option>
+              </select>
+              <select class="select" id="sortIncidents" style="flex:0 0 240px;">
+                <option value="dateDesc">Tri : Date (récent → ancien)</option>
+                <option value="dateAsc">Tri : Date (ancien → récent)</option>
+                <option value="gravDesc">Tri : Gravité (forte → faible)</option>
+                <option value="gravAsc">Tri : Gravité (faible → forte)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="box">
+            <div style="overflow:auto;">
+              <table class="table" id="incidentTable">
+                <thead>
+                  <tr>
+                    <th style="min-width:110px;">Date</th>
+                    <th style="min-width:130px;">Type</th>
+                    <th style="min-width:120px;">Statut</th>
+                    <th style="min-width:110px;">Gravité</th>
+                    <th>Description & actions</th>
+                    <th style="min-width:120px;">Pièce jointe</th>
+                    <th style="min-width:120px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="incidentTbody"></tbody>
+              </table>
+            </div>
+
+            <div class="hint" style="margin-top:10px;">
+              Si tu mets une photo/PDF, elle est enregistrée dans ton navigateur (ça peut grossir la taille du stockage).
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for JSON import -->
+  <input type="file" id="fileImport" accept="application/json" style="display:none;" />
+
+  <!-- Modal: New/Edit Agent -->
+  <div class="modal-backdrop" id="modalAgentBackdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalAgentTitle">Ajouter un agent</h3>
+        <button class="btn small" id="btnCloseAgentModal">Fermer</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid2">
+          <div class="box">
+            <h3 style="margin:0 0 10px;">Identité</h3>
+            <div class="row">
+              <div class="field">
+                <label>Nom</label>
+                <input class="input" id="mNom" placeholder="Nom" />
+              </div>
+              <div class="field">
+                <label>Prénom</label>
+                <input class="input" id="mPrenom" placeholder="Prénom" />
+              </div>
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <div class="field">
+                <label>Matricule</label>
+                <input class="input" id="mMatricule" placeholder="Matricule / ID interne" />
+              </div>
+              <div class="field">
+                <label>Statut</label>
+                <select class="select" id="mStatut">
+                  <option>Actif</option>
+                  <option>Inactif</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="box">
+            <h3 style="margin:0 0 10px;">Affectation</h3>
+            <div class="field">
+              <label>Poste</label>
+              <input class="input" id="mPoste" placeholder="Ex : Agent d’entretien…" />
+            </div>
+            <div class="field" style="margin-top:10px;">
+              <label>Site / Affectation</label>
+              <input class="input" id="mSite" placeholder="Ex : Résidence X…" />
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <div class="field">
+                <label>Téléphone</label>
+                <input class="input" id="mTel" placeholder="06…" />
+              </div>
+              <div class="field">
+                <label>Email</label>
+                <input class="input" id="mEmail" placeholder="email@…" />
+              </div>
+            </div>
+            <div class="field" style="margin-top:10px;">
+              <label>Date d’entrée</label>
+              <input class="input" id="mEntree" type="date" />
+            </div>
+          </div>
+        </div>
+        <div class="hint" style="margin-top:10px;">
+          Tu pourras compléter les “notes générales” ensuite sur la fiche.
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" id="btnCancelAgentModal">Annuler</button>
+        <button class="btn primary" id="btnCreateAgent">Créer l’agent</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add/Edit Incident -->
+  <div class="modal-backdrop" id="modalIncidentBackdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalIncidentTitle">Nouvel incident</h3>
+        <button class="btn small" id="btnCloseIncidentModal">Fermer</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid2">
+          <div class="box">
+            <h3 style="margin:0 0 10px;">Détails</h3>
+            <div class="row">
+              <div class="field">
+                <label>Date</label>
+                <input class="input" id="iDate" type="date" />
+              </div>
+              <div class="field">
+                <label>Type</label>
+                <select class="select" id="iType">
+                  <option>Retard / absence</option>
+                  <option>Qualité de travail</option>
+                  <option>Comportement</option>
+                  <option>Non-respect consignes</option>
+                  <option>Relation client</option>
+                  <option>Sécurité</option>
+                  <option>Autre</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:10px;">
+              <div class="field">
+                <label>Statut</label>
+                <select class="select" id="iStatut">
+                  <option>Ouvert</option>
+                  <option>Clos</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Gravité</label>
+                <select class="select" id="iGravite">
+                  <option value="1">1 – Faible</option>
+                  <option value="2">2 – Modéré</option>
+                  <option value="3" selected>3 – Important</option>
+                  <option value="4">4 – Élevé</option>
+                  <option value="5">5 – Critique</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:10px;">
+              <label>Description</label>
+              <textarea class="textarea" id="iDesc" placeholder="Décris précisément les faits (date/heure, contexte, témoins, etc.)"></textarea>
+            </div>
+          </div>
+
+          <div class="box">
+            <h3 style="margin:0 0 10px;">Actions & preuve</h3>
+            <div class="field">
+              <label>Actions menées / décisions</label>
+              <textarea class="textarea" id="iActions" placeholder="Ex : rappel consignes, entretien, avertissement oral/écrit, formation, observation…"></textarea>
+            </div>
+
+            <div class="field" style="margin-top:10px;">
+              <label>Pièce jointe (optionnel)</label>
+              <input class="input" id="iFile" type="file" accept="image/*,application/pdf" />
+              <div class="hint" style="margin-top:8px;">
+                Photo ou PDF (ordre d’intervention, preuve, etc.). Stocké en local.
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:10px;">
+              <label>Note interne (optionnel)</label>
+              <input class="input" id="iNote" placeholder="Ex : à vérifier / à recontacter / attente retour client…" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" id="btnCancelIncidentModal">Annuler</button>
+        <button class="btn primary" id="btnSaveIncident">Enregistrer l’incident</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***********************
+     * Storage & Helpers
+     ***********************/
+    const STORAGE_KEY = "kontrol_agents_db_v1";
+
+    function uid(){
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return "id_" + Math.random().toString(16).slice(2) + "_" + Date.now();
+    }
+
+    function nowISO(){
+      const d = new Date();
+      const pad = (n)=> String(n).padStart(2,"0");
+      return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+    }
+
+    function safeJSONParse(str, fallback){
+      try { return JSON.parse(str); } catch(e){ return fallback; }
+    }
+
+    function download(filename, text){
+      const blob = new Blob([text], {type:"application/json;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function fileToBase64(file){
+      return new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=> resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function escapeHtml(str){
+      return (str ?? "").toString()
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    /***********************
+     * State
+     ***********************/
+    let DB = {
+      agents: [],
+      selectedId: null
+    };
+
+    function load(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        DB = safeJSONParse(raw, {agents:[], selectedId:null});
+        // Backward safety
+        DB.agents = Array.isArray(DB.agents) ? DB.agents : [];
+      }
+    }
+    function save(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+      updateCounts();
+    }
+
+    function getSelected(){
+      return DB.agents.find(a => a.id === DB.selectedId) || null;
+    }
+
+    function updateCounts(){
+      const chip = document.getElementById("chipCount");
+      chip.textContent = `${DB.agents.length} agent${DB.agents.length>1?"s":""}`;
+    }
+
+    /***********************
+     * Rendering: Agents list
+     ***********************/
+    function renderAgents(){
+      const list = document.getElementById("agentList");
+      const q = (document.getElementById("searchAgent").value || "").trim().toLowerCase();
+      const fStatut = document.getElementById("filterStatut").value;
+      const sort = document.getElementById("sortAgents").value;
+
+      let agents = [...DB.agents];
+
+      // filter statut
+      if(fStatut !== "all"){
+        agents = agents.filter(a => (a.statut || "Actif") === fStatut);
+      }
+
+      // search
+      if(q){
+        agents = agents.filter(a => {
+          const hay = [
+            a.nom, a.prenom, a.matricule, a.poste, a.site, a.email, a.tel
+          ].join(" ").toLowerCase();
+          return hay.includes(q);
+        });
+      }
+
+      // sort
+      if(sort === "name"){
+        agents.sort((a,b)=>{
+          const an = (a.nom||"").localeCompare(b.nom||"", "fr", {sensitivity:"base"});
+          if(an !== 0) return an;
+          return (a.prenom||"").localeCompare(b.prenom||"", "fr", {sensitivity:"base"});
+        });
+      } else if(sort === "recent"){
+        agents.sort((a,b)=> (b.updatedAt||"").localeCompare(a.updatedAt||""));
+      } else if(sort === "incidents"){
+        agents.sort((a,b)=> (b.incidents?.length||0) - (a.incidents?.length||0));
+      }
+
+      list.innerHTML = "";
+      if(agents.length === 0){
+        list.innerHTML = `
+          <div class="hint">
+            Aucun agent trouvé. Clique sur <b>“+ Ajouter un agent”</b> pour commencer.
+          </div>
+        `;
+        return;
+      }
+
+      for(const a of agents){
+        const isActive = (a.statut || "Actif") === "Actif";
+        const incidentsCount = (a.incidents || []).length;
+        const openCount = (a.incidents || []).filter(i => (i.statut||"Ouvert")==="Ouvert").length;
+
+        const el = document.createElement("div");
+        el.className = "card" + (a.id === DB.selectedId ? " active" : "");
+        el.addEventListener("click", ()=>{
+          DB.selectedId = a.id;
+          save();
+          renderAll();
+        });
+
+        el.innerHTML = `
+          <div class="top">
+            <div>
+              <div class="name">${escapeHtml((a.nom||"") + " " + (a.prenom||"")).trim() || "Sans nom"}</div>
+              <div class="meta">
+                <span class="badge">${escapeHtml(a.matricule || "Sans matricule")}</span>
+                <span class="badge">${escapeHtml(a.site || "Sans site")}</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+              <span class="badge ${isActive ? "ok":"off"}">${isActive ? "Actif" : "Inactif"}</span>
+              <span class="badge">${incidentsCount} incident${incidentsCount>1?"s":""}</span>
+              ${openCount>0 ? `<span class="badge" style="border-color: rgba(245,158,11,.25); background: rgba(245,158,11,.10); color:#b45309;">${openCount} ouvert${openCount>1?"s":""}</span>` : ""}
+            </div>
+          </div>
+        `;
+        list.appendChild(el);
+      }
+    }
+
+    /***********************
+     * Rendering: Right panel (selected agent)
+     ***********************/
+    function renderSelected(){
+      const a = getSelected();
+      const title = document.getElementById("rightTitle");
+      const sub = document.getElementById("rightSub");
+
+      const fieldsDisabled = !a;
+      const ids = ["aNom","aPrenom","aMatricule","aStatut","aPoste","aSite","aTel","aEmail","aEntree","aNotes"];
+      for(const id of ids){
+        document.getElementById(id).disabled = fieldsDisabled;
+      }
+      document.getElementById("btnSaveAgent").disabled = fieldsDisabled;
+      document.getElementById("btnDeleteAgent").disabled = fieldsDisabled;
+      document.getElementById("btnAddIncident").disabled = fieldsDisabled;
+      document.getElementById("btnPdfAgent").disabled = fieldsDisabled;
+      document.getElementById("btnPdfIncidents").disabled = fieldsDisabled;
+
+      if(!a){
+        title.textContent = "Aucun agent sélectionné";
+        sub.textContent = "Sélectionne un agent dans la liste de gauche.";
+        // Clear fields
+        document.getElementById("aNom").value="";
+        document.getElementById("aPrenom").value="";
+        document.getElementById("aMatricule").value="";
+        document.getElementById("aStatut").value="Actif";
+        document.getElementById("aPoste").value="";
+        document.getElementById("aSite").value="";
+        document.getElementById("aTel").value="";
+        document.getElementById("aEmail").value="";
+        document.getElementById("aEntree").value="";
+        document.getElementById("aUpdated").value="";
+        document.getElementById("aNotes").value="";
+        renderIncidents();
+        return;
+      }
+
+      title.textContent = `${(a.nom||"").toUpperCase()} ${(a.prenom||"")}`.trim() || "Fiche agent";
+      const openCount = (a.incidents||[]).filter(i => (i.statut||"Ouvert")==="Ouvert").length;
+      sub.textContent = `${a.matricule ? "Matricule : "+a.matricule+" • " : ""}${a.site ? "Site : "+a.site+" • " : ""}${(a.incidents||[]).length} incident(s) • ${openCount} ouvert(s)`;
+
+      // Fill fields
+      document.getElementById("aNom").value = a.nom || "";
+      document.getElementById("aPrenom").value = a.prenom || "";
+      document.getElementById("aMatricule").value = a.matricule || "";
+      document.getElementById("aStatut").value = a.statut || "Actif";
+      document.getElementById("aPoste").value = a.poste || "";
+      document.getElementById("aSite").value = a.site || "";
+      document.getElementById("aTel").value = a.tel || "";
+      document.getElementById("aEmail").value = a.email || "";
+      document.getElementById("aEntree").value = a.entree || "";
+      document.getElementById("aUpdated").value = a.updatedAt || "";
+      document.getElementById("aNotes").value = a.notes || "";
+
+      renderIncidents();
+    }
+
+    /***********************
+     * Rendering: Incidents table
+     ***********************/
+    function renderIncidents(){
+      const a = getSelected();
+      const tbody = document.getElementById("incidentTbody");
+      tbody.innerHTML = "";
+
+      if(!a){
+        tbody.innerHTML = `<tr><td colspan="7" class="muted">Aucun agent sélectionné.</td></tr>`;
+        return;
+      }
+
+      const q = (document.getElementById("searchIncident").value || "").trim().toLowerCase();
+      const f = document.getElementById("filterIncidentStatut").value;
+      const sort = document.getElementById("sortIncidents").value;
+
+      let items = [...(a.incidents || [])];
+
+      if(f !== "all"){
+        items = items.filter(i => (i.statut || "Ouvert") === f);
+      }
+
+      if(q){
+        items = items.filter(i => {
+          const hay = [i.type, i.desc, i.actions, i.note].join(" ").toLowerCase();
+          return hay.includes(q);
+        });
+      }
+
+      const dateNum = (d)=> {
+        if(!d) return 0;
+        const t = Date.parse(d);
+        return isNaN(t) ? 0 : t;
+      };
+
+      if(sort === "dateDesc") items.sort((x,y)=> dateNum(y.date) - dateNum(x.date));
+      if(sort === "dateAsc") items.sort((x,y)=> dateNum(x.date) - dateNum(y.date));
+      if(sort === "gravDesc") items.sort((x,y)=> (Number(y.gravite)||0) - (Number(x.gravite)||0));
+      if(sort === "gravAsc") items.sort((x,y)=> (Number(x.gravite)||0) - (Number(y.gravite)||0));
+
+      if(items.length === 0){
+        tbody.innerHTML = `<tr><td colspan="7" class="muted">Aucun incident pour cet agent (ou filtre vide).</td></tr>`;
+        return;
+      }
+
+      for(const i of items){
+        const grav = Number(i.gravite||3);
+        const gravLabel = grav>=4 ? "Élevée" : (grav===3 ? "Importante" : (grav===2 ? "Modérée" : "Faible"));
+        const gravClass = grav>=4 ? "high" : "";
+        const statut = i.statut || "Ouvert";
+        const hasFile = !!i.fileData;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><b>${escapeHtml(i.date || "")}</b></td>
+          <td>${escapeHtml(i.type || "")}</td>
+          <td>
+            <span class="pill ${statut==="Clos"?"closed":"open"}">${escapeHtml(statut)}</span>
+          </td>
+          <td>
+            <span class="pill ${gravClass}">${grav}/5 • ${escapeHtml(gravLabel)}</span>
+          </td>
+          <td>
+            <div style="font-weight:800; margin-bottom:6px;">${escapeHtml(i.note || "")}</div>
+            <div style="white-space:pre-wrap; line-height:1.35;">
+              <b>Description :</b> ${escapeHtml(i.desc || "")}
+              ${i.actions ? `\n\n<b>Actions :</b> ${escapeHtml(i.actions)}` : ""}
+            </div>
+          </td>
+          <td>
+            ${hasFile ? `<a href="${i.fileData}" target="_blank" style="font-weight:900; color: var(--brand); text-decoration:none;">Ouvrir</a>
+              <div class="muted" style="font-size:11px; margin-top:6px;">${escapeHtml(i.fileName || "")}</div>`
+            : `<span class="muted">—</span>`}
+          </td>
+          <td>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn small" data-act="edit" data-id="${i.id}">Modifier</button>
+              <button class="btn small" data-act="toggle" data-id="${i.id}">${statut==="Clos"?"Réouvrir":"Clôturer"}</button>
+              <button class="btn small danger" data-act="del" data-id="${i.id}">Suppr.</button>
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      }
+
+      // Bind actions
+      tbody.querySelectorAll("button[data-act]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const act = btn.getAttribute("data-act");
+          const id = btn.getAttribute("data-id");
+          if(act === "del") deleteIncident(id);
+          if(act === "toggle") toggleIncident(id);
+          if(act === "edit") openIncidentModal(id);
+        });
+      });
+    }
+
+    /***********************
+     * CRUD: Agents
+     ***********************/
+    function openAgentModal(){
+      document.getElementById("modalAgentTitle").textContent = "Ajouter un agent";
+      // reset fields
+      ["mNom","mPrenom","mMatricule","mPoste","mSite","mTel","mEmail"].forEach(id=>document.getElementById(id).value="");
+      document.getElementById("mStatut").value="Actif";
+      document.getElementById("mEntree").value="";
+      showModal("modalAgentBackdrop", true);
+      document.getElementById("mNom").focus();
+    }
+
+    function createAgent(){
+      const nom = document.getElementById("mNom").value.trim();
+      const prenom = document.getElementById("mPrenom").value.trim();
+
+      if(!nom && !prenom){
+        alert("Renseigne au minimum un nom ou un prénom.");
+        return;
+      }
+
+      const agent = {
+        id: uid(),
+        nom, prenom,
+        matricule: document.getElementById("mMatricule").value.trim(),
+        statut: document.getElementById("mStatut").value,
+        poste: document.getElementById("mPoste").value.trim(),
+        site: document.getElementById("mSite").value.trim(),
+        tel: document.getElementById("mTel").value.trim(),
+        email: document.getElementById("mEmail").value.trim(),
+        entree: document.getElementById("mEntree").value,
+        notes: "",
+        incidents: [],
+        createdAt: nowISO(),
+        updatedAt: nowISO()
+      };
+
+      DB.agents.unshift(agent);
+      DB.selectedId = agent.id;
+      save();
+      showModal("modalAgentBackdrop", false);
+      renderAll();
+    }
+
+    function saveSelectedAgent(){
+      const a = getSelected();
+      if(!a) return;
+
+      a.nom = document.getElementById("aNom").value.trim();
+      a.prenom = document.getElementById("aPrenom").value.trim();
+      a.matricule = document.getElementById("aMatricule").value.trim();
+      a.statut = document.getElementById("aStatut").value;
+      a.poste = document.getElementById("aPoste").value.trim();
+      a.site = document.getElementById("aSite").value.trim();
+      a.tel = document.getElementById("aTel").value.trim();
+      a.email = document.getElementById("aEmail").value.trim();
+      a.entree = document.getElementById("aEntree").value;
+      a.notes = document.getElementById("aNotes").value;
+
+      a.updatedAt = nowISO();
+      save();
+      renderAll();
+    }
+
+    function deleteSelectedAgent(){
+      const a = getSelected();
+      if(!a) return;
+      const label = `${(a.nom||"").toUpperCase()} ${(a.prenom||"")}`.trim();
+      if(!confirm(`Supprimer l’agent : ${label} ?\n\n⚠️ Cette action efface aussi son historique d’incidents.`)) return;
+
+      DB.agents = DB.agents.filter(x=> x.id !== a.id);
+      DB.selectedId = DB.agents[0]?.id || null;
+      save();
+      renderAll();
+    }
+
+    /***********************
+     * CRUD: Incidents
+     ***********************/
+    let editingIncidentId = null;
+
+    function openIncidentModal(incidentId=null){
+      const a = getSelected();
+      if(!a) return;
+
+      editingIncidentId = incidentId;
+      const isEdit = !!incidentId;
+      document.getElementById("modalIncidentTitle").textContent = isEdit ? "Modifier l’incident" : "Nouvel incident";
+
+      // Defaults
+      const today = new Date();
+      const pad = (n)=> String(n).padStart(2,"0");
+      const isoDate = today.getFullYear()+"-"+pad(today.getMonth()+1)+"-"+pad(today.getDate());
+
+      const i = isEdit ? (a.incidents||[]).find(x=>x.id===incidentId) : null;
+
+      document.getElementById("iDate").value = i?.date || isoDate;
+      document.getElementById("iType").value = i?.type || "Comportement";
+      document.getElementById("iStatut").value = i?.statut || "Ouvert";
+      document.getElementById("iGravite").value = String(i?.gravite || "3");
+      document.getElementById("iDesc").value = i?.desc || "";
+      document.getElementById("iActions").value = i?.actions || "";
+      document.getElementById("iNote").value = i?.note || "";
+      document.getElementById("iFile").value = ""; // cannot prefill file input
+
+      showModal("modalIncidentBackdrop", true);
+    }
+
+    async function saveIncidentFromModal(){
+      const a = getSelected();
+      if(!a) return;
+
+      const date = document.getElementById("iDate").value;
+      const type = document.getElementById("iType").value;
+      const statut = document.getElementById("iStatut").value;
+      const gravite = Number(document.getElementById("iGravite").value || 3);
+      const desc = document.getElementById("iDesc").value.trim();
+      const actions = document.getElementById("iActions").value.trim();
+      const note = document.getElementById("iNote").value.trim();
+
+      if(!date || !desc){
+        alert("Merci de renseigner au minimum la date et la description.");
+        return;
+      }
+
+      let fileData = null, fileName = null, fileType = null;
+      const file = document.getElementById("iFile").files?.[0] || null;
+      if(file){
+        // Basic size warning (not blocking)
+        if(file.size > 2_500_000){
+          if(!confirm("Le fichier est assez volumineux (plus de ~2,5 Mo). Le stockage local peut saturer.\n\nContinuer quand même ?")){
+            return;
+          }
+        }
+        fileData = await fileToBase64(file);
+        fileName = file.name;
+        fileType = file.type;
+      }
+
+      const isEdit = !!editingIncidentId;
+      if(isEdit){
+        const idx = (a.incidents||[]).findIndex(x=> x.id === editingIncidentId);
+        if(idx >= 0){
+          const old = a.incidents[idx];
+          a.incidents[idx] = {
+            ...old,
+            date, type, statut, gravite, desc, actions, note,
+            // keep existing attachment if none chosen
+            fileData: fileData ?? old.fileData ?? null,
+            fileName: fileName ?? old.fileName ?? null,
+            fileType: fileType ?? old.fileType ?? null,
+            updatedAt: nowISO()
+          };
+        }
+      } else {
+        const incident = {
+          id: uid(),
+          date, type, statut, gravite, desc, actions, note,
+          fileData, fileName, fileType,
+          createdAt: nowISO(),
+          updatedAt: nowISO()
+        };
+        a.incidents = Array.isArray(a.incidents) ? a.incidents : [];
+        a.incidents.unshift(incident);
+      }
+
+      a.updatedAt = nowISO();
+      save();
+      showModal("modalIncidentBackdrop", false);
+      renderAll();
+    }
+
+    function deleteIncident(id){
+      const a = getSelected();
+      if(!a) return;
+      if(!confirm("Supprimer cet incident ?")) return;
+      a.incidents = (a.incidents||[]).filter(x=> x.id !== id);
+      a.updatedAt = nowISO();
+      save();
+      renderAll();
+    }
+
+    function toggleIncident(id){
+      const a = getSelected();
+      if(!a) return;
+      const it = (a.incidents||[]).find(x=> x.id===id);
+      if(!it) return;
+      it.statut = (it.statut || "Ouvert") === "Clos" ? "Ouvert" : "Clos";
+      it.updatedAt = nowISO();
+      a.updatedAt = nowISO();
+      save();
+      renderAll();
+    }
+
+    /***********************
+     * Tabs
+     ***********************/
+    function setTab(name){
+      document.querySelectorAll(".tab").forEach(t=>{
+        t.classList.toggle("active", t.getAttribute("data-tab") === name);
+      });
+      document.querySelectorAll(".section").forEach(s=> s.classList.remove("active"));
+      document.getElementById("tab-"+name).classList.add("active");
+    }
+
+    /***********************
+     * Modal toggles
+     ***********************/
+    function showModal(id, show){
+      const el = document.getElementById(id);
+      el.style.display = show ? "flex" : "none";
+      el.setAttribute("aria-hidden", show ? "false" : "true");
+    }
+
+    /***********************
+     * Import / Export
+     ***********************/
+    function exportJSON(){
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        app: "KONTROL – Base agents & incidents",
+        version: 1,
+        data: DB
+      };
+      const name = `kontrol_agents_${new Date().toISOString().slice(0,10)}.json`;
+      download(name, JSON.stringify(payload, null, 2));
+    }
+
+    function importJSONFromFile(file){
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const obj = safeJSONParse(reader.result, null);
+        if(!obj){
+          alert("Fichier JSON invalide.");
+          return;
+        }
+        // accept either wrapper or direct DB
+        const incoming = obj.data ? obj.data : obj;
+        if(!incoming || !Array.isArray(incoming.agents)){
+          alert("Structure non reconnue (attendu : {agents:[...]})");
+          return;
+        }
+        // light sanitize
+        incoming.agents = incoming.agents.map(a=>({
+          id: a.id || uid(),
+          nom: a.nom || "",
+          prenom: a.prenom || "",
+          matricule: a.matricule || "",
+          statut: a.statut || "Actif",
+          poste: a.poste || "",
+          site: a.site || "",
+          tel: a.tel || "",
+          email: a.email || "",
+          entree: a.entree || "",
+          notes: a.notes || "",
+          incidents: Array.isArray(a.incidents) ? a.incidents : [],
+          createdAt: a.createdAt || nowISO(),
+          updatedAt: a.updatedAt || nowISO(),
+        }));
+
+        DB.agents = incoming.agents;
+        DB.selectedId = incoming.selectedId || DB.agents[0]?.id || null;
+        save();
+        renderAll();
+        alert("Import terminé ✅");
+      };
+      reader.readAsText(file);
+    }
+
+    /***********************
+     * PDF helpers (print)
+     ***********************/
+    function openPdfForAgent(){
+      const a = getSelected();
+      if(!a) return;
+
+      const w = window.open("", "_blank");
+      if(!w){ alert("Popup bloquée. Autorise les popups pour générer le PDF."); return; }
+
+      const openCount = (a.incidents||[]).filter(i => (i.statut||"Ouvert")==="Ouvert").length;
+      const html = `
+<!DOCTYPE html>
+<html lang="fr"><head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fiche agent – ${(a.nom||"").toUpperCase()} ${(a.prenom||"")}</title>
+<style>
+  body{ font-family: Inter, Arial, sans-serif; margin:24px; color:#0f172a; }
+  h1{ margin:0 0 6px; font-size:20px; }
+  .sub{ color:#64748b; font-weight:700; margin-bottom:18px; }
+  .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  .box{ border:1px solid rgba(148,163,184,.5); border-radius:14px; padding:14px; }
+  .box h2{ margin:0 0 10px; font-size:14px; }
+  .kv{ display:grid; grid-template-columns: 140px 1fr; gap:8px; margin:6px 0; }
+  .k{ color:#64748b; font-weight:800; text-transform:uppercase; font-size:11px; letter-spacing:.2px; }
+  .v{ font-weight:700; font-size:12.5px; }
+  .notes{ white-space:pre-wrap; line-height:1.35; font-weight:650; font-size:12.5px; }
+  .tag{ display:inline-block; padding:6px 10px; border-radius:999px; background: rgba(22,163,74,.10); border:1px solid rgba(22,163,74,.18); color:#16a34a; font-weight:900; font-size:12px; }
+  @media print{ body{ margin:14mm; } }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <h1>Fiche agent – ${(escapeHtml((a.nom||"").toUpperCase()+" "+(a.prenom||"")).trim())}</h1>
+  <div class="sub">Mis à jour : ${escapeHtml(a.updatedAt||"")} • ${escapeHtml((a.incidents||[]).length)} incident(s) • ${escapeHtml(openCount)} ouvert(s)</div>
+
+  <div class="grid">
+    <div class="box">
+      <h2>Informations</h2>
+      <div class="kv"><div class="k">Statut</div><div class="v">${escapeHtml(a.statut||"Actif")}</div></div>
+      <div class="kv"><div class="k">Matricule</div><div class="v">${escapeHtml(a.matricule||"")}</div></div>
+      <div class="kv"><div class="k">Poste</div><div class="v">${escapeHtml(a.poste||"")}</div></div>
+      <div class="kv"><div class="k">Site</div><div class="v">${escapeHtml(a.site||"")}</div></div>
+      <div class="kv"><div class="k">Date d’entrée</div><div class="v">${escapeHtml(a.entree||"")}</div></div>
+      <div class="kv"><div class="k">Téléphone</div><div class="v">${escapeHtml(a.tel||"")}</div></div>
+      <div class="kv"><div class="k">Email</div><div class="v">${escapeHtml(a.email||"")}</div></div>
+    </div>
+
+    <div class="box">
+      <h2>Notes générales</h2>
+      <div class="notes">${escapeHtml(a.notes||"")}</div>
+    </div>
+  </div>
+
+  <script>window.print();<\/script>
+</body></html>`;
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    }
+
+    function openPdfForIncidents(){
+      const a = getSelected();
+      if(!a) return;
+
+      const w = window.open("", "_blank");
+      if(!w){ alert("Popup bloquée. Autorise les popups pour générer le PDF."); return; }
+
+      const items = [...(a.incidents||[])].sort((x,y)=>{
+        const dx = Date.parse(x.date||"")||0;
+        const dy = Date.parse(y.date||"")||0;
+        return dy - dx;
+      });
+
+      const rows = items.map(i=>`
+        <tr>
+          <td><b>${escapeHtml(i.date||"")}</b></td>
+          <td>${escapeHtml(i.type||"")}</td>
+          <td>${escapeHtml(i.statut||"Ouvert")}</td>
+          <td>${escapeHtml(String(i.gravite||"3"))}/5</td>
+          <td style="white-space:pre-wrap;">${escapeHtml(i.desc||"")}${i.actions?`\n\nActions : ${escapeHtml(i.actions)}`:""}${i.note?`\n\nNote : ${escapeHtml(i.note)}`:""}</td>
+        </tr>
+      `).join("");
+
+      const html = `
+<!DOCTYPE html>
+<html lang="fr"><head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Incidents – ${(a.nom||"").toUpperCase()} ${(a.prenom||"")}</title>
+<style>
+  body{ font-family: Inter, Arial, sans-serif; margin:24px; color:#0f172a; }
+  h1{ margin:0 0 6px; font-size:20px; }
+  .sub{ color:#64748b; font-weight:700; margin-bottom:18px; }
+  table{ width:100%; border-collapse:collapse; }
+  th,td{ border:1px solid rgba(148,163,184,.55); padding:8px; vertical-align:top; font-size:12px; }
+  th{ background: rgba(2,6,23,.03); text-transform:uppercase; letter-spacing:.2px; font-size:11px; color:#64748b; }
+  @media print{ body{ margin:14mm; } }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <h1>Suivi incidents – ${(escapeHtml((a.nom||"").toUpperCase()+" "+(a.prenom||"")).trim())}</h1>
+  <div class="sub">Total : ${escapeHtml(String(items.length))} • Généré le : ${new Date().toLocaleString("fr-FR")}</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:90px;">Date</th>
+        <th style="width:120px;">Type</th>
+        <th style="width:90px;">Statut</th>
+        <th style="width:70px;">Gravité</th>
+        <th>Détails</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows || `<tr><td colspan="5" style="color:#64748b;">Aucun incident.</td></tr>`}
+    </tbody>
+  </table>
+
+  <script>window.print();<\/script>
+</body></html>`;
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    }
+
+    /***********************
+     * Reset
+     ***********************/
+    function resetAll(){
+      if(!confirm("⚠️ Réinitialiser ?\n\nCela efface TOUS les agents + incidents du navigateur.")) return;
+      DB = {agents:[], selectedId:null};
+      save();
+      renderAll();
+    }
+
+    /***********************
+     * Render all
+     ***********************/
+    function renderAll(){
+      renderAgents();
+      renderSelected();
+      updateCounts();
+    }
+
+    /***********************
+     * Events binding
+     ***********************/
+    function bind(){
+      // Tabs
+      document.querySelectorAll(".tab").forEach(t=>{
+        t.addEventListener("click", ()=> setTab(t.getAttribute("data-tab")));
+      });
+
+      // Sidebar controls
+      document.getElementById("searchAgent").addEventListener("input", renderAgents);
+      document.getElementById("filterStatut").addEventListener("change", renderAgents);
+      document.getElementById("sortAgents").addEventListener("change", renderAgents);
+
+      // New agent
+      document.getElementById("btnNewAgent").addEventListener("click", openAgentModal);
+      document.getElementById("btnCloseAgentModal").addEventListener("click", ()=> showModal("modalAgentBackdrop", false));
+      document.getElementById("btnCancelAgentModal").addEventListener("click", ()=> showModal("modalAgentBackdrop", false));
+      document.getElementById("btnCreateAgent").addEventListener("click", createAgent);
+
+      // Save/delete agent
+      document.getElementById("btnSaveAgent").addEventListener("click", saveSelectedAgent);
+      document.getElementById("btnDeleteAgent").addEventListener("click", deleteSelectedAgent);
+
+      // Update notes live (optional, but keep safe: only on blur)
+      document.getElementById("aNotes").addEventListener("blur", ()=>{
+        const a = getSelected();
+        if(!a) return;
+        a.notes = document.getElementById("aNotes").value;
+        a.updatedAt = nowISO();
+        save();
+        renderAgents();
+        document.getElementById("aUpdated").value = a.updatedAt || "";
+      });
+
+      // Incidents controls
+      document.getElementById("btnAddIncident").addEventListener("click", ()=> openIncidentModal(null));
+      document.getElementById("btnCloseIncidentModal").addEventListener("click", ()=> showModal("modalIncidentBackdrop", false));
+      document.getElementById("btnCancelIncidentModal").addEventListener("click", ()=> showModal("modalIncidentBackdrop", false));
+      document.getElementById("btnSaveIncident").addEventListener("click", saveIncidentFromModal);
+
+      document.getElementById("searchIncident").addEventListener("input", renderIncidents);
+      document.getElementById("filterIncidentStatut").addEventListener("change", renderIncidents);
+      document.getElementById("sortIncidents").addEventListener("change", renderIncidents);
+
+      // Import / export
+      document.getElementById("btnExport").addEventListener("click", exportJSON);
+      document.getElementById("btnImport").addEventListener("click", ()=> document.getElementById("fileImport").click());
+      document.getElementById("fileImport").addEventListener("change", (e)=>{
+        const file = e.target.files?.[0];
+        if(file) importJSONFromFile(file);
+        e.target.value = "";
+      });
+
+      // Reset
+      document.getElementById("btnReset").addEventListener("click", resetAll);
+
+      // PDFs
+      document.getElementById("btnPdfAgent").addEventListener("click", openPdfForAgent);
+      document.getElementById("btnPdfIncidents").addEventListener("click", openPdfForIncidents);
+
+      // Close modals on backdrop click
+      document.getElementById("modalAgentBackdrop").addEventListener("click", (e)=>{
+        if(e.target.id === "modalAgentBackdrop") showModal("modalAgentBackdrop", false);
+      });
+      document.getElementById("modalIncidentBackdrop").addEventListener("click", (e)=>{
+        if(e.target.id === "modalIncidentBackdrop") showModal("modalIncidentBackdrop", false);
+      });
+
+      // Keyboard: ESC closes modals
+      document.addEventListener("keydown", (e)=>{
+        if(e.key === "Escape"){
+          showModal("modalAgentBackdrop", false);
+          showModal("modalIncidentBackdrop", false);
+        }
+      });
+    }
+
+    /***********************
+     * Init
+     ***********************/
+    load();
+    bind();
+
+    // If empty, create 1 example agent (optional) -> keep it minimal: none.
+    // Select first agent if any
+    if(!DB.selectedId && DB.agents.length) DB.selectedId = DB.agents[0].id;
+
+    save();
+    renderAll();
+  </script>
+</body>
+</html>
