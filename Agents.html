@@ -467,16 +467,6 @@
       .row{ grid-template-columns: 1fr; }
       .brand{ min-width: 0; }
     }
-
-    /* Print */
-    @media print{
-      body{ background:#fff !important; overflow:visible; }
-      .topbar, .sidebar{ display:none !important; }
-      .content{ padding:0; max-width:none; }
-      .main{ box-shadow:none; border:none; border-radius:0; }
-      .scroll{ overflow:visible; }
-      .btn{ display:none !important; }
-    }
   </style>
 </head>
 
@@ -501,7 +491,7 @@
           <button class="btn primary" id="btnNewAgent" title="Créer un nouvel agent">＋ Nouvel agent</button>
           <button class="btn" id="btnExport" title="Exporter toutes les données">⬇️ Export JSON</button>
           <button class="btn" id="btnImport" title="Importer des données">⬆️ Import JSON</button>
-          <button class="btn warn" id="btnPrint" title="Imprimer / enregistrer en PDF via le navigateur">🖨️ Imprimer</button>
+          <button class="btn warn" id="btnPdf" title="Générer un PDF propre et organisé">📄 PDF</button>
           <button class="btn danger" id="btnReset" title="Effacer toutes les données locales">🗑️ Reset</button>
           <input type="file" id="fileImport" accept="application/json" style="display:none">
         </div>
@@ -543,7 +533,7 @@
         <div class="scroll" id="mainScroll">
           <div class="empty" id="emptyState">
             <b>Astuce :</b> clique sur <b>Nouvel agent</b> pour créer une fiche.<br>
-            Ensuite tu pourras ajouter des <b>incidents</b>, des <b>actions</b>, des <b>suivis</b> et des <b>pièces jointes</b>.
+            Ensuite tu pourras ajouter des <b>incidents</b>, des <b>actions</b> et des <b>suivis</b>.
           </div>
 
           <div id="editor" style="display:none;">
@@ -803,8 +793,7 @@
                       <label>Pièce jointe (photo/pdf) – optionnel</label>
                       <input id="i_file" type="file" accept="image/*,application/pdf">
                       <div class="hint">
-                        ⚠️ Stockage local : les pièces jointes sont enregistrées en base64 (ça peut vite “remplir” le navigateur).
-                        Pour les gros PDF, préfère les garder ailleurs et noter le nom/référence dans le texte.
+                        ⚠️ Les pièces jointes sont stockées dans le navigateur. Pour des gros fichiers, préfère noter une référence (nom du fichier) dans le texte.
                       </div>
                     </div>
                   </div>
@@ -857,6 +846,15 @@
       return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
+    function escapeHTML(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
     function save(){
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
       renderAll();
@@ -876,15 +874,6 @@
 
     function getSelected(){
       return state.data.agents.find(a => a.id === state.selectedId) || null;
-    }
-
-    function escapeHTML(s){
-      return String(s ?? "")
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
     }
 
     function agentDisplayName(a){
@@ -1025,6 +1014,7 @@
 
       $("btnDeleteAgent").disabled = !sel;
       $("btnDuplicate").disabled = !sel;
+      $("btnPdf").disabled = !sel;
 
       if(!sel){
         $("mainH1").textContent = "Sélectionne un agent";
@@ -1082,7 +1072,7 @@
       const incidents = (agent.behavior?.incidents || []).slice().sort((a,b)=>{
         const da = new Date(a.datetime || a.createdAt || 0).getTime();
         const db = new Date(b.datetime || b.createdAt || 0).getTime();
-        return db - da;
+        return db - da; // app: plus récent en haut
       });
 
       empty.style.display = incidents.length ? "none" : "block";
@@ -1464,6 +1454,407 @@
       renderMain();
     }
 
+    /* ========= PDF PROPRE (mise en page dédiée) ========= */
+    function getIncidentsChrono(agent){
+      return (agent.behavior?.incidents || []).slice().sort((a,b)=>{
+        const da = new Date(a.datetime || a.createdAt || 0).getTime();
+        const db = new Date(b.datetime || b.createdAt || 0).getTime();
+        return da - db; // PDF: du + ancien au + récent (suivi clair)
+      });
+    }
+
+    function safe(v){ return escapeHTML(v || ""); }
+    function vOrDash(v){ return (v && String(v).trim()) ? safe(v) : "—"; }
+
+    function buildPdfHTML(agent){
+      const name = agentDisplayName(agent);
+      const subtitle = agentSubtitle(agent);
+      const genDate = formatDT(new Date().toISOString());
+      const total = agentTotalIncidentsCount(agent);
+      const open = agentOpenIncidentsCount(agent);
+
+      const incidents = getIncidentsChrono(agent);
+
+      const rows = incidents.map((i, idx)=>{
+        const sev = i.severity || "faible";
+        const sevLabel = (sev==="haute")?"Haute":(sev==="moyenne"?"Moyenne":"Faible");
+        const sevClass = (sev==="haute")?"sev-high":(sev==="moyenne"?"sev-mid":"sev-low");
+        const status = (i.status || "ouvert");
+        const statusLabel = status==="clos" ? "Clos" : "Ouvert";
+        const statusClass = status==="clos" ? "st-closed" : "st-open";
+
+        const attachNames = (i.attachments || []).map(a => a?.name).filter(Boolean);
+        const attachTxt = attachNames.length ? attachNames.join(", ") : "—";
+
+        const facts = i.description ? i.description : "";
+        const actions = i.actions ? i.actions : "";
+        const follow = i.followUp ? i.followUp : "";
+        const witnesses = i.witnesses ? i.witnesses : "";
+
+        return `
+          <tr>
+            <td class="nowrap">${safe(formatDT(i.datetime || i.createdAt))}</td>
+            <td>${vOrDash(i.type)}</td>
+            <td>${vOrDash(i.place)}</td>
+            <td><span class="tag ${sevClass}">${sevLabel}</span></td>
+            <td><span class="tag ${statusClass}">${statusLabel}</span></td>
+            <td>
+              <div class="cell-block">
+                <div><b>Faits :</b> ${facts ? safe(facts).replace(/\n/g,"<br>") : "—"}</div>
+                <div class="sep"></div>
+                <div><b>Actions :</b> ${actions ? safe(actions).replace(/\n/g,"<br>") : "—"}</div>
+                <div class="sep"></div>
+                <div><b>Suivi :</b> ${follow ? safe(follow).replace(/\n/g,"<br>") : "—"}</div>
+                <div class="sep"></div>
+                <div><b>Témoins :</b> ${witnesses ? safe(witnesses) : "—"}</div>
+                <div class="sep"></div>
+                <div><b>Pièces jointes :</b> ${safe(attachTxt)}</div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      const notes = (agent.notes?.general || "").trim();
+      const skills = (agent.skills?.skillsText || "").trim();
+      const clear = (agent.skills?.clearancesText || "").trim();
+
+      const html = `
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF – ${safe(name)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --text:#0f172a;
+      --muted:#64748b;
+      --border: rgba(148,163,184,.45);
+      --brand:#16a34a;
+      --bg:#ffffff;
+      --soft:#f8fafc;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background: var(--bg);
+    }
+
+    /* Page */
+    @page { size: A4; margin: 14mm; }
+    .wrap{ padding: 0; }
+    .top{
+      display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+      padding: 12px 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: linear-gradient(180deg, #fff, var(--soft));
+    }
+    .brand{
+      display:flex; gap:10px; align-items:center;
+    }
+    .logo{
+      width:38px; height:38px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(34,197,94,.98), rgba(22,163,74,.78));
+    }
+    .ttl{
+      line-height:1.15;
+    }
+    .ttl .h{
+      font-weight:900; font-size: 16px; letter-spacing:.2px;
+    }
+    .ttl .s{
+      margin-top:4px; color:var(--muted); font-weight:700; font-size: 12px;
+    }
+    .meta{
+      text-align:right;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+      min-width: 220px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .card{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 10px;
+      background: #fff;
+    }
+    .card h3{
+      margin:0 0 8px 0;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing:.2px;
+    }
+    .kv{
+      display:grid;
+      grid-template-columns: 130px 1fr;
+      gap: 6px 10px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .k{ color: var(--muted); font-weight: 800; }
+    .v{ font-weight: 650; }
+
+    .summary{
+      display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      border: 1px solid var(--border);
+      background: rgba(2,6,23,.02);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space:nowrap;
+    }
+    .pill.brand{ border-color: rgba(22,163,74,.35); background: rgba(34,197,94,.12); }
+    .pill.open{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); }
+
+    .section{
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow:hidden;
+    }
+    .section .head{
+      background: rgba(2,6,23,.02);
+      padding: 10px 10px;
+      font-weight: 900;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section .body{ padding: 10px 10px; font-size: 12px; line-height: 1.45; }
+    .muted{ color: var(--muted); font-weight: 700; }
+
+    /* Table incidents */
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    th, td{
+      border-bottom: 1px solid rgba(148,163,184,.35);
+      padding: 8px 8px;
+      vertical-align: top;
+    }
+    th{
+      text-align:left;
+      background: rgba(2,6,23,.02);
+      font-weight: 900;
+      font-size: 11px;
+    }
+    .nowrap{ white-space:nowrap; }
+    .tag{
+      display:inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 900;
+      border: 1px solid rgba(148,163,184,.45);
+      background: rgba(2,6,23,.02);
+      white-space:nowrap;
+    }
+    .sev-low{ border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+    .sev-mid{ border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+    .sev-high{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); }
+    .st-open{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); }
+    .st-closed{ border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+
+    .cell-block{ line-height: 1.35; }
+    .sep{ height:6px; }
+
+    .footer{
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* Impression */
+    .printbar{
+      position: sticky;
+      top: 0;
+      background: #fff;
+      padding: 10px 0 8px;
+      margin-bottom: 8px;
+    }
+    .printbtn{
+      appearance:none;
+      border: 1px solid var(--border);
+      background: #fff;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 900;
+      cursor:pointer;
+    }
+    .printbtn:hover{ background: rgba(2,6,23,.02); }
+
+    @media print{
+      .printbar{ display:none !important; }
+      a{ color: inherit; text-decoration:none; }
+    }
+
+    /* Si trop serré sur un PDF : force le tableau à passer joliment */
+    tr{ page-break-inside: avoid; }
+    .section{ page-break-inside: avoid; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="printbar">
+      <button class="printbtn" onclick="window.print()">📄 Enregistrer en PDF</button>
+      <span class="muted" style="margin-left:10px;">(dans la fenêtre d’impression, choisis “Enregistrer en PDF”)</span>
+    </div>
+
+    <div class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="ttl">
+          <div class="h">KONTROL – Dossier Agent</div>
+          <div class="s"><b>${safe(name)}</b> • ${safe(subtitle || "—")}</div>
+        </div>
+      </div>
+      <div class="meta">
+        Généré le : <b>${safe(genDate)}</b><br>
+        Incidents : <b>${total}</b> • Ouverts : <b>${open}</b>
+      </div>
+    </div>
+
+    <div class="summary">
+      <span class="pill brand">✅ Agent : ${safe(name)}</span>
+      <span class="pill">📍 Site : ${safe(agent.job?.site || "—")}</span>
+      <span class="pill">🧑‍💼 Poste : ${safe(agent.job?.role || "—")}</span>
+      <span class="pill ${open>0 ? "open" : "brand"}">${open>0 ? "⚠️ Incidents ouverts : " + open : "✓ Aucun incident ouvert"}</span>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Identité</h3>
+        <div class="kv">
+          <div class="k">Nom</div><div class="v">${safe(agent.identity?.lastname || "—")}</div>
+          <div class="k">Prénom</div><div class="v">${safe(agent.identity?.firstname || "—")}</div>
+          <div class="k">Naissance</div><div class="v">${safe(agent.identity?.dob || "—")}</div>
+          <div class="k">Matricule</div><div class="v">${safe(agent.identity?.ref || "—")}</div>
+          <div class="k">Nationalité</div><div class="v">${safe(agent.identity?.nationality || "—")}</div>
+          <div class="k">Autorisation</div><div class="v">${safe(agent.identity?.authorization || "—")}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Poste & Affectation</h3>
+        <div class="kv">
+          <div class="k">Contrat</div><div class="v">${safe(agent.job?.contract || "—")}</div>
+          <div class="k">Temps</div><div class="v">${safe(agent.job?.hours || "—")}</div>
+          <div class="k">Référent</div><div class="v">${safe(agent.job?.manager || "—")}</div>
+          <div class="k">Entrée</div><div class="v">${safe(agent.job?.startDate || "—")}</div>
+          <div class="k">Site</div><div class="v">${safe(agent.job?.site || "—")}</div>
+          <div class="k">Poste</div><div class="v">${safe(agent.job?.role || "—")}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Coordonnées</h3>
+        <div class="kv">
+          <div class="k">Téléphone</div><div class="v">${safe(agent.contact?.phone || "—")}</div>
+          <div class="k">Email</div><div class="v">${safe(agent.contact?.email || "—")}</div>
+          <div class="k">Adresse</div><div class="v">${safe(agent.contact?.address || "—")}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Urgence</h3>
+        <div class="kv">
+          <div class="k">Nom</div><div class="v">${safe(agent.emergency?.name || "—")}</div>
+          <div class="k">Téléphone</div><div class="v">${safe(agent.emergency?.phone || "—")}</div>
+          <div class="k">Lien</div><div class="v">${safe(agent.emergency?.relation || "—")}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="head">Compétences & Habilitations</div>
+      <div class="body">
+        <div><b>Compétences :</b> ${skills ? safe(skills).replace(/\n/g,"<br>") : "<span class='muted'>—</span>"}</div>
+        <div style="height:8px;"></div>
+        <div><b>Accès / habilitations :</b> ${clear ? safe(clear).replace(/\n/g,"<br>") : "<span class='muted'>—</span>"}</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="head">Notes générales (suivi)</div>
+      <div class="body">
+        ${notes ? safe(notes).replace(/\n/g,"<br>") : "<span class='muted'>—</span>"}
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:10px;">
+      <div class="head">Incidents (chronologique)</div>
+      <div class="body" style="padding:0;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:110px;">Date</th>
+              <th style="width:140px;">Type</th>
+              <th style="width:120px;">Lieu</th>
+              <th style="width:80px;">Gravité</th>
+              <th style="width:70px;">Statut</th>
+              <th>Détails</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="6" class="muted" style="padding:12px;">Aucun incident enregistré.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">
+      Document généré depuis KONTROL (données locales). Pense à exporter régulièrement ton JSON.
+    </div>
+  </div>
+
+  <script>
+    // Auto ouvre la boîte d'impression après un petit délai (facilite le "PDF")
+    setTimeout(() => { try { window.print(); } catch(e){} }, 350);
+  </script>
+</body>
+</html>
+      `;
+      return html;
+    }
+
+    function generatePdf(){
+      const agent = getSelected();
+      if(!agent){
+        alert("Sélectionne un agent d’abord.");
+        return;
+      }
+      const win = window.open("", "_blank");
+      if(!win){
+        alert("Pop-up bloquée : autorise les pop-ups pour générer le PDF.");
+        return;
+      }
+      win.document.open();
+      win.document.write(buildPdfHTML(agent));
+      win.document.close();
+    }
+
+    /* ========= FIN PDF ========= */
+
     function bindEvents(){
       $("btnNewAgent").addEventListener("click", newAgent);
       $("btnDeleteAgent").addEventListener("click", deleteSelectedAgent);
@@ -1478,8 +1869,7 @@
       });
 
       $("btnReset").addEventListener("click", resetAll);
-
-      $("btnPrint").addEventListener("click", ()=> window.print());
+      $("btnPdf").addEventListener("click", generatePdf);
 
       $("searchAgent").addEventListener("input", (e)=>{
         state.filter = e.target.value || "";
