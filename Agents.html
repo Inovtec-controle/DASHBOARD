@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>KONTROL – Dossier Agent & Suivi</title>
+
+  <!-- iPhone friendly -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#16a34a">
+
+  <!-- Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --bg2:#0f172a;
+      --panel: rgba(255,255,255,.06);
+      --card: rgba(255,255,255,.08);
+      --card2: rgba(255,255,255,.10);
+      --border: rgba(255,255,255,.14);
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --brand:#16a34a;
+      --brand2:#22c55e;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --ok:#10b981;
+      --shadow: 0 14px 40px rgba(0,0,0,.45);
+      --r12:12px;
+      --r16:16px;
+      --r20:20px;
+      --focus: 0 0 0 3px rgba(34,197,94,.22);
+    }
+
+    *{ box-sizing:border-box; }
+    html, body { height:100%; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 18% -10%, rgba(34,197,94,.22), transparent 60%),
+        radial-gradient(900px 600px at 110% 10%, rgba(59,130,246,.12), transparent 55%),
+        radial-gradient(800px 600px at 60% 110%, rgba(239,68,68,.10), transparent 55%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow:hidden;
+    }
+
+    /* Layout */
+    .app{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:10;
+      padding: 14px 14px 12px;
+      background: linear-gradient(180deg, rgba(11,18,32,.92), rgba(11,18,32,.60));
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar-inner{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 220px;
+    }
+    .logo{
+      width:38px; height:38px;
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.26), transparent 52%),
+        linear-gradient(135deg, rgba(34,197,94,.95), rgba(22,163,74,.55));
+      box-shadow: 0 10px 24px rgba(22,163,74,.18);
+      border: 1px solid rgba(255,255,255,.16);
+      display:grid;
+      place-items:center;
+      flex: 0 0 auto;
+    }
+    .logo svg{ opacity:.95; }
+    .titles{ line-height: 1.05; }
+    .titles .t1{
+      font-weight:800;
+      letter-spacing:.4px;
+      font-size: 15px;
+    }
+    .titles .t2{
+      color:var(--muted);
+      font-weight:600;
+      font-size:12px;
+      margin-top:3px;
+    }
+
+    .actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-weight:700;
+      font-size: 13px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      cursor:pointer;
+      transition: transform .08s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+    .btn:hover{ background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.20); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(34,197,94,.95), rgba(22,163,74,.68));
+      border-color: rgba(255,255,255,.16);
+      box-shadow: 0 10px 24px rgba(22,163,74,.18);
+    }
+    .btn.danger{
+      background: rgba(239,68,68,.12);
+      border-color: rgba(239,68,68,.25);
+    }
+    .btn.warn{
+      background: rgba(245,158,11,.12);
+      border-color: rgba(245,158,11,.25);
+    }
+    .btn.small{
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight:800;
+    }
+    .btn:focus{ outline:none; box-shadow: var(--focus); }
+
+    .content{
+      height:100%;
+      display:flex;
+      gap: 12px;
+      padding: 12px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      overflow:hidden;
+    }
+
+    .sidebar{
+      width: 340px;
+      min-width: 280px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--r20);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .side-head{
+      padding: 12px 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    }
+
+    .search{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .input{
+      width:100%;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      font-weight:600;
+      font-size: 13px;
+    }
+    .input::placeholder{ color: rgba(148,163,184,.85); }
+    .input:focus{ outline:none; box-shadow: var(--focus); border-color: rgba(34,197,94,.35); }
+
+    .side-meta{
+      margin-top: 10px;
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .list{
+      padding: 10px;
+      overflow:auto;
+      flex: 1;
+    }
+
+    .agent-card{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 10px 10px;
+      margin-bottom: 10px;
+      cursor:pointer;
+      transition: background .12s ease, border-color .12s ease, transform .08s ease;
+    }
+    .agent-card:hover{ background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.18); }
+    .agent-card:active{ transform: translateY(1px); }
+    .agent-card.active{
+      border-color: rgba(34,197,94,.45);
+      background: rgba(34,197,94,.12);
+      box-shadow: 0 12px 26px rgba(34,197,94,.10);
+    }
+
+    .agent-line1{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .agent-name{
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing:.1px;
+    }
+    .badges{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .badge{
+      font-size: 11px;
+      font-weight: 900;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+    }
+    .badge.brand{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.12); }
+    .badge.warn{ border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.12); }
+    .badge.danger{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.12); }
+
+    .agent-sub{
+      margin-top: 6px;
+      display:flex;
+      gap: 8px;
+      flex-wrap:wrap;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .dot{ opacity:.65; }
+
+    .main{
+      flex:1;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--r20);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-width: 0;
+    }
+
+    .main-head{
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+
+    .main-title{
+      display:flex;
+      flex-direction:column;
+      gap: 4px;
+      min-width: 240px;
+    }
+    .main-title h1{
+      margin:0;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing:.2px;
+    }
+    .main-title p{
+      margin:0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.25;
+      max-width: 720px;
+    }
+
+    .main-tools{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      margin-left:auto;
+    }
+
+    .scroll{
+      padding: 12px;
+      overflow:auto;
+      flex:1;
+    }
+
+    /* Sections */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .panel{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      border-radius: 18px;
+      overflow:hidden;
+    }
+    details.panel > summary{
+      list-style:none;
+      cursor:pointer;
+      padding: 12px 12px;
+      font-weight: 900;
+      letter-spacing:.2px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      user-select:none;
+    }
+    details.panel > summary::-webkit-details-marker { display:none; }
+    .chev{ opacity:.7; font-weight: 900; }
+    details[open] .chev{ transform: rotate(180deg); }
+
+    .panel-body{
+      padding: 12px;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .row.one{ grid-template-columns: 1fr; }
+
+    .field label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 750;
+      margin: 0 0 6px 2px;
+    }
+    .field input, .field select, .field textarea{
+      width:100%;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      font-weight: 650;
+      font-size: 13px;
+      outline:none;
+      transition: box-shadow .12s ease, border-color .12s ease;
+    }
+    .field textarea{ min-height: 92px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus{
+      box-shadow: var(--focus);
+      border-color: rgba(34,197,94,.35);
+    }
+
+    .hint{
+      margin-top: 6px;
+      color: rgba(148,163,184,.9);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    .split{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-top: 8px;
+    }
+
+    .hr{
+      height:1px;
+      background: rgba(255,255,255,.10);
+      margin: 12px 0;
+    }
+
+    /* Incidents */
+    .incident-form{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      border-radius: 18px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .incident-list{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+
+    .incident{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      border-radius: 18px;
+      padding: 12px;
+    }
+    .incident-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+    }
+    .incident-title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .incident-title .line{
+      font-weight: 900;
+      letter-spacing:.2px;
+      font-size: 14px;
+    }
+    .incident-title .meta{
+      color: var(--muted);
+      font-weight: 650;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .pill{
+      font-size: 11px;
+      font-weight: 900;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .pill.ok{ border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.12); }
+    .pill.warn{ border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.12); }
+    .pill.danger{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.12); }
+
+    .incident-body{
+      margin-top: 10px;
+      color: rgba(229,231,235,.95);
+      font-size: 13px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+
+    .incident-actions{
+      margin-top: 10px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .attach{
+      margin-top: 10px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .attach a{
+      color: rgba(34,197,94,.95);
+      font-weight: 800;
+      text-decoration:none;
+    }
+    .attach a:hover{ text-decoration:underline; }
+
+    /* Empty state */
+    .empty{
+      border: 1px dashed rgba(255,255,255,.18);
+      background: rgba(255,255,255,.03);
+      border-radius: 18px;
+      padding: 16px;
+      color: var(--muted);
+      font-weight: 650;
+      line-height: 1.35;
+    }
+
+    /* Mobile */
+    @media (max-width: 980px){
+      body{ overflow:auto; }
+      .content{ flex-direction:column; height:auto; overflow:visible; }
+      .sidebar{ width:100%; min-width: 0; }
+      .main{ width:100%; }
+      .grid{ grid-template-columns: 1fr; }
+      .row{ grid-template-columns: 1fr; }
+      .topbar-inner{ align-items:flex-start; }
+      .brand{ min-width: 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2l8 4v6c0 5-3.2 9.4-8 10-4.8-.6-8-5-8-10V6l8-4Z" stroke="white" stroke-width="2" />
+              <path d="M8 12l2.4 2.4L16 8.8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="titles">
+            <div class="t1">KONTROL – Dossier Agent</div>
+            <div class="t2">Fiche + suivi comportement / incidents (local, offline)</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="btnNewAgent" title="Créer un nouvel agent">
+            <span>＋</span><span>Nouvel agent</span>
+          </button>
+          <button class="btn" id="btnExport" title="Exporter toutes les données">
+            ⬇️ Export JSON
+          </button>
+          <button class="btn" id="btnImport" title="Importer des données">
+            ⬆️ Import JSON
+          </button>
+          <button class="btn warn" id="btnPrint" title="Imprimer / enregistrer en PDF via le navigateur">
+            🖨️ Imprimer
+          </button>
+          <button class="btn danger" id="btnReset" title="Effacer toutes les données locales">
+            🗑️ Reset
+          </button>
+          <input type="file" id="fileImport" accept="application/json" style="display:none">
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="side-head">
+          <div class="search">
+            <input class="input" id="searchAgent" placeholder="Rechercher un agent (nom, site, poste…)">
+          </div>
+          <div class="side-meta">
+            <div id="metaCount">0 agent</div>
+            <div id="metaSelected">Aucun sélectionné</div>
+          </div>
+        </div>
+
+        <div class="list" id="agentList"></div>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <div class="main-head">
+          <div class="main-title">
+            <h1 id="mainH1">Sélectionne un agent</h1>
+            <p id="mainP">
+              Cette app enregistre les données <b>sur ton appareil</b> (localStorage). Pense à faire des exports JSON.
+              ⚠️ Si tu notes des éléments sensibles, fais-le de façon factuelle et conforme à ton cadre (RGPD / interne).
+            </p>
+          </div>
+
+          <div class="main-tools">
+            <button class="btn small" id="btnDuplicate" title="Dupliquer l’agent sélectionné" disabled>📄 Dupliquer</button>
+            <button class="btn small danger" id="btnDeleteAgent" title="Supprimer l’agent sélectionné" disabled>🗑️ Supprimer</button>
+          </div>
+        </div>
+
+        <div class="scroll" id="mainScroll">
+          <div class="empty" id="emptyState">
+            <b>Astuce :</b> clique sur <b>Nouvel agent</b> pour créer une fiche.  
+            Ensuite tu pourras ajouter des <b>incidents</b>, des <b>actions</b>, des <b>suivis</b> et des <b>pièces jointes</b>.
+          </div>
+
+          <div id="editor" style="display:none;">
+            <div class="grid">
+              <!-- Identity -->
+              <details class="panel" open>
+                <summary>
+                  <span>Identité</span>
+                  <span class="chev">⌄</span>
+                </summary>
+                <div class="panel-body">
+                  <div class="row">
+                    <div class="field">
+                      <label>Nom</label>
+                      <input id="a_lastname" placeholder="Ex: DUPONT">
+                    </div>
+                    <div class="field">
+                      <label>Prénom</label>
+                      <input id="a_firstname" placeholder="Ex: Sarah">
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="field">
+                      <label>Date de naissance</label>
+                      <input id="a_dob" type="date">
+                    </div>
+                    <div class="field">
+                      <label>Matricule / Référence interne</label>
+                      <input id="a_ref" placeholder="Ex: AG-0123">
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="field">
+                      <label>Nationalité (optionnel)</label>
+                      <input id="a_nat" placeholder="Optionnel">
+                    </div>
+                    <div class="field">
+                      <label>Pièce / Autorisation (optionnel)</label>
+                      <input id="a_auth" placeholder="Ex: badge, autorisation site…">
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Job -->
+              <details class="panel" open>
+                <summary>
+                  <span>Poste & Affectation</span>
+                  <span class="chev">⌄</span>
+                </summary>
+                <div class="panel-body">
+                  <div class="row">
+                    <div class="field">
+                      <label>Poste</label>
+                      <input id="a_role" placeholder="Ex: Agent d’entretien / Chef d’équipe…">
+                    </div>
+                    <div class="field">
+                      <label>Site / Chantier</label>
+                      <input id="a_site" placeholder="Ex: Résidence X / Bureau Y">
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="field">
+                      <label>Type de contrat</label>
+                      <select id="a_contract">
+                        <option value="">—</option>
+                        <option>CDI</option>
+                        <option>CDD</option>
+                        <option>Intérim</option>
+                        <option>Vacataire</option>
+                        <option>Apprentissage</option>
+                        <option>Autre</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Temps de travail</label>
+                      <input id="a_hours" placeholder="Ex: 30h/semaine, 7h-12h…">
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="field">
+                      <label>Référent / Manager</label>
+                      <input id="a_manager" placeholder="Ex: Nom du chef d’équipe / responsable">
+                    </div>
+                    <div class="field">
+                      <label>Date d’entrée (optionnel)</label>
+                      <input id="a_start" type="date">
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Contact -->
+              <details class="panel">
+                <summary>
+                  <span>Coordonnées</span>
+                  <span class="chev">⌄</span>
+                </summary>
+                <div class="panel-body">
+                  <div class="row">
+                    <div class="field">
+                      <label>Téléphone</label>
+                      <input id="a_phone" inputmode="tel" placeholder="Ex: 06…">
+                    </div>
+                    <div class="field">
+                      <label>Email</label>
+                      <input id="a_email" inputmode="email" placeholder="Ex: nom@domaine.fr">
+                    </div>
+                  </div>
+                  <div class="row one">
+                    <div class="field">
+                      <label>Adresse</label>
+                      <input id="a_address" placeholder="Ex: 12 rue …, 31000 Toulouse">
+                    </div>
+                  </div>
+
+                  <div class="hr"></div>
+
+                  <div class="row">
+                    <div class="field">
+                      <label>Contact d’urgence – Nom</label>
+                      <input id="a_em_name" placeholder="Ex: Parent / conjoint…">
+                    </div>
+                    <div class="field">
+                      <label>Contact d’urgence – Téléphone</label>
+                      <input id="a_em_phone" inputmode="tel" placeholder="Ex: 06…">
+                    </div>
+                  </div>
+                  <div class="row one">
+                    <div class="field">
+                      <label>Contact d’urgence – Lien</label>
+                      <input id="a_em_link" placeholder="Ex: mère, frère, conjoint…">
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Skills -->
+              <details class="panel">
+                <summary>
+                  <span>Compétences & Autorisations</span>
+                  <span class="chev">⌄</span>
+                </summary>
+                <div class="panel-body">
+                  <div class="row">
+                    <div class="field">
+                      <label>Compétences clés</label>
+                      <textarea id="a_skills" placeholder="Ex: vitrerie, autolaveuse, bio-nettoyage, remise en état…"></textarea>
+                      <div class="hint">Astuce : une compétence par ligne.</div>
+                    </div>
+                    <div class="field">
+                      <label>Matériel / accès / habilitations</label>
+                      <textarea id="a_clearances" placeholder="Ex: clefs, badge, alarme, accès local technique, EPI…"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- General notes -->
+              <details class="panel" open>
+                <summary>
+                  <span>Notes générales (suivi agent)</span>
+                  <span class="chev">⌄</span>
+                </summary>
+                <div class="panel-body">
+                  <div class="row one">
+                    <div class="field">
+                      <label>Notes</label>
+                      <textarea id="a_notes" placeholder="Tout ce qui peut être utile : organisation, points forts, points de vigilance, remarques clients…"></textarea>
+                      <div class="hint">Conseil : reste factuel (quoi, quand, où, avec preuves si besoin).</div>
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <div class="hr"></div>
+
+            <!-- Behavior / Incidents -->
+            <details class="panel" open>
+              <summary>
+                <span>Suivi comportement / incidents</span>
+                <span class="chev">⌄</span>
+              </summary>
+              <div class="panel-body">
+                <div class="incident-form">
+                  <div class="row">
+                    <div class="field">
+                      <label>Date & heure</label>
+                      <input id="i_datetime" type="datetime-local">
+                    </div>
+                    <div class="field">
+                      <label>Type</label>
+                      <select id="i_type">
+                        <option value="">—</option>
+                        <option>Retard / absence</option>
+                        <option>Non-respect consignes</option>
+                        <option>Qualité insuffisante</option>
+                        <option>Attitude / comportement</option>
+                        <option>Conflit / altercation</option>
+                        <option>Manquement sécurité</option>
+                        <option>Matériel / dégradation</option>
+                        <option>Autre</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="field">
+                      <label>Lieu / site concerné</label>
+                      <input id="i_place" placeholder="Ex: Résidence X, cage B, local poubelle…">
+                    </div>
+                    <div class="field">
+                      <label>Gravité</label>
+                      <select id="i_sev">
+                        <option value="faible">Faible</option>
+                        <option value="moyenne">Moyenne</option>
+                        <option value="haute">Haute</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="row one">
+                    <div class="field">
+                      <label>Faits (description précise)</label>
+                      <textarea id="i_desc" placeholder="Décrire les faits de façon objective : quoi, quand, où, éléments constatés…"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="field">
+                      <label>Témoins (optionnel)</label>
+                      <input id="i_wit" placeholder="Ex: Nom, fonction…">
+                    </div>
+                    <div class="field">
+                      <label>Statut</label>
+                      <select id="i_status">
+                        <option value="ouvert">Ouvert</option>
+                        <option value="clos">Clos</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="field">
+                      <label>Actions immédiates (optionnel)</label>
+                      <textarea id="i_actions" placeholder="Ex: rappel consignes, reprise, photo, message…"></textarea>
+                    </div>
+                    <div class="field">
+                      <label>Suivi / décision (optionnel)</label>
+                      <textarea id="i_follow" placeholder="Ex: entretien prévu, avertissement, formation, changement planning…"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="row one">
+                    <div class="field">
+                      <label>Pièce jointe (photo/pdf) – optionnel</label>
+                      <input id="i_file" type="file" accept="image/*,application/pdf">
+                      <div class="hint">
+                        ⚠️ Stockage local : les pièces jointes sont enregistrées en base64 (ça peut vite “remplir” le navigateur).
+                        Pour les gros PDF, préfère les garder ailleurs et noter le nom/référence dans le texte.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="split">
+                    <div class="hint" id="editHint" style="margin:0;"></div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                      <button class="btn small" id="btnClearIncident" type="button">↺ Effacer</button>
+                      <button class="btn small primary" id="btnSaveIncident" type="button">✓ Enregistrer l’incident</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="incident-list" id="incidentList"></div>
+                <div class="empty" id="incidentEmpty" style="display:none;">
+                  Aucun incident enregistré pour cet agent.
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    /***************
+     * KONTROL – Dossier Agent & Suivi (localStorage)
+     ***************/
+    const STORAGE_KEY = "KONTROL_AGENT_DOSSIERS_V1";
+
+    const $ = (id) => document.getElementById(id);
+
+    const state = {
+      data: { agents: [] },
+      selectedId: null,
+      incidentEditingId: null,
+      filter: ""
+    };
+
+    function uid(prefix="id"){
+      return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+    }
+
+    function nowISO(){
+      return new Date().toISOString();
+    }
+
+    function formatDT(isoOrLocal){
+      if(!isoOrLocal) return "—";
+      // Accept datetime-local string (YYYY-MM-DDTHH:mm) OR ISO
+      const d = new Date(isoOrLocal);
+      if (isNaN(d.getTime())) return isoOrLocal;
+      const pad = (n)=>String(n).padStart(2,"0");
+      return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function save(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+      renderAll();
+    }
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){
+          const parsed = JSON.parse(raw);
+          if(parsed && Array.isArray(parsed.agents)) state.data = parsed;
+        }
+      }catch(e){
+        console.warn("Erreur chargement:", e);
+      }
+    }
+
+    function getSelected(){
+      return state.data.agents.find(a => a.id === state.selectedId) || null;
+    }
+
+    function agentDisplayName(a){
+      const ln = (a.identity?.lastname || "").trim();
+      const fn = (a.identity?.firstname || "").trim();
+      const full = `${ln} ${fn}`.trim();
+      return full || "Agent sans nom";
+    }
+
+    function agentSubtitle(a){
+      const role = (a.job?.role || "").trim();
+      const site = (a.job?.site || "").trim();
+      const parts = [];
+      if(role) parts.push(role);
+      if(site) parts.push(site);
+      return parts.join(" • ") || "—";
+    }
+
+    function severityPill(sev){
+      if(sev === "haute") return { cls:"danger", label:"Haute" };
+      if(sev === "moyenne") return { cls:"warn", label:"Moyenne" };
+      return { cls:"ok", label:"Faible" };
+    }
+
+    function agentOpenIncidentsCount(a){
+      const incidents = a.behavior?.incidents || [];
+      return incidents.filter(i => (i.status || "ouvert") === "ouvert").length;
+    }
+
+    function agentTotalIncidentsCount(a){
+      return (a.behavior?.incidents || []).length;
+    }
+
+    function sortAgents(list){
+      // sort by lastname, firstname, then updatedAt desc
+      return [...list].sort((x,y)=>{
+        const xl = (x.identity?.lastname || "").toLowerCase();
+        const yl = (y.identity?.lastname || "").toLowerCase();
+        if(xl < yl) return -1;
+        if(xl > yl) return 1;
+        const xf = (x.identity?.firstname || "").toLowerCase();
+        const yf = (y.identity?.firstname || "").toLowerCase();
+        if(xf < yf) return -1;
+        if(xf > yf) return 1;
+        const xu = x.updatedAt || "";
+        const yu = y.updatedAt || "";
+        return yu.localeCompare(xu);
+      });
+    }
+
+    function filterAgents(list, q){
+      const s = (q || "").trim().toLowerCase();
+      if(!s) return list;
+      return list.filter(a=>{
+        const hay = [
+          agentDisplayName(a),
+          agentSubtitle(a),
+          a.identity?.ref || "",
+          a.contact?.phone || "",
+          a.contact?.email || ""
+        ].join(" ").toLowerCase();
+        return hay.includes(s);
+      });
+    }
+
+    function renderSidebar(){
+      const listEl = $("agentList");
+      listEl.innerHTML = "";
+
+      const filtered = filterAgents(state.data.agents, state.filter);
+      const sorted = sortAgents(filtered);
+
+      $("metaCount").textContent = `${sorted.length} agent${sorted.length>1?"s":""}`;
+      $("metaSelected").textContent = state.selectedId ? "Sélectionné" : "Aucun sélectionné";
+
+      if(sorted.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.innerHTML = `<b>Aucun agent</b><br>Crée une fiche avec <b>Nouvel agent</b> ou importe un JSON.`;
+        listEl.appendChild(empty);
+        return;
+      }
+
+      sorted.forEach(a=>{
+        const card = document.createElement("div");
+        card.className = "agent-card" + (a.id === state.selectedId ? " active" : "");
+        card.addEventListener("click", ()=>{
+          state.selectedId = a.id;
+          state.incidentEditingId = null;
+          renderAll();
+        });
+
+        const openCount = agentOpenIncidentsCount(a);
+        const totalCount = agentTotalIncidentsCount(a);
+
+        card.innerHTML = `
+          <div class="agent-line1">
+            <div class="agent-name">${escapeHTML(agentDisplayName(a))}</div>
+            <div class="badges">
+              ${openCount>0 ? `<span class="badge danger">⚠️ ${openCount} ouvert${openCount>1?"s":""}</span>` : `<span class="badge brand">✓ OK</span>`}
+              ${totalCount>0 ? `<span class="badge">${totalCount} total</span>` : ``}
+            </div>
+          </div>
+          <div class="agent-sub">
+            <span>${escapeHTML(agentSubtitle(a))}</span>
+            <span class="dot">•</span>
+            <span>Maj: ${escapeHTML(formatDT(a.updatedAt || a.createdAt || ""))}</span>
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+    }
+
+    function renderMain(){
+      const sel = getSelected();
+      const editor = $("editor");
+      const empty = $("emptyState");
+
+      $("btnDeleteAgent").disabled = !sel;
+      $("btnDuplicate").disabled = !sel;
+
+      if(!sel){
+        $("mainH1").textContent = "Sélectionne un agent";
+        empty.style.display = "block";
+        editor.style.display = "none";
+        return;
+      }
+
+      empty.style.display = "none";
+      editor.style.display = "block";
+
+      $("mainH1").textContent = agentDisplayName(sel);
+      $("mainP").innerHTML = `
+        <b>Poste :</b> ${escapeHTML(sel.job?.role || "—")} &nbsp;•&nbsp;
+        <b>Site :</b> ${escapeHTML(sel.job?.site || "—")} &nbsp;•&nbsp;
+        <b>Incidents :</b> ${agentTotalIncidentsCount(sel)} (dont ${agentOpenIncidentsCount(sel)} ouverts)
+      `;
+
+      // Fill fields
+      setVal("a_lastname", sel.identity?.lastname);
+      setVal("a_firstname", sel.identity?.firstname);
+      setVal("a_dob", sel.identity?.dob);
+      setVal("a_ref", sel.identity?.ref);
+      setVal("a_nat", sel.identity?.nationality);
+      setVal("a_auth", sel.identity?.authorization);
+
+      setVal("a_role", sel.job?.role);
+      setVal("a_site", sel.job?.site);
+      setVal("a_contract", sel.job?.contract);
+      setVal("a_hours", sel.job?.hours);
+      setVal("a_manager", sel.job?.manager);
+      setVal("a_start", sel.job?.startDate);
+
+      setVal("a_phone", sel.contact?.phone);
+      setVal("a_email", sel.contact?.email);
+      setVal("a_address", sel.contact?.address);
+      setVal("a_em_name", sel.emergency?.name);
+      setVal("a_em_phone", sel.emergency?.phone);
+      setVal("a_em_link", sel.emergency?.relation);
+
+      setVal("a_skills", sel.skills?.skillsText);
+      setVal("a_clearances", sel.skills?.clearancesText);
+      setVal("a_notes", sel.notes?.general);
+
+      renderIncidents(sel);
+    }
+
+    function renderIncidents(agent){
+      const list = $("incidentList");
+      const empty = $("incidentEmpty");
+      list.innerHTML = "";
+
+      const incidents = (agent.behavior?.incidents || []).slice().sort((a,b)=>{
+        const da = new Date(a.datetime || a.createdAt || 0).getTime();
+        const db = new Date(b.datetime || b.createdAt || 0).getTime();
+        return db - da; // newest first
+      });
+
+      empty.style.display = incidents.length ? "none" : "block";
+
+      incidents.forEach(i=>{
+        const pill = severityPill(i.severity || "faible");
+        const status = (i.status || "ouvert");
+        const statusPill = status === "clos"
+          ? `<span class="pill ok">✓ Clos</span>`
+          : `<span class="pill danger">⚠️ Ouvert</span>`;
+
+        const attachLinks = (i.attachments || []).map((f, idx)=>{
+          const safeName = escapeHTML(f.name || `fichier_${idx+1}`);
+          if(f.dataUrl){
+            return `<div>📎 <a href="${f.dataUrl}" download="${safeName}">${safeName}</a> <span style="opacity:.7;">(${escapeHTML(f.type||"")})</span></div>`;
+          }
+          return `<div>📎 ${safeName}</div>`;
+        }).join("");
+
+        const headType = i.type ? `${i.type}` : "Incident";
+        const headPlace = i.place ? `• ${i.place}` : "";
+        const meta = `${formatDT(i.datetime)} ${headPlace}`.trim();
+
+        const bodyParts = [];
+        if(i.description) bodyParts.push("🧾 Faits :\n" + i.description);
+        if(i.witnesses) bodyParts.push("👥 Témoins : " + i.witnesses);
+        if(i.actions) bodyParts.push("⚡ Actions immédiates :\n" + i.actions);
+        if(i.followUp) bodyParts.push("📌 Suivi / décision :\n" + i.followUp);
+
+        const bodyText = bodyParts.join("\n\n");
+
+        const card = document.createElement("div");
+        card.className = "incident";
+        card.innerHTML = `
+          <div class="incident-top">
+            <div class="incident-title">
+              <div class="line">${escapeHTML(headType)}</div>
+              <div class="meta">${escapeHTML(meta || "—")}</div>
+            </div>
+            <div class="badges">
+              ${statusPill}
+              <span class="pill ${pill.cls}">⚙️ Gravité: ${pill.label}</span>
+            </div>
+          </div>
+
+          <div class="incident-body">${escapeHTML(bodyText || "—").replace(/\n/g, "<br>")}</div>
+
+          ${attachLinks ? `<div class="attach">${attachLinks}</div>` : ""}
+
+          <div class="incident-actions">
+            <button class="btn small" type="button" data-action="edit" data-id="${i.id}">✏️ Modifier</button>
+            ${status === "ouvert"
+              ? `<button class="btn small" type="button" data-action="close" data-id="${i.id}">✓ Clôturer</button>`
+              : `<button class="btn small warn" type="button" data-action="reopen" data-id="${i.id}">↩️ Réouvrir</button>`
+            }
+            <button class="btn small danger" type="button" data-action="delete" data-id="${i.id}">🗑️ Supprimer</button>
+          </div>
+        `;
+
+        card.querySelectorAll("button[data-action]").forEach(btn=>{
+          btn.addEventListener("click", ()=> handleIncidentAction(btn.dataset.action, btn.dataset.id));
+        });
+
+        list.appendChild(card);
+      });
+    }
+
+    function handleIncidentAction(action, id){
+      const agent = getSelected();
+      if(!agent) return;
+      const incidents = agent.behavior?.incidents || [];
+      const idx = incidents.findIndex(x => x.id === id);
+      if(idx < 0) return;
+
+      if(action === "edit"){
+        const i = incidents[idx];
+        state.incidentEditingId = i.id;
+        setVal("i_datetime", toDatetimeLocal(i.datetime));
+        setVal("i_type", i.type);
+        setVal("i_place", i.place);
+        setVal("i_sev", i.severity || "faible");
+        setVal("i_desc", i.description);
+        setVal("i_wit", i.witnesses);
+        setVal("i_status", i.status || "ouvert");
+        setVal("i_actions", i.actions);
+        setVal("i_follow", i.followUp);
+        $("i_file").value = "";
+        $("editHint").textContent = "Mode édition : tu modifies un incident existant.";
+        // scroll to form
+        $("mainScroll").scrollTo({ top: $("mainScroll").scrollTop + 1, behavior: "smooth" });
+        return;
+      }
+
+      if(action === "close"){
+        incidents[idx].status = "clos";
+        incidents[idx].updatedAt = nowISO();
+        agent.updatedAt = nowISO();
+        save();
+        return;
+      }
+
+      if(action === "reopen"){
+        incidents[idx].status = "ouvert";
+        incidents[idx].updatedAt = nowISO();
+        agent.updatedAt = nowISO();
+        save();
+        return;
+      }
+
+      if(action === "delete"){
+        if(!confirm("Supprimer cet incident ?")) return;
+        incidents.splice(idx,1);
+        agent.updatedAt = nowISO();
+        save();
+        return;
+      }
+    }
+
+    function clearIncidentForm(){
+      state.incidentEditingId = null;
+      setVal("i_datetime", "");
+      setVal("i_type", "");
+      setVal("i_place", "");
+      setVal("i_sev", "faible");
+      setVal("i_desc", "");
+      setVal("i_wit", "");
+      setVal("i_status", "ouvert");
+      setVal("i_actions", "");
+      setVal("i_follow", "");
+      $("i_file").value = "";
+      $("editHint").textContent = "";
+    }
+
+    function toDatetimeLocal(val){
+      if(!val) return "";
+      // if already datetime-local string
+      if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(val)) return val;
+      const d = new Date(val);
+      if(isNaN(d.getTime())) return "";
+      const pad = n => String(n).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function setVal(id, v){
+      const el = $(id);
+      if(!el) return;
+      el.value = v ?? "";
+    }
+
+    function readVal(id){
+      const el = $(id);
+      return el ? el.value : "";
+    }
+
+    function escapeHTML(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function ensureAgentShape(a){
+      a.identity ||= {};
+      a.job ||= {};
+      a.contact ||= {};
+      a.emergency ||= {};
+      a.skills ||= {};
+      a.notes ||= {};
+      a.behavior ||= {};
+      a.behavior.incidents ||= [];
+      return a;
+    }
+
+    function bindFieldAutoSave(){
+      const ids = [
+        "a_lastname","a_firstname","a_dob","a_ref","a_nat","a_auth",
+        "a_role","a_site","a_contract","a_hours","a_manager","a_start",
+        "a_phone","a_email","a_address","a_em_name","a_em_phone","a_em_link",
+        "a_skills","a_clearances","a_notes"
+      ];
+
+      ids.forEach(id=>{
+        const el = $(id);
+        el.addEventListener("input", ()=>{
+          const agent = getSelected();
+          if(!agent) return;
+          ensureAgentShape(agent);
+
+          agent.identity.lastname = readVal("a_lastname").trim();
+          agent.identity.firstname = readVal("a_firstname").trim();
+          agent.identity.dob = readVal("a_dob");
+          agent.identity.ref = readVal("a_ref").trim();
+          agent.identity.nationality = readVal("a_nat").trim();
+          agent.identity.authorization = readVal("a_auth").trim();
+
+          agent.job.role = readVal("a_role").trim();
+          agent.job.site = readVal("a_site").trim();
+          agent.job.contract = readVal("a_contract");
+          agent.job.hours = readVal("a_hours").trim();
+          agent.job.manager = readVal("a_manager").trim();
+          agent.job.startDate = readVal("a_start");
+
+          agent.contact.phone = readVal("a_phone").trim();
+          agent.contact.email = readVal("a_email").trim();
+          agent.contact.address = readVal("a_address").trim();
+
+          agent.emergency.name = readVal("a_em_name").trim();
+          agent.emergency.phone = readVal("a_em_phone").trim();
+          agent.emergency.relation = readVal("a_em_link").trim();
+
+          agent.skills.skillsText = readVal("a_skills");
+          agent.skills.clearancesText = readVal("a_clearances");
+
+          agent.notes.general = readVal("a_notes");
+
+          agent.updatedAt = nowISO();
+
+          // Save without re-rendering too aggressively: debounce
+          debounceSave();
+        });
+      });
+    }
+
+    let saveTimer = null;
+    function debounceSave(){
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(()=>{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+        renderSidebar(); // keep left list live
+        renderMain();    // keep header live
+      }, 250);
+    }
+
+    async function fileToDataUrl(file){
+      return new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function onSaveIncident(){
+      const agent = getSelected();
+      if(!agent) return;
+      ensureAgentShape(agent);
+
+      const dt = readVal("i_datetime");
+      const type = readVal("i_type").trim();
+      const place = readVal("i_place").trim();
+      const sev = readVal("i_sev");
+      const desc = readVal("i_desc").trim();
+      const wit = readVal("i_wit").trim();
+      const status = readVal("i_status");
+      const actions = readVal("i_actions").trim();
+      const follow = readVal("i_follow").trim();
+
+      if(!dt && !type && !desc){
+        alert("Ajoute au minimum une date, un type ou une description.");
+        return;
+      }
+
+      const fileInput = $("i_file");
+      let attachment = null;
+
+      if(fileInput.files && fileInput.files[0]){
+        const f = fileInput.files[0];
+        try{
+          const dataUrl = await fileToDataUrl(f);
+          attachment = { name: f.name, type: f.type, dataUrl };
+        }catch(e){
+          console.warn(e);
+          alert("Impossible de lire la pièce jointe.");
+        }
+      }
+
+      const incidents = agent.behavior.incidents;
+
+      if(state.incidentEditingId){
+        const idx = incidents.findIndex(x => x.id === state.incidentEditingId);
+        if(idx >= 0){
+          const old = incidents[idx];
+          old.datetime = dt;
+          old.type = type;
+          old.place = place;
+          old.severity = sev;
+          old.description = desc;
+          old.witnesses = wit;
+          old.status = status;
+          old.actions = actions;
+          old.followUp = follow;
+          old.updatedAt = nowISO();
+          if(attachment){
+            old.attachments ||= [];
+            old.attachments.push(attachment);
+          }
+        }
+      }else{
+        const item = {
+          id: uid("inc"),
+          createdAt: nowISO(),
+          updatedAt: nowISO(),
+          datetime: dt,
+          type, place,
+          severity: sev,
+          description: desc,
+          witnesses: wit,
+          status,
+          actions,
+          followUp: follow,
+          attachments: attachment ? [attachment] : []
+        };
+        incidents.push(item);
+      }
+
+      agent.updatedAt = nowISO();
+      clearIncidentForm();
+      save();
+    }
+
+    function newAgent(){
+      const a = ensureAgentShape({
+        id: uid("agent"),
+        createdAt: nowISO(),
+        updatedAt: nowISO(),
+        identity: { lastname:"", firstname:"", dob:"", ref:"", nationality:"", authorization:"" },
+        job: { role:"", site:"", contract:"", hours:"", manager:"", startDate:"" },
+        contact: { phone:"", email:"", address:"" },
+        emergency: { name:"", phone:"", relation:"" },
+        skills: { skillsText:"", clearancesText:"" },
+        notes: { general:"" },
+        behavior: { incidents: [] }
+      });
+      state.data.agents.push(a);
+      state.selectedId = a.id;
+      state.incidentEditingId = null;
+      save();
+      // focus
+      setTimeout(()=> $("a_lastname").focus(), 50);
+    }
+
+    function deleteSelectedAgent(){
+      const sel = getSelected();
+      if(!sel) return;
+      if(!confirm(`Supprimer l’agent "${agentDisplayName(sel)}" ? (irréversible)`)) return;
+      state.data.agents = state.data.agents.filter(a => a.id !== sel.id);
+      state.selectedId = null;
+      state.incidentEditingId = null;
+      save();
+    }
+
+    function duplicateSelectedAgent(){
+      const sel = getSelected();
+      if(!sel) return;
+      const copy = JSON.parse(JSON.stringify(sel));
+      copy.id = uid("agent");
+      copy.createdAt = nowISO();
+      copy.updatedAt = nowISO();
+      // duplicate incidents with new ids
+      copy.behavior ||= { incidents: [] };
+      copy.behavior.incidents = (copy.behavior.incidents || []).map(i => ({
+        ...i,
+        id: uid("inc"),
+        createdAt: i.createdAt || nowISO(),
+        updatedAt: nowISO()
+      }));
+      state.data.agents.push(copy);
+      state.selectedId = copy.id;
+      state.incidentEditingId = null;
+      save();
+    }
+
+    function exportJSON(){
+      const blob = new Blob([JSON.stringify(state.data, null, 2)], { type:"application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "kontrol_dossiers_agents.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importJSONFile(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const parsed = JSON.parse(reader.result);
+          if(!parsed || !Array.isArray(parsed.agents)) throw new Error("Format invalide");
+          // minimal validation/shape
+          parsed.agents.forEach(ensureAgentShape);
+          state.data = parsed;
+          state.selectedId = state.data.agents[0]?.id || null;
+          state.incidentEditingId = null;
+          save();
+        }catch(e){
+          alert("Fichier JSON invalide.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetAll(){
+      if(!confirm("Tout effacer (données locales) ?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      state.data = { agents: [] };
+      state.selectedId = null;
+      state.incidentEditingId = null;
+      state.filter = "";
+      $("searchAgent").value = "";
+      renderAll();
+    }
+
+    function renderAll(){
+      renderSidebar();
+      renderMain();
+    }
+
+    /* Events */
+    function bindEvents(){
+      $("btnNewAgent").addEventListener("click", newAgent);
+      $("btnDeleteAgent").addEventListener("click", deleteSelectedAgent);
+      $("btnDuplicate").addEventListener("click", duplicateSelectedAgent);
+
+      $("btnExport").addEventListener("click", exportJSON);
+      $("btnImport").addEventListener("click", ()=> $("fileImport").click());
+      $("fileImport").addEventListener("change", (e)=>{
+        const f = e.target.files && e.target.files[0];
+        if(f) importJSONFile(f);
+        e.target.value = "";
+      });
+
+      $("btnReset").addEventListener("click", resetAll);
+
+      $("btnPrint").addEventListener("click", ()=>{
+        // Petit conseil: sur mobile, "Partager > Imprimer" peut enregistrer en PDF
+        window.print();
+      });
+
+      $("searchAgent").addEventListener("input", (e)=>{
+        state.filter = e.target.value || "";
+        renderSidebar();
+      });
+
+      $("btnClearIncident").addEventListener("click", clearIncidentForm);
+      $("btnSaveIncident").addEventListener("click", onSaveIncident);
+
+      // Auto-fill incident date to now if empty on focus
+      $("i_datetime").addEventListener("focus", ()=>{
+        if(!$("i_datetime").value){
+          const d = new Date();
+          const pad = n => String(n).padStart(2,"0");
+          $("i_datetime").value =
+            `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+      });
+    }
+
+    /* Init */
+    load();
+    bindEvents();
+    bindFieldAutoSave();
+
+    // auto-select first agent if exists
+    if(state.data.agents.length && !state.selectedId){
+      state.selectedId = state.data.agents[0].id;
+    }
+    renderAll();
+  </script>
+</body>
+</html>
