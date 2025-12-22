@@ -2830,3 +2830,534 @@
   </script>
 </body>
 </html>
+<script>
+    // Données initiales injectées depuis l'Excel
+    const CHANTIERS = [
+  {
+    "Nom de la résidence": "69 Strasbourg ",
+    "N° De Clef": "37",
+    "Adresse": "69 boulevard Strasbourg 31000 Toulouse ",
+    "Contact": "Mme Muller Marion ",
+    "Téléphone": "0562268394",
+    "Mails": "Chrystelle.corazza@foncia.fr",
+    "Syndic": "FONCIA ",
+    "Intervention": "Toulouse métropole ",
+    "Agents": "Meriem \nMr Koita",
+    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+    "Jour de passage /Tache": "Mercredi 1:00 complet",
+    "Code / clef": "Badge",
+    "Sortie om": "",
+    "Sortie tri": "",
+    "Frange": "",
+    "Note chantier": "",
+    "type  ampoules néons": "E27 4000K",
+    "sac poubelle": "NON"
+  },
+  {
+    "Nom de la résidence": "Améthyste ",
+    "N° De Clef": "43",
+    "Adresse": "2 bis impasse du pradelet 31650",
+    "Contact": "Jonathan NGINAMAU ",
+    "Téléphone": "06 22 67 80 66 ",
+    "Mails": "jonathan.nginamau@foncia.com",
+    "Syndic": "Foncia",
+    "Intervention": "Évacuation entreprise ",
+    "Agents": "Mme Ginka ",
+    "Numéro Agents": "06 41 45 62 62",
+    "Jour de passage /Tache": "Lundi 2:30 complet 4 bâtiment                                                             Jeudi"
+  }
+  // ⚠️ (le reste de ton tableau Excel est inchangé dans ton fichier initial)
+];
+
+    // Si des données existantes ont été enregistrées en localStorage, on les recharge
+    try {
+      const stored = localStorage.getItem("chantiersData_editable");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length) {
+          CHANTIERS.splice(0, CHANTIERS.length, ...parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("Erreur en lisant le localStorage :", e);
+    }
+
+    const searchInput = document.getElementById("searchInput");
+    const syndicFilter = document.getElementById("syndicFilter");
+    const triSelect = document.getElementById("triSelect");
+    const listEl = document.getElementById("chantiersList");
+    const countVisibleEl = document.getElementById("countVisible");
+    const countTotalEl = document.getElementById("countTotal");
+
+    const detailEmpty = document.getElementById("detailEmpty");
+    const detailContent = document.getElementById("detailContent");
+
+    const detailResidence = document.getElementById("detailResidence");
+    const detailAddress = document.getElementById("detailAddress");
+    const detailSyndicPill = document.getElementById("detailSyndicPill");
+    const detailHint = document.getElementById("detailHint");
+
+    const infoResidence = document.getElementById("infoResidence");
+    const infoAdresse = document.getElementById("infoAdresse");
+    const infoSyndic = document.getElementById("infoSyndic");
+
+    const infoContact = document.getElementById("infoContact");
+    const infoTelephone = document.getElementById("infoTelephone");
+    const infoMail = document.getElementById("infoMail");
+
+    const infoIntervention = document.getElementById("infoIntervention");
+    const infoJours = document.getElementById("infoJours");
+    const infoAgents = document.getElementById("infoAgents");
+    const infoNumAgents = document.getElementById("infoNumAgents");
+
+    const infoCodeClef = document.getElementById("infoCodeClef");
+    const infoSortieOm = document.getElementById("infoSortieOm");
+    const infoSortieTri = document.getElementById("infoSortieTri");
+    const infoFrange = document.getElementById("infoFrange");
+    const infoAmpoules = document.getElementById("infoAmpoules");
+    const infoSac = document.getElementById("infoSac");
+    const infoNote = document.getElementById("infoNote");
+
+    const infoCahierFile = document.getElementById("infoCahierFile");
+    const openCahierBtn = document.getElementById("openCahierBtn");
+    const clearCahierBtn = document.getElementById("clearCahierBtn");
+    const cahierInfo = document.getElementById("cahierInfo");
+
+    const saveButton = document.getElementById("saveButton");
+    const saveStatus = document.getElementById("saveStatus");
+
+    // ✅ AJOUT: boutons
+    const addChantierBtn = document.getElementById("addChantierBtn");
+    const removeChantierBtn = document.getElementById("removeChantierBtn");
+
+    let etat = {
+      recherche: "",
+      syndic: "",
+      tri: "alpha",
+      selectionIndex: null
+    };
+
+    // ✅ AJOUT: helpers ajout/retrait + PDF shift
+    function persistChantiers(messageOk){
+      try {
+        localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
+        if (messageOk) saveStatus.textContent = messageOk;
+      } catch (e) {
+        console.warn("Impossible d'enregistrer en localStorage :", e);
+        if (messageOk) saveStatus.textContent = "Action appliquée (non stockée en local).";
+      }
+    }
+
+    function createEmptyChantier(residenceName){
+      return {
+        "Nom de la résidence": residenceName || "",
+        "N° De Clef": "",
+        "Adresse": "",
+        "Contact": "",
+        "Téléphone": "",
+        "Mails": "",
+        "Syndic": "",
+        "Intervention": "",
+        "Agents": "",
+        "Numéro Agents": "",
+        "Jour de passage /Tache": "",
+        "Code / clef": "",
+        "Sortie om": "",
+        "Sortie tri": "",
+        "Frange": "",
+        "type  ampoules néons": "",
+        "sac poubelle": "",
+        "Note chantier": ""
+      };
+    }
+
+    function shiftPdfKeysAfterRemoval(removedIdx, oldLength){
+      try{
+        localStorage.removeItem("chantier_pdf_" + removedIdx);
+        for (let i = removedIdx + 1; i < oldLength; i++){
+          const key = "chantier_pdf_" + i;
+          const val = localStorage.getItem(key);
+          if (val !== null){
+            localStorage.setItem("chantier_pdf_" + (i - 1), val);
+            localStorage.removeItem(key);
+          } else {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch(e){
+        console.warn("Erreur lors du décalage des PDF :", e);
+      }
+    }
+
+    function norm(str){
+      return (str || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g,"")
+        .toLowerCase()
+        .trim();
+    }
+
+    function buildSyndicOptions() {
+      const current = etat.syndic;
+      const syndics = Array.from(
+        new Set(
+          CHANTIERS.map(c => (c["Syndic"] || "").trim()).filter(Boolean)
+        )
+      ).sort((a,b) => a.localeCompare(b, "fr"));
+
+      syndicFilter.innerHTML = `<option value="">Tous les syndics</option>` + syndics.map(s => {
+        const selected = (s === current) ? "selected" : "";
+        return `<option ${selected} value="${s}">${s}</option>`;
+      }).join("");
+    }
+
+    function filtrerChantiers(){
+      const q = norm(etat.recherche);
+      const syndic = etat.syndic;
+
+      return CHANTIERS.map((c, idx) => ({ c, idx })).filter(({c}) => {
+        const res = norm(c["Nom de la résidence"]);
+        const addr = norm(c["Adresse"]);
+        const syn = (c["Syndic"] || "").trim();
+        const okSearch = !q || res.includes(q) || addr.includes(q) || norm(syn).includes(q);
+        const okSyndic = !syndic || syn === syndic;
+        return okSearch && okSyndic;
+      });
+    }
+
+    function trierChantiers(arr){
+      const copie = arr.slice();
+      if (etat.tri === "syndic"){
+        copie.sort((a,b) => {
+          const sa = (a.c["Syndic"] || "");
+          const sb = (b.c["Syndic"] || "");
+          return sa.localeCompare(sb,"fr") || (a.c["Nom de la résidence"] || "").localeCompare((b.c["Nom de la résidence"] || ""), "fr");
+        });
+      } else {
+        copie.sort((a,b) => {
+          const ra = (a.c["Nom de la résidence"] || "");
+          const rb = (b.c["Nom de la résidence"] || "");
+          return ra.localeCompare(rb,"fr");
+        });
+      }
+      return copie;
+    }
+
+    function renderListe(){
+      const filtrés = filtrerChantiers();
+      const chantiersAffiches = trierChantiers(filtrés);
+
+      listEl.innerHTML = "";
+      countVisibleEl.textContent = chantiersAffiches.length;
+
+      if (!chantiersAffiches.length){
+        const div = document.createElement("div");
+        div.className = "no-results";
+        div.innerHTML = `
+          <strong>Aucun chantier trouvé.</strong><br>
+          Vérifie l'orthographe ou enlève des filtres (syndic, tri).
+        `;
+        listEl.appendChild(div);
+        detailEmpty.style.display = "block";
+        detailContent.style.display = "none";
+        return;
+      }
+
+      countTotalEl.textContent = new Set(CHANTIERS.map(c => (c["Nom de la résidence"] || "").trim()).filter(Boolean)).size;
+
+      chantiersAffiches.forEach(({c, idx: globalIndex}) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "res-item";
+
+        const residence = (c["Nom de la résidence"] || "").trim() || "Résidence sans nom";
+
+        const indexSpan = '<span class="res-item-index">' + String(globalIndex + 1).padStart(2,"0") + '</span>';
+        const labelSpan = '<span class="res-item-label">' + residence + '</span>';
+        btn.innerHTML = indexSpan + labelSpan;
+
+        if (etat.selectionIndex === globalIndex){
+          btn.classList.add("active");
+        }
+
+        btn.addEventListener("click", () => {
+          etat.selectionIndex = globalIndex;
+          renderListe();
+          renderDetail();
+        });
+
+        listEl.appendChild(btn);
+      });
+    }
+
+    function loadCahierForIndex(idx){
+      try{
+        const raw = localStorage.getItem("chantier_pdf_" + idx);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      }catch(e){
+        return null;
+      }
+    }
+
+    function updateCahierUI(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length) {
+        openCahierBtn.disabled = true;
+        clearCahierBtn.disabled = true;
+        cahierInfo.textContent = "";
+        return;
+      }
+      const data = loadCahierForIndex(idx);
+      if (data && data.dataUrl){
+        cahierInfo.textContent = "PDF enregistré : " + (data.name || "cahier.pdf");
+        openCahierBtn.disabled = false;
+        clearCahierBtn.disabled = false;
+      } else {
+        cahierInfo.textContent = "Aucun PDF enregistré pour ce chantier.";
+        openCahierBtn.disabled = true;
+        clearCahierBtn.disabled = true;
+      }
+    }
+
+    function updateCahierUIAfterDelete(){
+      cahierInfo.textContent = "Aucun PDF enregistré pour ce chantier.";
+      openCahierBtn.disabled = true;
+      clearCahierBtn.disabled = true;
+      infoCahierFile.value = "";
+    }
+
+    function renderDetail(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
+        detailEmpty.style.display = "block";
+        detailContent.style.display = "none";
+        return;
+      }
+      const c = CHANTIERS[idx];
+
+      detailEmpty.style.display = "none";
+      detailContent.style.display = "block";
+
+      const residence = (c["Nom de la résidence"] || "").trim() || "Résidence sans nom";
+      const adresse = (c["Adresse"] || "").trim() || "Adresse non renseignée";
+      const syndic = (c["Syndic"] || "").trim() || "Syndic non renseigné";
+
+      const contact = (c["Contact"] || "").trim();
+      const tel = (c["Téléphone"] || "").trim();
+      const mails = (c["Mails"] || "").trim();
+      const intervention = (c["Intervention"] || "").trim();
+      const jours = (c["Jour de passage /Tache"] || "").trim();
+      const agents = (c["Agents"] || "").trim();
+      const nAgents = (c["Numéro Agents"] || "").trim();
+      const codeClef = (c["Code / clef"] || "").trim();
+      const sortieOm = (c["Sortie om"] || "").trim();
+      const sortieTri = (c["Sortie tri"] || "").trim();
+      const sac = (c["sac poubelle"] || "").trim();
+      const frange = (c["Frange"] || "").trim();
+      const ampoules = (c["type  ampoules néons"] || "").trim();
+      const note = (c["Note chantier"] || "").trim();
+
+      detailResidence.textContent = residence;
+      detailAddress.textContent = adresse;
+      detailSyndicPill.textContent = syndic;
+
+      detailHint.textContent = contact ? ("Contact : " + contact + (tel ? " · " + tel : "")) : "";
+
+      infoResidence.value = (c["Nom de la résidence"] || "").trim();
+      infoAdresse.value = (c["Adresse"] || "").trim();
+      infoSyndic.value = (c["Syndic"] || "").trim();
+
+      infoContact.value = contact;
+      infoTelephone.value = tel;
+      infoMail.value = mails;
+
+      infoIntervention.value = intervention;
+      infoJours.value = jours;
+      infoAgents.value = agents;
+      infoNumAgents.value = nAgents;
+
+      infoCodeClef.value = codeClef;
+      infoSortieOm.value = sortieOm;
+      infoSortieTri.value = sortieTri;
+      infoSac.value = sac;
+
+      infoFrange.value = frange;
+      infoAmpoules.value = ampoules;
+      infoNote.value = note;
+
+      updateCahierUI();
+      saveStatus.textContent = "";
+    }
+
+    function sauvegarderSelection(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
+        saveStatus.textContent = "Aucun chantier sélectionné.";
+        return;
+      }
+      const c = CHANTIERS[idx];
+
+      c["Nom de la résidence"] = infoResidence.value.trim();
+      c["Adresse"] = infoAdresse.value.trim();
+      c["Syndic"] = infoSyndic.value.trim();
+
+      c["Contact"] = infoContact.value.trim();
+      c["Téléphone"] = infoTelephone.value.trim();
+      c["Mails"] = infoMail.value.trim();
+
+      c["Intervention"] = infoIntervention.value.trim();
+      c["Jour de passage /Tache"] = infoJours.value.trim();
+      c["Agents"] = infoAgents.value.trim();
+      c["Numéro Agents"] = infoNumAgents.value.trim();
+
+      c["Code / clef"] = infoCodeClef.value.trim();
+      c["Sortie om"] = infoSortieOm.value.trim();
+      c["Sortie tri"] = infoSortieTri.value.trim();
+      c["sac poubelle"] = infoSac.value.trim();
+
+      c["Frange"] = infoFrange.value.trim();
+      c["type  ampoules néons"] = infoAmpoules.value.trim();
+
+      c["Note chantier"] = infoNote.value.trim();
+
+      try {
+        localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
+        saveStatus.textContent = "Modifications enregistrées sur cet appareil.";
+      } catch (e) {
+        console.warn("Impossible d'enregistrer en localStorage :", e);
+        saveStatus.textContent = "Modifications appliquées (non stockées en local).";
+      }
+
+      buildSyndicOptions();
+      renderListe();
+      renderDetail();
+    }
+
+    // ✅ AJOUT: listeners boutons
+    if (addChantierBtn){
+      addChantierBtn.addEventListener("click", () => {
+        const name = window.prompt("Nom du chantier / résidence à ajouter :", "");
+        if (name === null) return;
+        const cleaned = name.trim();
+        if (!cleaned){
+          saveStatus.textContent = "Ajout annulé : nom vide.";
+          return;
+        }
+        CHANTIERS.push(createEmptyChantier(cleaned));
+        etat.selectionIndex = CHANTIERS.length - 1;
+        persistChantiers("Chantier ajouté.");
+        buildSyndicOptions();
+        renderListe();
+        renderDetail();
+      });
+    }
+
+    if (removeChantierBtn){
+      removeChantierBtn.addEventListener("click", () => {
+        const idx = etat.selectionIndex;
+        if (idx === null || idx < 0 || idx >= CHANTIERS.length){
+          saveStatus.textContent = "Sélectionne d'abord un chantier à retirer.";
+          return;
+        }
+        const label = (CHANTIERS[idx]["Nom de la résidence"] || "").trim() || ("Chantier #" + (idx + 1));
+        const ok = window.confirm("Retirer le chantier : \"" + label + "\" ?\n\n⚠️ Cela supprimera aussi son cahier des charges PDF enregistré sur cet appareil.");
+        if (!ok) return;
+
+        const oldLength = CHANTIERS.length;
+        shiftPdfKeysAfterRemoval(idx, oldLength);
+
+        CHANTIERS.splice(idx, 1);
+
+        if (CHANTIERS.length === 0){
+          etat.selectionIndex = null;
+        } else {
+          etat.selectionIndex = Math.min(idx, CHANTIERS.length - 1);
+        }
+
+        persistChantiers("Chantier retiré.");
+        buildSyndicOptions();
+        renderListe();
+        renderDetail();
+      });
+    }
+
+    searchInput.addEventListener("input", (e) => {
+      etat.recherche = e.target.value;
+      renderListe();
+    });
+
+    syndicFilter.addEventListener("change", (e) => {
+      etat.syndic = e.target.value;
+      renderListe();
+    });
+
+    triSelect.addEventListener("change", (e) => {
+      etat.tri = e.target.value;
+      renderListe();
+    });
+
+    saveButton.addEventListener("click", sauvegarderSelection);
+
+    infoCahierFile.addEventListener("change", (e) => {
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length) {
+        saveStatus.textContent = "Sélectionne d'abord un chantier.";
+        infoCahierFile.value = "";
+        return;
+      }
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.type !== "application/pdf") {
+        saveStatus.textContent = "Format invalide : PDF uniquement.";
+        infoCahierFile.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        try {
+          localStorage.setItem("chantier_pdf_" + idx, JSON.stringify({ name: file.name, dataUrl }));
+          cahierInfo.textContent = "PDF enregistré : " + file.name;
+          openCahierBtn.disabled = false;
+          clearCahierBtn.disabled = false;
+          saveStatus.textContent = "Cahier des charges PDF enregistré pour ce chantier.";
+        } catch (err) {
+          console.warn("Erreur en enregistrant le PDF :", err);
+          saveStatus.textContent = "PDF trop lourd ou stockage indisponible.";
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    openCahierBtn.addEventListener("click", () => {
+      const idx = etat.selectionIndex;
+      const data = loadCahierForIndex(idx);
+      if (!data || !data.dataUrl) {
+        saveStatus.textContent = "Aucun PDF enregistré pour ce chantier.";
+        updateCahierUIAfterDelete();
+        return;
+      }
+      window.open(data.dataUrl, "_blank");
+    });
+
+    clearCahierBtn.addEventListener("click", () => {
+      const idx = etat.selectionIndex;
+      try {
+        localStorage.removeItem("chantier_pdf_" + idx);
+      } catch (e) {
+        console.warn("Erreur en supprimant le PDF :", e);
+      }
+      updateCahierUIAfterDelete();
+      saveStatus.textContent = "Cahier des charges PDF supprimé.";
+    });
+
+    // Init
+    buildSyndicOptions();
+    renderListe();
+    renderDetail();
+  </script>
+</body>
+</html>
