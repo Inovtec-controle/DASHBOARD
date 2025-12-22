@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Fiche Chantiers – Édition & Cahier des charges</title>
+  <title>Base chantiers – INOVTEC KONTROL</title>
 
   <!-- iPhone friendly -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,1862 +12,1810 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
 
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    :root{
+      --bg:#f1f5f9;
+      --panel:#ffffff;
+      --panel-soft:#e2e8f0;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:rgba(148,163,184,.4);
+      --brand:#16a34a;
+      --brand-soft:rgba(22,163,74,.08);
+      --brand-strong:rgba(22,163,74,.18);
+      --danger:#e11d48;
+      --radius-lg:18px;
+      --radius-xl:24px;
+      --shadow-soft:0 20px 50px rgba(15,23,42,.12);
+      --shadow-card:0 14px 35px rgba(15,23,42,.16);
     }
 
-    :root {
-      --bg: #0f172a;
-      --bg-elevated: #020617;
-      --bg-soft: #020617;
-      --bg-softer: #020617;
-      --accent: #22c55e;
-      --accent-soft: rgba(34,197,94,.12);
-      --accent-soft-strong: rgba(34,197,94,.22);
-      --accent-border: rgba(34,197,94,.45);
-      --accent-border-strong: rgba(34,197,94,.8);
-      --accent-muted: #bbf7d0;
-      --text: #e5e7eb;
-      --text-soft: #9ca3af;
-      --text-softer: #6b7280;
-      --border-subtle: rgba(31,41,55,.85);
-      --border-strong: rgba(55,65,81,1);
-      --shadow-soft: 0 18px 35px rgba(15,23,42,.95);
-      --radius-lg: 22px;
-      --radius-xl: 26px;
-      --radius-full: 999px;
-      --danger: #f97373;
-      --danger-soft: rgba(248,113,113,.14);
-      --danger-border: rgba(248,113,113,.7);
-      --warning: #facc15;
-      --warning-soft: rgba(234,179,8,.1);
-      --input-bg: rgba(15,23,42,.86);
-      --input-border: rgba(148,163,184,.2);
-      --input-border-strong: rgba(148,163,184,.55);
-      --pill-bg: rgba(15,23,42,.9);
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
     }
 
-    body {
-      min-height: 100vh;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    html, body{
+      height:100%;
+    }
+
+    body{
+      font-family:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:radial-gradient(circle at top left, rgba(148,163,184,.3), transparent 60%), var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    .app-shell{
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      padding:16px;
+    }
+
+    .app-container{
+      width:100%;
+      max-width:1200px;
       background:
-        radial-gradient(circle at 0 0, rgba(56,189,248,.16) 0, transparent 50%),
-        radial-gradient(circle at 100% 0, rgba(52,211,153,.18) 0, transparent 50%),
-        radial-gradient(circle at 50% 120%, rgba(129,140,248,.18) 0, transparent 55%),
-        #020617;
-      color: var(--text);
-      -webkit-font-smoothing: antialiased;
+        radial-gradient(circle at top left, rgba(22,163,74,.06), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(59,130,246,.06), transparent 60%),
+        var(--panel);
+      border-radius:28px;
+      border:1px solid var(--border);
+      box-shadow:var(--shadow-soft);
+      padding:12px 10px calc(14px + env(safe-area-inset-bottom,0px));
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      max-height:100%;
     }
 
-    .app-shell {
-      min-height: 100vh;
-      display: flex;
-      align-items: stretch;
-      justify-content: center;
-      padding: 18px 10px 22px;
-    }
-
-    .app-frame {
-      width: 100%;
-      max-width: 1120px;
-      background: radial-gradient(circle at top left, rgba(248,250,252,.02) 0, transparent 55%),
-                  radial-gradient(circle at bottom right, rgba(15,23,42,.5) 0, transparent 55%),
-                  rgba(15,23,42,.96);
-      border-radius: 28px;
-      border: 1px solid rgba(148,163,184,.40);
-      box-shadow:
-        0 32px 80px rgba(15,23,42,.96),
-        0 0 0 1px rgba(15,23,42,.8),
-        0 0 0 1px rgba(15,23,42,.6) inset;
-      padding: 18px 18px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .app-frame::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(120deg, rgba(34,197,94,.12), transparent 40%, rgba(59,130,246,.10));
-      opacity: 0.32;
-      pointer-events: none;
-      mix-blend-mode: soft-light;
-    }
-
-    .app-inner {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      height: 100%;
-      max-height: calc(100vh - 52px);
-    }
-
-    .app-header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 6px 6px 4px;
-      border-radius: 999px;
-      background: radial-gradient(circle at top left, rgba(34,197,94,.12) 0, transparent 60%),
-                  rgba(15,23,42,.92);
-      border: 1px solid rgba(55,65,81,.9);
-      box-shadow:
-        0 14px 35px rgba(15,23,42,.95),
-        0 0 0 1px rgba(15,23,42,.9) inset;
-    }
-
-    .app-header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 4px 10px 4px 5px;
-      border-radius: 999px;
-      background: rgba(15,23,42,.95);
-      border: 1px solid rgba(31,41,55,.9);
-      box-shadow: 0 8px 25px rgba(15,23,42,.85);
-    }
-
-    .logo-badge {
-      width: 32px;
-      height: 32px;
-      border-radius: 999px;
-      background:
-        radial-gradient(circle at 30% 20%, #bbf7d0 0, rgba(187,247,208,.0) 45%),
-        radial-gradient(circle at 70% 80%, #22c55e 0, rgba(34,197,94,0) 55%),
-        radial-gradient(circle at 50% 50%, #15803d 0, #052e16 60%);
-      border: 1px solid rgba(16,185,129, .9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,.9),
-        0 12px 35px rgba(22,163,74,.7);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .logo-badge::before {
-      content: "";
-      position: absolute;
-      inset: 1px;
-      border-radius: inherit;
-      background:
-        radial-gradient(circle at 20% 0, rgba(248,250,252,.65) 0, transparent 55%),
-        radial-gradient(circle at 80% 100%, rgba(22,163,74,.7) 0, transparent 60%);
-      mix-blend-mode: screen;
-      opacity: .55;
-    }
-
-    .logo-badge-inner {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1px;
-    }
-
-    .logo-badge-icon {
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: .02em;
-      color: #ecfdf5;
-      text-shadow:
-        0 0 16px rgba(74,222,128,1),
-        0 0 4px rgba(15,23,42,1);
-    }
-
-    .logo-pulse-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: #bbf7d0;
-      box-shadow: 0 0 16px rgba(74,222,128,1);
-      animation: pulseDot 2s ease-out infinite;
-    }
-
-    @keyframes pulseDot {
-      0% {
-        transform: scale(1);
-        opacity: 1;
-      }
-      70% {
-        transform: scale(2.4);
-        opacity: 0;
-      }
-      100% {
-        transform: scale(2.6);
-        opacity: 0;
+    @media (min-width:768px){
+      .app-container{
+        padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));
       }
     }
 
-    .app-title-block {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .app-title-main {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-    }
-
-    .app-title-text {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-      color: #e5e7eb;
-    }
-
-    .app-title-pill {
-      font-size: 11px;
-      padding: 2px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,.7);
-      background: rgba(15,23,42,.9);
-      color: #e5e7eb;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .badge-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 10px rgba(34,197,94,1);
-    }
-
-    .app-title-subline {
-      font-size: 12px;
-      color: #9ca3af;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .divider-dot {
-      width: 3px;
-      height: 3px;
-      border-radius: 999px;
-      background: rgba(148,163,184,.9);
-    }
-
-    .app-header-right {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .pill-info {
-      font-size: 11px;
-      padding: 4px 9px;
-      border-radius: 999px;
-      background: rgba(15,23,42,.9);
-      border: 1px solid rgba(55,65,81,1);
-      color: #d1d5db;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .pill-info-icon {
-      width: 14px;
-      height: 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,.7);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      color: #9ca3af;
-      background: rgba(15,23,42,1);
-    }
-
-    .pill-info-label {
-      opacity: .9;
-    }
-
-    .pill-info-strong {
-      color: #e5e7eb;
-      font-weight: 500;
-    }
-
-    .app-header-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 11px;
-      border-radius: 999px;
-      border: 1px solid rgba(34,197,94,.55);
-      background: radial-gradient(circle at 0 0, rgba(34,197,94,.22) 0, transparent 60%),
-                  rgba(15,23,42,.95);
-      color: #bbf7d0;
-      font-size: 11px;
-      box-shadow:
-        0 0 18px rgba(22,163,74,.6),
-        0 0 0 1px rgba(15,23,42,.9) inset;
-    }
-
-    .app-header-badge-icon {
-      width: 16px;
-      height: 16px;
-      border-radius: 999px;
-      background: rgba(21,128,61,.8);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      box-shadow: 0 0 10px rgba(34,197,94,1);
-    }
-
-    .app-header-badge-label {
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      font-weight: 600;
-      font-size: 10px;
-    }
-
-    .app-main {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .app-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 6px 10px;
-      background: radial-gradient(circle at 0 0, rgba(15,23,42,.9) 0, rgba(15,23,42,.9) 55%, transparent 60%),
-                  rgba(15,23,42,.92);
-      border-radius: 999px;
-      border: 1px solid rgba(31,41,55,1);
-      box-shadow:
-        0 12px 28px rgba(15,23,42,.9),
-        0 0 0 1px rgba(15,23,42,.85) inset;
-    }
-
-    .search-group {
-      flex: 1.1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(15,23,42,.96);
-      border-radius: 999px;
-      padding: 3px 8px 3px 6px;
-      border: 1px solid rgba(31,41,55,1);
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,1) inset;
-    }
-
-    .search-icon {
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 0 0, rgba(148,163,184,.85) 0, transparent 70%),
-                  rgba(15,23,42,1);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      color: #e5e7eb;
-      border: 1px solid rgba(55,65,81,1);
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,1) inset,
-        0 10px 22px rgba(15,23,42,.9);
-    }
-
-    .search-input-wrapper {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .search-input-wrapper input {
-      width: 100%;
-      border: none;
-      outline: none;
-      font-size: 13px;
-      padding: 5px 4px;
-      background: transparent;
-      color: #e5e7eb;
-    }
-
-    .search-input-wrapper input::placeholder {
-      color: #6b7280;
-    }
-
-    .search-shortcut {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      font-size: 10px;
-      color: #9ca3af;
-      padding: 2px 6px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,.95);
-    }
-
-    .toolbar-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .select-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 8px 4px 8px;
-      border-radius: 999px;
-      background: rgba(15,23,42,1);
-      border: 1px solid rgba(31,41,55,1);
-      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
-      font-size: 11px;
-      color: #e5e7eb;
-    }
-
-    .select-pill label {
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .select-pill select {
-      border: none;
-      outline: none;
-      background: transparent;
-      color: #e5e7eb;
-      font-size: 11px;
-      padding: 3px 0;
-    }
-
-    .select-pill select option {
-      background: #020617;
-      color: #e5e7eb;
-    }
-
-    .pill-divider {
-      width: 1px;
-      height: 16px;
-      background: linear-gradient(to bottom, transparent, rgba(55,65,81,1), transparent);
-    }
-
-    .pill-kpi {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 5px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(15,23,42,1);
-      border: 1px solid rgba(31,41,55,1);
-      color: #e5e7eb;
-      font-size: 11px;
-    }
-
-    .pill-kpi strong {
-      font-size: 13px;
-      font-weight: 600;
-      color: #bbf7d0;
-    }
-
-    .pill-kpi-label {
-      font-size: 10px;
-      color: #9ca3af;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-    }
-
-    .toolbar-spacer {
-      flex: 1;
-    }
-
-    .toolbar-legend {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 9px;
-      border-radius: 999px;
-      background: rgba(15,23,42,1);
-      border: 1px solid rgba(31,41,55,1);
-      font-size: 10px;
-      color: #9ca3af;
-    }
-
-    .legend-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 7px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,1);
-    }
-
-    .legend-chip-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 10px rgba(34,197,94,1);
-    }
-
-    .legend-chip-dot-warning {
-      background: #facc15;
-      box-shadow: 0 0 10px rgba(234,179,8,1);
-    }
-
-    .legend-chip-dot-danger {
-      background: #f97316;
-      box-shadow: 0 0 10px rgba(249,115,22,1);
-    }
-
-    .legend-chip-label {
-      font-size: 10px;
-      color: #d1d5db;
-    }
-
-    .app-content {
-      flex: 1;
-      min-height: 0;
-      display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.55fr);
-      gap: 12px;
-      margin-top: 2px;
-    }
-
-    .panel {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      background:
-        radial-gradient(circle at top center, rgba(15,23,42,.95) 0, rgba(15,23,42,.95) 50%, transparent 60%),
-        rgba(15,23,42,.96);
-      border-radius: 26px;
-      border: 1px solid rgba(31,41,55,1);
-      box-shadow:
-        0 22px 55px rgba(15,23,42,.95),
-        0 0 0 1px rgba(15,23,42,1) inset;
-      overflow: hidden;
-    }
-
-    .panel::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 0 0, rgba(34,197,94,.16) 0, transparent 50%),
-        radial-gradient(circle at 100% 0, rgba(59,130,246,.15) 0, transparent 50%);
-      opacity: .28;
-      pointer-events: none;
-      mix-blend-mode: soft-light;
-    }
-
-    .panel-inner {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      height: 100%;
-    }
-
-    .panel-header {
-      padding: 10px 14px 8px;
-      border-bottom: 1px solid rgba(31,41,55,1);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .panel-title {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: #d1d5db;
-    }
-
-    .panel-subtitle {
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .panel-tag {
-      margin-left: auto;
-      font-size: 11px;
-      padding: 3px 9px;
-      border-radius: 999px;
-      background: rgba(15,23,42,.9);
-      border: 1px solid rgba(55,65,81,1);
-      color: #9ca3af;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .panel-tag strong {
-      font-size: 11px;
-      color: #e5e7eb;
-      font-weight: 500;
-    }
-
-    .panel-body {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      padding: 8px 10px 10px;
-      gap: 6px;
-    }
-
-    .liste-container {
-      flex: 1;
-      min-height: 0;
-      border-radius: 18px;
-      border: 1px solid rgba(31,41,55,1);
-      background: radial-gradient(circle at 0 0, rgba(15,23,42,.95) 0, rgba(15,23,42,.95) 50%, transparent 60%),
-                  rgba(15,23,42,.98);
-      box-shadow:
-        0 18px 45px rgba(15,23,42,.95),
-        0 0 0 1px rgba(15,23,42,1) inset;
-      padding: 4px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .liste-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 6px 4px;
-      border-bottom: 1px solid rgba(31,41,55,1);
-    }
-
-    .liste-header-title {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: #9ca3af;
-    }
-
-    .liste-header-count {
-      font-size: 11px;
-      color: #e5e7eb;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,1);
-    }
-
-    .liste-header-spacer {
-      flex: 1;
-    }
-
-    .liste-header-badge {
-      font-size: 10px;
-      color: #9ca3af;
-      padding: 2px 7px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,1);
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .liste-header-badge span {
-      color: #e5e7eb;
-    }
-
-    .liste-scroll {
-      flex: 1;
-      min-height: 0;
-      overflow: auto;
-      padding: 2px 2px 2px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(148,163,184,.6) rgba(15,23,42,1);
-    }
-
-    .liste-scroll::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .liste-scroll::-webkit-scrollbar-track {
-      background: rgba(15,23,42,1);
-      border-radius: 999px;
-    }
-
-    .liste-scroll::-webkit-scrollbar-thumb {
-      background: rgba(148,163,184,.7);
-      border-radius: 999px;
-    }
-
-    .chantier-item {
-      border-radius: 14px;
-      padding: 7px 8px;
-      background: radial-gradient(circle at 0 0, rgba(15,23,42,1) 0, rgba(15,23,42,1) 50%, transparent 60%),
-                  linear-gradient(135deg, rgba(15,23,42,1), rgba(15,23,42,.98));
-      border: 1px solid rgba(31,41,55,1);
-      box-shadow:
-        0 10px 22px rgba(15,23,42,.95),
-        0 0 0 1px rgba(15,23,42,1) inset;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      cursor: pointer;
-      transition: border-color .16s ease-out, box-shadow .16s ease-out, background .16s ease-out, transform .1s ease-out;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .chantier-item::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(120deg, rgba(34,197,94,.12), transparent 40%, rgba(59,130,246,.10));
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .18s ease-out;
-    }
-
-    .chantier-item:hover {
-      border-color: rgba(55,65,81,1);
-      box-shadow:
-        0 16px 32px rgba(15,23,42,.96),
-        0 0 0 1px rgba(15,23,42,1) inset;
-      transform: translateY(-1px);
-    }
-
-    .chantier-item:hover::before {
-      opacity: 1;
-    }
-
-    .chantier-item.selected {
-      border-color: var(--accent-border-strong);
-      box-shadow:
-        0 0 0 1px rgba(21,128,61,1),
-        0 16px 38px rgba(22,163,74,.85);
-      background:
-        radial-gradient(circle at 0 0, rgba(34,197,94,.22) 0, transparent 55%),
-        radial-gradient(circle at 100% 100%, rgba(59,130,246,.16) 0, transparent 55%),
-        linear-gradient(135deg, rgba(15,23,42,1), rgba(15,23,42,1));
-    }
-
-    .chantier-item.selected::before {
-      opacity: .85;
-      mix-blend-mode: soft-light;
-    }
-
-    .chantier-item-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .chantier-item-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #e5e7eb;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .chantier-item-badge {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,1);
-      color: #9ca3af;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .chantier-item-subline {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 10px;
-      color: #9ca3af;
-    }
-
-    .chantier-item-subline span {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .note-pill {
-      margin-left: auto;
-      padding: 2px 7px;
-      border-radius: 999px;
-      font-size: 10px;
-      border: 1px solid rgba(55,65,81,1);
-    }
-
-    .note-good {
-      color: #bbf7d0;
-      border-color: rgba(34,197,94,.75);
-      background: rgba(22,163,74,.18);
-      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
-    }
-
-    .note-medium {
-      color: #facc15;
-      border-color: rgba(234,179,8,.8);
-      background: rgba(234,179,8,.16);
-      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
-    }
-
-    .note-low {
-      color: #fb923c;
-      border-color: rgba(249,115,22,.8);
-      background: rgba(249,115,22,.16);
-      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
-    }
-
-    .detail-container {
-      flex: 1;
-      min-height: 0;
-      border-radius: 18px;
-      border: 1px solid rgba(31,41,55,1);
-      background:
-        radial-gradient(circle at 0 0, rgba(15,23,42,.95) 0, rgba(15,23,42,.95) 50%, transparent 60%),
-        rgba(15,23,42,.98);
-      box-shadow:
-        0 18px 45px rgba(15,23,42,.95),
-        0 0 0 1px rgba(15,23,42,1) inset;
-      padding: 6px 6px 7px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .detail-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 2px 2px 6px;
-      border-bottom: 1px solid rgba(31,41,55,1);
-    }
-
-    .detail-title-block {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .detail-title {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: #d1d5db;
-    }
-
-    .detail-subtitle {
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .detail-kpi-group {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,1);
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .chip-label {
-      color: #e5e7eb;
-    }
-
-    .chip-kpi {
-      font-size: 13px;
-      font-weight: 600;
-      color: #bbf7d0;
-    }
-
-    .detail-body {
-      flex: 1;
-      min-height: 0;
-      margin-top: 5px;
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
-      gap: 8px;
-    }
-
-    .field-section {
-      border-radius: 16px;
-      border: 1px solid rgba(31,41,55,1);
-      background: radial-gradient(circle at 0 0, rgba(15,23,42,.96) 0, rgba(15,23,42,.96) 50%, transparent 60%),
-                  rgba(15,23,42,.98);
-      padding: 7px 7px 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .field-section-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 2px;
-    }
-
-    .field-section-title {
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: #9ca3af;
-    }
-
-    .field-section-tag {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,1);
-      color: #9ca3af;
-    }
-
-    .field-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 4px;
-    }
-
-    .field-full {
-      grid-column: 1 / -1;
-    }
-
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    .field-label {
-      font-size: 11px;
-      color: #9ca3af;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .field-label span {
-      color: #e5e7eb;
-    }
-
-    .field-label-badge {
-      font-size: 9px;
-      padding: 1px 6px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,.9);
-      color: #9ca3af;
-    }
-
-    .field-input, .field-textarea, .field-select {
-      width: 100%;
-      border-radius: 999px;
-      border: 1px solid var(--input-border);
-      background: var(--input-bg);
-      color: #e5e7eb;
-      font-size: 12px;
-      padding: 5px 9px;
-      outline: none;
-      transition: border-color .16s ease-out, box-shadow .16s ease-out, background .16s ease-out;
-      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
-    }
-
-    .field-input:focus,
-    .field-textarea:focus,
-    .field-select:focus {
-      border-color: var(--accent-border-strong);
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,1) inset,
-        0 0 0 1px rgba(22,163,74,.9);
-      background: rgba(15,23,42,1);
-    }
-
-    .field-input::placeholder,
-    .field-textarea::placeholder {
-      color: #6b7280;
-    }
-
-    .field-textarea {
-      min-height: 54px;
-      border-radius: 12px;
-      resize: vertical;
-      padding: 6px 8px;
-    }
-
-    .field-select {
-      padding-right: 24px;
-      background-image: linear-gradient(45deg, transparent 50%, #9ca3af 50%),
-                        linear-gradient(135deg, #9ca3af 50%, transparent 50%);
-      background-position: calc(100% - 11px) 10px, calc(100% - 7px) 10px;
-      background-size: 5px 5px, 5px 5px;
-      background-repeat: no-repeat;
-      appearance: none;
-    }
-
-    .field-select option {
-      background: #020617;
-      color: #e5e7eb;
-      font-size: 12px;
-    }
-
-    .field-helper {
-      font-size: 10px;
-      color: #6b7280;
-    }
-
-    .badge-inline {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 1px 6px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,1);
-      font-size: 9px;
-      color: #9ca3af;
-    }
-
-    .badge-inline strong {
-      color: #e5e7eb;
-    }
-
-    .note-input {
-      font-weight: 600;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      text-align: center;
-    }
-
-    .note-input.good {
-      color: #bbf7d0;
-      border-color: rgba(34,197,94,.85);
-      background: rgba(21,128,61,.35);
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,1) inset,
-        0 0 18px rgba(22,163,74,.7);
-    }
-
-    .note-input.medium {
-      color: #facc15;
-      border-color: rgba(234,179,8,.9);
-      background: rgba(202,138,4,.35);
-    }
-
-    .note-input.low {
-      color: #fb923c;
-      border-color: rgba(249,115,22,.9);
-      background: rgba(194,65,12,.35);
-    }
-
-    .cahier-section {
-      margin-top: 4px;
-      padding-top: 5px;
-      border-top: 1px dashed rgba(55,65,81,1);
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .cahier-title {
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: #9ca3af;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .cahier-badge {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,1);
-      background: rgba(15,23,42,1);
-      color: #9ca3af;
-    }
-
-    .cahier-controls {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .cahier-file-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .cahier-file-row input[type="file"] {
-      flex: 1;
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .cahier-info {
-      font-size: 10px;
-      color: #6b7280;
-    }
-
-    .button-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .save-button {
-      border-radius: 999px;
-      border: 1px solid var(--accent-border);
-      background: radial-gradient(circle at 0 0, rgba(74,222,128,.22) 0, transparent 55%),
-                  rgba(22,163,74,.9);
-      color: #ecfdf5;
-      font-size: 11px;
-      font-weight: 500;
-      padding: 5px 12px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,1) inset,
-        0 18px 30px rgba(22,163,74,.65);
-      transition: transform .1s ease-out, box-shadow .12s ease-out, background .12s ease-out, border-color .12s ease-out;
-    }
-
-    .save-button:hover {
-      transform: translateY(-1px);
-      box-shadow:
-        0 22px 35px rgba(22,163,74,.85),
-        0 0 0 1px rgba(15,23,42,1) inset;
-      background:
-        radial-gradient(circle at 0 0, rgba(74,222,128,.3) 0, transparent 60%),
-        rgba(21,128,61,1);
-      border-color: rgba(34,197,94,1);
-    }
-
-    .save-button:active {
-      transform: translateY(0);
-      box-shadow:
-        0 12px 24px rgba(22,163,74,.7),
-        0 0 0 1px rgba(15,23,42,1) inset;
-    }
-
-    .save-button--secondary {
-      background: rgba(15,23,42,1);
-      border-color: rgba(55,65,81,1);
-      color: #e5e7eb;
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,1) inset,
-        0 12px 24px rgba(15,23,42,.9);
-    }
-
-    .save-button--secondary:hover {
-      border-color: rgba(148,163,184,.9);
-      box-shadow:
-        0 16px 28px rgba(15,23,42,.95),
-        0 0 0 1px rgba(15,23,42,1) inset;
-      background:
-        radial-gradient(circle at 0 0, rgba(148,163,184,.28) 0, transparent 60%),
-        rgba(15,23,42,1);
-    }
-
-    .save-button--danger {
-      background: var(--danger-soft);
-      border-color: var(--danger-border);
-      color: #fecaca;
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,1) inset,
-        0 12px 26px rgba(127,29,29,.9);
-    }
-
-    .save-button--danger:hover {
-      background: rgba(127,29,29,1);
-      border-color: #fecaca;
-      box-shadow:
-        0 18px 32px rgba(127,29,29,1),
-        0 0 0 1px rgba(15,23,42,1) inset;
-    }
-
-    .save-button[disabled],
-    .save-button:disabled {
-      opacity: .55;
-      cursor: not-allowed;
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,1) inset,
-        0 10px 20px rgba(15,23,42,.85);
-    }
-
-    .save-status {
-      margin-top: 5px;
-      font-size: 11px;
-      color: #9ca3af;
-      min-height: 14px;
-    }
-
-    .detail-footer {
-      margin-top: 8px;
-      padding-top: 6px;
-      border-top: 1px solid rgba(31,41,55,1);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .detail-footer--centered {
-      justify-content: flex-end;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .detail-footer-left {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      color: #6b7280;
-    }
-
-    .detail-footer-left .dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 999px;
-      background: rgba(148,163,184,.9);
-    }
-
-    .detail-footer-right {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .app-footer-note {
-      font-size: 11px;
-      color: #6b7280;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 4px;
-    }
-
-    .app-footer-note span:last-child {
-      font-size: 10px;
-      color: #4b5563;
-    }
-
-    input, select, textarea, button {
-      font-family: inherit;
-    }
-
-    @media (max-width: 960px) {
-      .app-frame {
-        max-width: 100%;
-        padding: 12px 10px;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-      }
-
-      .app-inner {
-        max-height: none;
-      }
-
-      .app-content {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .detail-body {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .app-toolbar {
-        flex-wrap: wrap;
-      }
-
-      .toolbar-spacer {
-        display: none;
-      }
-
-      .toolbar-legend {
-        margin-left: auto;
+    .app-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:8px 10px;
+      border-radius:999px;
+      background:rgba(15,23,42,.02);
+      backdrop-filter:blur(12px);
+      border:1px solid rgba(148,163,184,.5);
+    }
+
+    .app-title-wrap{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .app-icon{
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      background:radial-gradient(circle at 30% 0%, #bbf7d0, #16a34a);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#022c22;
+      font-weight:800;
+      font-size:16px;
+      box-shadow:0 10px 25px rgba(22,163,74,.55);
+    }
+
+    .app-title-block{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+
+    .app-title{
+      font-size:15px;
+      font-weight:700;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+      color:#0f172a;
+    }
+
+    .app-subtitle{
+      font-size:11px;
+      color:var(--muted);
+    }
+
+    .app-badge{
+      font-size:10px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(15,23,42,.04);
+      border:1px solid rgba(148,163,184,.6);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:#0f172a;
+      white-space:nowrap;
+    }
+
+    .content-shell{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:0;
+    }
+
+    @media (min-width:880px){
+      .content-shell{
+        flex-direction:row;
       }
     }
 
-    @media (max-width: 720px) {
-      .app-header {
-        flex-wrap: wrap;
-        align-items: flex-start;
-      }
+    .panel{
+      background:linear-gradient(135deg, rgba(248,250,252,.96), rgba(241,245,249,.98));
+      border-radius:var(--radius-xl);
+      border:1px solid rgba(148,163,184,.4);
+      box-shadow:var(--shadow-card);
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
 
-      .app-header-right {
-        margin-left: 0;
-        margin-top: 4px;
-      }
+    .panel + .panel{
+      background:linear-gradient(135deg, #ffffff, #f1f5f9);
+    }
 
-      .detail-kpi-group {
-        display: none;
-      }
+    .panel-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      padding:4px 4px 8px;
+      border-bottom:1px solid rgba(226,232,240,.9);
+      margin-bottom:6px;
+    }
 
-      .panel-tag {
-        display: none;
-      }
+    .panel-title-block{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
 
-      .toolbar-legend {
-        display: none;
+    .panel-title{
+      font-size:13px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:#0f172a;
+    }
+
+    .panel-subtitle{
+      font-size:11px;
+      color:var(--muted);
+    }
+
+    .badge-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(15,23,42,.02);
+      border:1px solid rgba(148,163,184,.5);
+      font-size:10px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      white-space:nowrap;
+    }
+
+    .pill-dot{
+      width:6px;
+      height:6px;
+      border-radius:999px;
+      background:radial-gradient(circle at 30% 0%, #bbf7d0, #16a34a);
+    }
+
+    .filters{
+      padding:8px 4px 2px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    @media (min-width:880px){
+      .filters{
+        padding-bottom:6px;
       }
     }
 
-    @media (max-width: 480px) {
-      .app-shell {
-        padding: 8px 0 12px;
-      }
+    .search-box{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:4px;
+      border-radius:999px;
+      background:#e2e8f0;
+      border:1px solid rgba(148,163,184,.8);
+    }
 
-      .app-frame {
-        padding: 10px 8px 10px;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-      }
+    .search-icon{
+      width:24px;
+      height:24px;
+      border-radius:999px;
+      background:rgba(15,23,42,.08);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#0f172a;
+    }
 
-      .app-toolbar {
-        padding: 6px 8px;
-      }
+    .search-icon svg{
+      width:14px;
+      height:14px;
+    }
 
-      .search-group {
-        padding-inline: 8px;
-      }
+    .search-input{
+      border:none;
+      outline:none;
+      background:transparent;
+      font-size:12px;
+      flex:1;
+      color:#0f172a;
+    }
 
-      .panel-header {
-        padding-inline: 10px;
-      }
+    .search-input::placeholder{
+      color:#94a3b8;
+    }
 
-      .panel-body {
-        padding-inline: 9px;
-      }
+    .filter-group{
+      display:flex;
+      gap:6px;
+    }
 
-      .detail-container {
-        padding-inline: 6px;
-      }
+    .select-field{
+      flex:1;
+      position:relative;
+    }
 
-      .field-section {
-        padding-inline: 7px;
+    .select-field select{
+      width:100%;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.9);
+      background:#f8fafc;
+      font-size:11px;
+      padding:6px 9px;
+      padding-right:20px;
+      color:#0f172a;
+      outline:none;
+      appearance:none;
+    }
+
+    .select-field::after{
+      content:"▾";
+      position:absolute;
+      right:8px;
+      top:50%;
+      transform:translateY(-50%);
+      font-size:10px;
+      color:#64748b;
+      pointer-events:none;
+    }
+
+    .stats-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:4px 4px 4px;
+    }
+
+    .stats-main{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .stat-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      background:#e2e8f0;
+      font-size:10px;
+      color:#0f172a;
+    }
+
+    .stat-dot{
+      width:6px;
+      height:6px;
+      border-radius:999px;
+      background:#16a34a;
+    }
+
+    .chantiers-list{
+      margin-top:4px;
+      padding:4px;
+      border-radius:var(--radius-lg);
+      background:rgba(15,23,42,.02);
+      border:1px solid rgba(226,232,240,.9);
+      flex:1;
+      overflow:auto;
+      min-height:0;
+    }
+
+    .res-item{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      gap:8px;
+      padding:6px 8px;
+      border-radius:12px;
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      text-align:left;
+      font-size:11px;
+      color:#0f172a;
+      position:relative;
+    }
+
+    .res-item + .res-item{
+      margin-top:2px;
+    }
+
+    .res-item-index{
+      min-width:22px;
+      height:22px;
+      border-radius:999px;
+      background:#e2e8f0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      color:#475569;
+      font-weight:600;
+    }
+
+    .res-item-label{
+      flex:1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .res-item.active{
+      background:rgba(22,163,74,.08);
+      box-shadow:0 0 0 1px rgba(22,163,74,.45);
+    }
+
+    .res-item.active .res-item-index{
+      background:radial-gradient(circle at 30% 0%, #bbf7d0, #16a34a);
+      color:#022c22;
+    }
+
+    .no-results{
+      font-size:11px;
+      color:var(--muted);
+      text-align:center;
+      padding:12px 8px;
+    }
+
+    .detail-panel{
+      flex:1.4;
+      min-width:0;
+    }
+
+    .detail-headline{
+      padding:6px 4px 8px;
+      border-bottom:1px solid rgba(226,232,240,.9);
+      margin-bottom:4px;
+    }
+
+    .detail-title-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:6px;
+    }
+
+    .detail-main-title{
+      font-size:15px;
+      font-weight:700;
+    }
+
+    .detail-subaddress{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:2px;
+    }
+
+    .detail-syndic-pill{
+      padding:4px 8px;
+      border-radius:999px;
+      background:var(--brand-soft);
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      color:#14532d;
+      white-space:nowrap;
+    }
+
+    .detail-hint{
+      margin-top:6px;
+      font-size:10px;
+      color:var(--muted);
+    }
+
+    .detail-grid{
+      margin-top:6px;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+      padding:4px;
+      overflow:auto;
+      min-height:0;
+      max-height:calc(100vh - 220px);
+    }
+
+    @media (min-width:880px){
+      .detail-grid{
+        grid-template-columns:1.1fr 1.1fr;
+        max-height:calc(100vh - 230px);
       }
+    }
+
+    .detail-block{
+      padding:8px;
+      border-radius:var(--radius-lg);
+      background:#f8fafc;
+      border:1px solid rgba(226,232,240,.9);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .detail-block-title{
+      font-size:11px;
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      color:#0f172a;
+      margin-bottom:2px;
+    }
+
+    .detail-row{
+      display:grid;
+      grid-template-columns:90px minmax(0,1fr);
+      gap:4px 8px;
+      align-items:flex-start;
+      font-size:11px;
+    }
+
+    .detail-label{
+      font-size:10px;
+      color:var(--muted);
+      padding-top:4px;
+    }
+
+    .detail-value{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .detail-input{
+      width:100%;
+      border-radius:8px;
+      border:1px solid rgba(148,163,184,.7);
+      background:#ffffff;
+      padding:5px 7px;
+      font-size:11px;
+      color:#0f172a;
+      outline:none;
+      resize:vertical;
+      min-height:26px;
+    }
+
+    .detail-input:focus{
+      border-color:#16a34a;
+      box-shadow:0 0 0 1px rgba(22,163,74,.4);
+    }
+
+    .detail-input.textarea{
+      min-height:60px;
+      max-height:140px;
+    }
+
+    .detail-input-large{
+      min-height:90px;
+    }
+
+    .detail-footer{
+      font-size:11px;
+      color:var(--muted);
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:4px;
+      flex-shrink:0;
+    }
+
+    .detail-footer--centered{
+      justify-content:center;
+      align-items:center;
+      flex-direction:column;
+    }
+
+    .detail-footer-actions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-bottom:4px;
+    }
+
+    .save-button{
+      padding:7px 18px;
+      border-radius:999px;
+      border:none;
+      background:var(--brand);
+      color:#f9fafb;
+      font-size:12px;
+      font-weight:600;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      cursor:pointer;
+      box-shadow:0 10px 25px rgba(22,163,74,.35);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .save-button:active{
+      transform:translateY(1px);
+      box-shadow:0 4px 12px rgba(22,163,74,.4);
+    }
+
+    .save-button--secondary{
+      background:#e2e8f0;
+      color:#0f172a;
+      box-shadow:none;
+      font-size:11px;
+      padding:6px 14px;
+    }
+
+    .save-button--danger{
+      background:#fee2e2;
+      color:#b91c1c;
+      box-shadow:none;
+      font-size:11px;
+      padding:6px 14px;
+      margin-left:6px;
+    }
+
+    .save-status{
+      margin-top:4px;
+      font-size:10px;
+      color:#16a34a;
+      min-height:14px;
+      text-align:center;
+    }
+
+    .detail-empty-box{
+      margin-top:8px;
+      padding:14px;
+      border-radius:14px;
+      border:1px dashed var(--border);
+      background:#f8fafc;
+      font-size:12px;
+      color:var(--muted);
+      text-align:center;
+      flex:1;
+    }
+
+    .detail-empty-box strong{
+      color:var(--text);
+    }
+
+    .app-footer-note{
+      margin-top:2px;
+      padding-top:8px;
+      border-top:1px solid var(--border);
+      font-size:10px;
+      color:var(--muted);
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .app-footer-note span:last-child{
+      opacity:.9;
+    }
+
+    .detail-hint-inline{
+      display:block;
+      font-size:10px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+
+    #cahierInfo{
+      font-size:10px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+
+    ::-webkit-scrollbar{
+      width:6px;
+    }
+    ::-webkit-scrollbar-track{
+      background:transparent;
+    }
+    ::-webkit-scrollbar-thumb{
+      background:#cbd5f5;
+      border-radius:999px;
+    }
+    ::-webkit-scrollbar-thumb:hover{
+      background:#94a3b8;
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
-    <div class="app-frame">
-      <div class="app-inner">
-        <header class="app-header">
-          <div class="app-header-left">
-            <div class="logo-badge">
-              <div class="logo-badge-inner">
-                <div class="logo-badge-icon">CHT</div>
-                <div class="logo-pulse-dot"></div>
-              </div>
+    <div class="app-container">
+      <header class="app-header">
+        <div class="app-title-wrap">
+          <div class="app-icon"><span>K</span></div>
+          <div class="app-title-block">
+            <div class="app-title">Base chantiers nettoyage</div>
+            <div class="app-subtitle">Vue rapide de toutes les résidences – style KONTROL</div>
+          </div>
+        </div>
+        <div class="app-badge">INOVTEC · KONTROL</div>
+      </header>
+
+      <div class="content-shell">
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title-block">
+              <div class="panel-title">Résidences</div>
+              <div class="panel-subtitle">Clique sur un nom pour voir et éditer le détail à droite</div>
             </div>
-            <div class="app-title-block">
-              <div class="app-title-main">
-                <div class="app-title-text">Chantiers – Fiches & Cahier</div>
-                <div class="app-title-pill">
-                  <span class="badge-dot"></span>
-                  <span>Mode édition & suivi</span>
-                </div>
-              </div>
-              <div class="app-title-subline">
-                <span>Base centralisée des sites à contrôler</span>
-                <span class="divider-dot"></span>
-                <span>Mise à jour directe sur l’appareil</span>
-              </div>
+            <div class="badge-pill">
+              <span class="pill-dot"></span>
+              Liste compacte
             </div>
           </div>
 
-          <div class="app-header-right">
-            <div class="pill-info">
-              <div class="pill-info-icon">i</div>
-              <div class="pill-info-label">
-                Données stockées <span class="pill-info-strong">en local sur ce téléphone</span>
+          <div class="filters">
+            <div class="search-box">
+              <div class="search-icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
               </div>
-            </div>
-            <div class="app-header-badge">
-              <div class="app-header-badge-icon">✓</div>
-              <div class="app-header-badge-label">Edition sécurisée</div>
-            </div>
-          </div>
-        </header>
-
-        <main class="app-main">
-          <section class="app-toolbar">
-            <div class="search-group">
-              <div class="search-icon">⌕</div>
-              <div class="search-input-wrapper">
-                <input type="text" id="searchInput" placeholder="Rechercher un chantier (résidence, adresse, syndic, agent…)" />
-                <div class="search-shortcut">
-                  <span>Filtre instantané</span>
-                </div>
-              </div>
+              <input id="searchInput" class="search-input" type="search" placeholder="Rechercher une résidence, adresse, syndic…" />
             </div>
 
-            <div class="toolbar-group">
-              <div class="select-pill">
-                <label for="syndicFilter">Syndic</label>
+            <div class="filter-group">
+              <div class="select-field">
                 <select id="syndicFilter">
-                  <option value="">Tous</option>
+                  <option value="">Tous les syndics</option>
                 </select>
               </div>
-
-              <div class="select-pill">
-                <label for="triSelect">Tri</label>
-                <div class="pill-divider"></div>
+              <div class="select-field">
                 <select id="triSelect">
-                  <option value="alpha">Nom (A → Z)</option>
-                  <option value="note">Note (meilleure → moins bonne)</option>
-                  <option value="syndic">Syndic + Nom</option>
+                  <option value="alpha">Tri A → Z (résidence)</option>
+                  <option value="syndic">Trier par syndic</option>
                 </select>
               </div>
             </div>
+          </div>
 
-            <div class="toolbar-spacer"></div>
-
-            <div class="toolbar-legend">
-              <span>Légende note :</span>
-              <div class="legend-chip">
-                <div class="legend-chip-dot"></div>
-                <div class="legend-chip-label">≥ 90</div>
+          <div class="stats-header">
+            <div class="stats-main">
+              <div class="stat-pill">
+                <span class="stat-dot"></span>
+                <span><strong id="countVisible">0</strong> résultat(s)</span>
               </div>
-              <div class="legend-chip">
-                <div class="legend-chip-dot-warning"></div>
-                <div class="legend-chip-label">75 → 89</div>
-              </div>
-              <div class="legend-chip">
-                <div class="legend-chip-dot-danger"></div>
-                <div class="legend-chip-label">&lt; 75</div>
+              <div class="stat-pill">
+                <span>Résidences distinctes : <strong id="countTotal">0</strong></span>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section class="app-content">
-            <div class="panel">
-              <div class="panel-inner">
-                <header class="panel-header">
-                  <div>
-                    <div class="panel-title">Liste des chantiers</div>
-                    <div class="panel-subtitle">Sélectionne un site pour afficher et modifier la fiche détaillée</div>
-                  </div>
-                  <div class="panel-tag">
-                    <span>🌐 Vue globale</span>
-                    <span>Tap pour éditer à droite</span>
-                  </div>
-                </header>
+          <div id="chantiersList" class="chantiers-list"></div>
+        </section>
 
-                <div class="panel-body">
-                  <div class="liste-container">
-                    <div class="liste-header">
-                      <div class="liste-header-title">Sites enregistrés</div>
-                      <div class="liste-header-count" id="listeCount">0 chantiers</div>
-                      <div class="liste-header-spacer"></div>
-                      <div class="liste-header-badge">
-                        <span>Filtre en temps réel</span>
-                      </div>
-                    </div>
-                    <div class="liste-scroll" id="listeChantiers">
-                    </div>
+        <section class="panel detail-panel">
+          <div class="panel-header">
+            <div class="panel-title-block">
+              <div class="panel-title">Détail du chantier</div>
+              <div class="panel-subtitle">Toutes les infos sont éditables directement ici</div>
+            </div>
+          </div>
+
+          <div id="detailEmpty" class="detail-empty-box">
+            <strong>Aucun chantier sélectionné.</strong><br>
+            Choisis une résidence dans la liste de gauche pour afficher et modifier les informations.
+          </div>
+
+          <div id="detailContent" style="display:none;">
+            <div class="detail-headline">
+              <div class="detail-title-row">
+                <div>
+                  <div id="detailResidence" class="detail-main-title"></div>
+                  <div id="detailAddress" class="detail-subaddress"></div>
+                </div>
+                <div id="detailSyndicPill" class="detail-syndic-pill"></div>
+              </div>
+              <div id="detailHint" class="detail-hint"></div>
+            </div>
+
+            <div class="detail-grid">
+              <div class="detail-block">
+                <div class="detail-block-title">Infos chantier</div>
+                <div class="detail-row">
+                  <div class="detail-label">Résidence</div>
+                  <div class="detail-value">
+                    <input id="infoResidence" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Adresse</div>
+                  <div class="detail-value">
+                    <input id="infoAdresse" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Syndic</div>
+                  <div class="detail-value">
+                    <input id="infoSyndic" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Contact</div>
+                  <div class="detail-value">
+                    <input id="infoContact" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Téléphone</div>
+                  <div class="detail-value">
+                    <input id="infoTelephone" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Mail</div>
+                  <div class="detail-value">
+                    <input id="infoMail" class="detail-input" type="text">
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <div class="detail-block-title">Organisation & agents</div>
+                <div class="detail-row">
+                  <div class="detail-label">Intervention</div>
+                  <div class="detail-value">
+                    <input id="infoIntervention" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Jour / tâches</div>
+                  <div class="detail-value">
+                    <textarea id="infoJours" class="detail-input textarea" rows="3"></textarea>
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Agent(s)</div>
+                  <div class="detail-value">
+                    <input id="infoAgents" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">N° agents</div>
+                  <div class="detail-value">
+                    <input id="infoNumAgents" class="detail-input" type="text">
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <div class="detail-block-title">Accès & sorties</div>
+                <div class="detail-row">
+                  <div class="detail-label">Code / clef</div>
+                  <div class="detail-value">
+                    <textarea id="infoCodeClef" class="detail-input textarea" rows="2"></textarea>
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Sortie OM</div>
+                  <div class="detail-value">
+                    <input id="infoSortieOm" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Sortie tri</div>
+                  <div class="detail-value">
+                    <input id="infoSortieTri" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Sac poubelle</div>
+                  <div class="detail-value">
+                    <input id="infoSac" class="detail-input" type="text">
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <div class="detail-block-title">Technique & cahier des charges</div>
+                <div class="detail-row">
+                  <div class="detail-label">Frange</div>
+                  <div class="detail-value">
+                    <input id="infoFrange" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Ampoules</div>
+                  <div class="detail-value">
+                    <input id="infoAmpoules" class="detail-input" type="text">
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Note chantier</div>
+                  <div class="detail-value">
+                    <textarea id="infoNote" class="detail-input textarea detail-input-large" rows="4" placeholder="Infos spécifiques, consignes particulières…"></textarea>
+                    <span class="detail-hint-inline">Cette note est propre au chantier (rappel interne, consignes particulières, etc.).</span>
+                  </div>
+                </div>
+
+                <div class="detail-row">
+                  <div class="detail-label">Cahier PDF</div>
+                  <div class="detail-value">
+                    <input id="infoCahierFile" class="detail-input" type="file" accept="application/pdf">
+                    <span class="detail-hint-inline">Le PDF est enregistré localement sur cet appareil, pour ce chantier uniquement.</span>
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-label">Consulter</div>
+                  <div class="detail-value">
+                    <button type="button" id="openCahierBtn" class="save-button save-button--secondary">Ouvrir le PDF</button>
+                    <button type="button" id="clearCahierBtn" class="save-button save-button--danger">Supprimer</button>
+                    <div id="cahierInfo"></div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="panel">
-              <div class="panel-inner">
-                <header class="panel-header">
-                  <div class="detail-title-block">
-                    <div class="detail-title">Fiche chantier sélectionné</div>
-                    <div class="detail-subtitle">Toutes les informations sont modifiables pour ce chantier uniquement</div>
-                  </div>
-                  <div class="detail-kpi-group">
-                    <div class="chip">
-                      <span class="chip-label">Note actuelle :</span>
-                      <span class="chip-kpi" id="noteKpi">–</span>
-                    </div>
-                    <div class="chip">
-                      <span class="chip-label">Clé :</span>
-                      <span id="cleKpi">–</span>
-                    </div>
-                  </div>
-                </header>
-
-                <div class="panel-body detail-container">
-                  <div class="detail-body">
-                    <div class="field-section">
-                      <div class="field-section-header">
-                        <div class="field-section-title">Identification du site</div>
-                        <div class="field-section-tag">Coordonnées de base</div>
-                      </div>
-
-                      <div class="field-grid">
-                        <div class="field-group field-full">
-                          <label class="field-label">
-                            <span>Nom de la résidence / site</span>
-                          </label>
-                          <input type="text" id="infoResidence" class="field-input" placeholder="Ex : Résidence Les Tilleuls" />
-                        </div>
-
-                        <div class="field-group field-full">
-                          <label class="field-label">
-                            <span>Adresse complète</span>
-                          </label>
-                          <textarea id="infoAdresse" class="field-textarea" placeholder="N°, rue, code postal, ville"></textarea>
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>Syndic / gestionnaire</span>
-                          </label>
-                          <input type="text" id="infoSyndic" class="field-input" placeholder="Nom du syndic" />
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>N° de clé / badge</span>
-                          </label>
-                          <input type="text" id="infoClef" class="field-input" placeholder="Ex : Clé n°12 / Badge vert" />
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>Contact principal</span>
-                          </label>
-                          <input type="text" id="infoContact" class="field-input" placeholder="Nom & fonction" />
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>Téléphone</span>
-                          </label>
-                          <input type="tel" id="infoTelephone" class="field-input" placeholder="Téléphone contact" />
-                        </div>
-
-                        <div class="field-group field-full">
-                          <label class="field-label">
-                            <span>Mail(s) principal(aux)</span>
-                          </label>
-                          <input type="text" id="infoMail" class="field-input" placeholder="adresse@mail.fr (séparer par des virgules si plusieurs)" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="field-section">
-                      <div class="field-section-header">
-                        <div class="field-section-title">Organisation & agents</div>
-                        <div class="field-section-tag">Fréquences & équipes</div>
-                      </div>
-
-                      <div class="field-grid">
-                        <div class="field-group field-full">
-                          <label class="field-label">
-                            <span>Intervention / type de prestation</span>
-                          </label>
-                          <textarea id="infoIntervention" class="field-textarea" placeholder="Ex : Entretien des communs, sortie OM, vitrerie, entretien espaces verts…"></textarea>
-                        </div>
-
-                        <div class="field-group field-full">
-                          <label class="field-label">
-                            <span>Jour de passage / tâches détaillées</span>
-                          </label>
-                          <textarea id="infoJours" class="field-textarea" placeholder="Ex : Lundi & jeudi – communs et escaliers, Mercredi – vitres, etc."></textarea>
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>Agent(s) dédié(s) au site</span>
-                          </label>
-                          <input type="text" id="infoAgents" class="field-input" placeholder="Nom(s) de l’agent / des agents" />
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>N° de téléphone agent(s)</span>
-                          </label>
-                          <input type="text" id="infoNumAgents" class="field-input" placeholder="Téléphone(s) des agents" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="field-section">
-                      <div class="field-section-header">
-                        <div class="field-section-title">Accès & sorties</div>
-                        <div class="field-section-tag">Code / OM / tri</div>
-                      </div>
-
-                      <div class="field-grid">
-                        <div class="field-group field-full">
-                          <label class="field-label">
-                            <span>Code / clef d’accès</span>
-                          </label>
-                          <input type="text" id="infoCodeClef" class="field-input" placeholder="Codes, instructions de badge, portail…" />
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>Sortie OM</span>
-                          </label>
-                          <input type="text" id="infoSortieOm" class="field-input" placeholder="Jours, horaires, emplacement bacs OM" />
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>Sortie TRI</span>
-                          </label>
-                          <input type="text" id="infoSortieTri" class="field-input" placeholder="Tri sélectif : consignes et emplacement" />
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>Frange</span>
-                          </label>
-                          <input type="text" id="infoFrange" class="field-input" placeholder="Type / format frange utilisé" />
-                        </div>
-
-                        <div class="field-group">
-                          <label class="field-label">
-                            <span>Type ampoules / néons</span>
-                          </label>
-                          <input type="text" id="infoAmpoules" class="field-input" placeholder="Références, formats, particularités" />
-                        </div>
-
-                        <div class="field-group field-full">
-                          <label class="field-label">
-                            <span>Sac poubelle</span>
-                          </label>
-                          <input type="text" id="infoSac" class="field-input" placeholder="Type, taille, couleur, quantité moyenne…" />
-                        </div>
-
-                        <div class="field-group field-full">
-                          <label class="field-label">
-                            <span>Note chantier</span>
-                            <span class="field-label-badge">Référence contrôle qualité</span>
-                          </label>
-                          <input type="number" id="infoNote" class="field-input note-input" placeholder="Ex : 95" />
-                          <div class="field-helper">
-                            <span class="badge-inline">
-                              <span>💡</span>
-                              <span>La note globale atteindre afin d'avoir une bonne tenue de site est <strong>95%</strong>.</span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="cahier-section">
-                        <div class="cahier-title">
-                          <span>Cahier des charges PDF (par chantier)</span>
-                          <span class="cahier-badge">1 fichier stocké localement</span>
-                        </div>
-                        <div class="cahier-controls">
-                          <div class="cahier-file-row">
-                            <input type="file" id="infoCahierFile" accept="application/pdf" />
-                          </div>
-                          <div class="button-row">
-                            <button type="button" id="openCahierBtn" class="save-button save-button--secondary">
-                              Ouvrir le PDF
-                            </button>
-                            <button type="button" id="clearCahierBtn" class="save-button save-button--danger">
-                              Supprimer
-                            </button>
-                            <div id="cahierInfo" class="cahier-info"></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="detail-footer detail-footer--centered">
-                    <!-- Boutons ajout / suppression de chantier -->
-                    <div>
-                      <button type="button" id="addChantierBtn" class="save-button save-button--secondary">
-                        + Ajouter un chantier
-                      </button>
-                      <button type="button" id="deleteChantierBtn" class="save-button save-button--danger">
-                        Supprimer ce chantier
-                      </button>
-                    </div>
-
-                    <!-- Bouton d'enregistrement existant -->
-                    <button type="button" id="saveButton" class="save-button">
-                      <span>Enregistrer les modifications</span>
-                    </button>
-
-                    <div id="saveStatus" class="save-status"></div>
-                  </div>
-                </div>
+            <div class="detail-footer detail-footer--centered">
+              <div class="detail-footer-actions">
+                <button type="button" id="addChantierBtn" class="save-button save-button--secondary">
+                  <span>Ajouter un chantier</span>
+                </button>
+                <button type="button" id="deleteChantierBtn" class="save-button save-button--danger">
+                  <span>Supprimer ce chantier</span>
+                </button>
               </div>
+              <button type="button" id="saveButton" class="save-button">
+                <span>Enregistrer les modifications</span>
+              </button>
+              <div id="saveStatus" class="save-status"></div>
             </div>
-          </section>
-        </main>
-
-        <footer class="app-footer-note">
-          <span></span>
-          <span></span>
-        </footer>
+          </div>
+        </section>
       </div>
+
+      <footer class="app-footer-note">
+        <span></span>
+        <span></span>
+      </footer>
     </div>
   </div>
 
   <script>
+    // Données initiales injectées depuis l'Excel
     const CHANTIERS = [
       {
-        "Nom de la résidence": "LE RUBIS",
-        "N° De Clef": "12",
-        "Adresse": "Rue Jean Monnet\n31130 BALMA",
-        "Contact": "Service technique",
-        "Téléphone": "05 61 24 36 84",
-        "Mails": "gestionnaire@exemple.fr",
-        "Syndic": "SERGIC",
-        "Intervention": "Entretien des parties communes, sorties OM et tri sélectif.",
-        "Agents": "Agent A",
-        "Numéro Agents": "06 00 00 00 01",
-        "Jour de passage /Tache": "Lundi et jeudi – communs intérieurs\nMercredi – vitrerie",
-        "Code / clef": "#0123 puis B",
-        "Sortie om": "Lundi et jeudi à 18h (local sous-sol)",
-        "Sortie tri": "Mercredi 18h (bacs jaunes)",
-        "Frange": "Frange microfibre bleue",
-        "type  ampoules néons": "LED E14 et néons T8 120cm",
-        "sac poubelle": "50L noir renforcé pour OM, 50L jaune pour tri",
-        "Note chantier": "95"
+        "Nom de la résidence": "69 Strasbourg ",
+        "N° De Clef": "37",
+        "Adresse": "69 boulevard Strasbourg 31000 Toulouse ",
+        "Contact": "Mme Muller Marion ",
+        "Téléphone": "0562268394",
+        "Mails": "Chrystelle.corazza@foncia.fr",
+        "Syndic": "FONCIA ",
+        "Intervention": "Toulouse métropole ",
+        "Agents": "Meriem \nMr Koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Lundi 1:30 hall complet mercredi 1h hall complet vendredii 00:30 Hall ",
+        "Code / clef": "CLEFS BADGE TELECOMMANDE",
+        "Sortie om": "LUNDI \nMERCREDI\nVENDREDI",
+        "Sortie tri": "Ø",
+        "Frange": "25/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
       },
       {
-        "Nom de la résidence": "LES MAGNOLIAS",
+        "Nom de la résidence": "69 Strasbourg  bureaux",
+        "N° De Clef": "37",
+        "Adresse": "69 boulevard Strasbourg 31000 Toulouse ",
+        "Contact": "Celine Fatabene",
+        "Téléphone": "0768014677",
+        "Mails": "Celine.fatabene@inovtec-propre et service.fr",
+        "Syndic": "Tertiaire",
+        "Intervention": "Base ",
+        "Agents": "Meriem/ Mr Koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Lundi 1:30 complet            \nVendredi 1:30 complet",
+        "Code / clef": "Clé badge bip",
+        "Sortie om": "Ø",
+        "Sortie tri": "Ø",
+        "Frange": "0",
+        "type  ampoules néons": "E14 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Agir comité d'entreprise",
+        "N° De Clef": "59",
+        "Adresse": "57 allée Jean Jaures ",
+        "Contact": " Amaury Michel",
+        "Téléphone": "0562722657",
+        "Mails": "info@agirce.fr",
+        "Syndic": "Tertiaire ",
+        "Intervention": "Base ",
+        "Agents": "",
+        "Numéro Agents": "????",
+        "Jour de passage /Tache": "Ø",
+        "Code / clef": "Ø",
+        "Sortie om": "Ø",
+        "Sortie tri": "Ø",
+        "Frange": "Ø",
+        "type  ampoules néons": " E14 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Adop ",
+        "N° De Clef": "51",
+        "Adresse": "5 rue Jules Verne 31270 Cugnaux ",
+        "Contact": "Sarah",
+        "Téléphone": "0563153056",
+        "Mails": "",
+        "Syndic": "Tertiaire ",
+        "Intervention": " Base ",
+        "Agents": "Stoian ",
+        "Numéro Agents": "",
+        "Jour de passage /Tache": "Mardi et mardi 3-4h variable ",
+        "Code / clef": "Clef bip badge code alarme 6612 4210 ",
+        "Sortie om": "Ø",
+        "Sortie tri": "Ø",
+        "Frange": "Ø",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Aeris ",
+        "N° De Clef": "26",
+        "Adresse": "1ter impasse ste lucie 31240 L'Union ",
+        "Contact": "Mme Escpart ",
+        "Téléphone": "0562736062",
+        "Mails": "Cescarp@sogeprim.com",
+        "Syndic": "Sogeprim ",
+        "Intervention": "Toulouse Métropole ",
+        "Agents": "Meriem \nMr Koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Mercredi 10:30 - 12:15 Lundi 9:30 - 11:00 ",
+        "Code / clef": "Bip \nClé Badges ",
+        "Sortie om": "Lundi \nMercredi",
+        "Sortie tri": "Mercredi ",
+        "Frange": "25/mois",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Aerin 2 ",
+        "N° De Clef": "26",
+        "Adresse": "1ter impasse ste lucie 31240 L'Union ",
+        "Contact": "Mme Escpart ",
+        "Téléphone": "0562736062",
+        "Mails": "Cescarp@sogeprim.com",
+        "Syndic": "Sogeprim ",
+        "Intervention": "Toulouse Métropole ",
+        "Agents": "Meriem \nMr Koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Mercredi 10:30 - 12:15 Lundi 9:30 - 11:00 ",
+        "Code / clef": "Bip \nClé Badges ",
+        "Sortie om": "Lundi \nMercredi",
+        "Sortie tri": "Mercredi ",
+        "Frange": "25/mois",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Aeris bureaux ",
+        "N° De Clef": "26",
+        "Adresse": "1ter impasse ste lucie 31240 L'Union ",
+        "Contact": "Mr et Mme Grimon ",
+        "Téléphone": "06319399633",
+        "Mails": "Grimon@accompagnements.com",
+        "Syndic": "Tertiaire",
+        "Intervention": "Base\n(Toulouse Métropole )",
+        "Agents": "Meri en \nVersainte ",
+        "Numéro Agents": "06 41 00 06 88\n\nVersaunty",
+        "Jour de passage /Tache": "Mardi 1 semaine sur 2 2h",
+        "Code / clef": "Clé badge code alarme ",
+        "Sortie om": "mardi",
+        "Sortie tri": "Lundi",
+        "Frange": "15/mois",
+        "type  ampoules néons": "E14 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Alysson",
+        "N° De Clef": "60",
+        "Adresse": "3 rue gaston salvayre Toulouse",
+        "Contact": "Mr Fonta",
+        "Téléphone": "0601654090",
+        "Mails": "frederic.fonta@mngestion-immobiliere.com",
+        "Syndic": "MnGestion",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "Di Sangro / Leonel Ribiero",
+        "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+        "Jour de passage /Tache": "Mardi complet ",
+        "Code / clef": "Telecommande \nVigik \nclef ",
+        "Sortie om": "Mardi vendredi ",
+        "Sortie tri": "Mercredi ",
+        "Frange": "Ø",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Annapurna",
+        "N° De Clef": "63",
+        "Adresse": "81 route de Seysses 31100 Toulouse ",
+        "Contact": "mr Fonta",
+        "Téléphone": "0601654090",
+        "Mails": "Frederic.fonta@mngestion-immobiliere.com",
+        "Syndic": "Mngestion ",
+        "Intervention": "Toulouse métropole ",
+        "Agents": "",
+        "Numéro Agents": "",
+        "Jour de passage /Tache": "????",
+        "Code / clef": "Clé cave 6 Clé parking ",
+        "Sortie om": "Lundi jeudi",
+        "Sortie tri": "Jeudi",
+        "Frange": "???",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Aristote",
+        "N° De Clef": "66",
+        "Adresse": "21 rue jean François chalgrin ",
+        "Contact": "Mr Bonneville ",
+        "Téléphone": "05 62 73 06 92",
+        "Mails": "Aristote \n??????",
+        "Syndic": "Square Habitat ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "?????",
+        "Numéro Agents": "",
+        "Jour de passage /Tache": "Samedi complet",
+        "Code / clef": "Clé ",
+        "Sortie om": "Samedi lundi",
+        "Sortie tri": "lundi vendredi ",
+        "Frange": "25/mois",
+        "type  ampoules néons": "E27 4000K ou E14 4000k ou 3800k",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Balma gramont ",
+        "N° De Clef": "Ø",
+        "Adresse": "Ront point marché Balma Gramont ",
+        "Contact": "Mme ou mr CAMDESUS ",
+        "Téléphone": "????",
+        "Mails": "????",
+        "Syndic": "Auchan / Balma ",
+        "Intervention": " Base",
+        "Agents": "Agent Balma ",
+        "Numéro Agents": "????????",
+        "Jour de passage /Tache": "Lundi au dimanche 0:30 Lundi mercredi vendredi 0:80",
+        "Code / clef": "???",
+        "Sortie om": "Lundi mercredi vendredi",
+        "Sortie tri": "Lundi mercredi vendredi ",
+        "Frange": "???",
+        "type  ampoules néons": "Ø",
+        "sac poubelle": "Ø"
+      },
+      {
+        "Nom de la résidence": "Bario novo ",
+        "N° De Clef": "17",
+        "Adresse": "51 avenue de la Garonnette 31000 Toulouse ",
+        "Contact": "Mr Bernard ",
+        "Téléphone": "0561143640",
+        "Mails": "Bernard.immo@orange.fr",
+        "Syndic": "Cabinet Bernard ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "Meriem \nMr Koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Lundi au vendredi 2h/jour ",
+        "Code / clef": "Télécommande \nBadge \nClé ",
+        "Sortie om": "Dimanche mercredi",
+        "Sortie tri": "Mardi ",
+        "Frange": "50/mois",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Bario novo bureaux ",
+        "N° De Clef": "17",
+        "Adresse": "51 avenue de la Garonnette 31000 Toulouse ",
+        "Contact": "Mr Bernard ",
+        "Téléphone": "0561143640",
+        "Mails": "Bernard.immo@orange.fr",
+        "Syndic": "Cabinet Bernard ",
+        "Intervention": " Base",
+        "Agents": "Stoian ",
+        "Numéro Agents": "????",
+        "Jour de passage /Tache": "1 / semaine",
+        "Code / clef": "Télécommande \nClé ",
+        "Sortie om": "???",
+        "Sortie tri": "???",
+        "Frange": "5/mois",
+        "type  ampoules néons": "E27 4000K ou E14 4000k ou 3800k",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Belle vue",
         "N° De Clef": "7",
-        "Adresse": "12 Avenue des Magnolias\n31500 TOULOUSE",
-        "Contact": "Gardien",
-        "Téléphone": "05 61 00 00 00",
-        "Mails": "contact@magnolias.fr",
-        "Syndic": "3F",
-        "Intervention": "Entretien des halls, escaliers et ascenseurs.",
-        "Agents": "Agent B",
-        "Numéro Agents": "06 00 00 00 02",
-        "Jour de passage /Tache": "Mardi et vendredi – communs / ascenseur",
-        "Code / clef": "Interphone + badge rouge",
-        "Sortie om": "Tous les jours à 19h",
-        "Sortie tri": "Mardi et vendredi à 18h",
-        "Frange": "Frange coton blanche",
-        "type  ampoules néons": "LED GU10 et tubes 90cm",
-        "sac poubelle": "30L noir pour sanitaires, 50L noir pour communs",
-        "Note chantier": "90"
+        "Adresse": "Impasse Pierre-Bernard 31240 L'Union ",
+        "Contact": "Mme Noél",
+        "Téléphone": " 05 62 73 61 45",
+        "Mails": " MNoel@lamy-immobilier.fr",
+        "Syndic": "Lamy immobilier  ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "LeonelRibiero /disangro",
+        "Numéro Agents": "07 66 25 93 64\n06 58 96 76 46",
+        "Jour de passage /Tache": "Mardi Complet \nVendredi hall ",
+        "Code / clef": "Vigik Clé Badge ",
+        "Sortie om": "Dimanche",
+        "Sortie tri": "Mercredi ",
+        "Frange": "35/mois",
+        "type  ampoules néons": "E14 4000K",
+        "sac poubelle": "NON"
       },
       {
-        "Nom de la résidence": "LES JARDINS D'EMMA",
-        "N° De Clef": "3B",
-        "Adresse": "4 rue des Jardins\n31200 TOULOUSE",
-        "Contact": "Président du conseil syndical",
-        "Téléphone": "06 00 00 00 03",
-        "Mails": "cs@jardindemma.fr",
-        "Syndic": "SERGIC",
-        "Intervention": "Entretien complet, sortie OM/tri, gestion des encombrants.",
-        "Agents": "Agent C",
-        "Numéro Agents": "06 00 00 00 04",
-        "Jour de passage /Tache": "Lundi, mercredi, vendredi",
-        "Code / clef": "Clé + digicode",
-        "Sortie om": "Lundi, mercredi, vendredi 19h",
-        "Sortie tri": "Mercredi 19h",
-        "Frange": "Frange microfibre verte",
-        "type  ampoules néons": "LED E27 et bandeaux LED",
-        "sac poubelle": "50L noir, 30L transparents pour tri",
-        "Note chantier": "88"
+        "Nom de la résidence": "Berges de seine ",
+        "N° De Clef": "21",
+        "Adresse": "26 Boulevard de Suisse 31200 Toulouse ",
+        "Contact": "Mme Alalire ",
+        "Téléphone": "0562736062",
+        "Mails": "Alalire@nexity.fr",
+        "Syndic": "Nexity Carnot ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "Meriem \nMr Koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Lundi au vendredi 6h/jour ",
+        "Code / clef": "Clef \n badge ",
+        "Sortie om": "179 journée ",
+        "Sortie tri": "Ø",
+        "Frange": "90/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Brienne ",
+        "N° De Clef": "52",
+        "Adresse": "4 boulevard bernadette soubirous ",
+        "Contact": "Mr fonta",
+        "Téléphone": "0601654090",
+        "Mails": "Frederic.fonta@mngestion-immobiliere.com",
+        "Syndic": "Mngestion ",
+        "Intervention": "Toulouse Métropole ",
+        "Agents": "Ravillon ",
+        "Numéro Agents": "??????",
+        "Jour de passage /Tache": "1 entretien complet Tous les 3 jours ",
+        "Code / clef": "Code0460",
+        "Sortie om": "Lundi Jeudi",
+        "Sortie tri": "Jeudi",
+        "Frange": "45/mois",
+        "type  ampoules néons": "Ø",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "BSK",
+        "N° De Clef": "ouverture par le client",
+        "Adresse": "58 rue de magellan",
+        "Contact": "samuel douchy clinquart ",
+        "Téléphone": "06 11 243674",
+        "Mails": "",
+        "Syndic": "tertiaire",
+        "Intervention": "",
+        "Agents": "Da silva karolaine",
+        "Numéro Agents": "?",
+        "Jour de passage /Tache": "lundi au vendredi 2h30",
+        "Code / clef": "ouvert par le client code portail 1234",
+        "Sortie om": "LUNDI",
+        "Sortie tri": "MERCREDI",
+        "Frange": "0",
+        "type  ampoules néons": "Ø",
+        "sac poubelle": "Ø"
+      },
+      {
+        "Nom de la résidence": "Cabinet dentaire ",
+        "N° De Clef": "31",
+        "Adresse": "1 bis rue de l'europe Balma ",
+        "Contact": "Lemanier",
+        "Téléphone": "0616306711",
+        "Mails": "",
+        "Syndic": "Ø",
+        "Intervention": "Ø",
+        "Agents": "Da silva karolaine",
+        "Numéro Agents": "??????",
+        "Jour de passage /Tache": "Lundi 16:30 - 18:30",
+        "Code / clef": "Clé",
+        "Sortie om": "Lundi vendredi",
+        "Sortie tri": "??????",
+        "Frange": "10/mois",
+        "type  ampoules néons": "E14 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Canal du midi ",
+        "N° De Clef": "5",
+        "Adresse": "15 ter boulevard de la Marquette 31000 Toulouse ",
+        "Contact": "Mme Lalire ",
+        "Téléphone": "0562736062",
+        "Mails": "Alalire@nexity.fr",
+        "Syndic": "Nexity Carnot ",
+        "Intervention": "Toulouse Métropole ",
+        "Agents": "Balta ",
+        "Numéro Agents": "J J J J J  ",
+        "Jour de passage /Tache": "Lundi 02:30 complet \nJeudi 01:30 complet",
+        "Code / clef": "Clé badge \nVigik ",
+        "Sortie om": "Ø",
+        "Sortie tri": "Ø",
+        "Frange": "55/mois ",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Canal du midi bureaux",
+        "N° De Clef": "5",
+        "Adresse": "15 ter boulevard de la Marquette 31000 Toulouse ",
+        "Contact": "Mme Lalire ",
+        "Téléphone": "0562736062",
+        "Mails": "Alalire@nexity.fr",
+        "Syndic": "Nexity Carnot ",
+        "Intervention": "Evacuation Tertiaire ",
+        "Agents": "Balta ",
+        "Numéro Agents": "??????",
+        "Jour de passage /Tache": "1 fois / semaine ",
+        "Code / clef": "Clé badge \nVigik ",
+        "Sortie om": "Ø",
+        "Sortie tri": "Ø",
+        "Frange": "10/mois",
+        "type  ampoules néons": "E27 - ",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Domaine du canal ",
+        "N° De Clef": "36",
+        "Adresse": "22 bis chemin du canal 31170 Tournefeuille",
+        "Contact": "Mme Levanphung",
+        "Téléphone": "0562219876 - 0643402956",
+        "Mails": "Alexandra.levanphung@square.fr",
+        "Syndic": "Square Habitat ",
+        "Intervention": "Évacuation entreprise",
+        "Agents": "Meriem \nMr Koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Mardi 01:15 Complet              ...                              Vendredi 01:15          Hall + rentrée des conteneurs ",
+        "Code / clef": "Telecommande \nBadge \nClé ",
+        "Sortie om": "Dimanche Mercredi",
+        "Sortie tri": "Mardi",
+        "Frange": "75/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Domaine du canal colocation ",
+        "N° De Clef": "36",
+        "Adresse": "22 bis chemin du canal 31170 Tournefeuille",
+        "Contact": "Mme Levanphung",
+        "Téléphone": "0562219876 - 0643402956",
+        "Mails": "Alexandra.levanphung@square.fr",
+        "Syndic": "Square Habitat ",
+        "Intervention": "Base \nÉvacuation entreprise",
+        "Agents": "LEONEL/ KENNY ",
+        "Numéro Agents": "07 66 25 93 64/",
+        "Jour de passage /Tache": "Lundi complet \nMercredi complet  ",
+        "Code / clef": "Telecommande \nBadge \nClé ",
+        "Sortie om": "Dimanche Mercredi",
+        "Sortie tri": "Mardi",
+        "Frange": "30/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "ESPE ",
+        "N° De Clef": "61",
+        "Adresse": "9 rue de l'université 31200 Toulouse ",
+        "Contact": "Mme Moncany ",
+        "Téléphone": "0561280114 / 0689240627",
+        "Mails": "Emilie.moncany@square.fr",
+        "Syndic": "Square habitat ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "",
+        "Numéro Agents": "",
+        "Jour de passage /Tache": "Lundi 2h30 ",
+        "Code / clef": "?????",
+        "Sortie om": "Lundi jeudi ",
+        "Sortie tri": "Jeudi",
+        "Frange": "25/mois",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Garondine",
+        "N° De Clef": "50",
+        "Adresse": "37 boulevard silvio trentin ",
+        "Contact": "Mr Falieres ",
+        "Téléphone": " 05 62 73 60 62",
+        "Mails": "",
+        "Syndic": " Nexity carnot",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "Meriem \nMr koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Lundi complet \nVendredi complet ",
+        "Code / clef": "Telecommande \nClé badge ",
+        "Sortie om": "Lundi jeudi ",
+        "Sortie tri": "Jeudi",
+        "Frange": "25/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Garondine bureaux ",
+        "N° De Clef": "50",
+        "Adresse": "37 boulevard silvio trentin ",
+        "Contact": "Mr Falieres ",
+        "Téléphone": " 05 62 73 60 62",
+        "Mails": "",
+        "Syndic": "Tertiaire ",
+        "Intervention": "Base ",
+        "Agents": "Meriem \nMr koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Lundi complet \nVendredi complet ",
+        "Code / clef": "Telecommande \nClé badge ",
+        "Sortie om": "Lundi jeudi ",
+        "Sortie tri": "Jeudi",
+        "Frange": "15/mois",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Grand angle",
+        "N° De Clef": "Ø",
+        "Adresse": "Rue roccagrimalda ",
+        "Contact": "???\n???",
+        "Téléphone": "??????",
+        "Mails": "???",
+        "Syndic": "??",
+        "Intervention": "Toulouse Métropole ",
+        "Agents": "Abdelmajine",
+        "Numéro Agents": "",
+        "Jour de passage /Tache": "1 / semaine 3h remo placette + parking bandes blanches \n4h hebdomadaire pour les bâtiments ",
+        "Code / clef": "???",
+        "Sortie om": "???",
+        "Sortie tri": "???",
+        "Frange": "???",
+        "type  ampoules néons": "E14 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Haute ville ",
+        "N° De Clef": "28",
+        "Adresse": "4 rue du corail 31240 L'Union ",
+        "Contact": "Mme Alalire  / Arrébarste ",
+        "Téléphone": " 05 62 73 60 62",
+        "Mails": "Alalire@nexity.fr /",
+        "Syndic": "Nexity Carnot ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "Meriem \nMr koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Lundi complet 2h \nJeudi hall 0:45",
+        "Code / clef": "Clé badge ",
+        "Sortie om": "Lundi jeudi ",
+        "Sortie tri": "Mardi",
+        "Frange": "25/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Haute ville bureaux ",
+        "N° De Clef": "28",
+        "Adresse": "4 rue du corail 31240 L'Union ",
+        "Contact": "",
+        "Téléphone": "",
+        "Mails": "",
+        "Syndic": "Tertiaire ",
+        "Intervention": "Base ",
+        "Agents": "",
+        "Numéro Agents": "",
+        "Jour de passage /Tache": "Jeudi",
+        "Code / clef": "",
+        "Sortie om": "",
+        "Sortie tri": "",
+        "Frange": "",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Hémisphère ",
+        "N° De Clef": "49",
+        "Adresse": "7 impasse simon sabot 31200 Toulouse ",
+        "Contact": "Mme Alalire ",
+        "Téléphone": "0562736062",
+        "Mails": "Alalire@nexity.fr",
+        "Syndic": "Nexity Carnot ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "Meriem \nMr koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Lundi 1h45 complet \nJeudi 1h30 complet",
+        "Code / clef": "Clé badge ",
+        "Sortie om": "Dimanche mercredi",
+        "Sortie tri": "Mardi",
+        "Frange": "25/mois",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Hémisphère bureaux ",
+        "N° De Clef": "49",
+        "Adresse": "7 impasse simon sabot 31200 Toulouse ",
+        "Contact": "Mr Lavenir ",
+        "Téléphone": "??????",
+        "Mails": "??????",
+        "Syndic": "Tertiaire ",
+        "Intervention": "Base ",
+        "Agents": "??????",
+        "Numéro Agents": "????",
+        "Jour de passage /Tache": "1 par semaine",
+        "Code / clef": "Clé badge ",
+        "Sortie om": "???",
+        "Sortie tri": "???",
+        "Frange": "5/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Métropole (partie OR 1)",
+        "N° De Clef": "59",
+        "Adresse": "1-3 boulevard de Strasbourg 31000 Toulouse",
+        "Contact": "Mme Escpat ",
+        "Téléphone": "0562736062",
+        "Mails": "Cescpat@nexity.fr",
+        "Syndic": "Nexity Carnot ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "Adjal ",
+        "Numéro Agents": "??",
+        "Jour de passage /Tache": "Lundi 2h complet / Mercredi 1h30 complet",
+        "Code / clef": "Clé badge bip",
+        "Sortie om": "Lundi mercredi vendredi",
+        "Sortie tri": "",
+        "Frange": "40/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Métropole (partie INOVTEC)",
+        "N° De Clef": "59",
+        "Adresse": "1-3 boulevard de Strasbourg 31000 Toulouse",
+        "Contact": "Fournier Lutz ",
+        "Téléphone": "??????",
+        "Mails": "??????",
+        "Syndic": "Tertiaire ",
+        "Intervention": "Base ",
+        "Agents": "Adjal & ?????",
+        "Numéro Agents": "??",
+        "Jour de passage /Tache": "???????",
+        "Code / clef": "Clé badge bip",
+        "Sortie om": "??????",
+        "Sortie tri": "??????",
+        "Frange": "10/mois",
+        "type  ampoules néons": "E27 4000K ou E14 4000k ou 3800k",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Narcha",
+        "N° De Clef": "58",
+        "Adresse": "2 rue roquemaurel toulouse",
+        "Contact": "Mr Fonta",
+        "Téléphone": "0601654090",
+        "Mails": "frederic.fonta@mngestion-immobiliere.com",
+        "Syndic": "MnGestion",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "Di Sangro / Leonel Ribiero",
+        "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+        "Jour de passage /Tache": "Lundi complet ",
+        "Code / clef": "Telecommande\nVigik\nclef",
+        "Sortie om": "LUNDI \nJEUDI",
+        "Sortie tri": "MERCREDI",
+        "Frange": "Ø",
+        "type  ampoules néons": "E27 4000K",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Narbonne",
+        "N° De Clef": "48",
+        "Adresse": "85 route de narbonne, Toulouse",
+        "Contact": "M Fonta",
+        "Téléphone": "0601654090",
+        "Mails": "frederic.fonta@mngestion-immobiliere.com",
+        "Syndic": "MnGestion",
+        "Intervention": "Toulouse métropole ",
+        "Agents": "Di Sangro / Leonel Ribiero",
+        "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
+        "Jour de passage /Tache": "Tous les jours ",
+        "Code / clef": "Clef / badge",
+        "Sortie om": "",
+        "Sortie tri": "",
+        "Frange": "",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Opéra ",
+        "N° De Clef": "12",
+        "Adresse": "31 rue figeac 31200 Toulouse ",
+        "Contact": "Mme Gonzalez Manon ",
+        "Téléphone": "0561361501",
+        "Mails": "Manon.gonzalez@foncia.com",
+        "Syndic": "FONCIA ",
+        "Intervention": "Toulouse métropole ",
+        "Agents": "Meriem \nMr Koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "lundi 1:15  complet                                                   Mercredi 1:15 complet                                Vendredi 00:30 hall",
+        "Code / clef": "Clef bip badge",
+        "Sortie om": "lundi jeudi",
+        "Sortie tri": "jeudi",
+        "Frange": "25/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Orea ",
+        "N° De Clef": "35",
+        "Adresse": "1/5/7 rue pagnol et 26 avenue de Galilée 31130 Balma ",
+        "Contact": "Mr Fonta ",
+        "Téléphone": "06 95 47 19 76",
+        "Mails": "frederic.fonta@mngestion-immobiliere.com",
+        "Syndic": "MN gestion ",
+        "Intervention": "Évacuation entreprise ",
+        "Agents": "Dulceinia",
+        "Numéro Agents": "",
+        "Jour de passage /Tache": "Lundi 2.5 h                                Jeudi 2.5h",
+        "Code / clef": "Clef Badge Bip",
+        "Sortie om": "Ø",
+        "Sortie tri": "Ø",
+        "Frange": "25/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Parc sud ",
+        "N° De Clef": "13",
+        "Adresse": "Place des marronniers 31700 Blagnac ",
+        "Contact": "Mme/ Mr ???",
+        "Téléphone": "??????",
+        "Mails": "??????",
+        "Syndic": "Square Habitat ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "???",
+        "Numéro Agents": "??????",
+        "Jour de passage /Tache": "Lundi   3h\"les passage 2,4,6\nJeudi    3h pour les passages 1,3,5",
+        "Code / clef": "Telecommande \nClé badge ",
+        "Sortie om": "Dimanche mercredi",
+        "Sortie tri": "Mardi",
+        "Frange": "25/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Parc sud bureaux ",
+        "N° De Clef": "13",
+        "Adresse": "Place des marronniers 31700 Blagnac ",
+        "Contact": "Mme/ Mr ???",
+        "Téléphone": "??????",
+        "Mails": "??????",
+        "Syndic": "Tertiaire ",
+        "Intervention": "Base / évacuation entreprise",
+        "Agents": "???",
+        "Numéro Agents": "??????",
+        "Jour de passage /Tache": "Lundi 2h/3h par semaine ",
+        "Code / clef": "Telecommande \nClé badge ",
+        "Sortie om": "Dimanche mercredi",
+        "Sortie tri": "Mardi",
+        "Frange": "10/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Park griffoul ",
+        "N° De Clef": "22",
+        "Adresse": "49 boulevard griffoul dorval / 49 avenue de la baraquette",
+        "Contact": "Andrieu     -                        Simon ",
+        "Téléphone": "0660641360    0785520064",
+        "Mails": "",
+        "Syndic": "martin gestion ",
+        "Intervention": "Toulouse Métropole",
+        "Agents": "Akardad",
+        "Numéro Agents": "0775956868",
+        "Jour de passage /Tache": "Lundic c14:00-16:30   Mardi 14:00-17:00 Mercredi 14:00-16:30 Jeudi 14:00-17:00 Vendredi 14:00-16:30",
+        "Code / clef": "Clef - badge - Bip portail code  Batiment A hall 02146 Batiment 01236 Ascenseur 02145 Batiment B hall 02146 Batiment 01235 Ascenseur 02147 Batiment C hall         Badge Batiment   08931 Ascenseur 07513     Accès sous sol 7348",
+        "Sortie om": "Dimanche Mercredi",
+        "Sortie tri": "Mardi",
+        "Frange": "25/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Seven ",
+        "N° De Clef": "51",
+        "Adresse": "3 avenue de turenne 31000 Toulouse ",
+        "Contact": "Mme Levanphung ",
+        "Téléphone": "0562219876 / 0643502956",
+        "Mails": "Alexandra.Levanphung@square.fr ",
+        "Syndic": "Square habitat",
+        "Intervention": "Toulouse métropole ",
+        "Agents": "Mr Samriye",
+        "Numéro Agents": "0641540279",
+        "Jour de passage /Tache": "lundi 1:15 complet jeudi",
+        "Code / clef": "Badge / bip / clef",
+        "Sortie om": "lundi jeudi",
+        "Sortie tri": "mercredi",
+        "Frange": "35/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Smart RX",
+        "N° De Clef": "39",
+        "Adresse": "16 av Charles de Gaulle numéro 11",
+        "Contact": "Mr Recor",
+        "Téléphone": "",
+        "Mails": "O.recor@smart-rx.com",
+        "Syndic": "Tertiaire",
+        "Intervention": "Évacuation entreprise ",
+        "Agents": "Mr Dupla ",
+        "Numéro Agents": "0771577140",
+        "Jour de passage /Tache": "Mercredi Complet  12:30 - 15:15",
+        "Code / clef": "Clef ",
+        "Sortie om": "Ø",
+        "Sortie tri": "Ø",
+        "Frange": "10/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Vaughan avocat ",
+        "N° De Clef": "59",
+        "Adresse": "15 rue de la bourse 31000 Toulouse ",
+        "Contact": "Mr Bruno de la portaliere",
+        "Téléphone": "0682992221 / 0561251284",
+        "Mails": "Bdelaportaliere@vaughan-avocats.fr",
+        "Syndic": "Tertiaire ",
+        "Intervention": "Évacuation entreprise ",
+        "Agents": "Mme Aboutammame",
+        "Numéro Agents": "0752103264",
+        "Jour de passage /Tache": "Samedi ou dimanche ",
+        "Code / clef": "Clef ",
+        "Sortie om": "Ø",
+        "Sortie tri": "Ø",
+        "Frange": "10/ mois",
+        "type  ampoules néons": "",
+        "sac poubelle": ""
+      },
+      {
+        "Nom de la résidence": "Vergers tolosan ",
+        "N° De Clef": "15",
+        "Adresse": "4 chemin de la Flambère 31300 Toulouse ",
+        "Contact": "Mme Levanphung ",
+        "Téléphone": "0562219876 - 0643502956",
+        "Mails": "Alexandra.levanphung@square.fr",
+        "Syndic": "Square habitat ",
+        "Intervention": "Toulouse métropole ",
+        "Agents": "Meriem \nMr Koita",
+        "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
+        "Jour de passage /Tache": "Lundi Vendredi                                                02:00/ jour",
+        "Code / clef": "Clef bip badge",
+        "Sortie om": "mardi vendredi",
+        "Sortie tri": "dimanche",
+        "Frange": "80/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
+      },
+      {
+        "Nom de la résidence": "Via tolosan ",
+        "N° De Clef": "2",
+        "Adresse": "1 avenue Marcel Dassault",
+        "Contact": "Mr Cussac - Mme Coval ",
+        "Téléphone": "0621784182 / 0534321299",
+        "Mails": "Jcussac@nexity.fr / scoval@nexity.fr ",
+        "Syndic": "Nexity Saint Michel ",
+        "Intervention": "Toulouse métropole ",
+        "Agents": "Mr Mohkadam",
+        "Numéro Agents": "0767979067     -                       0758227029",
+        "Jour de passage /Tache": "Lundi - Mardi - Mercredi - Jeudi - Vendredi",
+        "Code / clef": "Clef - badge - bip  code cadena portail pompier 1971 ",
+        "Sortie om": "dimanche mercredi",
+        "Sortie tri": "mardi",
+        "Frange": "70/mois",
+        "type  ampoules néons": "",
+        "sac poubelle": "NON"
       }
     ];
 
-    (function initLocalStorage(){
-      try {
-        const stored = localStorage.getItem("chantiersData_editable");
-        if (stored) {
-          const arr = JSON.parse(stored);
-          if (Array.isArray(arr) && arr.length > 0) {
-            for (let i = 0; i < arr.length && i < CHANTIERS.length; i++) {
-              const base = CHANTIERS.findIndex(c => c["Nom de la résidence"] === arr[i]["Nom de la résidence"]);
-              if (base >= 0) {
-                CHANTIERS[base] = Object.assign({}, CHANTIERS[base], arr[i]);
-              }
-            }
-          }
+    // Si des données existantes ont été enregistrées en localStorage, on les recharge
+    try {
+      const stored = localStorage.getItem("chantiersData_editable");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length) {
+          CHANTIERS.splice(0, CHANTIERS.length, ...parsed);
         }
-      } catch (e) {
-        console.warn("Impossible de lire les données locales :", e);
       }
-    })();
-
-    const listeChantiers = document.getElementById("listeChantiers");
-    const listeCount = document.getElementById("listeCount");
+    } catch (e) {
+      console.warn("Impossible de charger les données locales :", e);
+    }
 
     const searchInput = document.getElementById("searchInput");
     const syndicFilter = document.getElementById("syndicFilter");
     const triSelect = document.getElementById("triSelect");
+    const listEl = document.getElementById("chantiersList");
+    const countVisibleEl = document.getElementById("countVisible");
+    const countTotalEl = document.getElementById("countTotal");
+
+    const detailEmpty = document.getElementById("detailEmpty");
+    const detailContent = document.getElementById("detailContent");
+
+    const detailResidence = document.getElementById("detailResidence");
+    const detailAddress = document.getElementById("detailAddress");
+    const detailSyndicPill = document.getElementById("detailSyndicPill");
+    const detailHint = document.getElementById("detailHint");
 
     const infoResidence = document.getElementById("infoResidence");
     const infoAdresse = document.getElementById("infoAdresse");
     const infoSyndic = document.getElementById("infoSyndic");
-    const infoClef = document.getElementById("infoClef");
+
     const infoContact = document.getElementById("infoContact");
     const infoTelephone = document.getElementById("infoTelephone");
     const infoMail = document.getElementById("infoMail");
+
     const infoIntervention = document.getElementById("infoIntervention");
     const infoJours = document.getElementById("infoJours");
     const infoAgents = document.getElementById("infoAgents");
     const infoNumAgents = document.getElementById("infoNumAgents");
+
     const infoCodeClef = document.getElementById("infoCodeClef");
     const infoSortieOm = document.getElementById("infoSortieOm");
     const infoSortieTri = document.getElementById("infoSortieTri");
+    const infoSac = document.getElementById("infoSac");
+
     const infoFrange = document.getElementById("infoFrange");
     const infoAmpoules = document.getElementById("infoAmpoules");
-    const infoSac = document.getElementById("infoSac");
     const infoNote = document.getElementById("infoNote");
 
     const infoCahierFile = document.getElementById("infoCahierFile");
@@ -1877,13 +1825,8 @@
 
     const saveButton = document.getElementById("saveButton");
     const saveStatus = document.getElementById("saveStatus");
-
-    // Nouveaux boutons ajout / suppression de chantier
     const addChantierBtn = document.getElementById("addChantierBtn");
     const deleteChantierBtn = document.getElementById("deleteChantierBtn");
-
-    const noteKpi = document.getElementById("noteKpi");
-    const cleKpi = document.getElementById("cleKpi");
 
     let etat = {
       recherche: "",
@@ -1892,280 +1835,8 @@
       selectionIndex: null
     };
 
-    function normaliserTexte(str){
-      if (!str) return "";
-      return String(str)
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-    }
-
-    function calculerClasseNote(noteStr){
-      const n = parseFloat(noteStr);
-      if (isNaN(n)) return "";
-      if (n >= 90) return "good";
-      if (n >= 75) return "medium";
-      return "low";
-    }
-
-    function buildSyndicOptions(){
-      const syndicSet = new Set();
-      CHANTIERS.forEach(c => {
-        if (c.Syndic && String(c.Syndic).trim() !== "") {
-          syndicSet.add(String(c.Syndic).trim());
-        }
-      });
-      const syndicArray = Array.from(syndicSet).sort((a,b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
-      syndicFilter.innerHTML = '<option value="">Tous</option>';
-      syndicArray.forEach(s => {
-        const opt = document.createElement("option");
-        opt.value = s;
-        opt.textContent = s;
-        syndicFilter.appendChild(opt);
-      });
-    }
-
-    function getFilteredAndSortedIndices(){
-      const indices = [];
-      const search = normaliserTexte(etat.recherche);
-      const filtreSyndic = etat.syndic;
-
-      CHANTIERS.forEach((c, index) => {
-        let keep = true;
-
-        if (search) {
-          const blocTexte = [
-            c["Nom de la résidence"],
-            c["Adresse"],
-            c["Syndic"],
-            c["Contact"],
-            c["Agents"],
-            c["Jour de passage /Tache"]
-          ].join(" ");
-          const normalized = normaliserTexte(blocTexte);
-          if (!normalized.includes(search)) {
-            keep = false;
-          }
-        }
-
-        if (keep && filtreSyndic) {
-          if (!c.Syndic || String(c.Syndic).trim() !== filtreSyndic) {
-            keep = false;
-          }
-        }
-
-        if (keep) indices.push(index);
-      });
-
-      const tri = etat.tri;
-      indices.sort((a, b) => {
-        const ca = CHANTIERS[a];
-        const cb = CHANTIERS[b];
-
-        if (tri === "alpha") {
-          const na = ca["Nom de la résidence"] || "";
-          const nb = cb["Nom de la résidence"] || "";
-          return na.localeCompare(nb, "fr", { sensitivity: "base" });
-        }
-
-        if (tri === "note") {
-          const na = parseFloat(ca["Note chantier"] || "0");
-          const nb = parseFloat(cb["Note chantier"] || "0");
-          if (isNaN(na) && isNaN(nb)) return 0;
-          if (isNaN(na)) return 1;
-          if (isNaN(nb)) return -1;
-          return nb - na;
-        }
-
-        if (tri === "syndic") {
-          const sa = ca.Syndic || "";
-          const sb = cb.Syndic || "";
-          const cmp = sa.localeCompare(sb, "fr", { sensitivity: "base" });
-          if (cmp !== 0) return cmp;
-          const na = ca["Nom de la résidence"] || "";
-          const nb = cb["Nom de la résidence"] || "";
-          return na.localeCompare(nb, "fr", { sensitivity: "base" });
-        }
-
-        const na = ca["Nom de la résidence"] || "";
-        const nb = cb["Nom de la résidence"] || "";
-        return na.localeCompare(nb, "fr", { sensitivity: "base" });
-      });
-
-      return indices;
-    }
-
-    function renderListe(){
-      const indices = getFilteredAndSortedIndices();
-      listeChantiers.innerHTML = "";
-
-      const count = indices.length;
-      listeCount.textContent = count + (count <= 1 ? " chantier" : " chantiers");
-
-      indices.forEach((idx) => {
-        const c = CHANTIERS[idx];
-        const item = document.createElement("div");
-        item.className = "chantier-item";
-        if (etat.selectionIndex === idx) {
-          item.classList.add("selected");
-        }
-
-        const nom = c["Nom de la résidence"] || "(Sans nom)";
-        const syndic = c.Syndic || "—";
-        const adresse = (c.Adresse || "").replace(/\n/g, " ");
-        const contact = c.Contact || "Contact non renseigné";
-        const noteStr = c["Note chantier"] || "";
-        const noteClass = calculerClasseNote(noteStr);
-        const noteBadge = noteStr ? `<span class="note-pill note-${noteClass}">${noteStr}</span>` : "";
-
-        item.innerHTML = `
-          <div class="chantier-item-header">
-            <div class="chantier-item-title">${nom}</div>
-            <div class="chantier-item-badge">
-              <span>🧭</span>
-              <span>${syndic}</span>
-            </div>
-          </div>
-          <div class="chantier-item-subline">
-            <span>${adresse || "Adresse non renseignée"}</span>
-          </div>
-          <div class="chantier-item-subline">
-            <span>👤 ${contact}</span>
-            ${noteBadge}
-          </div>
-        `;
-
-        item.addEventListener("click", () => {
-          etat.selectionIndex = idx;
-          renderListe();
-          renderDetail();
-        });
-
-        listeChantiers.appendChild(item);
-      });
-
-      if (etat.selectionIndex === null && indices.length > 0) {
-        etat.selectionIndex = indices[0];
-        renderListe();
-        renderDetail();
-      }
-    }
-
-    function renderDetail(){
-      const idx = etat.selectionIndex;
-      if (idx === null || idx < 0 || idx >= CHANTIERS.length) {
-        infoResidence.value = "";
-        infoAdresse.value = "";
-        infoSyndic.value = "";
-        infoClef.value = "";
-        infoContact.value = "";
-        infoTelephone.value = "";
-        infoMail.value = "";
-        infoIntervention.value = "";
-        infoJours.value = "";
-        infoAgents.value = "";
-        infoNumAgents.value = "";
-        infoCodeClef.value = "";
-        infoSortieOm.value = "";
-        infoSortieTri.value = "";
-        infoFrange.value = "";
-        infoAmpoules.value = "";
-        infoSac.value = "";
-        infoNote.value = "";
-
-        noteKpi.textContent = "–";
-        cleKpi.textContent = "–";
-        infoNote.classList.remove("good","medium","low");
-
-        updateCahierUI();
-        saveStatus.textContent = "";
-        return;
-      }
-
-      const c = CHANTIERS[idx];
-
-      infoResidence.value = c["Nom de la résidence"] || "";
-      infoAdresse.value = c["Adresse"] || "";
-      infoSyndic.value = c.Syndic || "";
-      infoClef.value = c["N° De Clef"] || "";
-      infoContact.value = c.Contact || "";
-      infoTelephone.value = c["Téléphone"] || "";
-      infoMail.value = c["Mails"] || "";
-      infoIntervention.value = c["Intervention"] || "";
-      infoJours.value = c["Jour de passage /Tache"] || "";
-      infoAgents.value = c["Agents"] || "";
-      infoNumAgents.value = c["Numéro Agents"] || "";
-      infoCodeClef.value = c["Code / clef"] || "";
-      infoSortieOm.value = c["Sortie om"] || "";
-      infoSortieTri.value = c["Sortie tri"] || "";
-      infoFrange.value = c["Frange"] || "";
-      infoAmpoules.value = c["type  ampoules néons"] || "";
-      infoSac.value = c["sac poubelle"] || "";
-      infoNote.value = c["Note chantier"] || "";
-
-      noteKpi.textContent = c["Note chantier"] || "–";
-      cleKpi.textContent = c["N° De Clef"] || "–";
-
-      infoNote.classList.remove("good","medium","low");
-      const noteClass = calculerClasseNote(c["Note chantier"]);
-      if (noteClass) {
-        infoNote.classList.add(noteClass);
-      }
-
-      updateCahierUI();
-      saveStatus.textContent = "";
-    }
-
-    function sauvegarderSelection(){
-      const idx = etat.selectionIndex;
-      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
-        saveStatus.textContent = "Aucun chantier sélectionné.";
-        return;
-      }
-      const c = CHANTIERS[idx];
-
-      c["Nom de la résidence"] = infoResidence.value.trim();
-      c["Adresse"] = infoAdresse.value.trim();
-      c["Syndic"] = infoSyndic.value.trim();
-
-      c["N° De Clef"] = infoClef.value.trim();
-      c["Contact"] = infoContact.value.trim();
-      c["Téléphone"] = infoTelephone.value.trim();
-      c["Mails"] = infoMail.value.trim();
-
-      c["Intervention"] = infoIntervention.value.trim();
-      c["Jour de passage /Tache"] = infoJours.value.trim();
-      c["Agents"] = infoAgents.value.trim();
-      c["Numéro Agents"] = infoNumAgents.value.trim();
-
-      c["Code / clef"] = infoCodeClef.value.trim();
-      c["Sortie om"] = infoSortieOm.value.trim();
-      c["Sortie tri"] = infoSortieTri.value.trim();
-      c["Frange"] = infoFrange.value.trim();
-      c["type  ampoules néons"] = infoAmpoules.value.trim();
-      c["sac poubelle"] = infoSac.value.trim();
-
-      c["Note chantier"] = infoNote.value.trim();
-      const noteClass = calculerClasseNote(c["Note chantier"]);
-      infoNote.classList.remove("good","medium","low");
-      if (noteClass) infoNote.classList.add(noteClass);
-
-      noteKpi.textContent = c["Note chantier"] || "–";
-      cleKpi.textContent = c["N° De Clef"] || "–";
-
-      try {
-        localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
-        saveStatus.textContent = "Modifications enregistrées pour ce chantier.";
-      } catch (e) {
-        console.warn("Impossible d'enregistrer les modifications :", e);
-        saveStatus.textContent = "Erreur : impossible d'enregistrer les modifications (stockage local indisponible).";
-      }
-
-      renderListe();
-    }
-
-    function ajouterChantier(){
-      const nouveau = {
+    function createEmptyChantier() {
+      return {
         "Nom de la résidence": "Nouveau chantier",
         "N° De Clef": "",
         "Adresse": "",
@@ -2185,20 +1856,326 @@
         "sac poubelle": "",
         "Note chantier": ""
       };
+    }
 
-      CHANTIERS.push(nouveau);
-      etat.selectionIndex = CHANTIERS.length - 1;
+    function reindexCahiersAfterDeletion(deletedIndex) {
+      try {
+        const temp = {};
+        // On récupère tous les PDF existants
+        for (let i = 0; i < CHANTIERS.length + 1; i++) {
+          const key = "chantier_pdf_" + i;
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            temp[i] = raw;
+          }
+        }
+        // On supprime toutes les anciennes clés
+        for (let i = 0; i < CHANTIERS.length + 2; i++) {
+          localStorage.removeItem("chantier_pdf_" + i);
+        }
+        // On recrée les clés en décalant les index > deletedIndex
+        Object.keys(temp).forEach((oldKey) => {
+          const oldIndex = parseInt(oldKey, 10);
+          if (Number.isNaN(oldIndex)) return;
+          if (oldIndex < deletedIndex) {
+            localStorage.setItem("chantier_pdf_" + oldIndex, temp[oldKey]);
+          } else if (oldIndex > deletedIndex) {
+            localStorage.setItem("chantier_pdf_" + (oldIndex - 1), temp[oldKey]);
+          }
+          // oldIndex === deletedIndex -> on laisse tomber (chantier supprimé)
+        });
+      } catch (e) {
+        console.warn("Erreur pendant le ré-indexage des PDF :", e);
+      }
+    }
+
+    function normaliserTexte(str){
+      if (!str) return "";
+      return String(str)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g," ")
+        .trim();
+    }
+
+    const totalDistinct = new Set(
+      CHANTIERS.map(c => (c["Nom de la résidence"] || "").trim()).filter(Boolean)
+    ).size;
+    countTotalEl.textContent = totalDistinct;
+
+    function buildSyndicOptions() {
+      const current = etat.syndic;
+      const syndics = Array.from(
+        new Set(
+          CHANTIERS.map(c => (c["Syndic"] || "").trim()).filter(Boolean)
+        )
+      ).sort((a,b) => a.localeCompare(b,"fr"));
+
+      syndicFilter.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "";
+      optAll.textContent = "Tous les syndics";
+      syndicFilter.appendChild(optAll);
+
+      let stillExists = false;
+      syndics.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        if (s === current) {
+          opt.selected = true;
+          stillExists = true;
+        }
+        syndicFilter.appendChild(opt);
+      });
+
+      if (!stillExists) {
+        etat.syndic = "";
+        syndicFilter.value = "";
+      }
+    }
+
+    function filtrerChantiers(){
+      const term = normaliserTexte(etat.recherche);
+      return CHANTIERS.filter((c) => {
+        if (!c) return false;
+        if (etat.syndic && String(c["Syndic"] || "").trim() !== etat.syndic){
+          return false;
+        }
+        if (!term) return true;
+
+        const champs = [
+          c["Nom de la résidence"],
+          c["Adresse"],
+          c["Syndic"],
+          c["Contact"],
+          c["Agents"],
+          c["Jour de passage /Tache"]
+        ];
+
+        return champs.some(val => normaliserTexte(val).includes(term));
+      });
+    }
+
+    function trierChantiers(liste){
+      const tri = etat.tri;
+      return [...liste].sort((a,b) => {
+        if (tri === "syndic"){
+          const sa = normaliserTexte(a["Syndic"] || "");
+          const sb = normaliserTexte(b["Syndic"] || "");
+          if (sa === sb){
+            const ra = normaliserTexte(a["Nom de la résidence"] || "");
+            const rb = normaliserTexte(b["Nom de la résidence"] || "");
+            return ra.localeCompare(rb,"fr");
+          }
+          return sa.localeCompare(sb,"fr");
+        }
+        const ra = normaliserTexte(a["Nom de la résidence"] || "");
+        const rb = normaliserTexte(b["Nom de la résidence"] || "");
+        return ra.localeCompare(rb,"fr");
+      });
+    }
+
+    function renderListe(){
+      const filtrés = filtrerChantiers();
+      const chantiersAffiches = trierChantiers(filtrés);
+
+      listEl.innerHTML = "";
+      countVisibleEl.textContent = chantiersAffiches.length;
+
+      if (!chantiersAffiches.length){
+        const div = document.createElement("div");
+        div.className = "no-results";
+        div.innerHTML = `
+          <strong>Aucun chantier trouvé.</strong><br>
+          Vérifie l'orthographe ou enlève des filtres (syndic, tri).
+        `;
+        listEl.appendChild(div);
+        detailEmpty.style.display = "block";
+        detailContent.style.display = "none";
+        return;
+      }
+
+      chantiersAffiches.forEach((c) => {
+        const globalIndex = CHANTIERS.indexOf(c);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "res-item";
+
+        const residence = (c["Nom de la résidence"] || "").trim() || "Résidence sans nom";
+
+        const indexSpan = '<span class="res-item-index">' + String(globalIndex + 1).padStart(2,"0") + '</span>';
+        const labelSpan = '<span class="res-item-label">' + residence + '</span>';
+        btn.innerHTML = indexSpan + labelSpan;
+
+        if (etat.selectionIndex === globalIndex){
+          btn.classList.add("active");
+        }
+
+        btn.addEventListener("click", () => {
+          etat.selectionIndex = globalIndex;
+          renderListe();
+          renderDetail();
+        });
+
+        listEl.appendChild(btn);
+      });
+    }
+
+    function loadCahierForIndex(idx) {
+      if (idx === null || idx < 0) return null;
+      try {
+        const raw = localStorage.getItem("chantier_pdf_" + idx);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        console.warn("Impossible de charger le PDF pour ce chantier :", e);
+        return null;
+      }
+    }
+
+    function updateCahierUI() {
+      const idx = etat.selectionIndex;
+      const data = loadCahierForIndex(idx);
+      infoCahierFile.value = "";
+      if (!data) {
+        cahierInfo.textContent = "Aucun cahier des charges PDF enregistré pour ce chantier.";
+        openCahierBtn.disabled = true;
+        clearCahierBtn.disabled = true;
+      } else {
+        cahierInfo.textContent = "PDF enregistré : " + (data.name || "cahier_des_charges.pdf");
+        openCahierBtn.disabled = false;
+        clearCahierBtn.disabled = false;
+      }
+    }
+
+    function renderDetail(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
+        detailEmpty.style.display = "block";
+        detailContent.style.display = "none";
+        return;
+      }
+      const c = CHANTIERS[idx];
+
+      detailEmpty.style.display = "none";
+      detailContent.style.display = "block";
+
+      const residence = (c["Nom de la résidence"] || "").trim() || "Résidence sans nom";
+      const adresse = (c["Adresse"] || "").trim() || "Adresse non renseignée";
+      const syndic = (c["Syndic"] || "").trim() || "Syndic non renseigné";
+
+      const contact = (c["Contact"] || "").trim();
+      const tel = (c["Téléphone"] || "").trim();
+      const mails = (c["Mails"] || "").trim();
+
+      const intervention = (c["Intervention"] || "").trim();
+      const jours = (c["Jour de passage /Tache"] || "").trim();
+      const agents = (c["Agents"] || "").trim();
+      const nAgents = (c["Numéro Agents"] || "").trim();
+
+      const codeClef = (c["Code / clef"] || "").trim();
+      const sortieOm = (c["Sortie om"] || "").trim();
+      const sortieTri = (c["Sortie tri"] || "").trim();
+      const sac = (c["sac poubelle"] || "").trim();
+
+      const frange = (c["Frange"] || "").trim();
+      const ampoules = (c["type  ampoules néons"] || "").trim();
+
+      const note = (c["Note chantier"] || "").trim();
+
+      detailResidence.textContent = residence;
+      detailAddress.textContent = adresse;
+      detailSyndicPill.textContent = syndic;
+      detailHint.textContent = "Tu peux modifier chaque champ ci-dessous, importer un cahier des charges PDF, puis cliquer sur « Enregistrer les modifications ».";
+
+      infoResidence.value = (c["Nom de la résidence"] || "").trim();
+      infoAdresse.value = (c["Adresse"] || "").trim();
+      infoSyndic.value = (c["Syndic"] || "").trim();
+
+      infoContact.value = contact;
+      infoTelephone.value = tel;
+      infoMail.value = mails;
+
+      infoIntervention.value = intervention;
+      infoJours.value = jours;
+      infoAgents.value = agents;
+      infoNumAgents.value = nAgents;
+
+      infoCodeClef.value = codeClef;
+      infoSortieOm.value = sortieOm;
+      infoSortieTri.value = sortieTri;
+      infoSac.value = sac;
+
+      infoFrange.value = frange;
+      infoAmpoules.value = ampoules;
+      infoNote.value = note;
+
+      updateCahierUI();
+      saveStatus.textContent = "";
+    }
+
+    function sauvegarderSelection(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
+        saveStatus.textContent = "Aucun chantier sélectionné.";
+        return;
+      }
+      const c = CHANTIERS[idx];
+
+      c["Nom de la résidence"] = infoResidence.value.trim();
+      c["Adresse"] = infoAdresse.value.trim();
+      c["Syndic"] = infoSyndic.value.trim();
+
+      c["Contact"] = infoContact.value.trim();
+      c["Téléphone"] = infoTelephone.value.trim();
+      c["Mails"] = infoMail.value.trim();
+
+      c["Intervention"] = infoIntervention.value.trim();
+      c["Jour de passage /Tache"] = infoJours.value.trim();
+      c["Agents"] = infoAgents.value.trim();
+      c["Numéro Agents"] = infoNumAgents.value.trim();
+
+      c["Code / clef"] = infoCodeClef.value.trim();
+      c["Sortie om"] = infoSortieOm.value.trim();
+      c["Sortie tri"] = infoSortieTri.value.trim();
+      c["sac poubelle"] = infoSac.value.trim();
+
+      c["Frange"] = infoFrange.value.trim();
+      c["type  ampoules néons"] = infoAmpoules.value.trim();
+
+      c["Note chantier"] = infoNote.value.trim();
 
       try {
         localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
+        saveStatus.textContent = "Modifications enregistrées sur cet appareil.";
       } catch (e) {
         console.warn("Impossible d'enregistrer en localStorage :", e);
+        saveStatus.textContent = "Modifications appliquées (non stockées en local).";
       }
 
       buildSyndicOptions();
       renderListe();
       renderDetail();
-      saveStatus.textContent = "Nouveau chantier créé. Remplis les champs puis clique sur « Enregistrer les modifications ».";
+    }
+
+    function ajouterChantier(){
+      const nouveau = createEmptyChantier();
+      CHANTIERS.push(nouveau);
+      etat.selectionIndex = CHANTIERS.length - 1;
+
+      try {
+        localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
+        saveStatus.textContent = "Nouveau chantier créé. Complète les informations puis enregistre.";
+      } catch (e) {
+        console.warn("Impossible d'enregistrer en localStorage :", e);
+        saveStatus.textContent = "Nouveau chantier créé mais non stocké en local.";
+      }
+
+      buildSyndicOptions();
+      renderListe();
+      renderDetail();
     }
 
     function supprimerChantier(){
@@ -2208,87 +2185,32 @@
         return;
       }
 
-      const ok = confirm("Supprimer ce chantier de la liste ? Cette action est définitive sur cet appareil.");
+      const nom = (CHANTIERS[idx]["Nom de la résidence"] || "ce chantier").trim() || "ce chantier";
+      const ok = window.confirm("Supprimer définitivement " + nom + " ? Cette action est irréversible.");
       if (!ok) return;
 
       CHANTIERS.splice(idx, 1);
+      reindexCahiersAfterDeletion(idx);
 
       try {
         localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
-        localStorage.removeItem("chantier_pdf_" + idx);
+        saveStatus.textContent = "Chantier supprimé.";
       } catch (e) {
-        console.warn("Impossible de mettre à jour le localStorage :", e);
+        console.warn("Impossible d'enregistrer en localStorage après suppression :", e);
+        saveStatus.textContent = "Chantier supprimé (non stocké en local).";
       }
 
-      if (CHANTIERS.length === 0){
+      if (!CHANTIERS.length){
         etat.selectionIndex = null;
+      } else if (idx >= CHANTIERS.length){
+        etat.selectionIndex = CHANTIERS.length - 1;
       } else {
-        etat.selectionIndex = Math.min(idx, CHANTIERS.length - 1);
+        etat.selectionIndex = idx;
       }
 
       buildSyndicOptions();
       renderListe();
       renderDetail();
-      saveStatus.textContent = "Chantier supprimé.";
-    }
-
-    function updateCahierUI(){
-      const idx = etat.selectionIndex;
-      if (idx === null || idx < 0 || idx >= CHANTIERS.length) {
-        cahierInfo.textContent = "";
-        openCahierBtn.disabled = true;
-        clearCahierBtn.disabled = true;
-        infoCahierFile.value = "";
-        return;
-      }
-
-      try {
-        const stored = localStorage.getItem("chantier_pdf_" + idx);
-        if (!stored) {
-          cahierInfo.textContent = "Aucun cahier des charges PDF enregistré pour ce chantier.";
-          openCahierBtn.disabled = true;
-          clearCahierBtn.disabled = true;
-        } else {
-          const obj = JSON.parse(stored);
-          const name = obj.name || "Cahier des charges PDF";
-          cahierInfo.textContent = "PDF enregistré : " + name;
-          openCahierBtn.disabled = false;
-          clearCahierBtn.disabled = false;
-        }
-      } catch (e) {
-        console.warn("Erreur lecture PDF chantier :", e);
-        cahierInfo.textContent = "Impossible de lire les informations du cahier des charges.";
-        openCahierBtn.disabled = true;
-        clearCahierBtn.disabled = true;
-      }
-    }
-
-    function updateCahierUIAfterDelete(deletedIndex){
-      const newData = {};
-      Object.keys(localStorage).forEach(key => {
-        if (!key.startsWith("chantier_pdf_")) return;
-        const idxStr = key.replace("chantier_pdf_", "");
-        const idx = parseInt(idxStr, 10);
-        if (isNaN(idx)) return;
-        if (idx === deletedIndex) return;
-        if (idx > deletedIndex) {
-          newData["chantier_pdf_" + (idx - 1)] = localStorage.getItem(key);
-        } else {
-          newData[key] = localStorage.getItem(key);
-        }
-      });
-
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith("chantier_pdf_")) {
-          localStorage.removeItem(key);
-        }
-      });
-
-      Object.keys(newData).forEach(key => {
-        localStorage.setItem(key, newData[key]);
-      });
-
-      updateCahierUI();
     }
 
     searchInput.addEventListener("input", (e) => {
@@ -2313,23 +2235,14 @@
     infoCahierFile.addEventListener("change", (e) => {
       const idx = etat.selectionIndex;
       if (idx === null || idx < 0 || idx >= CHANTIERS.length) {
-        saveStatus.textContent = "Sélectionne d’abord un chantier avant d’ajouter un cahier des charges.";
+        saveStatus.textContent = "Sélectionne d'abord un chantier.";
         infoCahierFile.value = "";
         return;
       }
-
       const file = e.target.files[0];
       if (!file) return;
-
       if (file.type !== "application/pdf") {
-        saveStatus.textContent = "Seuls les fichiers PDF sont acceptés.";
-        infoCahierFile.value = "";
-        return;
-      }
-
-      const maxSize = 2 * 1024 * 1024;
-      if (file.size > maxSize) {
-        saveStatus.textContent = "PDF trop volumineux (max 2 Mo).";
+        saveStatus.textContent = "Merci de choisir un fichier PDF.";
         infoCahierFile.value = "";
         return;
       }
@@ -2351,40 +2264,36 @@
       reader.readAsDataURL(file);
     });
 
+    function updateCahierUIAfterDelete() {
+      cahierInfo.textContent = "Aucun cahier des charges PDF enregistré pour ce chantier.";
+      openCahierBtn.disabled = true;
+      clearCahierBtn.disabled = true;
+    }
+
     openCahierBtn.addEventListener("click", () => {
       const idx = etat.selectionIndex;
-      if (idx === null || idx < 0 || idx >= CHANTIERS.length) return;
-      try {
-        const stored = localStorage.getItem("chantier_pdf_" + idx);
-        if (!stored) return;
-        const obj = JSON.parse(stored);
-        const dataUrl = obj.dataUrl;
-        if (!dataUrl) return;
-        window.open(dataUrl, "_blank");
-      } catch (e) {
-        console.warn("Erreur ouverture PDF :", e);
+      const data = loadCahierForIndex(idx);
+      if (!data || !data.dataUrl) {
+        saveStatus.textContent = "Aucun PDF enregistré pour ce chantier.";
+        updateCahierUIAfterDelete();
+        return;
       }
+      window.open(data.dataUrl, "_blank");
     });
 
     clearCahierBtn.addEventListener("click", () => {
       const idx = etat.selectionIndex;
-      if (idx === null || idx < 0 || idx >= CHANTIERS.length) return;
-      const ok = confirm("Supprimer le cahier des charges PDF pour ce chantier ?");
-      if (!ok) return;
       try {
         localStorage.removeItem("chantier_pdf_" + idx);
-        infoCahierFile.value = "";
-        cahierInfo.textContent = "Cahier des charges supprimé pour ce chantier.";
-        openCahierBtn.disabled = true;
-        clearCahierBtn.disabled = true;
       } catch (e) {
-        console.warn("Erreur suppression PDF :", e);
+        console.warn("Erreur en supprimant le PDF :", e);
       }
+      updateCahierUIAfterDelete();
+      saveStatus.textContent = "Cahier des charges PDF supprimé pour ce chantier.";
     });
 
     buildSyndicOptions();
     renderListe();
-    renderDetail();
   </script>
 </body>
 </html>
