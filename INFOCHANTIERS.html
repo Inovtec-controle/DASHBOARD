@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Base chantiers – INOVTEC KONTROL</title>
+  <title>Fiche Chantiers – Édition & Cahier des charges</title>
 
   <!-- iPhone friendly -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,2454 +12,1862 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    :root{
-      --bg:#f1f5f9;
-      --panel:#ffffff;
-      --panel-soft:#e2e8f0;
-      --text:#0f172a;
-      --muted:#64748b;
-      --border:rgba(148,163,184,.4);
-      --brand:#16a34a;
-      --brand-soft:rgba(22,163,74,.08);
-      --brand-strong:rgba(22,163,74,.18);
-      --danger:#e11d48;
-      --radius-lg:18px;
-      --radius-xl:24px;
-      --shadow-soft:0 20px 50px rgba(15,23,42,.12);
-      --shadow-card:0 14px 35px rgba(15,23,42,.16);
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    *{
-      box-sizing:border-box;
-      margin:0;
-      padding:0;
+    :root {
+      --bg: #0f172a;
+      --bg-elevated: #020617;
+      --bg-soft: #020617;
+      --bg-softer: #020617;
+      --accent: #22c55e;
+      --accent-soft: rgba(34,197,94,.12);
+      --accent-soft-strong: rgba(34,197,94,.22);
+      --accent-border: rgba(34,197,94,.45);
+      --accent-border-strong: rgba(34,197,94,.8);
+      --accent-muted: #bbf7d0;
+      --text: #e5e7eb;
+      --text-soft: #9ca3af;
+      --text-softer: #6b7280;
+      --border-subtle: rgba(31,41,55,.85);
+      --border-strong: rgba(55,65,81,1);
+      --shadow-soft: 0 18px 35px rgba(15,23,42,.95);
+      --radius-lg: 22px;
+      --radius-xl: 26px;
+      --radius-full: 999px;
+      --danger: #f97373;
+      --danger-soft: rgba(248,113,113,.14);
+      --danger-border: rgba(248,113,113,.7);
+      --warning: #facc15;
+      --warning-soft: rgba(234,179,8,.1);
+      --input-bg: rgba(15,23,42,.86);
+      --input-border: rgba(148,163,184,.2);
+      --input-border-strong: rgba(148,163,184,.55);
+      --pill-bg: rgba(15,23,42,.9);
     }
 
-    html, body{
-      height:100%;
-    }
-
-    body{
-      font-family:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:radial-gradient(circle at top left, rgba(148,163,184,.3), transparent 60%), var(--bg);
-      color:var(--text);
-      min-height:100vh;
-      -webkit-font-smoothing:antialiased;
-    }
-
-    .app-shell{
-      height:100vh;
-      display:flex;
-      justify-content:center;
-      padding:16px;
-    }
-
-    .app-container{
-      width:100%;
-      max-width:1200px;
+    body {
+      min-height: 100vh;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background:
-        radial-gradient(circle at top left, rgba(22,163,74,.06), transparent 55%),
-        radial-gradient(circle at bottom right, rgba(59,130,246,.06), transparent 60%),
-        var(--panel);
-      border-radius:28px;
-      border:1px solid var(--border);
-      box-shadow:var(--shadow-soft);
-      padding:12px 10px calc(14px + env(safe-area-inset-bottom,0px));
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-      max-height:100%;
+        radial-gradient(circle at 0 0, rgba(56,189,248,.16) 0, transparent 50%),
+        radial-gradient(circle at 100% 0, rgba(52,211,153,.18) 0, transparent 50%),
+        radial-gradient(circle at 50% 120%, rgba(129,140,248,.18) 0, transparent 55%),
+        #020617;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
     }
 
-    @media (min-width:768px){
-      .app-container{
-        padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 18px 10px 22px;
+    }
+
+    .app-frame {
+      width: 100%;
+      max-width: 1120px;
+      background: radial-gradient(circle at top left, rgba(248,250,252,.02) 0, transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(15,23,42,.5) 0, transparent 55%),
+                  rgba(15,23,42,.96);
+      border-radius: 28px;
+      border: 1px solid rgba(148,163,184,.40);
+      box-shadow:
+        0 32px 80px rgba(15,23,42,.96),
+        0 0 0 1px rgba(15,23,42,.8),
+        0 0 0 1px rgba(15,23,42,.6) inset;
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(120deg, rgba(34,197,94,.12), transparent 40%, rgba(59,130,246,.10));
+      opacity: 0.32;
+      pointer-events: none;
+      mix-blend-mode: soft-light;
+    }
+
+    .app-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+      max-height: calc(100vh - 52px);
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 6px 4px;
+      border-radius: 999px;
+      background: radial-gradient(circle at top left, rgba(34,197,94,.12) 0, transparent 60%),
+                  rgba(15,23,42,.92);
+      border: 1px solid rgba(55,65,81,.9);
+      box-shadow:
+        0 14px 35px rgba(15,23,42,.95),
+        0 0 0 1px rgba(15,23,42,.9) inset;
+    }
+
+    .app-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 10px 4px 5px;
+      border-radius: 999px;
+      background: rgba(15,23,42,.95);
+      border: 1px solid rgba(31,41,55,.9);
+      box-shadow: 0 8px 25px rgba(15,23,42,.85);
+    }
+
+    .logo-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 20%, #bbf7d0 0, rgba(187,247,208,.0) 45%),
+        radial-gradient(circle at 70% 80%, #22c55e 0, rgba(34,197,94,0) 55%),
+        radial-gradient(circle at 50% 50%, #15803d 0, #052e16 60%);
+      border: 1px solid rgba(16,185,129, .9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,.9),
+        0 12px 35px rgba(22,163,74,.7);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-badge::before {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      background:
+        radial-gradient(circle at 20% 0, rgba(248,250,252,.65) 0, transparent 55%),
+        radial-gradient(circle at 80% 100%, rgba(22,163,74,.7) 0, transparent 60%);
+      mix-blend-mode: screen;
+      opacity: .55;
+    }
+
+    .logo-badge-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+    }
+
+    .logo-badge-icon {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      color: #ecfdf5;
+      text-shadow:
+        0 0 16px rgba(74,222,128,1),
+        0 0 4px rgba(15,23,42,1);
+    }
+
+    .logo-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #bbf7d0;
+      box-shadow: 0 0 16px rgba(74,222,128,1);
+      animation: pulseDot 2s ease-out infinite;
+    }
+
+    @keyframes pulseDot {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      70% {
+        transform: scale(2.4);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(2.6);
+        opacity: 0;
       }
     }
 
-    .app-header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding:8px 10px;
-      border-radius:999px;
-      background:rgba(255,255,255,.9);
-      border:1px solid rgba(148,163,184,.7);
-      box-shadow:0 8px 20px rgba(15,23,42,.06);
-      position:sticky;
-      top:env(safe-area-inset-top,0px);
-      z-index:10;
-      backdrop-filter:blur(18px);
+    .app-title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
 
-    .app-title-wrap{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex:1;
-      min-width:0;
+    .app-title-main {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
     }
 
-    .app-icon{
-      width:34px;
-      height:34px;
-      border-radius:999px;
-      background:radial-gradient(circle at 30% 20%, #4ade80, #16a34a 60%, #15803d 85%);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      box-shadow:0 0 0 1px rgba(22,163,74,.5), 0 10px 25px rgba(22,163,74,.55);
-      flex-shrink:0;
+    .app-title-text {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: #e5e7eb;
     }
 
-    .app-icon span{
-      font-size:18px;
-      font-weight:800;
-      color:#ecfdf5;
-      letter-spacing:.04em;
+    .app-title-pill {
+      font-size: 11px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,.7);
+      background: rgba(15,23,42,.9);
+      color: #e5e7eb;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    .app-title-block{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width:0;
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34,197,94,1);
     }
 
-    .app-title{
-      font-size:15px;
-      font-weight:700;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      color:var(--text);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .app-title-subline {
+      font-size: 12px;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .app-subtitle{
-      font-size:11px;
-      color:var(--muted);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .divider-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(148,163,184,.9);
     }
 
-    .app-badge{
-      font-size:11px;
-      font-weight:600;
-      padding:4px 10px;
-      border-radius:999px;
-      background:var(--brand-soft);
-      border:1px solid rgba(22,163,74,.5);
-      color:#166534;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      white-space:nowrap;
+    .app-header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .content-shell{
-      display:grid;
-      grid-template-columns: minmax(0,1.1fr) minmax(0,1.9fr);
-      gap:14px;
-      margin-top:2px;
-      align-items:stretch;
-      flex:1;
-      min-height:0;
-      height:calc(100vh - 150px);
+    .pill-info {
+      font-size: 11px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(15,23,42,.9);
+      border: 1px solid rgba(55,65,81,1);
+      color: #d1d5db;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    @media (max-width:900px){
-      .content-shell{
-        grid-template-columns:minmax(0,1fr);
-        height:auto;
+    .pill-info-icon {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,.7);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #9ca3af;
+      background: rgba(15,23,42,1);
+    }
+
+    .pill-info-label {
+      opacity: .9;
+    }
+
+    .pill-info-strong {
+      color: #e5e7eb;
+      font-weight: 500;
+    }
+
+    .app-header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(34,197,94,.55);
+      background: radial-gradient(circle at 0 0, rgba(34,197,94,.22) 0, transparent 60%),
+                  rgba(15,23,42,.95);
+      color: #bbf7d0;
+      font-size: 11px;
+      box-shadow:
+        0 0 18px rgba(22,163,74,.6),
+        0 0 0 1px rgba(15,23,42,.9) inset;
+    }
+
+    .app-header-badge-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(21,128,61,.8);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      box-shadow: 0 0 10px rgba(34,197,94,1);
+    }
+
+    .app-header-badge-label {
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 600;
+      font-size: 10px;
+    }
+
+    .app-main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .app-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      background: radial-gradient(circle at 0 0, rgba(15,23,42,.9) 0, rgba(15,23,42,.9) 55%, transparent 60%),
+                  rgba(15,23,42,.92);
+      border-radius: 999px;
+      border: 1px solid rgba(31,41,55,1);
+      box-shadow:
+        0 12px 28px rgba(15,23,42,.9),
+        0 0 0 1px rgba(15,23,42,.85) inset;
+    }
+
+    .search-group {
+      flex: 1.1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(15,23,42,.96);
+      border-radius: 999px;
+      padding: 3px 8px 3px 6px;
+      border: 1px solid rgba(31,41,55,1);
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,1) inset;
+    }
+
+    .search-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 0 0, rgba(148,163,184,.85) 0, transparent 70%),
+                  rgba(15,23,42,1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #e5e7eb;
+      border: 1px solid rgba(55,65,81,1);
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,1) inset,
+        0 10px 22px rgba(15,23,42,.9);
+    }
+
+    .search-input-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .search-input-wrapper input {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: 13px;
+      padding: 5px 4px;
+      background: transparent;
+      color: #e5e7eb;
+    }
+
+    .search-input-wrapper input::placeholder {
+      color: #6b7280;
+    }
+
+    .search-shortcut {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      color: #9ca3af;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,.95);
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .select-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px 4px 8px;
+      border-radius: 999px;
+      background: rgba(15,23,42,1);
+      border: 1px solid rgba(31,41,55,1);
+      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
+      font-size: 11px;
+      color: #e5e7eb;
+    }
+
+    .select-pill label {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .select-pill select {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: #e5e7eb;
+      font-size: 11px;
+      padding: 3px 0;
+    }
+
+    .select-pill select option {
+      background: #020617;
+      color: #e5e7eb;
+    }
+
+    .pill-divider {
+      width: 1px;
+      height: 16px;
+      background: linear-gradient(to bottom, transparent, rgba(55,65,81,1), transparent);
+    }
+
+    .pill-kpi {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(15,23,42,1);
+      border: 1px solid rgba(31,41,55,1);
+      color: #e5e7eb;
+      font-size: 11px;
+    }
+
+    .pill-kpi strong {
+      font-size: 13px;
+      font-weight: 600;
+      color: #bbf7d0;
+    }
+
+    .pill-kpi-label {
+      font-size: 10px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .toolbar-spacer {
+      flex: 1;
+    }
+
+    .toolbar-legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(15,23,42,1);
+      border: 1px solid rgba(31,41,55,1);
+      font-size: 10px;
+      color: #9ca3af;
+    }
+
+    .legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,1);
+    }
+
+    .legend-chip-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34,197,94,1);
+    }
+
+    .legend-chip-dot-warning {
+      background: #facc15;
+      box-shadow: 0 0 10px rgba(234,179,8,1);
+    }
+
+    .legend-chip-dot-danger {
+      background: #f97316;
+      box-shadow: 0 0 10px rgba(249,115,22,1);
+    }
+
+    .legend-chip-label {
+      font-size: 10px;
+      color: #d1d5db;
+    }
+
+    .app-content {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.55fr);
+      gap: 12px;
+      margin-top: 2px;
+    }
+
+    .panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background:
+        radial-gradient(circle at top center, rgba(15,23,42,.95) 0, rgba(15,23,42,.95) 50%, transparent 60%),
+        rgba(15,23,42,.96);
+      border-radius: 26px;
+      border: 1px solid rgba(31,41,55,1);
+      box-shadow:
+        0 22px 55px rgba(15,23,42,.95),
+        0 0 0 1px rgba(15,23,42,1) inset;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 0 0, rgba(34,197,94,.16) 0, transparent 50%),
+        radial-gradient(circle at 100% 0, rgba(59,130,246,.15) 0, transparent 50%);
+      opacity: .28;
+      pointer-events: none;
+      mix-blend-mode: soft-light;
+    }
+
+    .panel-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      height: 100%;
+    }
+
+    .panel-header {
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid rgba(31,41,55,1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #d1d5db;
+    }
+
+    .panel-subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .panel-tag {
+      margin-left: auto;
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(15,23,42,.9);
+      border: 1px solid rgba(55,65,81,1);
+      color: #9ca3af;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .panel-tag strong {
+      font-size: 11px;
+      color: #e5e7eb;
+      font-weight: 500;
+    }
+
+    .panel-body {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 10px 10px;
+      gap: 6px;
+    }
+
+    .liste-container {
+      flex: 1;
+      min-height: 0;
+      border-radius: 18px;
+      border: 1px solid rgba(31,41,55,1);
+      background: radial-gradient(circle at 0 0, rgba(15,23,42,.95) 0, rgba(15,23,42,.95) 50%, transparent 60%),
+                  rgba(15,23,42,.98);
+      box-shadow:
+        0 18px 45px rgba(15,23,42,.95),
+        0 0 0 1px rgba(15,23,42,1) inset;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .liste-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 6px 4px;
+      border-bottom: 1px solid rgba(31,41,55,1);
+    }
+
+    .liste-header-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #9ca3af;
+    }
+
+    .liste-header-count {
+      font-size: 11px;
+      color: #e5e7eb;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,1);
+    }
+
+    .liste-header-spacer {
+      flex: 1;
+    }
+
+    .liste-header-badge {
+      font-size: 10px;
+      color: #9ca3af;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,1);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .liste-header-badge span {
+      color: #e5e7eb;
+    }
+
+    .liste-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 2px 2px 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148,163,184,.6) rgba(15,23,42,1);
+    }
+
+    .liste-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .liste-scroll::-webkit-scrollbar-track {
+      background: rgba(15,23,42,1);
+      border-radius: 999px;
+    }
+
+    .liste-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148,163,184,.7);
+      border-radius: 999px;
+    }
+
+    .chantier-item {
+      border-radius: 14px;
+      padding: 7px 8px;
+      background: radial-gradient(circle at 0 0, rgba(15,23,42,1) 0, rgba(15,23,42,1) 50%, transparent 60%),
+                  linear-gradient(135deg, rgba(15,23,42,1), rgba(15,23,42,.98));
+      border: 1px solid rgba(31,41,55,1);
+      box-shadow:
+        0 10px 22px rgba(15,23,42,.95),
+        0 0 0 1px rgba(15,23,42,1) inset;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      cursor: pointer;
+      transition: border-color .16s ease-out, box-shadow .16s ease-out, background .16s ease-out, transform .1s ease-out;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chantier-item::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(120deg, rgba(34,197,94,.12), transparent 40%, rgba(59,130,246,.10));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease-out;
+    }
+
+    .chantier-item:hover {
+      border-color: rgba(55,65,81,1);
+      box-shadow:
+        0 16px 32px rgba(15,23,42,.96),
+        0 0 0 1px rgba(15,23,42,1) inset;
+      transform: translateY(-1px);
+    }
+
+    .chantier-item:hover::before {
+      opacity: 1;
+    }
+
+    .chantier-item.selected {
+      border-color: var(--accent-border-strong);
+      box-shadow:
+        0 0 0 1px rgba(21,128,61,1),
+        0 16px 38px rgba(22,163,74,.85);
+      background:
+        radial-gradient(circle at 0 0, rgba(34,197,94,.22) 0, transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(59,130,246,.16) 0, transparent 55%),
+        linear-gradient(135deg, rgba(15,23,42,1), rgba(15,23,42,1));
+    }
+
+    .chantier-item.selected::before {
+      opacity: .85;
+      mix-blend-mode: soft-light;
+    }
+
+    .chantier-item-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chantier-item-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e5e7eb;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chantier-item-badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,1);
+      color: #9ca3af;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chantier-item-subline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: #9ca3af;
+    }
+
+    .chantier-item-subline span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .note-pill {
+      margin-left: auto;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      border: 1px solid rgba(55,65,81,1);
+    }
+
+    .note-good {
+      color: #bbf7d0;
+      border-color: rgba(34,197,94,.75);
+      background: rgba(22,163,74,.18);
+      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
+    }
+
+    .note-medium {
+      color: #facc15;
+      border-color: rgba(234,179,8,.8);
+      background: rgba(234,179,8,.16);
+      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
+    }
+
+    .note-low {
+      color: #fb923c;
+      border-color: rgba(249,115,22,.8);
+      background: rgba(249,115,22,.16);
+      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
+    }
+
+    .detail-container {
+      flex: 1;
+      min-height: 0;
+      border-radius: 18px;
+      border: 1px solid rgba(31,41,55,1);
+      background:
+        radial-gradient(circle at 0 0, rgba(15,23,42,.95) 0, rgba(15,23,42,.95) 50%, transparent 60%),
+        rgba(15,23,42,.98);
+      box-shadow:
+        0 18px 45px rgba(15,23,42,.95),
+        0 0 0 1px rgba(15,23,42,1) inset;
+      padding: 6px 6px 7px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 2px 6px;
+      border-bottom: 1px solid rgba(31,41,55,1);
+    }
+
+    .detail-title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .detail-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #d1d5db;
+    }
+
+    .detail-subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .detail-kpi-group {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,1);
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .chip-label {
+      color: #e5e7eb;
+    }
+
+    .chip-kpi {
+      font-size: 13px;
+      font-weight: 600;
+      color: #bbf7d0;
+    }
+
+    .detail-body {
+      flex: 1;
+      min-height: 0;
+      margin-top: 5px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 8px;
+    }
+
+    .field-section {
+      border-radius: 16px;
+      border: 1px solid rgba(31,41,55,1);
+      background: radial-gradient(circle at 0 0, rgba(15,23,42,.96) 0, rgba(15,23,42,.96) 50%, transparent 60%),
+                  rgba(15,23,42,.98);
+      padding: 7px 7px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-section-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    .field-section-title {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #9ca3af;
+    }
+
+    .field-section-tag {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,1);
+      color: #9ca3af;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 4px;
+    }
+
+    .field-full {
+      grid-column: 1 / -1;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .field-label span {
+      color: #e5e7eb;
+    }
+
+    .field-label-badge {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,.9);
+      color: #9ca3af;
+    }
+
+    .field-input, .field-textarea, .field-select {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: #e5e7eb;
+      font-size: 12px;
+      padding: 5px 9px;
+      outline: none;
+      transition: border-color .16s ease-out, box-shadow .16s ease-out, background .16s ease-out;
+      box-shadow: 0 0 0 1px rgba(15,23,42,1) inset;
+    }
+
+    .field-input:focus,
+    .field-textarea:focus,
+    .field-select:focus {
+      border-color: var(--accent-border-strong);
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,1) inset,
+        0 0 0 1px rgba(22,163,74,.9);
+      background: rgba(15,23,42,1);
+    }
+
+    .field-input::placeholder,
+    .field-textarea::placeholder {
+      color: #6b7280;
+    }
+
+    .field-textarea {
+      min-height: 54px;
+      border-radius: 12px;
+      resize: vertical;
+      padding: 6px 8px;
+    }
+
+    .field-select {
+      padding-right: 24px;
+      background-image: linear-gradient(45deg, transparent 50%, #9ca3af 50%),
+                        linear-gradient(135deg, #9ca3af 50%, transparent 50%);
+      background-position: calc(100% - 11px) 10px, calc(100% - 7px) 10px;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+      appearance: none;
+    }
+
+    .field-select option {
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 12px;
+    }
+
+    .field-helper {
+      font-size: 10px;
+      color: #6b7280;
+    }
+
+    .badge-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,1);
+      font-size: 9px;
+      color: #9ca3af;
+    }
+
+    .badge-inline strong {
+      color: #e5e7eb;
+    }
+
+    .note-input {
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .note-input.good {
+      color: #bbf7d0;
+      border-color: rgba(34,197,94,.85);
+      background: rgba(21,128,61,.35);
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,1) inset,
+        0 0 18px rgba(22,163,74,.7);
+    }
+
+    .note-input.medium {
+      color: #facc15;
+      border-color: rgba(234,179,8,.9);
+      background: rgba(202,138,4,.35);
+    }
+
+    .note-input.low {
+      color: #fb923c;
+      border-color: rgba(249,115,22,.9);
+      background: rgba(194,65,12,.35);
+    }
+
+    .cahier-section {
+      margin-top: 4px;
+      padding-top: 5px;
+      border-top: 1px dashed rgba(55,65,81,1);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .cahier-title {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cahier-badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,1);
+      background: rgba(15,23,42,1);
+      color: #9ca3af;
+    }
+
+    .cahier-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .cahier-file-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cahier-file-row input[type="file"] {
+      flex: 1;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .cahier-info {
+      font-size: 10px;
+      color: #6b7280;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .save-button {
+      border-radius: 999px;
+      border: 1px solid var(--accent-border);
+      background: radial-gradient(circle at 0 0, rgba(74,222,128,.22) 0, transparent 55%),
+                  rgba(22,163,74,.9);
+      color: #ecfdf5;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,1) inset,
+        0 18px 30px rgba(22,163,74,.65);
+      transition: transform .1s ease-out, box-shadow .12s ease-out, background .12s ease-out, border-color .12s ease-out;
+    }
+
+    .save-button:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 22px 35px rgba(22,163,74,.85),
+        0 0 0 1px rgba(15,23,42,1) inset;
+      background:
+        radial-gradient(circle at 0 0, rgba(74,222,128,.3) 0, transparent 60%),
+        rgba(21,128,61,1);
+      border-color: rgba(34,197,94,1);
+    }
+
+    .save-button:active {
+      transform: translateY(0);
+      box-shadow:
+        0 12px 24px rgba(22,163,74,.7),
+        0 0 0 1px rgba(15,23,42,1) inset;
+    }
+
+    .save-button--secondary {
+      background: rgba(15,23,42,1);
+      border-color: rgba(55,65,81,1);
+      color: #e5e7eb;
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,1) inset,
+        0 12px 24px rgba(15,23,42,.9);
+    }
+
+    .save-button--secondary:hover {
+      border-color: rgba(148,163,184,.9);
+      box-shadow:
+        0 16px 28px rgba(15,23,42,.95),
+        0 0 0 1px rgba(15,23,42,1) inset;
+      background:
+        radial-gradient(circle at 0 0, rgba(148,163,184,.28) 0, transparent 60%),
+        rgba(15,23,42,1);
+    }
+
+    .save-button--danger {
+      background: var(--danger-soft);
+      border-color: var(--danger-border);
+      color: #fecaca;
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,1) inset,
+        0 12px 26px rgba(127,29,29,.9);
+    }
+
+    .save-button--danger:hover {
+      background: rgba(127,29,29,1);
+      border-color: #fecaca;
+      box-shadow:
+        0 18px 32px rgba(127,29,29,1),
+        0 0 0 1px rgba(15,23,42,1) inset;
+    }
+
+    .save-button[disabled],
+    .save-button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,1) inset,
+        0 10px 20px rgba(15,23,42,.85);
+    }
+
+    .save-status {
+      margin-top: 5px;
+      font-size: 11px;
+      color: #9ca3af;
+      min-height: 14px;
+    }
+
+    .detail-footer {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(31,41,55,1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .detail-footer--centered {
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .detail-footer-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: #6b7280;
+    }
+
+    .detail-footer-left .dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(148,163,184,.9);
+    }
+
+    .detail-footer-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .app-footer-note {
+      font-size: 11px;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 4px;
+    }
+
+    .app-footer-note span:last-child {
+      font-size: 10px;
+      color: #4b5563;
+    }
+
+    input, select, textarea, button {
+      font-family: inherit;
+    }
+
+    @media (max-width: 960px) {
+      .app-frame {
+        max-width: 100%;
+        padding: 12px 10px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+      }
+
+      .app-inner {
+        max-height: none;
+      }
+
+      .app-content {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .detail-body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .app-toolbar {
+        flex-wrap: wrap;
+      }
+
+      .toolbar-spacer {
+        display: none;
+      }
+
+      .toolbar-legend {
+        margin-left: auto;
       }
     }
 
-    .panel{
-      background:rgba(255,255,255,.9);
-      border-radius:22px;
-      border:1px solid var(--border);
-      box-shadow:var(--shadow-card);
-      padding:10px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      min-height:0;
-      height:100%;
-    }
+    @media (max-width: 720px) {
+      .app-header {
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
 
-    @media (min-width:768px){
-      .panel{
-        padding:12px;
+      .app-header-right {
+        margin-left: 0;
+        margin-top: 4px;
+      }
+
+      .detail-kpi-group {
+        display: none;
+      }
+
+      .panel-tag {
+        display: none;
+      }
+
+      .toolbar-legend {
+        display: none;
       }
     }
 
-    .panel-header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-shrink:0;
-    }
-
-    .panel-title-block{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
-
-    .panel-title{
-      font-size:13px;
-      font-weight:600;
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      color:var(--text);
-    }
-
-    .panel-subtitle{
-      font-size:11px;
-      color:var(--muted);
-    }
-
-    .badge-pill{
-      padding:3px 9px;
-      border-radius:999px;
-      font-size:11px;
-      border:1px solid rgba(148,163,184,.7);
-      color:var(--muted);
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      background:rgba(248,250,252,.8);
-    }
-
-    .pill-dot{
-      width:6px;
-      height:6px;
-      border-radius:999px;
-      background:#22c55e;
-      box-shadow:0 0 0 1px rgba(34,197,94,.4);
-    }
-
-    .filters{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      margin-top:4px;
-      flex-shrink:0;
-    }
-
-    @media (min-width:600px){
-      .filters{
-        flex-direction:row;
-        align-items:stretch;
+    @media (max-width: 480px) {
+      .app-shell {
+        padding: 8px 0 12px;
       }
-    }
 
-    .search-box{
-      flex:1.4;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      border-radius:999px;
-      background:#f8fafc;
-      border:1px solid var(--border);
-      padding:2px 10px 2px 4px;
-    }
-
-    .search-icon{
-      width:26px;
-      height:26px;
-      border-radius:999px;
-      background:radial-gradient(circle at 30% 20%, rgba(148,163,184,.4), transparent 60%);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      margin-left:4px;
-      color:#0f172a;
-    }
-
-    .search-icon svg{
-      width:14px;
-      height:14px;
-    }
-
-    .search-input{
-      flex:1;
-      border:none;
-      outline:none;
-      background:transparent;
-      font-size:13px;
-      color:var(--text);
-      padding:6px 4px;
-    }
-
-    .search-input::placeholder{
-      color:rgba(148,163,184,.9);
-    }
-
-    .filter-group{
-      flex:1;
-      display:flex;
-      gap:6px;
-    }
-
-    .select-field{
-      flex:1;
-      position:relative;
-    }
-
-    .select-field select{
-      width:100%;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:#f8fafc;
-      color:var(--text);
-      font-size:12px;
-      padding:7px 28px 7px 10px;
-      -webkit-appearance:none;
-      appearance:none;
-      outline:none;
-    }
-
-    .select-field::after{
-      content:"▾";
-      position:absolute;
-      right:10px;
-      top:50%;
-      transform:translateY(-50%);
-      font-size:10px;
-      color:var(--muted);
-      pointer-events:none;
-    }
-
-    .stats-header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      margin-top:6px;
-      flex-wrap:wrap;
-      flex-shrink:0;
-    }
-
-    .stats-main{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-
-    .stat-pill{
-      padding:4px 10px;
-      border-radius:999px;
-      font-size:11px;
-      border:1px solid rgba(148,163,184,.7);
-      background:#f8fafc;
-      color:var(--muted);
-      display:inline-flex;
-      align-items:center;
-      gap:4px;
-    }
-
-    .stat-pill strong{
-      color:var(--text);
-      font-weight:600;
-    }
-
-    .stat-dot{
-      width:7px;
-      height:7px;
-      border-radius:999px;
-      background:var(--brand);
-    }
-
-    .chantiers-list{
-      margin-top:8px;
-      flex:1;
-      min-height:0;
-      overflow:auto;
-      padding-right:4px;
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-    }
-
-    .res-item{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      width:100%;
-      border-radius:12px;
-      border:1px solid transparent;
-      background:transparent;
-      padding:6px 8px;
-      font-size:13px;
-      color:var(--text);
-      cursor:pointer;
-      text-align:left;
-      transition:background .12s ease, border-color .12s ease, transform .08s ease;
-    }
-
-    .res-item-index{
-      width:22px;
-      height:22px;
-      border-radius:999px;
-      background:#e2e8f0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:11px;
-      font-weight:600;
-      color:#475569;
-      flex-shrink:0;
-    }
-
-    .res-item-label{
-      flex:1;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .res-item:hover{
-      background:#ecfdf3;
-      border-color:rgba(22,163,74,.4);
-      transform:translateY(-1px);
-    }
-
-    .res-item.active{
-      background:var(--brand-strong);
-      border-color:rgba(22,163,74,.8);
-    }
-
-    .no-results{
-      margin-top:8px;
-      padding:10px;
-      border-radius:14px;
-      border:1px dashed var(--border);
-      background:#f8fafc;
-      font-size:12px;
-      color:var(--muted);
-      text-align:center;
-    }
-
-    .no-results strong{
-      color:var(--text);
-    }
-
-    .detail-panel{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      min-height:0;
-      height:100%;
-    }
-
-    .detail-headline{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      flex-shrink:0;
-    }
-
-    .detail-title-row{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:6px;
-      flex-wrap:wrap;
-    }
-
-    .detail-main-title{
-      font-size:15px;
-      font-weight:700;
-      letter-spacing:.03em;
-    }
-
-    .detail-subaddress{
-      font-size:12px;
-      color:var(--muted);
-      margin-top:2px;
-    }
-
-    .detail-syndic-pill{
-      font-size:11px;
-      padding:4px 10px;
-      border-radius:999px;
-      background:rgba(59,130,246,.12);
-      border:1px solid rgba(59,130,246,.5);
-      color:#1d4ed8;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      white-space:nowrap;
-    }
-
-    .detail-hint{
-      font-size:11px;
-      color:var(--muted);
-      margin-top:2px;
-    }
-
-    .detail-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:10px;
-      margin-top:4px;
-      flex:1;
-      min-height:0;
-      overflow:auto;
-      padding-right:2px;
-    }
-
-    @media (max-width:700px){
-      .detail-grid{
-        grid-template-columns:minmax(0,1fr);
+      .app-frame {
+        padding: 10px 8px 10px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
       }
-    }
 
-    .detail-block{
-      background:#f8fafc;
-      border-radius:14px;
-      border:1px solid var(--border);
-      padding:9px 9px 8px;
-      font-size:12px;
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-    }
+      .app-toolbar {
+        padding: 6px 8px;
+      }
 
-    .detail-block-title{
-      font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:.10em;
-      color:var(--muted);
-      font-weight:600;
-    }
+      .search-group {
+        padding-inline: 8px;
+      }
 
-    .detail-row{
-      display:flex;
-      gap:4px;
-      margin-top:2px;
-      line-height:1.4;
-    }
+      .panel-header {
+        padding-inline: 10px;
+      }
 
-    .detail-label{
-      font-weight:600;
-      color:var(--text);
-      min-width:95px;
-      flex-shrink:0;
-    }
+      .panel-body {
+        padding-inline: 9px;
+      }
 
-    .detail-value{
-      flex:1;
-    }
+      .detail-container {
+        padding-inline: 6px;
+      }
 
-    .detail-input,
-    .detail-textarea{
-      width:100%;
-      border-radius:8px;
-      border:1px solid var(--border);
-      padding:4px 6px;
-      font-size:12px;
-      font-family:inherit;
-      color:var(--text);
-      background:#ffffff;
-    }
-
-    .detail-textarea{
-      min-height:52px;
-      resize:vertical;
-      line-height:1.4;
-    }
-
-    .detail-textarea--large{
-      min-height:90px;
-    }
-
-    .detail-footer{
-      font-size:11px;
-      color:var(--muted);
-      display:flex;
-      justify-content:space-between;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top:4px;
-      flex-shrink:0;
-    }
-
-    .detail-footer--centered{
-      justify-content:center;
-      align-items:center;
-      flex-direction:column;
-    }
-
-    .save-button{
-      padding:7px 18px;
-      border-radius:999px;
-      border:none;
-      background:var(--brand);
-      color:#f9fafb;
-      font-size:12px;
-      font-weight:600;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-      cursor:pointer;
-      box-shadow:0 10px 25px rgba(22,163,74,.35);
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-    }
-
-    .save-button:active{
-      transform:translateY(1px);
-      box-shadow:0 4px 12px rgba(22,163,74,.4);
-    }
-
-    .save-button--secondary{
-      background:#e2e8f0;
-      color:#0f172a;
-      box-shadow:none;
-      font-size:11px;
-      padding:6px 14px;
-    }
-
-    .save-button--danger{
-      background:#fee2e2;
-      color:#b91c1c;
-      box-shadow:none;
-      font-size:11px;
-      padding:6px 14px;
-      margin-left:6px;
-    }
-
-    .save-status{
-      margin-top:4px;
-      font-size:10px;
-      color:#16a34a;
-      min-height:14px;
-      text-align:center;
-    }
-
-    .detail-empty-box{
-      margin-top:8px;
-      padding:14px;
-      border-radius:14px;
-      border:1px dashed var(--border);
-      background:#f8fafc;
-      font-size:12px;
-      color:var(--muted);
-      text-align:center;
-      flex:1;
-    }
-
-    .detail-empty-box strong{
-      color:var(--text);
-    }
-
-    .app-footer-note{
-      margin-top:2px;
-      padding-top:8px;
-      border-top:1px solid var(--border);
-      font-size:10px;
-      color:var(--muted);
-      display:flex;
-      justify-content:space-between;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-
-    .app-footer-note span:last-child{
-      opacity:.9;
-    }
-
-    .detail-hint-inline{
-      display:block;
-      font-size:10px;
-      color:var(--muted);
-      margin-top:4px;
-    }
-
-    #cahierInfo{
-      font-size:10px;
-      color:var(--muted);
-      margin-top:4px;
-    }
-
-    ::-webkit-scrollbar{
-      width:6px;
-    }
-    ::-webkit-scrollbar-track{
-      background:transparent;
-    }
-    ::-webkit-scrollbar-thumb{
-      background:#cbd5f5;
-      border-radius:999px;
-    }
-    ::-webkit-scrollbar-thumb:hover{
-      background:#94a3b8;
+      .field-section {
+        padding-inline: 7px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
-    <div class="app-container">
-      <header class="app-header">
-        <div class="app-title-wrap">
-          <div class="app-icon"><span>K</span></div>
-          <div class="app-title-block">
-            <div class="app-title">Base chantiers nettoyage</div>
-            <div class="app-subtitle">Vue rapide de toutes les résidences – style KONTROL</div>
-          </div>
-        </div>
-        <div class="app-badge">INOVTEC · KONTROL</div>
-      </header>
-
-      <div class="content-shell">
-        <section class="panel">
-          <div class="panel-header">
-            <div class="panel-title-block">
-              <div class="panel-title">Résidences</div>
-              <div class="panel-subtitle">Clique sur un nom pour voir et éditer le détail à droite</div>
-            </div>
-            <div class="badge-pill">
-              <span class="pill-dot"></span>
-              Liste compacte
-            </div>
-          </div>
-
-          <div class="filters">
-            <div class="search-box">
-              <div class="search-icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="1.6"/>
-                </svg>
+    <div class="app-frame">
+      <div class="app-inner">
+        <header class="app-header">
+          <div class="app-header-left">
+            <div class="logo-badge">
+              <div class="logo-badge-inner">
+                <div class="logo-badge-icon">CHT</div>
+                <div class="logo-pulse-dot"></div>
               </div>
-              <input id="searchInput" class="search-input" type="search" placeholder="Rechercher une résidence, adresse, syndic…" />
+            </div>
+            <div class="app-title-block">
+              <div class="app-title-main">
+                <div class="app-title-text">Chantiers – Fiches & Cahier</div>
+                <div class="app-title-pill">
+                  <span class="badge-dot"></span>
+                  <span>Mode édition & suivi</span>
+                </div>
+              </div>
+              <div class="app-title-subline">
+                <span>Base centralisée des sites à contrôler</span>
+                <span class="divider-dot"></span>
+                <span>Mise à jour directe sur l’appareil</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="app-header-right">
+            <div class="pill-info">
+              <div class="pill-info-icon">i</div>
+              <div class="pill-info-label">
+                Données stockées <span class="pill-info-strong">en local sur ce téléphone</span>
+              </div>
+            </div>
+            <div class="app-header-badge">
+              <div class="app-header-badge-icon">✓</div>
+              <div class="app-header-badge-label">Edition sécurisée</div>
+            </div>
+          </div>
+        </header>
+
+        <main class="app-main">
+          <section class="app-toolbar">
+            <div class="search-group">
+              <div class="search-icon">⌕</div>
+              <div class="search-input-wrapper">
+                <input type="text" id="searchInput" placeholder="Rechercher un chantier (résidence, adresse, syndic, agent…)" />
+                <div class="search-shortcut">
+                  <span>Filtre instantané</span>
+                </div>
+              </div>
             </div>
 
-            <div class="filter-group">
-              <div class="select-field">
+            <div class="toolbar-group">
+              <div class="select-pill">
+                <label for="syndicFilter">Syndic</label>
                 <select id="syndicFilter">
-                  <option value="">Tous les syndics</option>
+                  <option value="">Tous</option>
                 </select>
               </div>
-              <div class="select-field">
+
+              <div class="select-pill">
+                <label for="triSelect">Tri</label>
+                <div class="pill-divider"></div>
                 <select id="triSelect">
-                  <option value="alpha">Tri A → Z (résidence)</option>
-                  <option value="syndic">Trier par syndic</option>
+                  <option value="alpha">Nom (A → Z)</option>
+                  <option value="note">Note (meilleure → moins bonne)</option>
+                  <option value="syndic">Syndic + Nom</option>
                 </select>
               </div>
             </div>
-          </div>
 
-          <div class="stats-header">
-            <div class="stats-main">
-              <div class="stat-pill">
-                <span class="stat-dot"></span>
-                <span><strong id="countVisible">0</strong> résultat(s)</span>
+            <div class="toolbar-spacer"></div>
+
+            <div class="toolbar-legend">
+              <span>Légende note :</span>
+              <div class="legend-chip">
+                <div class="legend-chip-dot"></div>
+                <div class="legend-chip-label">≥ 90</div>
               </div>
-              <div class="stat-pill">
-                <span>Résidences distinctes : <strong id="countTotal">0</strong></span>
+              <div class="legend-chip">
+                <div class="legend-chip-dot-warning"></div>
+                <div class="legend-chip-label">75 → 89</div>
+              </div>
+              <div class="legend-chip">
+                <div class="legend-chip-dot-danger"></div>
+                <div class="legend-chip-label">&lt; 75</div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div id="chantiersList" class="chantiers-list"></div>
-        </section>
+          <section class="app-content">
+            <div class="panel">
+              <div class="panel-inner">
+                <header class="panel-header">
+                  <div>
+                    <div class="panel-title">Liste des chantiers</div>
+                    <div class="panel-subtitle">Sélectionne un site pour afficher et modifier la fiche détaillée</div>
+                  </div>
+                  <div class="panel-tag">
+                    <span>🌐 Vue globale</span>
+                    <span>Tap pour éditer à droite</span>
+                  </div>
+                </header>
 
-        <section class="panel detail-panel">
-          <div class="panel-header">
-            <div class="panel-title-block">
-              <div class="panel-title">Détail du chantier</div>
-              <div class="panel-subtitle">Toutes les infos sont éditables directement ici</div>
-            </div>
-          </div>
-
-          <div id="detailEmpty" class="detail-empty-box">
-            <strong>Aucun chantier sélectionné.</strong><br>
-            Choisis une résidence dans la liste de gauche pour afficher et modifier les informations.
-          </div>
-
-          <div id="detailContent" style="display:none;">
-            <div class="detail-headline">
-              <div class="detail-title-row">
-                <div>
-                  <div id="detailResidence" class="detail-main-title"></div>
-                  <div id="detailAddress" class="detail-subaddress"></div>
-                </div>
-                <div id="detailSyndicPill" class="detail-syndic-pill"></div>
-              </div>
-              <div id="detailHint" class="detail-hint"></div>
-            </div>
-
-            <div class="detail-grid">
-              <div class="detail-block">
-                <div class="detail-block-title">Infos chantier</div>
-                <div class="detail-row">
-                  <div class="detail-label">Résidence</div>
-                  <div class="detail-value">
-                    <input id="infoResidence" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Adresse</div>
-                  <div class="detail-value">
-                    <input id="infoAdresse" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Syndic</div>
-                  <div class="detail-value">
-                    <input id="infoSyndic" class="detail-input" type="text">
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-block">
-                <div class="detail-block-title">Contacts & syndic</div>
-                <div class="detail-row">
-                  <div class="detail-label">Contact</div>
-                  <div class="detail-value">
-                    <input id="infoContact" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Téléphone</div>
-                  <div class="detail-value">
-                    <input id="infoTelephone" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Mail</div>
-                  <div class="detail-value">
-                    <input id="infoMail" class="detail-input" type="text">
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-block">
-                <div class="detail-block-title">Organisation & agents</div>
-                <div class="detail-row">
-                  <div class="detail-label">Intervention</div>
-                  <div class="detail-value">
-                    <input id="infoIntervention" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Intervention ponctuelle / fréquence</div>
-                  <div class="detail-value">
-                    <textarea id="infoJours" class="detail-textarea" placeholder="Ex : Vitres trimestrielles, parking 1x/an, etc."></textarea>
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Agent(s)</div>
-                  <div class="detail-value">
-                    <input id="infoAgents" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">N° agents</div>
-                  <div class="detail-value">
-                    <input id="infoNumAgents" class="detail-input" type="text">
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-block">
-                <div class="detail-block-title">Accès, OM / TRI</div>
-                <div class="detail-row">
-                  <div class="detail-label">Code / clef</div>
-                  <div class="detail-value">
-                    <input id="infoCodeClef" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Sortie OM</div>
-                  <div class="detail-value">
-                    <input id="infoSortieOm" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Sortie TRI</div>
-                  <div class="detail-value">
-                    <input id="infoSortieTri" class="detail-input" type="text">
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-block">
-                <div class="detail-block-title">Technique & matériel</div>
-                <div class="detail-row">
-                  <div class="detail-label">Frange</div>
-                  <div class="detail-value">
-                    <input id="infoFrange" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Ampoules / néons</div>
-                  <div class="detail-value">
-                    <input id="infoAmpoules" class="detail-input" type="text">
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Sacs poubelle</div>
-                  <div class="detail-value">
-                    <input id="infoSac" class="detail-input" type="text">
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-block">
-                <div class="detail-block-title">Notes d'exploitation</div>
-                <div class="detail-row">
-                  <div class="detail-label">Note</div>
-                  <div class="detail-value">
-                    <textarea id="infoNote" class="detail-textarea" placeholder="Tu peux écrire ici des consignes spécifiques pour ce chantier (clé à récupérer, client sensible, etc.)."></textarea>
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-block">
-                <div class="detail-block-title">Cahier des charges (PDF)</div>
-                <div class="detail-row">
-                  <div class="detail-label">Importer</div>
-                  <div class="detail-value">
-                    <input id="infoCahierFile" type="file" accept="application/pdf" class="detail-input">
-                    <span class="detail-hint-inline">Le PDF est enregistré localement sur cet appareil, pour ce chantier uniquement.</span>
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-label">Consulter</div>
-                  <div class="detail-value">
-                    <button type="button" id="openCahierBtn" class="save-button save-button--secondary">Ouvrir le PDF</button>
-                    <button type="button" id="clearCahierBtn" class="save-button save-button--danger">Supprimer</button>
-                    <div id="cahierInfo"></div>
+                <div class="panel-body">
+                  <div class="liste-container">
+                    <div class="liste-header">
+                      <div class="liste-header-title">Sites enregistrés</div>
+                      <div class="liste-header-count" id="listeCount">0 chantiers</div>
+                      <div class="liste-header-spacer"></div>
+                      <div class="liste-header-badge">
+                        <span>Filtre en temps réel</span>
+                      </div>
+                    </div>
+                    <div class="liste-scroll" id="listeChantiers">
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="detail-footer detail-footer--centered">
-              <button type="button" id="saveButton" class="save-button">
-                <span>Enregistrer les modifications</span>
-              </button>
-              <div id="saveStatus" class="save-status"></div>
+            <div class="panel">
+              <div class="panel-inner">
+                <header class="panel-header">
+                  <div class="detail-title-block">
+                    <div class="detail-title">Fiche chantier sélectionné</div>
+                    <div class="detail-subtitle">Toutes les informations sont modifiables pour ce chantier uniquement</div>
+                  </div>
+                  <div class="detail-kpi-group">
+                    <div class="chip">
+                      <span class="chip-label">Note actuelle :</span>
+                      <span class="chip-kpi" id="noteKpi">–</span>
+                    </div>
+                    <div class="chip">
+                      <span class="chip-label">Clé :</span>
+                      <span id="cleKpi">–</span>
+                    </div>
+                  </div>
+                </header>
+
+                <div class="panel-body detail-container">
+                  <div class="detail-body">
+                    <div class="field-section">
+                      <div class="field-section-header">
+                        <div class="field-section-title">Identification du site</div>
+                        <div class="field-section-tag">Coordonnées de base</div>
+                      </div>
+
+                      <div class="field-grid">
+                        <div class="field-group field-full">
+                          <label class="field-label">
+                            <span>Nom de la résidence / site</span>
+                          </label>
+                          <input type="text" id="infoResidence" class="field-input" placeholder="Ex : Résidence Les Tilleuls" />
+                        </div>
+
+                        <div class="field-group field-full">
+                          <label class="field-label">
+                            <span>Adresse complète</span>
+                          </label>
+                          <textarea id="infoAdresse" class="field-textarea" placeholder="N°, rue, code postal, ville"></textarea>
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>Syndic / gestionnaire</span>
+                          </label>
+                          <input type="text" id="infoSyndic" class="field-input" placeholder="Nom du syndic" />
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>N° de clé / badge</span>
+                          </label>
+                          <input type="text" id="infoClef" class="field-input" placeholder="Ex : Clé n°12 / Badge vert" />
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>Contact principal</span>
+                          </label>
+                          <input type="text" id="infoContact" class="field-input" placeholder="Nom & fonction" />
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>Téléphone</span>
+                          </label>
+                          <input type="tel" id="infoTelephone" class="field-input" placeholder="Téléphone contact" />
+                        </div>
+
+                        <div class="field-group field-full">
+                          <label class="field-label">
+                            <span>Mail(s) principal(aux)</span>
+                          </label>
+                          <input type="text" id="infoMail" class="field-input" placeholder="adresse@mail.fr (séparer par des virgules si plusieurs)" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="field-section">
+                      <div class="field-section-header">
+                        <div class="field-section-title">Organisation & agents</div>
+                        <div class="field-section-tag">Fréquences & équipes</div>
+                      </div>
+
+                      <div class="field-grid">
+                        <div class="field-group field-full">
+                          <label class="field-label">
+                            <span>Intervention / type de prestation</span>
+                          </label>
+                          <textarea id="infoIntervention" class="field-textarea" placeholder="Ex : Entretien des communs, sortie OM, vitrerie, entretien espaces verts…"></textarea>
+                        </div>
+
+                        <div class="field-group field-full">
+                          <label class="field-label">
+                            <span>Jour de passage / tâches détaillées</span>
+                          </label>
+                          <textarea id="infoJours" class="field-textarea" placeholder="Ex : Lundi & jeudi – communs et escaliers, Mercredi – vitres, etc."></textarea>
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>Agent(s) dédié(s) au site</span>
+                          </label>
+                          <input type="text" id="infoAgents" class="field-input" placeholder="Nom(s) de l’agent / des agents" />
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>N° de téléphone agent(s)</span>
+                          </label>
+                          <input type="text" id="infoNumAgents" class="field-input" placeholder="Téléphone(s) des agents" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="field-section">
+                      <div class="field-section-header">
+                        <div class="field-section-title">Accès & sorties</div>
+                        <div class="field-section-tag">Code / OM / tri</div>
+                      </div>
+
+                      <div class="field-grid">
+                        <div class="field-group field-full">
+                          <label class="field-label">
+                            <span>Code / clef d’accès</span>
+                          </label>
+                          <input type="text" id="infoCodeClef" class="field-input" placeholder="Codes, instructions de badge, portail…" />
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>Sortie OM</span>
+                          </label>
+                          <input type="text" id="infoSortieOm" class="field-input" placeholder="Jours, horaires, emplacement bacs OM" />
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>Sortie TRI</span>
+                          </label>
+                          <input type="text" id="infoSortieTri" class="field-input" placeholder="Tri sélectif : consignes et emplacement" />
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>Frange</span>
+                          </label>
+                          <input type="text" id="infoFrange" class="field-input" placeholder="Type / format frange utilisé" />
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label">
+                            <span>Type ampoules / néons</span>
+                          </label>
+                          <input type="text" id="infoAmpoules" class="field-input" placeholder="Références, formats, particularités" />
+                        </div>
+
+                        <div class="field-group field-full">
+                          <label class="field-label">
+                            <span>Sac poubelle</span>
+                          </label>
+                          <input type="text" id="infoSac" class="field-input" placeholder="Type, taille, couleur, quantité moyenne…" />
+                        </div>
+
+                        <div class="field-group field-full">
+                          <label class="field-label">
+                            <span>Note chantier</span>
+                            <span class="field-label-badge">Référence contrôle qualité</span>
+                          </label>
+                          <input type="number" id="infoNote" class="field-input note-input" placeholder="Ex : 95" />
+                          <div class="field-helper">
+                            <span class="badge-inline">
+                              <span>💡</span>
+                              <span>La note globale atteindre afin d'avoir une bonne tenue de site est <strong>95%</strong>.</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="cahier-section">
+                        <div class="cahier-title">
+                          <span>Cahier des charges PDF (par chantier)</span>
+                          <span class="cahier-badge">1 fichier stocké localement</span>
+                        </div>
+                        <div class="cahier-controls">
+                          <div class="cahier-file-row">
+                            <input type="file" id="infoCahierFile" accept="application/pdf" />
+                          </div>
+                          <div class="button-row">
+                            <button type="button" id="openCahierBtn" class="save-button save-button--secondary">
+                              Ouvrir le PDF
+                            </button>
+                            <button type="button" id="clearCahierBtn" class="save-button save-button--danger">
+                              Supprimer
+                            </button>
+                            <div id="cahierInfo" class="cahier-info"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="detail-footer detail-footer--centered">
+                    <!-- Boutons ajout / suppression de chantier -->
+                    <div>
+                      <button type="button" id="addChantierBtn" class="save-button save-button--secondary">
+                        + Ajouter un chantier
+                      </button>
+                      <button type="button" id="deleteChantierBtn" class="save-button save-button--danger">
+                        Supprimer ce chantier
+                      </button>
+                    </div>
+
+                    <!-- Bouton d'enregistrement existant -->
+                    <button type="button" id="saveButton" class="save-button">
+                      <span>Enregistrer les modifications</span>
+                    </button>
+
+                    <div id="saveStatus" class="save-status"></div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </main>
+
+        <footer class="app-footer-note">
+          <span></span>
+          <span></span>
+        </footer>
       </div>
-
-      <footer class="app-footer-note">
-        <span></span>
-        <span></span>
-      </footer>
     </div>
   </div>
 
   <script>
-    // Données initiales injectées depuis l'Excel
     const CHANTIERS = [
-  {
-    "Nom de la résidence": "69 Strasbourg ",
-    "N° De Clef": "37",
-    "Adresse": "69 boulevard Strasbourg 31000 Toulouse ",
-    "Contact": "Mme Muller Marion ",
-    "Téléphone": "0562268394",
-    "Mails": "Chrystelle.corazza@foncia.fr",
-    "Syndic": "FONCIA ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "Mercredi 1:00 complet",
-    "Code / clef": "Badge",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "",
-    "type  ampoules néons": "E27 4000K",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Abeille ",
-    "N° De Clef": "58",
-    "Adresse": "2 rue roquemaurel toulouse",
-    "Contact": "Mr Fonta",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MnGestion",
-    "Intervention": "Toulouse Métropole",
-    "Agents": "Di Sangro / Leonel Ribiero",
-    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
-    "Jour de passage /Tache": "Lundi complet ",
-    "Code / clef": "Telecommande\nVigik\nclef",
-    "Sortie om": "LUNDI \nJEUDI",
-    "Sortie tri": "MERCREDI",
-    "Frange": "Ø",
-    "type  ampoules néons": "E27 4000K",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Alysson",
-    "N° De Clef": "60",
-    "Adresse": "3 rue gaston salvayre Toulouse",
-    "Contact": "Mr Fonta",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MnGestion",
-    "Intervention": "Toulouse Métropole",
-    "Agents": "Di Sangro / Leonel Ribiero",
-    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
-    "Jour de passage /Tache": "Mardi complet ",
-    "Code / clef": "Telecommande \nVigik \nclef ",
-    "Sortie om": "MARDI \nJEUDI",
-    "Sortie tri": "JEUDI",
-    "Frange": "Ø",
-    "type  ampoules néons": "E27 4000K",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Améthyste ",
-    "N° De Clef": "43",
-    "Adresse": "2 bis impasse du pradelet 31650",
-    "Contact": "Jonathan NGINAMAU ",
-    "Téléphone": "06 22 67 80 66 ",
-    "Mails": "jonathan.nginamau@foncia.com",
-    "Syndic": "Foncia",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Ginka ",
-    "Numéro Agents": "06 41 45 62 62",
-    "Jour de passage /Tache": "Lundi 2:30 complet 4 bâtiment                                                             Jeudi 2:30 complet 4 bâtiment ",
-    "Code / clef": "Télé commande portail                                    Bat A 0501\nBat B 2605\nBat C 1203\nBat D 1802",
-    "Sortie om": "LUNDI",
-    "Sortie tri": "LUNDI\n1semaine/2",
-    "Frange": "30/mois",
-    "type  ampoules néons": "E27 4000K",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Andes",
-    "N° De Clef": "49",
-    "Adresse": "18 avenue charles de gaulle 31130 balma",
-    "Contact": "",
-    "Téléphone": "0534430518 0695704321",
-    "Mails": "contact@andes.fr",
-    "Syndic": "",
-    "Intervention": "Entreprise",
-    "Agents": "Mr Selamnia",
-    "Numéro Agents": "06 01 94 25 53",
-    "Jour de passage /Tache": "Jeudi complet",
-    "Code / clef": "clef",
-    "Sortie om": "",
-    "Sortie tri": "",
-    "Frange": "10/ mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Arago",
-    "N° De Clef": "26",
-    "Adresse": "12 rue arago 31500 Toulouse",
-    "Contact": "Mme Garraud ",
-    "Téléphone": "0682807388",
-    "Mails": "Syndic@cgpi-sogab.fr ",
-    "Syndic": "Cgpi - Sogab",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "Mercredi 00:45 complet et nettoyage om et locaux ",
-    "Code / clef": "Clef ",
-    "Sortie om": "LUNDI VENDREDI",
-    "Sortie tri": "MARDI",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Aristides avocats",
-    "N° De Clef": "44",
-    "Adresse": "11 rue Antonin mercier 31000 Toulouse ",
-    "Contact": "Mme Mayol ",
-    "Téléphone": "0601763906",
-    "Mails": "Patricia.mayol@aristide-avocats.com",
-    "Syndic": "Tertiaire",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Aboutammame ",
-    "Numéro Agents": "07 52 10 32 64",
-    "Jour de passage /Tache": "Samedi complet",
-    "Code / clef": "Clef",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "10/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Anesthésiste ",
-    "N° De Clef": "50",
-    "Adresse": "Clinique de l'union ",
-    "Contact": "Virgine rodriguez",
-    "Téléphone": "0650249791",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "Mr Gadi",
-    "Numéro Agents": "07 82 13 56 15",
-    "Jour de passage /Tache": "Tous les jours ",
-    "Code / clef": "Clefs",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "40/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Atlanta ",
-    "N° De Clef": "41 ",
-    "Adresse": "27 rue Andre vasseur Toulouse ",
-    "Contact": "Mr Fonta\nMr Alvarez",
-    "Téléphone": "0601654090\n0652341231",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MN gestion",
-    "Intervention": "Entreprise",
-    "Agents": "Mr Samriye",
-    "Numéro Agents": "0641540279",
-    "Jour de passage /Tache": "Tous les jours ",
-    "Code / clef": "Telecomande + vigik + clef",
-    "Sortie om": "Lundi",
-    "Sortie tri": "Mardi ",
-    "Frange": "30/ mois",
-    "type  ampoules néons": "E27 4000K",
-    "sac poubelle": "NON "
-  },
-  {
-    "Nom de la résidence": " Beaupuy  Primaire",
-    "N° De Clef": "16",
-    "Adresse": "Beaupuy",
-    "Contact": "Marc Fernandez ",
-    "Téléphone": "06 62 71 46 70    ",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "Mr El Gurch\nDa Rocha ",
-    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
-    "Jour de passage /Tache": "Lundi Mardi\nJeudi Vendredi 17h - 21h\nMercredi\n17h - 18h50",
-    "Code / clef": "Clef ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "30 / mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": " Beaupuy Maternelle ",
-    "N° De Clef": "16",
-    "Adresse": "",
-    "Contact": "Marc Fernandez ",
-    "Téléphone": "06 62 71 46 70    ",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "Mr El Gurch\nDa Rocha ",
-    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
-    "Jour de passage /Tache": "Lundi Mardi\nJeudi Vendredi 17h - 21h\nMercredi\n17h - 18h50",
-    "Code / clef": "Clef ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "30 / mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": " Mairie Beaupuy",
-    "N° De Clef": "16",
-    "Adresse": "",
-    "Contact": "Marc Fernandez ",
-    "Téléphone": "06 62 71 46 70    ",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "Mr El Gurch\nDa Rocha ",
-    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
-    "Jour de passage /Tache": "Mercredi 1h30",
-    "Code / clef": "Clef ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Club House Beaupuy",
-    "N° De Clef": "16",
-    "Adresse": "",
-    "Contact": "Marc Fernandez ",
-    "Téléphone": "06 62 71 46 70    ",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "Di Sangro / Leonel Ribiero",
-    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
-    "Jour de passage /Tache": "Jeudi 10h - 11h",
-    "Code / clef": "Clef ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Salle Poly Beaupuy ",
-    "N° De Clef": "16",
-    "Adresse": "",
-    "Contact": "Marc Fernandez ",
-    "Téléphone": "06 62 71 46 70    ",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "Di Sangro / Leonel Ribiero",
-    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
-    "Jour de passage /Tache": "Lundi 10H - 12h30       Jeudi 11H - 12H30",
-    "Code / clef": "Clef ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "5 / mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Bes ",
-    "N° De Clef": "ouverture par le client ",
-    "Adresse": "1 rue Jean Rodier 31400 Toulouse ",
-    "Contact": "Mr Graillât ",
-    "Téléphone": "0562572400 - 0618056645",
-    "Mails": "Olivier.GRAILLAT@kohler.com>",
-    "Syndic": "Tertiaire",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Georgieva ",
-    "Numéro Agents": "0641456262",
-    "Jour de passage /Tache": "Lundi 11:45 - 13:15                    Jeudi 11:45 - 13:15  Complet",
-    "Code / clef": "Sonner Interphone",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "BSK",
-    "N° De Clef": "ouverture par le client",
-    "Adresse": "58 rue de magellan",
-    "Contact": "samuel douchy clinquart ",
-    "Téléphone": "06 11 243674",
-    "Mails": "",
-    "Syndic": "tertiaire",
-    "Intervention": "",
-    "Agents": "Da silva karolaine",
-    "Numéro Agents": "?",
-    "Jour de passage /Tache": "lundi au vendredi 2h30",
-    "Code / clef": "ouvert par le client code portail 1234",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "30/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Cabinet dentaire ",
-    "N° De Clef": "31",
-    "Adresse": "1 bis rue de l'europe Balma ",
-    "Contact": "Lemanier",
-    "Téléphone": "0616306711",
-    "Mails": "",
-    "Syndic": "Ø",
-    "Intervention": "Ø",
-    "Agents": "Da silva karolaine",
-    "Numéro Agents": "?",
-    "Jour de passage /Tache": "Lundi au vendredi 20h",
-    "Code / clef": "clef / code alarme \nActiver\nON \ndésactiver 3592 OFF",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "50 / mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Carré Verdé",
-    "N° De Clef": "Ø",
-    "Adresse": "22 bis chemin d'azas, aucamville",
-    "Contact": "M Fonta ",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "Mngestion",
-    "Intervention": "Toulouse Métropole ",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "Vendredi 2H",
-    "Code / clef": "clef local poubelle \ncode 1898",
-    "Sortie om": "",
-    "Sortie tri": "",
-    "Frange": "10 / mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Castanea ",
-    "N° De Clef": "4",
-    "Adresse": "58 avenue de Toulouse 31320 castanet tolosan ",
-    "Contact": "Mme Iris Ravaillot ",
-    "Téléphone": " 0672967483 ",
-    "Mails": "<iris.revaillot@ca-immobilier.fr>",
-    "Syndic": "CA immo",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mr Mechergui",
-    "Numéro Agents": "0662674109",
-    "Jour de passage /Tache": "Mardi 02:00\nHalls + etages Vendredi 1:15 Halls",
-    "Code / clef": "Clef Badge Bip",
-    "Sortie om": "DIMANCHE \nMERCREDI",
-    "Sortie tri": "MERCREDI",
-    "Frange": "10/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Clos des demoiselles",
-    "N° De Clef": "61",
-    "Adresse": "4 rue des demoiselles de gascogne  Frouzins",
-    "Contact": "Mr Fonta",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MnGestion",
-    "Intervention": "Evacuation\nentreprise",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "Mardi \nComplet",
-    "Code / clef": "Telecommade\nVigik \nclef ",
-    "Sortie om": "LUNDI\nJEUDI",
-    "Sortie tri": "MARDI",
-    "Frange": "?",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Comat ",
-    "N° De Clef": "14",
-    "Adresse": "6 chemin de vignalis, Flourens",
-    "Contact": "Mr Pagot ",
-    "Téléphone": "06 22 43 35 98",
-    "Mails": "b.pagot@comat.space>",
-    "Syndic": "Tertiaire",
-    "Intervention": "Ø",
-    "Agents": "Di Sangro / Leonel Ribiero",
-    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
-    "Jour de passage /Tache": "Lundi\nMardi\nMercredi\nJeudi\nVendredi",
-    "Code / clef": "Clef ",
-    "Sortie om": "VENDREDI MATIN",
-    "Sortie tri": "VENDREDI MATIN",
-    "Frange": "43 / mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "OUI"
-  },
-  {
-    "Nom de la résidence": "Chataigners ",
-    "N° De Clef": "10",
-    "Adresse": "Angle avenue mendes France et avenue savary 31520 castanet tolosan ",
-    "Contact": "Mr lefebvre David ",
-    "Téléphone": "0561251845",
-    "Mails": "David.lefebvre@foncia.fr ",
-    "Syndic": "FONCIA ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mr Ben Moindzee",
-    "Numéro Agents": "0620115560",
-    "Jour de passage /Tache": "Lundi - vendredi ",
-    "Code / clef": "B2548 portail \n\nBâtiment A 4561 \nBâtiment B 4562                    bâtiment C 4563\nBâtiment D4567 \nBâtiment E 4568\nBâtiment F 4569",
-    "Sortie om": " Lundi  jeudi",
-    "Sortie tri": "Mercredi ",
-    "Frange": "100/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Cheneraie ",
-    "N° De Clef": "2",
-    "Adresse": "12 avenue pierres Georges latecoere 31520 ramonville n",
-    "Contact": "Mme Coval - Mr Cussac ",
-    "Téléphone": "0534321307 - 0621784182 / 0534321299",
-    "Mails": "Scoval@nexity.fr / cussac@nexity.fr",
-    "Syndic": "Nexity saint Michel ",
-    "Intervention": "Sicoval par syndic ",
-    "Agents": "Mr Mechergui ",
-    "Numéro Agents": "0662674109",
-    "Jour de passage /Tache": "Lundi 07:30 - 11h30              6 complet 12hall                                                      Mardi 07:30 - 09:30               6 etages                                           Mercredi 07:30 - 10:30      Halls                                       Jeudi 07:30 - 09:30               6 etages                                             Vendredi 07:30 - 11:30  6 complet 12hall  ",
-    "Code / clef": "Clef / Badge code 1969",
-    "Sortie om": "Mardi 07:00 repasser le MIDI fermer le portail \nJeudi 07:00 repasser le MIDI pour fermer ",
-    "Sortie tri": "Lundi 12:00 repasser le soir pour fermer",
-    "Frange": "60/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Clos mendel",
-    "N° De Clef": "5",
-    "Adresse": "1 bis rue de gorp 31400 Toulouse ",
-    "Contact": "Iris lugis",
-    "Téléphone": "Tél : 05.34.401.444\nPort : 06.72.96.74.83\n",
-    "Mails": "iris.lugiss@ca-servicesimmobiliers.fr",
-    "Syndic": "CA-immo ",
-    "Intervention": "Toulouse Métropole ",
-    "Agents": "Mr Dupla",
-    "Numéro Agents": "0771577140",
-    "Jour de passage /Tache": "Mardi 01:00                                                    Vendredi 00:30",
-    "Code / clef": "Clef et Bip",
-    "Sortie om": "DIMANCHE \nMARDI \nJEUDI ",
-    "Sortie tri": "JEUDI",
-    "Frange": "10/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Croix benite  ",
-    "N° De Clef": "",
-    "Adresse": "45 rue croix Benite ",
-    "Contact": "Mn gestion ",
-    "Téléphone": "",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "",
-    "Numéro Agents": "",
-    "Jour de passage /Tache": "",
-    "Code / clef": "Code porte 5354",
-    "Sortie om": "",
-    "Sortie tri": "",
-    "Frange": "",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Dauphiné",
-    "N° De Clef": "62",
-    "Adresse": "2 - 4 avenue de l'URSS",
-    "Contact": "Mr FONTA",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MnGestion",
-    "Intervention": "Toulouse Métropole",
-    "Agents": "Mr Perez",
-    "Numéro Agents": "07 83 47 96 85",
-    "Jour de passage /Tache": "Mardi\nBât 2 complet et hall Bâtiment 4\n1h\nVendredi \nBât 4 complet et hall Bâtiment 2\n1h",
-    "Code / clef": "Telecommande\nVigik\nClef ",
-    "Sortie om": "LUNDI \nJEUDI",
-    "Sortie tri": "JEUDI",
-    "Frange": "20/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Domaine ",
-    "N° De Clef": "59",
-    "Adresse": "10 impasse se canto \nCastanet Tolosan",
-    "Contact": "Mr FONTA",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MnGestion",
-    "Intervention": "Toulouse Métropole",
-    "Agents": "Mr El Gurch\nDa Rocha ",
-    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
-    "Jour de passage /Tache": "Lundi \nhall B/C/D\n0h45\nMardi\nHall A/E\n0h40\nMercredi\nEtages et escaliers 5 batiments\n3h\nJeudi\nhall B/C/D\n0h55\nVendredi\nHall A/E\n1h15",
-    "Code / clef": "Telecommande\nVigik\nClef ",
-    "Sortie om": "JEUDI",
-    "Sortie tri": "JEUDI 1/2 SEMAINE",
-    "Frange": "40/mois",
-    "type  ampoules néons": "E27 - ",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Domaine du canal ",
-    "N° De Clef": "36",
-    "Adresse": "22 bis chemin du canal 31170 Tournefeuille",
-    "Contact": "Mme Levanphung",
-    "Téléphone": "0562219876 - 0643402956",
-    "Mails": "Alexandra.levanphung@square.fr",
-    "Syndic": "Square Habitat ",
-    "Intervention": "Évacuation entreprise",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "Mardi 01:15 Complet                                                   Vendredi 01:15          Hall + rentré /nettoyage container + local poubelle et aire de présentation ",
-    "Code / clef": "Clef badge bip",
-    "Sortie om": "jeudi dimanche",
-    "Sortie tri": "mardi 1semaine/2",
-    "Frange": "20 / mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Duméril ",
-    "N° De Clef": "33",
-    "Adresse": "102 rue alfred duméril, Toulouse",
-    "Contact": "Mr FONTA",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MnGestion",
-    "Intervention": "Toulouse Métropole",
-    "Agents": "Di Sangro / Leonel Ribiero",
-    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
-    "Jour de passage /Tache": "jeudi complet",
-    "Code / clef": "clef badge télécomande",
-    "Sortie om": "MARDI \nJEUDI",
-    "Sortie tri": "MARDI",
-    "Frange": "10/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Enghien C",
-    "N° De Clef": "53",
-    "Adresse": "43 rue Corneille 31300 Toulouse",
-    "Contact": "Mr Gauze ",
-    "Téléphone": "0562736064",
-    "Mails": "gauze102@foncia.fr",
-    "Syndic": "FONCIA",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mr Posel         Mr Joseph",
-    "Numéro Agents": "",
-    "Jour de passage /Tache": "Ø",
-    "Code / clef": "Bip",
-    "Sortie om": "LUNDI\nJEUDI",
-    "Sortie tri": "MERCREDI",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": "OUI"
-  },
-  {
-    "Nom de la résidence": "Ehghien D",
-    "N° De Clef": "53",
-    "Adresse": "43 rue corneille 31300 Toulouse ",
-    "Contact": "CLEMENTEI Sylvie",
-    "Téléphone": "",
-    "Mails": "sylvie.clementei@foncia.com",
-    "Syndic": "Nexity ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "",
-    "Numéro Agents": "",
-    "Jour de passage /Tache": "Ø",
-    "Code / clef": "Bip",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": "OUI"
-  },
-  {
-    "Nom de la résidence": "Exterion Média",
-    "N° De Clef": "55",
-    "Adresse": "6 avenue Georges Pompidou ",
-    "Contact": "Mme Lafon Anne ",
-    "Téléphone": "0617174808 - 0561619984",
-    "Mails": "Anne.Lafon@exterionmedia.fr",
-    "Syndic": "Tertiaire ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Landi",
-    "Numéro Agents": "0681299244",
-    "Jour de passage /Tache": "Lundi - Vendredi 06:00 - 08:30 complet ",
-    "Code / clef": "Clef Code entre porte 45621 portail appel 07000037678353      téléphone autorisé ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Gonin",
-    "N° De Clef": "18",
-    "Adresse": "9 rue Claude gonin ",
-    "Contact": "Mme Lucie Thibault",
-    "Téléphone": "0562736899",
-    "Mails": "L.thibault@midihabitat.net",
-    "Syndic": "Midi habitat",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Akardad",
-    "Numéro Agents": "0775956868",
-    "Jour de passage /Tache": "Lundi 01:00  hall + escaliers + acces sous sol                                   Mardi 02:00 Etages                                                                               Mercredi 01:00 Hall + espace vert + echanges conteneurs om et tri                                                                                                                    Jeudi 00:15 echanges conteneurs au besoin                                        Vendredi 01:00 echange conteneur ",
-    "Code / clef": "Badge bip clef",
-    "Sortie om": "LUNDI",
-    "Sortie tri": "MARDI\n",
-    "Frange": "20/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "OUI"
-  },
-  {
-    "Nom de la résidence": "Hammeaux de la crousettes ",
-    "N° De Clef": "34",
-    "Adresse": "51 chemin de campferrand 31520 Auzeville tolosan ",
-    "Contact": "Mr Antony ",
-    "Téléphone": "0699140392",
-    "Mails": "kantony@lamy-immobilier.fR",
-    "Syndic": "Nexity saint Michel ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mr Mechergui",
-    "Numéro Agents": "0662674109",
-    "Jour de passage /Tache": "lundi mercredi",
-    "Code / clef": "Badge / télécommande ",
-    "Sortie om": "DIMANCHE",
-    "Sortie tri": "LUNDI 1/2 SEMAINE",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Iconcept capitole ",
-    "N° De Clef": "Ø",
-    "Adresse": "57 rue Alsace et Lorraine 31000 Toulouse ",
-    "Contact": "Laura ",
-    "Téléphone": "06 71 86 96 49",
-    "Mails": "l.vallinot@cec.com",
-    "Syndic": "Commerce ",
-    "Intervention": "Toulouse Métropole",
-    "Agents": "Mokhadam et geik",
-    "Numéro Agents": "0767979067\n0758227029",
-    "Jour de passage /Tache": "Lundi mercredi vendredi 8h30 -> 9h30 ",
-    "Code / clef": "Ouverture par les employés / wc 3105A ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Iconcept Labege ",
-    "N° De Clef": "Ø",
-    "Adresse": "88 rue de Galilée 31670 labege ",
-    "Contact": "Mr Dutilleux ",
-    "Téléphone": "0664440553",
-    "Mails": "Pascal.dutilleux@iconcept.fr",
-    "Syndic": "Commerce ",
-    "Intervention": "Ø",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "Mardi Jeudi 8h30 -> 9h30",
-    "Code / clef": "Ouverture par les employés ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": " Idéa park ",
-    "N° De Clef": "Ø",
-    "Adresse": "9 rue benjamin franklin, launaguet",
-    "Contact": "",
-    "Téléphone": "",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "Charef",
-    "Numéro Agents": "",
-    "Jour de passage /Tache": "Jeudi 1 / mois",
-    "Code / clef": "accés libre",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": "Ø"
-  },
-  {
-    "Nom de la résidence": "Jardin occitans ",
-    "N° De Clef": "40",
-    "Adresse": "Impasse les Jardin Occitans Pompertuzat",
-    "Contact": "",
-    "Téléphone": "",
-    "Mails": "",
-    "Syndic": "Foncia",
-    "Intervention": "toulouse métrople",
-    "Agents": "Mr El Gurch\nDa Rocha ",
-    "Numéro Agents": "07 48 33 40 51\n07 74 28 12 27",
-    "Jour de passage /Tache": "Lundi\ncomplets des entrée 1 et 2 + rentrées conteneurs OM et nettoyage conteneurs et locaux \n1h45\nMardi\n complets des entrée 3, 4 + sortie des conteneurs de tri \n1h15\nrentrée des conteneurs de tri + ramassage des détritus et soufflage des piétonniers+ dépoussiérage des boites aux lettres\n0h40\nJeudi\ncomplets des entrée 1 et 2\n1h30\nVendredi\n complets des entrée 3, 4\n1h30 ",
-    "Code / clef": "Telecommande \nVigik \nClef ",
-    "Sortie om": "DIMANCHE\nJEUDI",
-    "Sortie tri": "MARDI",
-    "Frange": "",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Jimenez ",
-    "N° De Clef": "Ø",
-    "Adresse": "Castelneau d’ Estretefond",
-    "Contact": "Mme Bourdeu ",
-    "Téléphone": "0562849665",
-    "Mails": "Sylvie.bourdeu@jimenezfva.com",
-    "Syndic": "Tertiaire",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Stoian",
-    "Numéro Agents": "0623500218",
-    "Jour de passage /Tache": "Lundi - Samedi ",
-    "Code / clef": "Clef badge",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "120/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Jonquilles",
-    "N° De Clef": "21",
-    "Adresse": "41 rue de limayrac 31500 Toulouse ",
-    "Contact": "Mme Lazaar - Mr Édouard Illescas ",
-    "Téléphone": "? - 0666278766",
-    "Mails": "Fantime.lazaar@foncia.fr - Édouard.illescas@foncia.fr ",
-    "Syndic": "FONCIA ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mr Dupla",
-    "Numéro Agents": "0771577140",
-    "Jour de passage /Tache": "Mardi 14:00 - 15:00                                Vendredi 14:00 - 15:00",
-    "Code / clef": "Badge",
-    "Sortie om": "LUNDI \nJEUDI",
-    "Sortie tri": "MARDI",
-    "Frange": "20/mois ",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Kanopii",
-    "N° De Clef": "54",
-    "Adresse": "25 avenue des arène Balma ",
-    "Contact": "Hadrien",
-    "Téléphone": "0620157286",
-    "Mails": "",
-    "Syndic": "Tertiaire",
-    "Intervention": "Ø",
-    "Agents": "Mr Selamnia",
-    "Numéro Agents": "0601942553",
-    "Jour de passage /Tache": "Mercredi 2h ",
-    "Code / clef": "clef2020 ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Lagravette ",
-    "N° De Clef": "20",
-    "Adresse": "21/23/25 rue de la gravette 31300 Toulouse ",
-    "Contact": "Mme Levanphung",
-    "Téléphone": "0562219876 - 0643502956",
-    "Mails": "Alexandra.levanphung@square.fr ",
-    "Syndic": "Square habitat",
-    "Intervention": "Toulouse métropole ",
-    "Agents": " Mme Di Sangro ",
-    "Numéro Agents": "0636477994",
-    "Jour de passage /Tache": "Mercredi 2H15 complet",
-    "Code / clef": "Bip Clef Badge",
-    "Sortie om": "MARDI\nJEUDI",
-    "Sortie tri": "MARDI",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Lombez Roquemaurel",
-    "N° De Clef": "33",
-    "Adresse": "70 avenue de lombez - 35 rue de roquemaurel",
-    "Contact": "M Fonta",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "mn gestion",
-    "Intervention": "toulouse métrople",
-    "Agents": "Mme Amaral",
-    "Numéro Agents": "0648444310",
-    "Jour de passage /Tache": "Lundi 3H \nJeudi 3H ",
-    "Code / clef": "Clef / badge / télécommande",
-    "Sortie om": "",
-    "Sortie tri": "",
-    "Frange": "",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "magellan ",
-    "N° De Clef": "8",
-    "Adresse": "58 rue de magellan ",
-    "Contact": "Mme Sessen",
-    "Téléphone": "",
-    "Mails": "Sessen",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "lundi au vendredi ",
-    "Code / clef": "code barrière 1234",
-    "Sortie om": "",
-    "Sortie tri": "",
-    "Frange": "",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Matabiau ",
-    "N° De Clef": "",
-    "Adresse": "23 boulevard matabiau toulouse",
-    "Contact": "M Fonta",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MnGestion",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Akardad",
-    "Numéro Agents": "0775956868",
-    "Jour de passage /Tache": "Lundi au vendredi",
-    "Code / clef": "clef",
-    "Sortie om": "mardi",
-    "Sortie tri": "Ø",
-    "Frange": "40/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Mega Sud ",
-    "N° De Clef": "46",
-    "Adresse": "",
-    "Contact": "Mme Bosc ",
-    "Téléphone": "06 99 78 04 75",
-    "Mails": "",
-    "Syndic": "Tertaire",
-    "Intervention": "",
-    "Agents": "Mr Gadi",
-    "Numéro Agents": "0782135615",
-    "Jour de passage /Tache": "Vendredi a partir de 14h",
-    "Code / clef": "Clef",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "40/mlois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Monplaisir ",
-    "N° De Clef": "23",
-    "Adresse": "43 rue monplaisir 31000 Toulouse ",
-    "Contact": "Mr Therin",
-    "Téléphone": "0776907899",
-    "Mails": "Therin@domicimm.fr ",
-    "Syndic": "Domicimm ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Dupla ",
-    "Numéro Agents": "0771577140",
-    "Jour de passage /Tache": "Lundi 14:00 - 16:00                  Jeudi 14:30 - 15:00",
-    "Code / clef": "Badge / bip / clef",
-    "Sortie om": "dimanche mercredi",
-    "Sortie tri": "jeudi",
-    "Frange": "20/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Narbonne",
-    "N° De Clef": "48",
-    "Adresse": "85 route de narbonne, Toulouse",
-    "Contact": "M Fonta",
-    "Téléphone": "0601654090",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MnGestion",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Di Sangro / Leonel Ribiero",
-    "Numéro Agents": "06 58 96 76 46 \n07 66 25 93 64",
-    "Jour de passage /Tache": "Tous les jours ",
-    "Code / clef": "Clef / badge",
-    "Sortie om": "",
-    "Sortie tri": "",
-    "Frange": "",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Opéra ",
-    "N° De Clef": "12",
-    "Adresse": "31 rue figeac 31200 Toulouse ",
-    "Contact": "Mme Gonzalez Manon ",
-    "Téléphone": "0561361501",
-    "Mails": "Manon.gonzalez@foncia.com",
-    "Syndic": "FONCIA ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "lundi 1:15  complet                                                   Mercredi 1:15 complet                                Vendredi 00:30 hall",
-    "Code / clef": "Clef bip badge",
-    "Sortie om": "lundi jeudi",
-    "Sortie tri": "jeudi",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Orea ",
-    "N° De Clef": "35",
-    "Adresse": "1/5/7 rue pagnol et 26 avenue de Galilée 31130 Balma ",
-    "Contact": "Mr Fonta ",
-    "Téléphone": "06 95 47 19 76",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MN gestion ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Dulceinia",
-    "Numéro Agents": "",
-    "Jour de passage /Tache": "Lundi 2.5 h                                Jeudi 2.5h",
-    "Code / clef": "Clef Badge Bip",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Parc sud ",
-    "N° De Clef": "13",
-    "Adresse": "Place des marronniers 31700 Blagnac ",
-    "Contact": "Mme Castaninel - Mr Gauze Bruno",
-    "Téléphone": "0562268380 - 0627707663 / 0572268386",
-    "Mails": "Laura.castinel@foncia.fr - gauze102@foncia.fr",
-    "Syndic": "FONCIA ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "lundi 2:30 complet partie droite +hall partie gauche + scom                                                         Mardi 00:45 rcom + sctri                                                                     Jeudi 02:15 complet partie gauche +hall partie droite",
-    "Code / clef": "Badge clef porte local technique 31700b ",
-    "Sortie om": "DIMANCHE",
-    "Sortie tri": "mardi 1 semaine/2",
-    "Frange": "50/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "OUI"
-  },
-  {
-    "Nom de la résidence": "Périgord ",
-    "N° De Clef": "57",
-    "Adresse": "60 boulevard des recolets\n9 rue valentin",
-    "Contact": "Mr Fonta ",
-    "Téléphone": "06 95 47 19 76",
-    "Mails": "frederic.fonta@mngestion-immobiliere.com",
-    "Syndic": "MN gestion ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Amaral",
-    "Numéro Agents": "06 48 44 43 10",
-    "Jour de passage /Tache": "Lundi\nMercredi \nVendredi",
-    "Code / clef": "- Telecommande\n- Vigik \n- clef \n - Code \n- Portail 60 boulevard des Recolet : 3355B\n- BAT. A : 3355B\n- BAT. B : 1880A \n - BAT. C : 3355A \n",
-    "Sortie om": "LUNDI\nBAT. AB \nJEUDI \nBAT. ABC ",
-    "Sortie tri": "JEUDI",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Portes d'Albi",
-    "N° De Clef": "29",
-    "Adresse": "2 chemin amouroux , Toulouse ",
-    "Contact": "Mme Levanphung",
-    "Téléphone": "0562219876 - 0643502956",
-    "Mails": "Alexandra.levanphung@square.fr ",
-    "Syndic": "Square habitat",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mr Avit",
-    "Numéro Agents": "0682333491",
-    "Jour de passage /Tache": "Lundi 14h-16h mardi 14h-16h mercredi 14h-17h    jeudi 14h-17h vendredi 14h-16h ",
-    "Code / clef": "Badge clef 7162",
-    "Sortie om": "mardi vendredi",
-    "Sortie tri": "lundi",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Président ",
-    "N° De Clef": "30",
-    "Adresse": "1/3/5 rue des lauriers 31650 saint orens ",
-    "Contact": "Mme castinel - Mr Gauze Bruno ",
-    "Téléphone": "0562268380 - 0627707663 / 0562268386",
-    "Mails": "Laura.castinel@foncia.fr / gauze102@foncia.fr ",
-    "Syndic": "FONCIA ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Georgieva ",
-    "Numéro Agents": "0641456262",
-    "Jour de passage /Tache": "Lundi 09:00 - 12:00                                                Mardi 09:00 - 11:00                                           Mercredi 09:00 - 11:00                                                       Vendredi 09:00 - 13:00",
-    "Code / clef": "Clefs badge  bip",
-    "Sortie om": "dimanche mercredi",
-    "Sortie tri": "Lundi 1semaine/ 2",
-    "Frange": "50/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "OUI"
-  },
-  {
-    "Nom de la résidence": "Prevaly eurocentre ",
-    "N° De Clef": "45",
-    "Adresse": "Rue de l’Europe 31620 Castelneau d’estretefonds ",
-    "Contact": "Mr Frédéric quadrini ",
-    "Téléphone": "0647090990",
-    "Mails": "Frédéric.quadrini@prevaly.fr",
-    "Syndic": "Tertiaire ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Stoian",
-    "Numéro Agents": "0623500218",
-    "Jour de passage /Tache": "Lundi - Vendredi 17:00 - 19:00",
-    "Code / clef": "Clef portail 3265A alarme désactive activé ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "30/mois ",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Prevaly labege ",
-    "N° De Clef": "Ø",
-    "Adresse": "227 rue pierre Gilles de gennes 31650 labege",
-    "Contact": "Fedreric Quadrini ",
-    "Téléphone": "0647090992",
-    "Mails": "Frédéric.quadrini@prevaly.fr ",
-    "Syndic": "Tertiaire",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mr Selamnia",
-    "Numéro Agents": "0601942553",
-    "Jour de passage /Tache": "Lundi - Vendredi 17:00 - 19:40",
-    "Code / clef": "Code porte 7843 - code alarme 1749  eryma code 6729",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "30/mois ",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Prevaly montaudran ",
-    "N° De Clef": "Ø",
-    "Adresse": "26 avenue Didier Daurat 31400 Toulouse ",
-    "Contact": "Mr Frédéric quadrini ",
-    "Téléphone": "0647090992",
-    "Mails": "Frédéric.quadrini@prevaly.fr",
-    "Syndic": "Tertiaire",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Benzianne   Mme Babouri \n???",
-    "Numéro Agents": "0641456262",
-    "Jour de passage /Tache": "Lundi 17:00 - 19:00                                                             Mardi 17:00 - 18:30                                                          Mercredi 17:00 - 19:00                                                  Jeudi 17:00 - 19h30                                                                Vendredi 16:00 - 18:30",
-    "Code / clef": "Code barrière 3265\nCode porte coulissante 7534\nCode alarme \nActivation 3265 A\nDésactivation 3265 enter",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "60/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Prieuré",
-    "N° De Clef": "9",
-    "Adresse": "5 et 5 bis du prieuré 31000 Toulouse ",
-    "Contact": "Nunés",
-    "Téléphone": "0785639862",
-    "Mails": "",
-    "Syndic": "Domicimm ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mr Akardad",
-    "Numéro Agents": "0775956868",
-    "Jour de passage /Tache": "lundi 02:30                                 mercredi 02:30                                                    Jeudi 01:15                                                     Vendredi 01:00",
-    "Code / clef": "Bip Clef Badge ",
-    "Sortie om": "dimanche mardi jeudi",
-    "Sortie tri": "Ø",
-    "Frange": "35/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Provence",
-    "N° De Clef": "3",
-    "Adresse": "10 rue de Provence 31400 Toulouse ",
-    "Contact": "Mme Lalire - Noel Marion ",
-    "Téléphone": "0562736062 - 05 62 73 53 24",
-    "Mails": "Alalire@nexity.fr - MNOEL@lamy-immobilier.fr",
-    "Syndic": "Nexity carnot ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mme Benzianne",
-    "Numéro Agents": "0695095061",
-    "Jour de passage /Tache": "Lundi 01:30 complet                                     Jeudi 00:30 hall",
-    "Code / clef": "Clef Badge",
-    "Sortie om": "lundi jeudi",
-    "Sortie tri": "jeudi",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Quatuhore",
-    "N° De Clef": "6",
-    "Adresse": "14 avenue Charles de Gaulle lot 14 31130 Balma ",
-    "Contact": "Mr ROUX ",
-    "Téléphone": "06 73 38 66 65 ",
-    "Mails": "",
-    "Syndic": "Tertiaire",
-    "Intervention": "Ø",
-    "Agents": "Mr Selamnia",
-    "Numéro Agents": "06 01 95 25 53",
-    "Jour de passage /Tache": "1/semaine",
-    "Code / clef": "Clefs ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "10/ mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Remax ",
-    "N° De Clef": "32",
-    "Adresse": "Chemin de la Madeleine 31130 Flourens ",
-    "Contact": "Mr Bosc    Mr Balsa",
-    "Téléphone": "0680119632 0643056294",
-    "Mails": "",
-    "Syndic": "Industriel ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mr Touil ",
-    "Numéro Agents": "",
-    "Jour de passage /Tache": "Mercredi 17:00-21:00 Sanitaires et vestiaires deux batiments                                                      Samedi 08:00-12:00 complet 2 batiments ",
-    "Code / clef": "Clef ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "RIE ",
-    "N° De Clef": "Ø",
-    "Adresse": "Chemin brindejonc des moulinais, Toulouse",
-    "Contact": "",
-    "Téléphone": "",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "Babouri",
-    "Numéro Agents": "0761225110",
-    "Jour de passage /Tache": "tous les jours  14h -16h",
-    "Code / clef": "Ø",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "20 / mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Route d'Espagne",
-    "N° De Clef": "Ø",
-    "Adresse": "89 route d'espagne, toulouse",
-    "Contact": "",
-    "Téléphone": "",
-    "Mails": "",
-    "Syndic": "",
-    "Intervention": "",
-    "Agents": "",
-    "Numéro Agents": "",
-    "Jour de passage /Tache": "",
-    "Code / clef": "",
-    "Sortie om": "",
-    "Sortie tri": "",
-    "Frange": "",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Sainte Anne ",
-    "N° De Clef": "7",
-    "Adresse": "18 rue saint Anne 31000 Toulouse ",
-    "Contact": "Mme Castinel - Mr Gauze Bruno ",
-    "Téléphone": "0562268380 - 0627707663 / 0562268386",
-    "Mails": "Laura.castinel@foncia.fr - Gauze102@foncia.fr ",
-    "Syndic": "FONCIA ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mr Perez",
-    "Numéro Agents": "07 83 47 96 85",
-    "Jour de passage /Tache": "Lundi 07:00 - 09:00                                           Mardi 07:00 - 08:15                                Mercredi 07:00 - 09:00                                 Jeudi 07:00 - 08:15                                         Vendredi 07:00 - 09:00",
-    "Code / clef": "Clef bip badge code A3270A / 9780B ",
-    "Sortie om": "Rentré si besoin conteneur ",
-    "Sortie tri": "Ø",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Saint exupery ",
-    "N° De Clef": "1",
-    "Adresse": "84 et 86 avenue de saint exupery 31400 Toulouse ",
-    "Contact": "Calatayu",
-    "Téléphone": "06 71 80 09 61",
-    "Mails": "julien.calatayu@domicia-immobilier.fr",
-    "Syndic": "Dommicia",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mr Dupla ",
-    "Numéro Agents": "0771577140",
-    "Jour de passage /Tache": "Lundi 8:15 - 11:15  Batiments    2A/2B/3B + rcom                     Mardi 8:15 - 10:45 Batiments    3A/4A/4B                                Jeudi 8:15 - 11:15 Batiments    2A/2B/3B + rcom + tri                          Vendredi 8:15 - 10h45 Batiments    3A/4A/4B ",
-    "Code / clef": "Clef Badge Bip ",
-    "Sortie om": "dimanche mercredi",
-    "Sortie tri": "mercredi",
-    "Frange": "20 franges scratch / bi mensuel ",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Saint sauveur ",
-    "N° De Clef": "22",
-    "Adresse": "49 boulevard griffoul dorval / 49 avenue de la baraquette",
-    "Contact": "Andrieu     -                        Simon ",
-    "Téléphone": "0660641360    0785520064",
-    "Mails": "",
-    "Syndic": "martin gestion ",
-    "Intervention": "Toulouse Métropole",
-    "Agents": "Akardad",
-    "Numéro Agents": "0775956868",
-    "Jour de passage /Tache": "Lundic c14:00-16:30   Mardi 14:00-17:00 Mercredi 14:00-16:30 Jeudi 14:00-17:00 Vendredi 14:00-16:30",
-    "Code / clef": "Clef - badge - Bip portail code  Batiment A hall 02146 Batiment 01236 Ascenseur 02145 Batiment B hall 02146 Batiment 01235 Ascenseur 02147 Batiment C hall         Badge Batiment   08931 Ascenseur 07513     Accès sous sol 7348",
-    "Sortie om": "Dimanche Mercredi",
-    "Sortie tri": "Mardi",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Seven ",
-    "N° De Clef": "51",
-    "Adresse": "3 avenue de turenne 31000 Toulouse ",
-    "Contact": "Mme Levanphung ",
-    "Téléphone": "0562219876 / 0643502956",
-    "Mails": "Alexandra.Levanphung@square.fr ",
-    "Syndic": "Square habitat",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mr Samriye",
-    "Numéro Agents": "0641540279",
-    "Jour de passage /Tache": "lundi 1:15 complet jeudi",
-    "Code / clef": "Badge / bip / clef",
-    "Sortie om": "lundi jeudi",
-    "Sortie tri": "mercredi",
-    "Frange": "35/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Smart RX",
-    "N° De Clef": "39",
-    "Adresse": "16 av Charles de Gaulle numéro 11",
-    "Contact": "Mr Recor",
-    "Téléphone": "",
-    "Mails": "O.recor@smart-rx.com",
-    "Syndic": "Tertiaire",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mr Dupla ",
-    "Numéro Agents": "0771577140",
-    "Jour de passage /Tache": "Mercredi Complet  12:30 - 15:15",
-    "Code / clef": "Clef ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "10/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Solens ",
-    "N° De Clef": "19",
-    "Adresse": "60 rue du midi 31400 Toulouse ",
-    "Contact": "Cabrol geraud ",
-    "Téléphone": "0561541547",
-    "Mails": "Cabrol@domicimm.fr ",
-    "Syndic": "Domicimm ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mme Benzianne",
-    "Numéro Agents": "0695095061",
-    "Jour de passage /Tache": "Lundi 1h30 Jeudi 0h30",
-    "Code / clef": "Clef bip badge ",
-    "Sortie om": "lundi jeudi",
-    "Sortie tri": "jeudi",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Sopark ",
-    "N° De Clef": "28",
-    "Adresse": "33 avenue tolosane 31520 ramonville ",
-    "Contact": "Mr Antony ",
-    "Téléphone": "0699140392",
-    "Mails": "kantony@lamy-immobilier.fR",
-    "Syndic": "Nexity saint Michel ",
-    "Intervention": "Sicoval - 0562240202",
-    "Agents": "Mr Mechergui",
-    "Numéro Agents": "0662674109",
-    "Jour de passage /Tache": "Lundi hall\nJeudi complet",
-    "Code / clef": "Badge /  télécommande / clef ",
-    "Sortie om": "lundi 12:00-13:30 halls + scom jeudi 9:30-12:30 complet + scom",
-    "Sortie tri": "dimanche ",
-    "Frange": "25/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Synergie",
-    "N° De Clef": "Ø",
-    "Adresse": "6 avenue Georges Pompidou 31130 Balma ",
-    "Contact": "Mme Rémy Alexandra ",
-    "Téléphone": "0562474744",
-    "Mails": "Alexandra.remy@synergie.fr",
-    "Syndic": "Tertiaire ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Da Silva ",
-    "Numéro Agents": "",
-    "Jour de passage /Tache": "Mardi 8:30-9:30",
-    "Code / clef": "Clef                        code porte 45621",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Tendance ",
-    "N° De Clef": "17",
-    "Adresse": "80 route de Grenade 31700 blagnac ",
-    "Contact": "Mr Laurent Paloma",
-    "Téléphone": "0561714833 - 0561714422",
-    "Mails": "Syndic@agence-palomar.fr",
-    "Syndic": "Palomar immobilier ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "Mardi Complet ",
-    "Code / clef": "Badge clef bip",
-    "Sortie om": "jeudi",
-    "Sortie tri": "mercredi 1 semaine/2",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Tso catenaires ",
-    "N° De Clef": "42",
-    "Adresse": "5 rue moulin Balard 31000 Toulouse ",
-    "Contact": "Mr Marques",
-    "Téléphone": "0689543805",
-    "Mails": "Charles.marques@tso-catenaires.fr",
-    "Syndic": "Tertiaire",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mr Bissemo",
-    "Numéro Agents": "0623929722",
-    "Jour de passage /Tache": "Lundi - Vendredi            19:00 - 21:00",
-    "Code / clef": "Badge / 1975A ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "Ø",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Vaughan avocat ",
-    "N° De Clef": "59",
-    "Adresse": "15 rue de la bourse 31000 Toulouse ",
-    "Contact": "Mr Bruno de la portaliere",
-    "Téléphone": "0682992221 / 0561251284",
-    "Mails": "Bdelaportaliere@vaughan-avocats.fr",
-    "Syndic": "Tertiaire ",
-    "Intervention": "Évacuation entreprise ",
-    "Agents": "Mme Aboutammame",
-    "Numéro Agents": "0752103264",
-    "Jour de passage /Tache": "Samedi ou dimanche ",
-    "Code / clef": "Clef ",
-    "Sortie om": "Ø",
-    "Sortie tri": "Ø",
-    "Frange": "10/ mois",
-    "type  ampoules néons": "",
-    "sac poubelle": ""
-  },
-  {
-    "Nom de la résidence": "Vergers tolosan ",
-    "N° De Clef": "15",
-    "Adresse": "4 chemin de la Flambère 31300 Toulouse ",
-    "Contact": "Mme Levanphung ",
-    "Téléphone": "0562219876 - 0643502956",
-    "Mails": "Alexandra.levanphung@square.fr",
-    "Syndic": "Square habitat ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Meriem \nMr Koita",
-    "Numéro Agents": "06 41 00 06 88\n06 05 70 40 33",
-    "Jour de passage /Tache": "Lundi Vendredi                                                02:00/ jour",
-    "Code / clef": "Clef bip badge",
-    "Sortie om": "mardi vendredi",
-    "Sortie tri": "dimanche",
-    "Frange": "80/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  },
-  {
-    "Nom de la résidence": "Via tolosan ",
-    "N° De Clef": "2",
-    "Adresse": "1 avenue Marcel Dassault",
-    "Contact": "Mr Cussac - Mme Coval ",
-    "Téléphone": "0621784182 / 0534321299",
-    "Mails": "Jcussac@nexity.fr / scoval@nexity.fr ",
-    "Syndic": "Nexity Saint Michel ",
-    "Intervention": "Toulouse métropole ",
-    "Agents": "Mr Mohkadam",
-    "Numéro Agents": "0767979067     -                       0758227029",
-    "Jour de passage /Tache": "Lundi - Mardi - Mercredi - Jeudi - Vendredi",
-    "Code / clef": "Clef - badge - bip  code cadena portail pompier 1971 ",
-    "Sortie om": "dimanche mercredi",
-    "Sortie tri": "mardi",
-    "Frange": "70/mois",
-    "type  ampoules néons": "",
-    "sac poubelle": "NON"
-  }
-];
-
-    // Si des données existantes ont été enregistrées en localStorage, on les recharge
-    try {
-      const stored = localStorage.getItem("chantiersData_editable");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length) {
-          CHANTIERS.splice(0, CHANTIERS.length, ...parsed);
-        }
+      {
+        "Nom de la résidence": "LE RUBIS",
+        "N° De Clef": "12",
+        "Adresse": "Rue Jean Monnet\n31130 BALMA",
+        "Contact": "Service technique",
+        "Téléphone": "05 61 24 36 84",
+        "Mails": "gestionnaire@exemple.fr",
+        "Syndic": "SERGIC",
+        "Intervention": "Entretien des parties communes, sorties OM et tri sélectif.",
+        "Agents": "Agent A",
+        "Numéro Agents": "06 00 00 00 01",
+        "Jour de passage /Tache": "Lundi et jeudi – communs intérieurs\nMercredi – vitrerie",
+        "Code / clef": "#0123 puis B",
+        "Sortie om": "Lundi et jeudi à 18h (local sous-sol)",
+        "Sortie tri": "Mercredi 18h (bacs jaunes)",
+        "Frange": "Frange microfibre bleue",
+        "type  ampoules néons": "LED E14 et néons T8 120cm",
+        "sac poubelle": "50L noir renforcé pour OM, 50L jaune pour tri",
+        "Note chantier": "95"
+      },
+      {
+        "Nom de la résidence": "LES MAGNOLIAS",
+        "N° De Clef": "7",
+        "Adresse": "12 Avenue des Magnolias\n31500 TOULOUSE",
+        "Contact": "Gardien",
+        "Téléphone": "05 61 00 00 00",
+        "Mails": "contact@magnolias.fr",
+        "Syndic": "3F",
+        "Intervention": "Entretien des halls, escaliers et ascenseurs.",
+        "Agents": "Agent B",
+        "Numéro Agents": "06 00 00 00 02",
+        "Jour de passage /Tache": "Mardi et vendredi – communs / ascenseur",
+        "Code / clef": "Interphone + badge rouge",
+        "Sortie om": "Tous les jours à 19h",
+        "Sortie tri": "Mardi et vendredi à 18h",
+        "Frange": "Frange coton blanche",
+        "type  ampoules néons": "LED GU10 et tubes 90cm",
+        "sac poubelle": "30L noir pour sanitaires, 50L noir pour communs",
+        "Note chantier": "90"
+      },
+      {
+        "Nom de la résidence": "LES JARDINS D'EMMA",
+        "N° De Clef": "3B",
+        "Adresse": "4 rue des Jardins\n31200 TOULOUSE",
+        "Contact": "Président du conseil syndical",
+        "Téléphone": "06 00 00 00 03",
+        "Mails": "cs@jardindemma.fr",
+        "Syndic": "SERGIC",
+        "Intervention": "Entretien complet, sortie OM/tri, gestion des encombrants.",
+        "Agents": "Agent C",
+        "Numéro Agents": "06 00 00 00 04",
+        "Jour de passage /Tache": "Lundi, mercredi, vendredi",
+        "Code / clef": "Clé + digicode",
+        "Sortie om": "Lundi, mercredi, vendredi 19h",
+        "Sortie tri": "Mercredi 19h",
+        "Frange": "Frange microfibre verte",
+        "type  ampoules néons": "LED E27 et bandeaux LED",
+        "sac poubelle": "50L noir, 30L transparents pour tri",
+        "Note chantier": "88"
       }
-    } catch (e) {
-      console.warn("Impossible de charger les données locales :", e);
-    }
+    ];
+
+    (function initLocalStorage(){
+      try {
+        const stored = localStorage.getItem("chantiersData_editable");
+        if (stored) {
+          const arr = JSON.parse(stored);
+          if (Array.isArray(arr) && arr.length > 0) {
+            for (let i = 0; i < arr.length && i < CHANTIERS.length; i++) {
+              const base = CHANTIERS.findIndex(c => c["Nom de la résidence"] === arr[i]["Nom de la résidence"]);
+              if (base >= 0) {
+                CHANTIERS[base] = Object.assign({}, CHANTIERS[base], arr[i]);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Impossible de lire les données locales :", e);
+      }
+    })();
+
+    const listeChantiers = document.getElementById("listeChantiers");
+    const listeCount = document.getElementById("listeCount");
 
     const searchInput = document.getElementById("searchInput");
     const syndicFilter = document.getElementById("syndicFilter");
     const triSelect = document.getElementById("triSelect");
-    const listEl = document.getElementById("chantiersList");
-    const countVisibleEl = document.getElementById("countVisible");
-    const countTotalEl = document.getElementById("countTotal");
-
-    const detailEmpty = document.getElementById("detailEmpty");
-    const detailContent = document.getElementById("detailContent");
-
-    const detailResidence = document.getElementById("detailResidence");
-    const detailAddress = document.getElementById("detailAddress");
-    const detailSyndicPill = document.getElementById("detailSyndicPill");
-    const detailHint = document.getElementById("detailHint");
 
     const infoResidence = document.getElementById("infoResidence");
     const infoAdresse = document.getElementById("infoAdresse");
     const infoSyndic = document.getElementById("infoSyndic");
-
+    const infoClef = document.getElementById("infoClef");
     const infoContact = document.getElementById("infoContact");
     const infoTelephone = document.getElementById("infoTelephone");
     const infoMail = document.getElementById("infoMail");
-
     const infoIntervention = document.getElementById("infoIntervention");
     const infoJours = document.getElementById("infoJours");
     const infoAgents = document.getElementById("infoAgents");
     const infoNumAgents = document.getElementById("infoNumAgents");
-
     const infoCodeClef = document.getElementById("infoCodeClef");
     const infoSortieOm = document.getElementById("infoSortieOm");
     const infoSortieTri = document.getElementById("infoSortieTri");
-    const infoSac = document.getElementById("infoSac");
-
     const infoFrange = document.getElementById("infoFrange");
     const infoAmpoules = document.getElementById("infoAmpoules");
+    const infoSac = document.getElementById("infoSac");
     const infoNote = document.getElementById("infoNote");
 
     const infoCahierFile = document.getElementById("infoCahierFile");
@@ -2469,6 +1877,13 @@
 
     const saveButton = document.getElementById("saveButton");
     const saveStatus = document.getElementById("saveStatus");
+
+    // Nouveaux boutons ajout / suppression de chantier
+    const addChantierBtn = document.getElementById("addChantierBtn");
+    const deleteChantierBtn = document.getElementById("deleteChantierBtn");
+
+    const noteKpi = document.getElementById("noteKpi");
+    const cleKpi = document.getElementById("cleKpi");
 
     let etat = {
       recherche: "",
@@ -2482,223 +1897,220 @@
       return String(str)
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g," ")
-        .trim();
+        .replace(/[\u0300-\u036f]/g, "");
     }
 
-    const totalDistinct = new Set(
-      CHANTIERS.map(c => (c["Nom de la résidence"] || "").trim()).filter(Boolean)
-    ).size;
-    countTotalEl.textContent = totalDistinct;
+    function calculerClasseNote(noteStr){
+      const n = parseFloat(noteStr);
+      if (isNaN(n)) return "";
+      if (n >= 90) return "good";
+      if (n >= 75) return "medium";
+      return "low";
+    }
 
-    function buildSyndicOptions() {
-      const current = etat.syndic;
-      const syndics = Array.from(
-        new Set(
-          CHANTIERS.map(c => (c["Syndic"] || "").trim()).filter(Boolean)
-        )
-      ).sort((a,b) => a.localeCompare(b,"fr"));
-
-      syndicFilter.innerHTML = "";
-      const optAll = document.createElement("option");
-      optAll.value = "";
-      optAll.textContent = "Tous les syndics";
-      syndicFilter.appendChild(optAll);
-
-      let stillExists = false;
-      syndics.forEach(s => {
+    function buildSyndicOptions(){
+      const syndicSet = new Set();
+      CHANTIERS.forEach(c => {
+        if (c.Syndic && String(c.Syndic).trim() !== "") {
+          syndicSet.add(String(c.Syndic).trim());
+        }
+      });
+      const syndicArray = Array.from(syndicSet).sort((a,b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+      syndicFilter.innerHTML = '<option value="">Tous</option>';
+      syndicArray.forEach(s => {
         const opt = document.createElement("option");
         opt.value = s;
         opt.textContent = s;
-        if (s === current) {
-          opt.selected = true;
-          stillExists = true;
-        }
         syndicFilter.appendChild(opt);
       });
-
-      if (!stillExists) {
-        etat.syndic = "";
-        syndicFilter.value = "";
-      }
     }
 
-    function filtrerChantiers(){
-      const term = normaliserTexte(etat.recherche);
-      return CHANTIERS.filter((c) => {
-        if (!c) return false;
-        if (etat.syndic && String(c["Syndic"] || "").trim() !== etat.syndic){
-          return false;
-        }
-        if (!term) return true;
+    function getFilteredAndSortedIndices(){
+      const indices = [];
+      const search = normaliserTexte(etat.recherche);
+      const filtreSyndic = etat.syndic;
 
-        const champs = [
-          c["Nom de la résidence"],
-          c["Adresse"],
-          c["Syndic"],
-          c["Contact"],
-          c["Agents"],
-          c["Jour de passage /Tache"]
-        ];
+      CHANTIERS.forEach((c, index) => {
+        let keep = true;
 
-        return champs.some(val => normaliserTexte(val).includes(term));
-      });
-    }
-
-    function trierChantiers(liste){
-      const tri = etat.tri;
-      return [...liste].sort((a,b) => {
-        if (tri === "syndic"){
-          const sa = normaliserTexte(a["Syndic"] || "");
-          const sb = normaliserTexte(b["Syndic"] || "");
-          if (sa === sb){
-            const ra = normaliserTexte(a["Nom de la résidence"] || "");
-            const rb = normaliserTexte(b["Nom de la résidence"] || "");
-            return ra.localeCompare(rb,"fr");
+        if (search) {
+          const blocTexte = [
+            c["Nom de la résidence"],
+            c["Adresse"],
+            c["Syndic"],
+            c["Contact"],
+            c["Agents"],
+            c["Jour de passage /Tache"]
+          ].join(" ");
+          const normalized = normaliserTexte(blocTexte);
+          if (!normalized.includes(search)) {
+            keep = false;
           }
-          return sa.localeCompare(sb,"fr");
         }
-        const ra = normaliserTexte(a["Nom de la résidence"] || "");
-        const rb = normaliserTexte(b["Nom de la résidence"] || "");
-        return ra.localeCompare(rb,"fr");
+
+        if (keep && filtreSyndic) {
+          if (!c.Syndic || String(c.Syndic).trim() !== filtreSyndic) {
+            keep = false;
+          }
+        }
+
+        if (keep) indices.push(index);
       });
+
+      const tri = etat.tri;
+      indices.sort((a, b) => {
+        const ca = CHANTIERS[a];
+        const cb = CHANTIERS[b];
+
+        if (tri === "alpha") {
+          const na = ca["Nom de la résidence"] || "";
+          const nb = cb["Nom de la résidence"] || "";
+          return na.localeCompare(nb, "fr", { sensitivity: "base" });
+        }
+
+        if (tri === "note") {
+          const na = parseFloat(ca["Note chantier"] || "0");
+          const nb = parseFloat(cb["Note chantier"] || "0");
+          if (isNaN(na) && isNaN(nb)) return 0;
+          if (isNaN(na)) return 1;
+          if (isNaN(nb)) return -1;
+          return nb - na;
+        }
+
+        if (tri === "syndic") {
+          const sa = ca.Syndic || "";
+          const sb = cb.Syndic || "";
+          const cmp = sa.localeCompare(sb, "fr", { sensitivity: "base" });
+          if (cmp !== 0) return cmp;
+          const na = ca["Nom de la résidence"] || "";
+          const nb = cb["Nom de la résidence"] || "";
+          return na.localeCompare(nb, "fr", { sensitivity: "base" });
+        }
+
+        const na = ca["Nom de la résidence"] || "";
+        const nb = cb["Nom de la résidence"] || "";
+        return na.localeCompare(nb, "fr", { sensitivity: "base" });
+      });
+
+      return indices;
     }
 
     function renderListe(){
-      const filtrés = filtrerChantiers();
-      const chantiersAffiches = trierChantiers(filtrés);
+      const indices = getFilteredAndSortedIndices();
+      listeChantiers.innerHTML = "";
 
-      listEl.innerHTML = "";
-      countVisibleEl.textContent = chantiersAffiches.length;
+      const count = indices.length;
+      listeCount.textContent = count + (count <= 1 ? " chantier" : " chantiers");
 
-      if (!chantiersAffiches.length){
-        const div = document.createElement("div");
-        div.className = "no-results";
-        div.innerHTML = `
-          <strong>Aucun chantier trouvé.</strong><br>
-          Vérifie l'orthographe ou enlève des filtres (syndic, tri).
-        `;
-        listEl.appendChild(div);
-        detailEmpty.style.display = "block";
-        detailContent.style.display = "none";
-        return;
-      }
-
-      chantiersAffiches.forEach((c) => {
-        const globalIndex = CHANTIERS.indexOf(c);
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "res-item";
-
-        const residence = (c["Nom de la résidence"] || "").trim() || "Résidence sans nom";
-
-        const indexSpan = '<span class="res-item-index">' + String(globalIndex + 1).padStart(2,"0") + '</span>';
-        const labelSpan = '<span class="res-item-label">' + residence + '</span>';
-        btn.innerHTML = indexSpan + labelSpan;
-
-        if (etat.selectionIndex === globalIndex){
-          btn.classList.add("active");
+      indices.forEach((idx) => {
+        const c = CHANTIERS[idx];
+        const item = document.createElement("div");
+        item.className = "chantier-item";
+        if (etat.selectionIndex === idx) {
+          item.classList.add("selected");
         }
 
-        btn.addEventListener("click", () => {
-          etat.selectionIndex = globalIndex;
+        const nom = c["Nom de la résidence"] || "(Sans nom)";
+        const syndic = c.Syndic || "—";
+        const adresse = (c.Adresse || "").replace(/\n/g, " ");
+        const contact = c.Contact || "Contact non renseigné";
+        const noteStr = c["Note chantier"] || "";
+        const noteClass = calculerClasseNote(noteStr);
+        const noteBadge = noteStr ? `<span class="note-pill note-${noteClass}">${noteStr}</span>` : "";
+
+        item.innerHTML = `
+          <div class="chantier-item-header">
+            <div class="chantier-item-title">${nom}</div>
+            <div class="chantier-item-badge">
+              <span>🧭</span>
+              <span>${syndic}</span>
+            </div>
+          </div>
+          <div class="chantier-item-subline">
+            <span>${adresse || "Adresse non renseignée"}</span>
+          </div>
+          <div class="chantier-item-subline">
+            <span>👤 ${contact}</span>
+            ${noteBadge}
+          </div>
+        `;
+
+        item.addEventListener("click", () => {
+          etat.selectionIndex = idx;
           renderListe();
           renderDetail();
         });
 
-        listEl.appendChild(btn);
+        listeChantiers.appendChild(item);
       });
-    }
 
-    function loadCahierForIndex(idx) {
-      if (idx === null || idx < 0) return null;
-      try {
-        const raw = localStorage.getItem("chantier_pdf_" + idx);
-        if (!raw) return null;
-        return JSON.parse(raw);
-      } catch (e) {
-        console.warn("Impossible de charger le PDF pour ce chantier :", e);
-        return null;
-      }
-    }
-
-    function updateCahierUI() {
-      const idx = etat.selectionIndex;
-      const data = loadCahierForIndex(idx);
-      infoCahierFile.value = "";
-      if (!data) {
-        cahierInfo.textContent = "Aucun cahier des charges PDF enregistré pour ce chantier.";
-        openCahierBtn.disabled = true;
-        clearCahierBtn.disabled = true;
-      } else {
-        cahierInfo.textContent = "PDF enregistré : " + (data.name || "cahier_des_charges.pdf");
-        openCahierBtn.disabled = false;
-        clearCahierBtn.disabled = false;
+      if (etat.selectionIndex === null && indices.length > 0) {
+        etat.selectionIndex = indices[0];
+        renderListe();
+        renderDetail();
       }
     }
 
     function renderDetail(){
       const idx = etat.selectionIndex;
-      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
-        detailEmpty.style.display = "block";
-        detailContent.style.display = "none";
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length) {
+        infoResidence.value = "";
+        infoAdresse.value = "";
+        infoSyndic.value = "";
+        infoClef.value = "";
+        infoContact.value = "";
+        infoTelephone.value = "";
+        infoMail.value = "";
+        infoIntervention.value = "";
+        infoJours.value = "";
+        infoAgents.value = "";
+        infoNumAgents.value = "";
+        infoCodeClef.value = "";
+        infoSortieOm.value = "";
+        infoSortieTri.value = "";
+        infoFrange.value = "";
+        infoAmpoules.value = "";
+        infoSac.value = "";
+        infoNote.value = "";
+
+        noteKpi.textContent = "–";
+        cleKpi.textContent = "–";
+        infoNote.classList.remove("good","medium","low");
+
+        updateCahierUI();
+        saveStatus.textContent = "";
         return;
       }
+
       const c = CHANTIERS[idx];
 
-      detailEmpty.style.display = "none";
-      detailContent.style.display = "block";
+      infoResidence.value = c["Nom de la résidence"] || "";
+      infoAdresse.value = c["Adresse"] || "";
+      infoSyndic.value = c.Syndic || "";
+      infoClef.value = c["N° De Clef"] || "";
+      infoContact.value = c.Contact || "";
+      infoTelephone.value = c["Téléphone"] || "";
+      infoMail.value = c["Mails"] || "";
+      infoIntervention.value = c["Intervention"] || "";
+      infoJours.value = c["Jour de passage /Tache"] || "";
+      infoAgents.value = c["Agents"] || "";
+      infoNumAgents.value = c["Numéro Agents"] || "";
+      infoCodeClef.value = c["Code / clef"] || "";
+      infoSortieOm.value = c["Sortie om"] || "";
+      infoSortieTri.value = c["Sortie tri"] || "";
+      infoFrange.value = c["Frange"] || "";
+      infoAmpoules.value = c["type  ampoules néons"] || "";
+      infoSac.value = c["sac poubelle"] || "";
+      infoNote.value = c["Note chantier"] || "";
 
-      const residence = (c["Nom de la résidence"] || "").trim() || "Résidence sans nom";
-      const adresse = (c["Adresse"] || "").trim() || "Adresse non renseignée";
-      const syndic = (c["Syndic"] || "").trim() || "Syndic non renseigné";
+      noteKpi.textContent = c["Note chantier"] || "–";
+      cleKpi.textContent = c["N° De Clef"] || "–";
 
-      const contact = (c["Contact"] || "").trim();
-      const tel = (c["Téléphone"] || "").trim();
-      const mails = (c["Mails"] || "").trim();
-
-      const intervention = (c["Intervention"] || "").trim();
-      const jours = (c["Jour de passage /Tache"] || "").trim();
-      const agents = (c["Agents"] || "").trim();
-      const nAgents = (c["Numéro Agents"] || "").trim();
-
-      const codeClef = (c["Code / clef"] || "").trim();
-      const sortieOm = (c["Sortie om"] || "").trim();
-      const sortieTri = (c["Sortie tri"] || "").trim();
-      const sac = (c["sac poubelle"] || "").trim();
-
-      const frange = (c["Frange"] || "").trim();
-      const ampoules = (c["type  ampoules néons"] || "").trim();
-
-      const note = (c["Note chantier"] || "").trim();
-
-      detailResidence.textContent = residence;
-      detailAddress.textContent = adresse;
-      detailSyndicPill.textContent = syndic;
-      detailHint.textContent = "Tu peux modifier chaque champ ci-dessous, importer un cahier des charges PDF, puis cliquer sur « Enregistrer les modifications ».";
-
-      infoResidence.value = (c["Nom de la résidence"] || "").trim();
-      infoAdresse.value = (c["Adresse"] || "").trim();
-      infoSyndic.value = (c["Syndic"] || "").trim();
-
-      infoContact.value = contact;
-      infoTelephone.value = tel;
-      infoMail.value = mails;
-
-      infoIntervention.value = intervention;
-      infoJours.value = jours;
-      infoAgents.value = agents;
-      infoNumAgents.value = nAgents;
-
-      infoCodeClef.value = codeClef;
-      infoSortieOm.value = sortieOm;
-      infoSortieTri.value = sortieTri;
-      infoSac.value = sac;
-
-      infoFrange.value = frange;
-      infoAmpoules.value = ampoules;
-      infoNote.value = note;
+      infoNote.classList.remove("good","medium","low");
+      const noteClass = calculerClasseNote(c["Note chantier"]);
+      if (noteClass) {
+        infoNote.classList.add(noteClass);
+      }
 
       updateCahierUI();
       saveStatus.textContent = "";
@@ -2716,6 +2128,7 @@
       c["Adresse"] = infoAdresse.value.trim();
       c["Syndic"] = infoSyndic.value.trim();
 
+      c["N° De Clef"] = infoClef.value.trim();
       c["Contact"] = infoContact.value.trim();
       c["Téléphone"] = infoTelephone.value.trim();
       c["Mails"] = infoMail.value.trim();
@@ -2728,24 +2141,154 @@
       c["Code / clef"] = infoCodeClef.value.trim();
       c["Sortie om"] = infoSortieOm.value.trim();
       c["Sortie tri"] = infoSortieTri.value.trim();
-      c["sac poubelle"] = infoSac.value.trim();
-
       c["Frange"] = infoFrange.value.trim();
       c["type  ampoules néons"] = infoAmpoules.value.trim();
+      c["sac poubelle"] = infoSac.value.trim();
 
       c["Note chantier"] = infoNote.value.trim();
+      const noteClass = calculerClasseNote(c["Note chantier"]);
+      infoNote.classList.remove("good","medium","low");
+      if (noteClass) infoNote.classList.add(noteClass);
+
+      noteKpi.textContent = c["Note chantier"] || "–";
+      cleKpi.textContent = c["N° De Clef"] || "–";
 
       try {
         localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
-        saveStatus.textContent = "Modifications enregistrées sur cet appareil.";
+        saveStatus.textContent = "Modifications enregistrées pour ce chantier.";
+      } catch (e) {
+        console.warn("Impossible d'enregistrer les modifications :", e);
+        saveStatus.textContent = "Erreur : impossible d'enregistrer les modifications (stockage local indisponible).";
+      }
+
+      renderListe();
+    }
+
+    function ajouterChantier(){
+      const nouveau = {
+        "Nom de la résidence": "Nouveau chantier",
+        "N° De Clef": "",
+        "Adresse": "",
+        "Contact": "",
+        "Téléphone": "",
+        "Mails": "",
+        "Syndic": "",
+        "Intervention": "",
+        "Agents": "",
+        "Numéro Agents": "",
+        "Jour de passage /Tache": "",
+        "Code / clef": "",
+        "Sortie om": "",
+        "Sortie tri": "",
+        "Frange": "",
+        "type  ampoules néons": "",
+        "sac poubelle": "",
+        "Note chantier": ""
+      };
+
+      CHANTIERS.push(nouveau);
+      etat.selectionIndex = CHANTIERS.length - 1;
+
+      try {
+        localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
       } catch (e) {
         console.warn("Impossible d'enregistrer en localStorage :", e);
-        saveStatus.textContent = "Modifications appliquées (non stockées en local).";
       }
 
       buildSyndicOptions();
       renderListe();
       renderDetail();
+      saveStatus.textContent = "Nouveau chantier créé. Remplis les champs puis clique sur « Enregistrer les modifications ».";
+    }
+
+    function supprimerChantier(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
+        saveStatus.textContent = "Aucun chantier sélectionné à supprimer.";
+        return;
+      }
+
+      const ok = confirm("Supprimer ce chantier de la liste ? Cette action est définitive sur cet appareil.");
+      if (!ok) return;
+
+      CHANTIERS.splice(idx, 1);
+
+      try {
+        localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
+        localStorage.removeItem("chantier_pdf_" + idx);
+      } catch (e) {
+        console.warn("Impossible de mettre à jour le localStorage :", e);
+      }
+
+      if (CHANTIERS.length === 0){
+        etat.selectionIndex = null;
+      } else {
+        etat.selectionIndex = Math.min(idx, CHANTIERS.length - 1);
+      }
+
+      buildSyndicOptions();
+      renderListe();
+      renderDetail();
+      saveStatus.textContent = "Chantier supprimé.";
+    }
+
+    function updateCahierUI(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length) {
+        cahierInfo.textContent = "";
+        openCahierBtn.disabled = true;
+        clearCahierBtn.disabled = true;
+        infoCahierFile.value = "";
+        return;
+      }
+
+      try {
+        const stored = localStorage.getItem("chantier_pdf_" + idx);
+        if (!stored) {
+          cahierInfo.textContent = "Aucun cahier des charges PDF enregistré pour ce chantier.";
+          openCahierBtn.disabled = true;
+          clearCahierBtn.disabled = true;
+        } else {
+          const obj = JSON.parse(stored);
+          const name = obj.name || "Cahier des charges PDF";
+          cahierInfo.textContent = "PDF enregistré : " + name;
+          openCahierBtn.disabled = false;
+          clearCahierBtn.disabled = false;
+        }
+      } catch (e) {
+        console.warn("Erreur lecture PDF chantier :", e);
+        cahierInfo.textContent = "Impossible de lire les informations du cahier des charges.";
+        openCahierBtn.disabled = true;
+        clearCahierBtn.disabled = true;
+      }
+    }
+
+    function updateCahierUIAfterDelete(deletedIndex){
+      const newData = {};
+      Object.keys(localStorage).forEach(key => {
+        if (!key.startsWith("chantier_pdf_")) return;
+        const idxStr = key.replace("chantier_pdf_", "");
+        const idx = parseInt(idxStr, 10);
+        if (isNaN(idx)) return;
+        if (idx === deletedIndex) return;
+        if (idx > deletedIndex) {
+          newData["chantier_pdf_" + (idx - 1)] = localStorage.getItem(key);
+        } else {
+          newData[key] = localStorage.getItem(key);
+        }
+      });
+
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("chantier_pdf_")) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      Object.keys(newData).forEach(key => {
+        localStorage.setItem(key, newData[key]);
+      });
+
+      updateCahierUI();
     }
 
     searchInput.addEventListener("input", (e) => {
@@ -2764,18 +2307,29 @@
     });
 
     saveButton.addEventListener("click", sauvegarderSelection);
+    addChantierBtn.addEventListener("click", ajouterChantier);
+    deleteChantierBtn.addEventListener("click", supprimerChantier);
 
     infoCahierFile.addEventListener("change", (e) => {
       const idx = etat.selectionIndex;
       if (idx === null || idx < 0 || idx >= CHANTIERS.length) {
-        saveStatus.textContent = "Sélectionne d'abord un chantier.";
+        saveStatus.textContent = "Sélectionne d’abord un chantier avant d’ajouter un cahier des charges.";
         infoCahierFile.value = "";
         return;
       }
+
       const file = e.target.files[0];
       if (!file) return;
+
       if (file.type !== "application/pdf") {
-        saveStatus.textContent = "Merci de choisir un fichier PDF.";
+        saveStatus.textContent = "Seuls les fichiers PDF sont acceptés.";
+        infoCahierFile.value = "";
+        return;
+      }
+
+      const maxSize = 2 * 1024 * 1024;
+      if (file.size > maxSize) {
+        saveStatus.textContent = "PDF trop volumineux (max 2 Mo).";
         infoCahierFile.value = "";
         return;
       }
@@ -2797,36 +2351,40 @@
       reader.readAsDataURL(file);
     });
 
-    function updateCahierUIAfterDelete() {
-      cahierInfo.textContent = "Aucun cahier des charges PDF enregistré pour ce chantier.";
-      openCahierBtn.disabled = true;
-      clearCahierBtn.disabled = true;
-    }
-
     openCahierBtn.addEventListener("click", () => {
       const idx = etat.selectionIndex;
-      const data = loadCahierForIndex(idx);
-      if (!data || !data.dataUrl) {
-        saveStatus.textContent = "Aucun PDF enregistré pour ce chantier.";
-        updateCahierUIAfterDelete();
-        return;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length) return;
+      try {
+        const stored = localStorage.getItem("chantier_pdf_" + idx);
+        if (!stored) return;
+        const obj = JSON.parse(stored);
+        const dataUrl = obj.dataUrl;
+        if (!dataUrl) return;
+        window.open(dataUrl, "_blank");
+      } catch (e) {
+        console.warn("Erreur ouverture PDF :", e);
       }
-      window.open(data.dataUrl, "_blank");
     });
 
     clearCahierBtn.addEventListener("click", () => {
       const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length) return;
+      const ok = confirm("Supprimer le cahier des charges PDF pour ce chantier ?");
+      if (!ok) return;
       try {
         localStorage.removeItem("chantier_pdf_" + idx);
+        infoCahierFile.value = "";
+        cahierInfo.textContent = "Cahier des charges supprimé pour ce chantier.";
+        openCahierBtn.disabled = true;
+        clearCahierBtn.disabled = true;
       } catch (e) {
-        console.warn("Erreur en supprimant le PDF :", e);
+        console.warn("Erreur suppression PDF :", e);
       }
-      updateCahierUIAfterDelete();
-      saveStatus.textContent = "Cahier des charges PDF supprimé pour ce chantier.";
     });
 
     buildSyndicOptions();
     renderListe();
+    renderDetail();
   </script>
 </body>
 </html>
