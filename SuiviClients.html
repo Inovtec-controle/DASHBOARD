@@ -747,6 +747,7 @@
       background:#020617;
       box-shadow:var(--shadow-soft);
       position:relative;
+      overflow:auto; /* permet de scroller quand on zoome */
     }
 
     .photo-viewer-modal img{
@@ -771,6 +772,41 @@
       align-items:center;
       justify-content:center;
       cursor:pointer;
+    }
+
+    /* BARRE DE ZOOM DANS LE VIEWER */
+    .photo-viewer-toolbar{
+      position:absolute;
+      left:50%;
+      bottom:8px;
+      transform:translateX(-50%);
+      display:flex;
+      gap:6px;
+      background:rgba(15,23,42,.8);
+      padding:4px 8px;
+      border-radius:999px;
+      align-items:center;
+    }
+
+    .photo-viewer-zoom-btn{
+      border:none;
+      background:transparent;
+      color:#e5e7eb;
+      font-size:14px;
+      width:30px;
+      height:30px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+    }
+
+    .photo-viewer-zoom-btn#photo-zoom-reset{
+      font-size:11px;
+      padding:0 8px;
+      width:auto;
+      min-width:40px;
     }
   </style>
 </head>
@@ -966,6 +1002,12 @@
   <div class="photo-viewer-backdrop" id="photo-viewer-backdrop">
     <div class="photo-viewer-modal">
       <button class="photo-viewer-close" id="photo-viewer-close">✕</button>
+      <!-- NOUVEAU : barre de zoom -->
+      <div class="photo-viewer-toolbar">
+        <button class="photo-viewer-zoom-btn" id="photo-zoom-out">−</button>
+        <button class="photo-viewer-zoom-btn" id="photo-zoom-reset">100%</button>
+        <button class="photo-viewer-zoom-btn" id="photo-zoom-in">+</button>
+      </div>
       <img id="photo-viewer-image" src="" alt="Photo de la correction">
     </div>
   </div>
@@ -1468,14 +1510,16 @@
         }).join("");
       }
 
-      // NOUVEAU : affichage pièces originales
+      // NOUVEAU : affichage pièces originales cliquables (zoom possible)
       var originalHtml;
       if(originalDocs.length === 0){
         originalHtml = '<span style="font-size:11px;color:var(--muted);">Aucune pièce d’origine enregistrée.</span>';
       }else{
-        originalHtml = originalDocs.map(function(p){
+        originalHtml = originalDocs.map(function(p, index){
           return `
-            <div class="photo-thumb"><img src="${p.dataUrl}" alt="${p.name || "pièce d’origine"}"></div>
+            <button class="photo-thumb" type="button" data-original-index="${index}">
+              <img src="${p.dataUrl}" alt="${p.name || "pièce d’origine"}">
+            </button>
           `;
         }).join("");
       }
@@ -1686,7 +1730,7 @@
         reader.readAsDataURL(file);
       });
 
-      // click sur les photos de correction pour agrandir
+      // click sur les photos de correction pour agrandir + zoom
       var photoThumbs = detailContent.querySelectorAll("#detail-photos .photo-thumb");
       for(var t=0;t<photoThumbs.length;t++){
         (function(btn){
@@ -1697,6 +1741,19 @@
             openPhotoViewer(retour.photos[idx].dataUrl, retour.photos[idx].name || "Photo de la correction");
           });
         })(photoThumbs[t]);
+      }
+
+      // NOUVEAU : click sur les pièces d’origine pour agrandir + zoom
+      var originalThumbs = detailContent.querySelectorAll("#detail-original-photos .photo-thumb");
+      for(var o=0;o<originalThumbs.length;o++){
+        (function(btn){
+          btn.addEventListener("click", function(){
+            var idx = parseInt(btn.getAttribute("data-original-index"), 10);
+            if(isNaN(idx)) return;
+            if(!originalDocs || !originalDocs[idx]) return;
+            openPhotoViewer(originalDocs[idx].dataUrl, originalDocs[idx].name || "Pièce d’origine");
+          });
+        })(originalThumbs[o]);
       }
 
       // suppression
@@ -1739,13 +1796,53 @@
       openDetailModal(r.id);
     }
 
-    /* VIEWER PHOTO : logique JS */
+    /* VIEWER PHOTO : logique JS + ZOOM */
     var photoViewerBackdrop = document.getElementById("photo-viewer-backdrop");
     var photoViewerImage = document.getElementById("photo-viewer-image");
     var photoViewerClose = document.getElementById("photo-viewer-close");
+    var zoomInBtn = document.getElementById("photo-zoom-in");
+    var zoomOutBtn = document.getElementById("photo-zoom-out");
+    var zoomResetBtn = document.getElementById("photo-zoom-reset");
+
+    var currentZoom = 1;
+    var baseWidth = null;
+
+    function resetZoom(){
+      currentZoom = 1;
+      baseWidth = null;
+      if(photoViewerImage){
+        photoViewerImage.style.width = "";
+        photoViewerImage.style.maxWidth = "100%";
+        photoViewerImage.style.maxHeight = "80vh";
+      }
+    }
+
+    function applyZoom(){
+      if(!photoViewerImage) return;
+      if(!baseWidth){
+        baseWidth = photoViewerImage.clientWidth || photoViewerImage.naturalWidth || 0;
+      }
+      if(!baseWidth) return;
+      var w = baseWidth * currentZoom;
+      photoViewerImage.style.width = w + "px";
+      photoViewerImage.style.maxWidth = "none";
+      photoViewerImage.style.maxHeight = "none";
+    }
+
+    function setZoom(newZoom){
+      if(newZoom < 0.5) newZoom = 0.5;
+      if(newZoom > 4) newZoom = 4;
+      currentZoom = newZoom;
+      applyZoom();
+    }
 
     function openPhotoViewer(src, alt){
       if(!src) return;
+      resetZoom();
+      photoViewerImage.onload = function(){
+        // largeur de base une fois l'image affichée à 100%
+        baseWidth = photoViewerImage.clientWidth || photoViewerImage.naturalWidth || 0;
+      };
       photoViewerImage.src = src;
       photoViewerImage.alt = alt || "Photo de la correction";
       photoViewerBackdrop.classList.add("active");
@@ -1753,6 +1850,7 @@
 
     function closePhotoViewer(){
       photoViewerBackdrop.classList.remove("active");
+      resetZoom();
     }
 
     if(photoViewerClose){
@@ -1764,6 +1862,24 @@
         if(e.target === photoViewerBackdrop){
           closePhotoViewer();
         }
+      });
+    }
+
+    if(zoomInBtn){
+      zoomInBtn.addEventListener("click", function(){
+        setZoom(currentZoom + 0.25);
+      });
+    }
+
+    if(zoomOutBtn){
+      zoomOutBtn.addEventListener("click", function(){
+        setZoom(currentZoom - 0.25);
+      });
+    }
+
+    if(zoomResetBtn){
+      zoomResetBtn.addEventListener("click", function(){
+        resetZoom();
       });
     }
 
