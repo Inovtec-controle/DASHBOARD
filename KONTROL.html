@@ -502,6 +502,12 @@
     <textarea id="obs" placeholder="Ex. Repassage des parties communes demain 9h, commande de consommables…"></textarea>
   </section>
 
+  <!-- Notes internes contrôleur (non imprimées sur PDF employé) -->
+  <section class="card">
+    <label class="lbl" for="ctrlNotes">Notes internes contrôleur / propositions à faire au client (non visibles sur le PDF remis à l’agent)</label>
+    <textarea id="ctrlNotes" placeholder="Ex. Proposer un passage supplémentaire, devis de remise en état, ajustement de fréquence, options de contrat…"></textarea>
+  </section>
+
   <!-- Photos -->
   <section class="card" id="photosCard">
     <div class="photos-head">
@@ -538,6 +544,7 @@
    fallback charts, visibilité “Pas faits”.
    Thème adapté (clair + vert), commentaires sous chaque tâche.
    Bouton "Réinitialiser" = tâches + infos générales.
+   Notes internes contrôleur non imprimées dans le PDF agent.
    ============================================================ */
 (function(){
   /* ===== Données & constantes ===== */
@@ -562,7 +569,7 @@
   const $ = id => document.getElementById(id);
   const els = {
     btnResidence: $('btnResidence'), btnBureau: $('btnBureau'), activePill: $('activeCategoryPill'),
-    date: $('date'), heure: $('heure'), site: $('site'), agents: $('agents'), controleur: $('controleur'), obs: $('obs'),
+    date: $('date'), heure: $('heure'), site: $('site'), agents: $('agents'), controleur: $('controleur'), obs: $('obs'), ctrlNotes: $('ctrlNotes'),
 
     // résumé/graph
     score: $('score'), viewPie: $('viewPie'), viewBars: $('viewBars'),
@@ -594,11 +601,11 @@
     display: 'pie',
     chartReady: false,
     photos: [],
-    form: { date:'', heure:'', site:'', agents:'', controleur:'', obs:'' }
+    form: { date:'', heure:'', site:'', agents:'', controleur:'', obs:'', ctrlNotes:'' }
   };
 
   if(!state.photos) state.photos = [];
-  if(!state.form) state.form = { date:'', heure:'', site:'', agents:'', controleur:'', obs:'' };
+  if(!state.form) state.form = { date:'', heure:'', site:'', agents:'', controleur:'', obs:'', ctrlNotes:'' };
 
   let pieChart = null;
 
@@ -614,9 +621,13 @@
         display: state.display,
         photos: state.photos || [],
         form: {
-          date: els.date.value || '', heure: els.heure.value || '',
-          site: els.site.value || '', agents: els.agents.value || '',
-          controleur: els.controleur.value || '', obs: els.obs.value || ''
+          date: els.date.value || '',
+          heure: els.heure.value || '',
+          site: els.site.value || '',
+          agents: els.agents.value || '',
+          controleur: els.controleur.value || '',
+          obs: els.obs.value || '',
+          ctrlNotes: els.ctrlNotes.value || ''
         }
       };
       localStorage.setItem(LS_KEY, JSON.stringify(persist));
@@ -633,12 +644,13 @@
   document.addEventListener('DOMContentLoaded', init);
   function init(){
     // Form restore
-    els.date.value = state.form?.date || todayISO();
-    els.heure.value = state.form?.heure || '';
-    els.site.value = state.form?.site || '';
-    els.agents.value = state.form?.agents || '';
+    els.date.value       = state.form?.date || todayISO();
+    els.heure.value      = state.form?.heure || '';
+    els.site.value       = state.form?.site || '';
+    els.agents.value     = state.form?.agents || '';
     els.controleur.value = state.form?.controleur || '';
-    els.obs.value = state.form?.obs || '';
+    els.obs.value        = state.form?.obs || '';
+    els.ctrlNotes.value  = state.form?.ctrlNotes || '';
 
     // Catégorie
     els.btnResidence.addEventListener('click', ()=>switchCategory('Residence'));
@@ -666,7 +678,7 @@
     });
 
     // Sauvegarde champs
-    [els.date, els.heure, els.site, els.agents, els.controleur, els.obs].forEach(el=>{
+    [els.date, els.heure, els.site, els.agents, els.controleur, els.obs, els.ctrlNotes].forEach(el=>{
       el.addEventListener('input', saveState);
       el.addEventListener('change', saveState);
     });
@@ -827,6 +839,7 @@
     els.agents.value     = '';
     els.controleur.value = '';
     els.obs.value        = '';
+    els.ctrlNotes.value  = '';
 
     state.form = {
       date: els.date.value,
@@ -834,7 +847,8 @@
       site: els.site.value,
       agents: els.agents.value,
       controleur: els.controleur.value,
-      obs: els.obs.value
+      obs: els.obs.value,
+      ctrlNotes: els.ctrlNotes.value
     };
 
     // 3) Sauvegarder + re-render
@@ -879,6 +893,7 @@
         els.agents.value     = data.state.form?.agents || '';
         els.controleur.value = data.state.form?.controleur || '';
         els.obs.value        = data.state.form?.obs || '';
+        els.ctrlNotes.value  = data.state.form?.ctrlNotes || '';
 
         state.form = {
           date: els.date.value,
@@ -886,7 +901,8 @@
           site: els.site.value,
           agents: els.agents.value,
           controleur: els.controleur.value,
-          obs: els.obs.value
+          obs: els.obs.value,
+          ctrlNotes: els.ctrlNotes.value
         };
 
         saveState();
@@ -1107,7 +1123,10 @@
     const data = {
       date: els.date.value || '', heure: els.heure.value || '', site: els.site.value || '',
       agents: els.agents.value || '', controleur: els.controleur.value || '',
-      obs: (els.obs.value || '').trim(), category: state.category==='Residence'?'Résidence':'Bureau'
+      obs: (els.obs.value || '').trim(),
+      // Notes internes contrôleur : conservées dans l'app, mais NON imprimées dans ce PDF « employé »
+      ctrlNotes: (els.ctrlNotes.value || '').trim(),
+      category: state.category==='Residence'?'Résidence':'Bureau'
     };
     const rows = currentTasks().map(t=>[ t.name, STATUS_LABEL[t.status || ''] || '', t.comment||'' ]);
 
@@ -1164,7 +1183,7 @@
       margin: {left: margin, right: margin}
     });
 
-    // Observations
+    // Observations (uniquement ce qui est partagé avec l’agent / client)
     let y = doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 520;
     doc.setFont('helvetica','bold'); doc.setFontSize(11);
     doc.text('Observations / actions correctives :', margin, y);
@@ -1172,21 +1191,11 @@
     const split = doc.splitTextToSize(data.obs || '—', pageW - margin*2);
     doc.text(split, margin, y+16);
 
-    // Signatures
-    y = (doc.lastAutoTable ? doc.lastAutoTable.finalY : y) + 120;
-    const sigTop = Math.max(y, 720), boxW = (pageW - margin*2 - 18)/2, boxH = 100;
-    doc.setDrawColor(180); doc.setLineWidth(0.8);
-    doc.rect(margin, sigTop, boxW, boxH);
-    doc.setFont('helvetica','bold');
-    doc.text('Signature Contrôleur', margin+10, sigTop+18);
-    doc.setFont('helvetica','normal');
-    doc.text('Nom, date et signature', margin+10, sigTop+36);
-
-    doc.rect(margin+boxW+18, sigTop, boxW, boxH);
-    doc.setFont('helvetica','bold');
-    doc.text('Signature Agent', margin+boxW+28, sigTop+18);
-    doc.setFont('helvetica','normal');
-    doc.text('Nom, date et signature', margin+boxW+28, sigTop+36);
+    /* IMPORTANT :
+       - Aucune zone de signature n’est ajoutée (contrôleur / agent).
+       - Les « notes internes contrôleur » ne sont PAS imprimées dans ce PDF.
+       Elles restent visibles seulement dans l’application pour ton usage interne.
+    */
 
     /* ===== Page Photos ===== */
     if(state.photos.length){
