@@ -747,12 +747,20 @@
       background:#020617;
       box-shadow:var(--shadow-soft);
       position:relative;
-      overflow:auto; /* permet de scroller quand on zoome */
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* conteneur scrollable pour l'image : on peut zoomer + déplacer sans perdre les boutons */
+    .photo-viewer-image-wrapper{
+      margin-top:8px;
+      width:100%;
+      max-height:80vh;
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
     }
 
     .photo-viewer-modal img{
-      max-width:100%;
-      max-height:80vh;
       display:block;
       border-radius:12px;
     }
@@ -772,6 +780,7 @@
       align-items:center;
       justify-content:center;
       cursor:pointer;
+      z-index:2;
     }
 
     /* BARRE DE ZOOM DANS LE VIEWER */
@@ -786,6 +795,7 @@
       padding:4px 8px;
       border-radius:999px;
       align-items:center;
+      z-index:2;
     }
 
     .photo-viewer-zoom-btn{
@@ -951,7 +961,7 @@
             <input type="text" id="create-agent" placeholder="Agent en charge de la correction">
           </div>
 
-          <!-- NOUVEAU : PRIORITÉ -->
+          <!-- PRIORITÉ -->
           <div>
             <label for="create-priority">Niveau de priorité</label>
             <select id="create-priority">
@@ -961,7 +971,7 @@
             </select>
           </div>
 
-          <!-- NOUVEAU : PHOTO ORIGINALE (réclamation / OI d’origine) -->
+          <!-- PHOTO ORIGINALE (réclamation / OI d’origine) -->
           <div>
             <label for="create-original-photo">Photo de la réclamation / OI d’origine</label>
             <input type="file" id="create-original-photo" accept="image/*">
@@ -1002,13 +1012,16 @@
   <div class="photo-viewer-backdrop" id="photo-viewer-backdrop">
     <div class="photo-viewer-modal">
       <button class="photo-viewer-close" id="photo-viewer-close">✕</button>
-      <!-- NOUVEAU : barre de zoom -->
+      <!-- barre de zoom, fixe en bas -->
       <div class="photo-viewer-toolbar">
         <button class="photo-viewer-zoom-btn" id="photo-zoom-out">−</button>
         <button class="photo-viewer-zoom-btn" id="photo-zoom-reset">100%</button>
         <button class="photo-viewer-zoom-btn" id="photo-zoom-in">+</button>
       </div>
-      <img id="photo-viewer-image" src="" alt="Photo de la correction">
+      <!-- conteneur scrollable pour l'image -->
+      <div class="photo-viewer-image-wrapper">
+        <img id="photo-viewer-image" src="" alt="Photo de la correction">
+      </div>
     </div>
   </div>
 
@@ -1071,7 +1084,7 @@
       return "en_cours";
     }
 
-    // NOUVEAU : utilitaires priorité + date de tri
+    // utilitaires priorité + date de tri
     function getPriority(retour){
       return retour.priority || "normale";
     }
@@ -1510,7 +1523,7 @@
         }).join("");
       }
 
-      // NOUVEAU : affichage pièces originales cliquables (zoom possible)
+      // pièces originales, cliquables pour zoom
       var originalHtml;
       if(originalDocs.length === 0){
         originalHtml = '<span style="font-size:11px;color:var(--muted);">Aucune pièce d’origine enregistrée.</span>';
@@ -1743,7 +1756,7 @@
         })(photoThumbs[t]);
       }
 
-      // NOUVEAU : click sur les pièces d’origine pour agrandir + zoom
+      // click sur les pièces d’origine pour agrandir + zoom
       var originalThumbs = detailContent.querySelectorAll("#detail-original-photos .photo-thumb");
       for(var o=0;o<originalThumbs.length;o++){
         (function(btn){
@@ -1812,8 +1825,6 @@
       baseWidth = null;
       if(photoViewerImage){
         photoViewerImage.style.width = "";
-        photoViewerImage.style.maxWidth = "100%";
-        photoViewerImage.style.maxHeight = "80vh";
       }
     }
 
@@ -1825,8 +1836,6 @@
       if(!baseWidth) return;
       var w = baseWidth * currentZoom;
       photoViewerImage.style.width = w + "px";
-      photoViewerImage.style.maxWidth = "none";
-      photoViewerImage.style.maxHeight = "none";
     }
 
     function setZoom(newZoom){
@@ -1840,7 +1849,6 @@
       if(!src) return;
       resetZoom();
       photoViewerImage.onload = function(){
-        // largeur de base une fois l'image affichée à 100%
         baseWidth = photoViewerImage.clientWidth || photoViewerImage.naturalWidth || 0;
       };
       photoViewerImage.src = src;
@@ -1920,7 +1928,7 @@
 
     /* === INIT === */
     loadRetours();
-    // forcer l'état visuel du filtre "En cours" (au cas où HTML serait modifié)
+    // forcer l'état visuel du filtre "En cours"
     (function syncStatusChips(){
       var chips = document.querySelectorAll("[data-status-filter]");
       for(var i=0;i<chips.length;i++){
