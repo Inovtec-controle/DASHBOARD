@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>KONTROL – Classeur Agents</title>
+<title>KONTROL - Classeur Agents (Nettoyage)</title>
 
 <!-- iPhone friendly -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,288 +15,1332 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
-:root{
-  --bg:#f1f5f9;
-  --panel:#ffffff;
-  --text:#0f172a;
-  --muted:#64748b;
-  --border:rgba(148,163,184,.35);
-  --brand:#16a34a;
-  --brand2:#22c55e;
-  --danger:#ef4444;
-  --shadow:0 12px 30px rgba(15,23,42,.10);
-  --radius:18px;
-}
+  :root{
+    --bg:#f1f5f9;
+    --panel:#ffffff;
+    --text:#0f172a;
+    --muted:#64748b;
+    --border:rgba(148,163,184,.35);
+    --brand:#16a34a;
+    --brand2:#22c55e;
+    --danger:#ef4444;
+    --warning:#f59e0b;
+    --shadow: 0 12px 30px rgba(15, 23, 42, .10);
+    --radius:18px;
+  }
 
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
 
-.app{min-height:100dvh;display:flex;flex-direction:column}
+  .app{min-height:100dvh;display:flex;flex-direction:column;}
 
-/* ===== TOPBAR ===== */
-.topbar{
-  position:sticky;top:0;z-index:50;
-  background:linear-gradient(135deg,var(--brand),var(--brand2));
-  color:#fff;
-  padding:14px 14px calc(14px + env(safe-area-inset-top));
-  box-shadow:0 10px 24px rgba(22,163,74,.22);
-}
-.topbar .row{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-}
-.brand{display:flex;align-items:center;gap:10px}
-.logo{
-  width:40px;height:40px;border-radius:14px;
-  background:rgba(255,255,255,.18);
-  display:grid;place-items:center;
-  border:1px solid rgba(255,255,255,.25);
-}
-.logo svg{width:22px;height:22px;fill:#fff}
-.brand h1{font-size:15px;font-weight:800}
-.brand p{font-size:12px;opacity:.9}
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background:linear-gradient(135deg, var(--brand), var(--brand2));
+    color:#fff;
+    padding:14px 14px calc(14px + env(safe-area-inset-top));
+    box-shadow: 0 10px 24px rgba(22,163,74,.22);
+  }
+  .topbar .row{
+    display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:10px;min-width:220px;}
+  .logo{
+    width:40px;height:40px;border-radius:14px;
+    background:rgba(255,255,255,.18);
+    display:grid;place-items:center;
+    border:1px solid rgba(255,255,255,.25);
+    backdrop-filter: blur(8px);
+  }
+  .logo svg{width:22px;height:22px;fill:#fff}
+  .brand h1{font-size:15px;line-height:1.15;font-weight:800;letter-spacing:.2px;}
+  .brand p{font-size:12px;opacity:.92;margin-top:2px;}
 
-.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
-/* ===== BOUTONS ===== */
-.btn{
-  border:1px solid rgba(255,255,255,.22);
-  background:rgba(255,255,255,.14);
-  color:#fff;
-  padding:10px 12px;
-  border-radius:14px;
-  font-weight:700;
-  font-size:13px;
-  cursor:pointer;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-}
-.btn.secondary{background:rgba(255,255,255,.10)}
-.btn.dark{background:#0f172a;border-color:rgba(15,23,42,.12)}
+  .btn{
+    border:1px solid rgba(255,255,255,.22);
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    padding:10px 12px;
+    border-radius:14px;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition:.15s ease;
+    user-select:none;
+    text-decoration:none;
+  }
+  .btn:hover{transform:translateY(-1px); background:rgba(255,255,255,.18)}
+  .btn:active{transform:translateY(0px)}
+  .btn.secondary{background:rgba(255,255,255,.10);}
+  .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.18);}
+  .btn.dark{border-color:rgba(15,23,42,.12);background:#0f172a;}
 
-/* ===== MINI BOUTON ICÔNE ===== */
-.iconBtn{
-  width:42px;
-  height:42px;
-  padding:0;
-  border-radius:14px;
-  display:inline-grid;
-  place-items:center;
-}
-.iconBtn svg{
-  width:18px;
-  height:18px;
-  fill:#fff;
-}
+  /* ✅ Mini bouton icône seule (retour accueil) */
+  .iconBtn{
+    width:42px;
+    height:42px;
+    padding:0;
+    border-radius:14px;
+    display:inline-grid;
+    place-items:center;
+  }
+  .iconBtn svg{
+    width:18px;
+    height:18px;
+    fill:#fff;
+  }
 
-/* ===== LAYOUT ===== */
-.content{
-  padding:14px;
-  display:grid;
-  gap:14px;
-  grid-template-columns:360px 1fr;
-}
-@media(max-width:980px){.content{grid-template-columns:1fr}}
+  .content{
+    padding:14px;
+    display:grid;
+    gap:14px;
+    grid-template-columns: 360px 1fr;
+    align-items:start;
+  }
+  @media (max-width: 980px){
+    .content{grid-template-columns: 1fr}
+  }
 
-.card{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  overflow:hidden;
-}
-.cardHeader{
-  padding:14px;
-  border-bottom:1px solid var(--border);
-  display:flex;justify-content:space-between;align-items:center
-}
-.cardHeader h2{font-size:14px;font-weight:900}
-.cardBody{padding:14px}
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
 
-.input{
-  width:100%;
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:10px 12px;
-  font-size:14px;
-}
-.input:focus{
-  outline:none;
-  border-color:rgba(22,163,74,.6);
-  box-shadow:0 0 0 4px rgba(34,197,94,.18);
-}
+  .cardHeader{
+    padding:14px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .cardHeader h2{font-size:14px;font-weight:900;}
+  .chip{
+    font-size:12px;
+    color:var(--muted);
+    font-weight:700;
+    background:rgba(148,163,184,.18);
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(148,163,184,.24);
+  }
 
-.list{
-  margin-top:12px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  max-height:calc(100dvh - 240px);
-  overflow:auto;
-}
-.listItem{
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:12px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  cursor:pointer;
-}
-.listItem.active{
-  border-color:rgba(22,163,74,.6);
-  box-shadow:0 0 0 4px rgba(34,197,94,.16);
-}
-.avatar{
-  width:42px;height:42px;border-radius:16px;
-  background:rgba(22,163,74,.15);
-  display:grid;place-items:center;
-  font-weight:900;color:var(--brand);
-}
+  .cardBody{padding:14px}
 
-.empty{
-  padding:16px;
-  border:1px dashed var(--border);
-  border-radius:16px;
-  color:var(--muted);
-  font-weight:700;
-}
+  .search{display:flex;gap:10px;align-items:center;}
+  .input{
+    width:100%;
+    background:#fff;
+    border:1px solid var(--border);
+    padding:10px 12px;
+    border-radius:14px;
+    outline:none;
+    font-size:14px;
+  }
+  .input:focus{border-color: rgba(22,163,74,.55); box-shadow: 0 0 0 4px rgba(34,197,94,.18)}
+  .miniBtn{
+    border:1px solid rgba(22,163,74,.22);
+    background:rgba(22,163,74,.10);
+    color:var(--brand);
+    padding:10px 12px;
+    border-radius:14px;
+    font-weight:900;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .miniBtn:hover{background:rgba(22,163,74,.14)}
+  .miniBtn.danger{
+    border-color: rgba(239,68,68,.22);
+    background: rgba(239,68,68,.10);
+    color: var(--danger);
+  }
 
-.footNote{
-  padding:14px;
-  font-size:12px;
-  color:var(--muted);
-  font-weight:700;
-}
+  .list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-top:12px;
+    max-height: calc(100dvh - 230px);
+    overflow:auto;
+    padding-right:4px;
+  }
+  .list::-webkit-scrollbar{width:10px}
+  .list::-webkit-scrollbar-thumb{background:rgba(148,163,184,.35); border-radius:999px}
+
+  .listItem{
+    border:1px solid var(--border);
+    background:#fff;
+    border-radius:16px;
+    padding:12px;
+    cursor:pointer;
+    transition:.12s ease;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .listItem:hover{transform:translateY(-1px); box-shadow: 0 10px 20px rgba(15, 23, 42, .08)}
+  .listItem.active{
+    border-color: rgba(22,163,74,.55);
+    box-shadow: 0 0 0 4px rgba(34,197,94,.16);
+  }
+
+  .avatar{
+    width:42px;height:42px;border-radius:16px;
+    background:linear-gradient(135deg, rgba(22,163,74,.18), rgba(34,197,94,.18));
+    border:1px solid rgba(22,163,74,.25);
+    display:grid;place-items:center;
+    font-weight:900;
+    color:var(--brand);
+  }
+  .liMain{display:flex;gap:10px;align-items:center;min-width:0;}
+  .liText{min-width:0}
+  .liText .name{
+    font-weight:900;font-size:14px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .liText .sub{
+    font-size:12px;color:var(--muted);font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    margin-top:2px;
+  }
+
+  .badge{
+    font-size:12px;font-weight:900;
+    padding:6px 10px;border-radius:999px;
+    border:1px solid rgba(148,163,184,.25);
+    background:rgba(148,163,184,.14);
+    color:#334155;
+    white-space:nowrap;
+  }
+  .badge.green{
+    border-color: rgba(22,163,74,.22);
+    background: rgba(22,163,74,.10);
+    color: var(--brand);
+  }
+  .badge.orange{
+    border-color: rgba(245,158,11,.25);
+    background: rgba(245,158,11,.10);
+    color: #b45309;
+  }
+
+  .empty{
+    padding:16px;
+    border:1px dashed rgba(148,163,184,.6);
+    border-radius:16px;
+    background:rgba(255,255,255,.7);
+    color:var(--muted);
+    font-weight:700;
+    line-height:1.4;
+  }
+
+  .titleRow{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  }
+  .bigTitle{font-size:18px;font-weight:900;letter-spacing:.2px;}
+  .muted{color:var(--muted); font-weight:700; font-size:12px; margin-top:4px}
+
+  .grid2{
+    display:grid;
+    gap:10px;
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 560px){ .grid2{grid-template-columns: 1fr} }
+
+  label{display:block;font-size:12px;color:var(--muted);font-weight:900;margin-bottom:6px;}
+  .field{margin-top:10px}
+  .textarea{min-height:90px;resize:vertical;}
+
+  .sectionTitle{
+    margin-top:16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .sectionTitle h3{font-size:13px;font-weight:900;}
+  .hr{height:1px;background:var(--border); margin-top:14px}
+
+  .fileRow{
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:10px;
+    background:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-top:10px;
+  }
+  .fileRow .meta{min-width:0;}
+  .fileRow .meta .fn{
+    font-weight:900;font-size:13px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    max-width: 560px;
+  }
+  .fileRow .meta .fs{
+    margin-top:2px;
+    font-size:12px;
+    color:var(--muted);
+    font-weight:700;
+  }
+  .fileRow .right{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+
+  .tiny{
+    border:1px solid rgba(148,163,184,.28);
+    background:rgba(148,163,184,.12);
+    color:#0f172a;
+    padding:8px 10px;
+    border-radius:14px;
+    font-weight:900;
+    font-size:12px;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .tiny:hover{background:rgba(148,163,184,.16)}
+  .tiny.green{border-color: rgba(22,163,74,.22);background: rgba(22,163,74,.10);color: var(--brand);}
+  .tiny.red{border-color: rgba(239,68,68,.22);background: rgba(239,68,68,.10);color: var(--danger);}
+
+  .incident{
+    border:1px solid var(--border);
+    border-radius:18px;
+    background:#fff;
+    padding:12px;
+    margin-top:10px;
+  }
+  .incidentTop{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .incidentTop .left{min-width:0;}
+  .incidentTop .t{font-weight:900;font-size:13px;}
+  .incidentTop .d{margin-top:3px;font-size:12px;color:var(--muted);font-weight:700;}
+  .incidentTop .right{display:flex;gap:8px;flex-wrap:wrap;}
+  .incident .desc{
+    margin-top:10px;
+    color:#0f172a;
+    font-size:13px;
+    line-height:1.45;
+    font-weight:600;
+    white-space:pre-wrap;
+  }
+
+  .thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .thumb{
+    width:92px;height:92px;
+    border-radius:16px;
+    border:1px solid var(--border);
+    overflow:hidden;
+    background:rgba(148,163,184,.10);
+    cursor:pointer;
+    display:grid;
+    place-items:center;
+  }
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+
+  .modal{
+    position:fixed;
+    inset:0;
+    background:rgba(2,6,23,.72);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:200;
+    padding:18px;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+  .modal.open{display:flex}
+  .modalBox{
+    width:min(980px, 100%);
+    background:#0b1220;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:22px;
+    overflow:hidden;
+    box-shadow: 0 30px 90px rgba(0,0,0,.45);
+  }
+  .modalBar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 12px;
+    color:#fff;
+    gap:10px;
+    border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .modalBar .ttl{
+    font-weight:900;
+    font-size:13px;
+    opacity:.92;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .modalClose{
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.10);
+    color:#fff;
+    padding:8px 10px;
+    border-radius:14px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .modalImgWrap{
+    background:#000;
+    display:grid;
+    place-items:center;
+    max-height: 78vh;
+  }
+  .modalImgWrap img{
+    max-width:100%;
+    max-height:78vh;
+    display:block;
+  }
+
+  .footNote{
+    padding:0 14px 16px;
+    color:var(--muted);
+    font-size:12px;
+    font-weight:700;
+    line-height:1.4;
+    opacity:.95;
+  }
+  .kbd{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:999px;
+    border:1px solid rgba(148,163,184,.35);
+    background:rgba(148,163,184,.14);
+    font-weight:900;
+    color:#334155;
+    margin:0 2px;
+  }
 </style>
 </head>
 
 <body>
 <div class="app">
 
-<header class="topbar">
-  <div class="row">
-    <div class="brand">
-      <div class="logo">
-        <svg viewBox="0 0 24 24"><path d="M6 20v-1a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v1zM12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"/></svg>
+  <header class="topbar">
+    <div class="row">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M10.5 3a1 1 0 0 1 1 1v1h1.8a3.7 3.7 0 0 1 3.6 3.1l.5 3.1a4.5 4.5 0 0 1-4.4 5.2H9.2a4.5 4.5 0 0 1-4.4-5.2l.5-3.1A3.7 3.7 0 0 1 8.9 5H10.5V4a1 1 0 0 1 1-1Zm-1.6 4A1.7 1.7 0 0 0 7.3 8.4l-.5 3.1a2.5 2.5 0 0 0 2.4 2.9h5.2a2.5 2.5 0 0 0 2.4-2.9l-.5-3.1A1.7 1.7 0 0 0 14.3 7H8.9ZM6 20a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v1H6v-1Z"/></svg>
+        </div>
+        <div>
+          <h1>KONTROL — Classeur Agents</h1>
+          <p>Fiches + documents + incidents (photos)</p>
+        </div>
       </div>
-      <div>
-        <h1>KONTROL – Agents</h1>
-        <p>Classeur & suivi</p>
+
+      <div class="actions">
+        <!-- ✅ Bouton mini retour accueil (icône seule) -->
+        <a class="btn secondary iconBtn" href="index.html" title="Retour à l'accueil" aria-label="Retour à l'accueil">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15.5 5.5a1 1 0 0 1 0 1.4L11.4 11H20a1 1 0 1 1 0 2h-8.6l4.1 4.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0Z"/>
+          </svg>
+        </a>
+
+        <button class="btn" id="btnNewAgent">+ Nouvel agent</button>
+        <button class="btn secondary" id="btnExport">Exporter (JSON)</button>
+        <label class="btn secondary" style="cursor:pointer">
+          Importer (JSON)
+          <input id="fileImport" type="file" accept="application/json" style="display:none">
+        </label>
+        <button class="btn dark" id="btnReset">Réinitialiser</button>
       </div>
     </div>
+  </header>
 
-    <div class="actions">
-      <!-- 🔙 MINI BOUTON RETOUR ACCUEIL -->
-      <a class="btn secondary iconBtn" href="index.html" title="Retour accueil" aria-label="Retour accueil">
-        <svg viewBox="0 0 24 24">
-          <path d="M15.5 5.5a1 1 0 0 1 0 1.4L11.4 11H20a1 1 0 1 1 0 2h-8.6l4.1 4.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0Z"/>
-        </svg>
-      </a>
+  <main class="content">
 
-      <button class="btn" id="btnNewAgent">+ Nouvel agent</button>
-      <button class="btn secondary" id="btnExport">Exporter</button>
-      <label class="btn secondary">
-        Importer
-        <input type="file" id="fileImport" accept="application/json" hidden>
-      </label>
-      <button class="btn dark" id="btnReset">Reset</button>
-    </div>
+    <!-- LEFT -->
+    <section class="card">
+      <div class="cardHeader">
+        <h2>Agents</h2>
+        <span class="chip" id="agentCount">0</span>
+      </div>
+      <div class="cardBody">
+        <div class="search">
+          <input class="input" id="search" placeholder="Rechercher un agent (nom, téléphone, site…)" autocomplete="off">
+          <button class="miniBtn" id="btnClearSearch" title="Effacer">✕</button>
+        </div>
+
+        <div class="list" id="agentList"></div>
+
+        <div class="empty" id="emptyList" style="display:none; margin-top:12px">
+          Aucun agent pour l’instant.<br>
+          Clique sur <span class="kbd">Nouvel agent</span> pour créer une fiche.
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="card">
+      <div class="cardHeader">
+        <h2>Fiche agent</h2>
+        <span class="chip" id="selectedChip">Aucun</span>
+      </div>
+
+      <div class="cardBody" id="details">
+        <div class="empty">
+          Sélectionne un agent dans la liste à gauche, ou crée une nouvelle fiche.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="footNote">
+    Données enregistrées en <span class="kbd">localStorage</span> (sur l’appareil / navigateur). Pour transférer sur un autre appareil, utilise <span class="kbd">Exporter</span> puis <span class="kbd">Importer</span>.
+    <br>
+    Note : les documents & photos sont stockés dans le navigateur (base64) — évite des fichiers trop lourds.
   </div>
-</header>
-
-<main class="content">
-
-<section class="card">
-  <div class="cardHeader">
-    <h2>Agents</h2>
-    <span id="agentCount">0</span>
-  </div>
-  <div class="cardBody">
-    <input class="input" id="search" placeholder="Rechercher un agent">
-    <div class="list" id="agentList"></div>
-    <div class="empty" id="emptyList" style="display:none">Aucun agent</div>
-  </div>
-</section>
-
-<section class="card">
-  <div class="cardHeader">
-    <h2>Fiche agent</h2>
-  </div>
-  <div class="cardBody" id="details">
-    <div class="empty">Sélectionne un agent</div>
-  </div>
-</section>
-
-</main>
-
-<div class="footNote">
-  Données stockées localement (navigateur). Compatible GitHub Pages.
 </div>
 
+<!-- Photo viewer modal -->
+<div class="modal" id="modal">
+  <div class="modalBox" role="dialog" aria-modal="true">
+    <div class="modalBar">
+      <div class="ttl" id="modalTitle">Photo</div>
+      <button class="modalClose" id="modalClose">Fermer</button>
+    </div>
+    <div class="modalImgWrap">
+      <img id="modalImg" alt="Aperçu">
+    </div>
+  </div>
 </div>
 
 <script>
-/* VERSION STABLE – KONTROL AGENTS */
+/*
+✅ Corrigé / Opérationnel
+- La fiche agent s'affiche bien (renderDetails() complet + re-bind des events après chaque render)
+- Ajout du mini bouton retour accueil (icône seule) dans la topbar
+- Docs: Ouvrir / Télécharger / Supprimer OK
+- Incidents + photos + viewer OK
+- Export/Import JSON OK
+*/
 
-const STORE="kontrol_agents_v1";
-const $=s=>document.querySelector(s);
+const STORE_KEY = "kontrol_agents_classeur_v1";
 
-let state={agents:[],selected:null};
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-function save(){localStorage.setItem(STORE,JSON.stringify(state.agents))}
-function load(){state.agents=JSON.parse(localStorage.getItem(STORE)||"[]")}
-
-function newAgent(){
-  const a={id:crypto.randomUUID(),prenom:"",nom:"",docs:[],incidents:[]};
-  state.agents.push(a);
-  state.selected=a.id;
-  save();render();
+function uid(prefix="id"){
+  return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
 }
-
-function render(){
-  const list=$("#agentList");
-  list.innerHTML="";
-  $("#agentCount").textContent=state.agents.length;
-  if(!state.agents.length){$("#emptyList").style.display="block";return}
-  $("#emptyList").style.display="none";
-
-  state.agents.forEach(a=>{
-    const div=document.createElement("div");
-    div.className="listItem"+(a.id===state.selected?" active":"");
-    div.innerHTML=`
-      <div style="display:flex;gap:10px;align-items:center">
-        <div class="avatar">${(a.prenom||"A")[0]}</div>
-        <strong>${a.prenom||""} ${a.nom||""}</strong>
-      </div>`;
-    div.onclick=()=>{state.selected=a.id;render()};
-    list.appendChild(div);
+function formatBytes(bytes){
+  if (bytes === null || bytes === undefined) return "";
+  const units = ["B","KB","MB","GB"];
+  let i = 0, n = bytes;
+  while(n >= 1024 && i < units.length-1){ n/=1024; i++; }
+  return `${n.toFixed(i===0?0:1)} ${units[i]}`;
+}
+function safeText(s){ return (s ?? "").toString().trim(); }
+function initials(name){
+  const parts = safeText(name).split(/\s+/).filter(Boolean);
+  const a = parts[0]?.[0] ?? "A";
+  const b = parts[1]?.[0] ?? (parts[0]?.[1] ?? "");
+  return (a + b).toUpperCase();
+}
+function todayISO(){
+  const d = new Date();
+  const z = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
+}
+function parseISOToFR(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  if(!y||!m||!d) return iso;
+  return `${d}/${m}/${y}`;
+}
+function escapeHtml(str){
+  return (str ?? "").toString()
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+async function fileToDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
   });
 }
 
-$("#btnNewAgent").onclick=newAgent;
-$("#btnExport").onclick=()=>{
-  const blob=new Blob([JSON.stringify(state.agents,null,2)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="agents.json";
-  a.click();
-};
-$("#fileImport").onchange=e=>{
-  const r=new FileReader();
-  r.onload=()=>{state.agents=JSON.parse(r.result);save();render()};
-  r.readAsText(e.target.files[0]);
-};
-$("#btnReset").onclick=()=>{
-  if(confirm("Tout effacer ?")){localStorage.removeItem(STORE);state.agents=[];render()}
+/* ========= State ========= */
+let state = {
+  agents: [],
+  selectedId: null,
+  search: ""
 };
 
-load();render();
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      if(Array.isArray(data)) state.agents = data;
+    }
+  }catch(e){
+    console.warn("Erreur load:", e);
+  }
+}
+function save(){
+  localStorage.setItem(STORE_KEY, JSON.stringify(state.agents));
+}
+function touchAgent(agent){
+  agent.updatedAt = new Date().toISOString();
+}
+function getSelectedAgent(){
+  return state.agents.find(a=>a.id===state.selectedId) || null;
+}
+
+function sortAgents(arr){
+  return [...arr].sort((a,b)=>{
+    const an = (safeText(a.identity?.nom) + " " + safeText(a.identity?.prenom)).toLowerCase();
+    const bn = (safeText(b.identity?.nom) + " " + safeText(b.identity?.prenom)).toLowerCase();
+    return an.localeCompare(bn);
+  });
+}
+function filterAgents(){
+  const q = safeText(state.search).toLowerCase();
+  const all = sortAgents(state.agents);
+  if(!q) return all;
+  return all.filter(a=>{
+    const i = a.identity || {};
+    const j = a.job || {};
+    const hay = [
+      i.nom, i.prenom, i.telephone, i.email, i.adresse,
+      j.poste, j.sitePrincipal, j.typeContrat
+    ].map(x=>safeText(x).toLowerCase()).join(" | ");
+    return hay.includes(q);
+  });
+}
+
+/* ========= Render List ========= */
+function renderList(){
+  const list = $("#agentList");
+  const empty = $("#emptyList");
+  list.innerHTML = "";
+
+  const agents = filterAgents();
+  $("#agentCount").textContent = String(agents.length);
+
+  if(agents.length === 0){
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  for(const a of agents){
+    const i = a.identity || {};
+    const incidents = Array.isArray(a.incidents) ? a.incidents : [];
+    const openCount = incidents.filter(x => (x.statut||"Ouvert") !== "Clos").length;
+
+    const fullName = `${safeText(i.prenom)} ${safeText(i.nom)}`.trim() || "Sans nom";
+    const sub = `${safeText(a.job?.sitePrincipal) || "—"} • ${safeText(i.telephone) || "Téléphone: —"}`;
+
+    const item = document.createElement("div");
+    item.className = "listItem" + (a.id===state.selectedId ? " active" : "");
+    item.innerHTML = `
+      <div class="liMain">
+        <div class="avatar">${escapeHtml(initials(fullName))}</div>
+        <div class="liText">
+          <div class="name">${escapeHtml(fullName)}</div>
+          <div class="sub">${escapeHtml(sub)}</div>
+        </div>
+      </div>
+      <div class="badge ${openCount>0 ? "orange" : "green"}" title="Incidents non clos">
+        ${openCount} incident${openCount>1?"s":""}
+      </div>
+    `;
+    item.addEventListener("click", ()=>{
+      state.selectedId = a.id;
+      renderAll();
+    });
+    list.appendChild(item);
+  }
+}
+
+/* ========= Render Details ========= */
+function renderDetails(){
+  const root = $("#details");
+  const agent = getSelectedAgent();
+
+  $("#selectedChip").textContent = agent
+    ? `${safeText(agent.identity?.prenom)} ${safeText(agent.identity?.nom)}`.trim() || "Agent"
+    : "Aucun";
+
+  if(!agent){
+    root.innerHTML = `<div class="empty">Sélectionne un agent dans la liste à gauche, ou crée une nouvelle fiche.</div>`;
+    return;
+  }
+
+  // Ensure arrays exist
+  agent.docs = Array.isArray(agent.docs) ? agent.docs : [];
+  agent.incidents = Array.isArray(agent.incidents) ? agent.incidents : [];
+
+  const i = agent.identity || {};
+  const j = agent.job || {};
+
+  root.innerHTML = `
+    <div class="titleRow">
+      <div>
+        <div class="bigTitle">${escapeHtml((safeText(i.prenom)+" "+safeText(i.nom)).trim() || "Fiche agent")}</div>
+        <div class="muted">Créé: ${agent.createdAt ? new Date(agent.createdAt).toLocaleString("fr-FR") : "—"} • Modifié: ${agent.updatedAt ? new Date(agent.updatedAt).toLocaleString("fr-FR") : "—"}</div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+        <button class="miniBtn danger" id="btnDeleteAgent">Supprimer l’agent</button>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="sectionTitle">
+      <h3>Informations principales</h3>
+      <span class="chip">Identité & contact</span>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>Prénom</label>
+        <input class="input" id="f_prenom" value="${escapeHtml(i.prenom||"")}" placeholder="Prénom">
+      </div>
+      <div class="field">
+        <label>Nom</label>
+        <input class="input" id="f_nom" value="${escapeHtml(i.nom||"")}" placeholder="Nom">
+      </div>
+      <div class="field">
+        <label>Téléphone</label>
+        <input class="input" id="f_tel" value="${escapeHtml(i.telephone||"")}" placeholder="06…">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input class="input" id="f_email" value="${escapeHtml(i.email||"")}" placeholder="email@…">
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Adresse</label>
+        <input class="input" id="f_adresse" value="${escapeHtml(i.adresse||"")}" placeholder="Adresse complète">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>Date de naissance</label>
+        <input class="input" type="date" id="f_dn" value="${escapeHtml(i.dateNaissance||"")}">
+      </div>
+      <div class="field">
+        <label>N° Sécurité sociale (option)</label>
+        <input class="input" id="f_secu" value="${escapeHtml(i.secu||"")}" placeholder="Optionnel">
+      </div>
+      <div class="field">
+        <label>Permis (option)</label>
+        <input class="input" id="f_permis" value="${escapeHtml(i.permis||"")}" placeholder="B, AM…">
+      </div>
+      <div class="field">
+        <label>Véhicule (option)</label>
+        <input class="input" id="f_vehicule" value="${escapeHtml(i.vehicule||"")}" placeholder="Oui / Non / Scooter…">
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="sectionTitle">
+      <h3>Infos emploi</h3>
+      <span class="chip">Contrat & organisation</span>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>Poste</label>
+        <input class="input" id="f_poste" value="${escapeHtml(j.poste||"")}">
+      </div>
+      <div class="field">
+        <label>Type de contrat</label>
+        <input class="input" id="f_contrat" value="${escapeHtml(j.typeContrat||"")}" placeholder="CDI, CDD, Intérim…">
+      </div>
+      <div class="field">
+        <label>Date d’entrée</label>
+        <input class="input" type="date" id="f_entree" value="${escapeHtml(j.dateEntree||"")}">
+      </div>
+      <div class="field">
+        <label>Site principal</label>
+        <input class="input" id="f_site" value="${escapeHtml(j.sitePrincipal||"")}" placeholder="Résidence / Bureau…">
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Disponibilités / contraintes</label>
+        <textarea class="input textarea" id="f_dispo" placeholder="Horaires, jours, restrictions…">${escapeHtml(j.disponibilites||"")}</textarea>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Notes internes</label>
+        <textarea class="input textarea" id="f_notes" placeholder="Notes utiles (matériel, consignes, remarques…)">${escapeHtml(j.notes||"")}</textarea>
+      </div>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
+      <button class="miniBtn" id="btnSaveAgent">Enregistrer</button>
+      <button class="miniBtn" id="btnDuplicateAgent">Dupliquer</button>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="sectionTitle">
+      <h3>Documents d’embauche / pièces utiles</h3>
+      <span class="chip">${agent.docs.length} fichier(s)</span>
+    </div>
+
+    <div class="grid2" style="margin-top:6px">
+      <div class="field" style="grid-column:1/-1">
+        <label>Ajouter un document (PDF, image, etc.)</label>
+        <input class="input" type="file" id="docUpload" multiple>
+        <div class="muted">Conseil : privilégie des fichiers légers. (Les fichiers sont stockés dans le navigateur.)</div>
+      </div>
+    </div>
+
+    <div id="docList"></div>
+
+    <div class="hr"></div>
+
+    <div class="sectionTitle">
+      <h3>Suivi d’incidents</h3>
+      <span class="chip">${agent.incidents.length} entrée(s)</span>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>Date</label>
+        <input class="input" type="date" id="inc_date" value="${todayISO()}">
+      </div>
+      <div class="field">
+        <label>Catégorie</label>
+        <input class="input" id="inc_cat" placeholder="Retard, absence, tenue, qualité, comportement…">
+      </div>
+      <div class="field">
+        <label>Gravité</label>
+        <select class="input" id="inc_sev">
+          <option>Faible</option>
+          <option selected>Modérée</option>
+          <option>Élevée</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Statut</label>
+        <select class="input" id="inc_stat">
+          <option selected>Ouvert</option>
+          <option>En cours</option>
+          <option>Clos</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Titre</label>
+        <input class="input" id="inc_title" placeholder="Titre court">
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Description</label>
+        <textarea class="input textarea" id="inc_desc" placeholder="Détails, faits, actions demandées, suite donnée…"></textarea>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Photos (option)</label>
+        <input class="input" type="file" id="inc_photos" accept="image/*" multiple>
+      </div>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
+      <button class="miniBtn" id="btnAddIncident">+ Ajouter l’incident</button>
+    </div>
+
+    <div id="incidentList"></div>
+  `;
+
+  // ✅ Important : on re-bind ici car le HTML est recréé à chaque render
+  $("#btnDeleteAgent").addEventListener("click", ()=> deleteAgent(agent.id));
+  $("#btnSaveAgent").addEventListener("click", ()=> saveAgentForm(agent.id));
+  $("#btnDuplicateAgent").addEventListener("click", ()=> duplicateAgent(agent.id));
+  $("#docUpload").addEventListener("change", (e)=> addDocuments(agent.id, e.target.files));
+  $("#btnAddIncident").addEventListener("click", ()=> addIncidentFromForm(agent.id));
+
+  renderDocs(agent);
+  renderIncidents(agent);
+}
+
+function renderDocs(agent){
+  const wrap = $("#docList");
+  if(!wrap) return;
+
+  if(agent.docs.length === 0){
+    wrap.innerHTML = `<div class="empty" style="margin-top:10px">Aucun document ajouté.</div>`;
+    return;
+  }
+
+  const docs = [...agent.docs].sort((a,b)=> (b.addedAt||"").localeCompare(a.addedAt||""));
+  wrap.innerHTML = docs.map(d=>{
+    const added = d.addedAt ? new Date(d.addedAt).toLocaleString("fr-FR") : "—";
+    return `
+      <div class="fileRow">
+        <div class="meta">
+          <div class="fn" title="${escapeHtml(d.name||"Fichier")}">${escapeHtml(d.name||"Fichier")}</div>
+          <div class="fs">${formatBytes(d.size||0)} • ${escapeHtml(d.type||"")} • Ajouté: ${added}</div>
+        </div>
+        <div class="right">
+          <button class="tiny green" data-doc-open="${d.id}">Ouvrir</button>
+          <button class="tiny" data-doc-dl="${d.id}">Télécharger</button>
+          <button class="tiny red" data-doc-del="${d.id}">Supprimer</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  $$("[data-doc-open]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-doc-open");
+      const doc = agent.docs.find(x=>x.id===id);
+      if(!doc) return;
+      openDataUrl(doc.dataUrl);
+    });
+  });
+
+  $$("[data-doc-dl]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-doc-dl");
+      const doc = agent.docs.find(x=>x.id===id);
+      if(!doc) return;
+      downloadDataUrl(doc.dataUrl, doc.name || "document");
+    });
+  });
+
+  $$("[data-doc-del]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-doc-del");
+      if(confirm("Supprimer ce document ?")){
+        agent.docs = agent.docs.filter(x=>x.id!==id);
+        touchAgent(agent); save(); renderAll();
+      }
+    });
+  });
+}
+
+function renderIncidents(agent){
+  const wrap = $("#incidentList");
+  if(!wrap) return;
+
+  if(agent.incidents.length === 0){
+    wrap.innerHTML = `<div class="empty" style="margin-top:10px">Aucun incident enregistré.</div>`;
+    return;
+  }
+
+  const incidents = [...agent.incidents].sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.createdAt||"").localeCompare(a.createdAt||""));
+  wrap.innerHTML = incidents.map(inc=>{
+    const sev = (inc.gravite||"Modérée");
+    const stat = (inc.statut||"Ouvert");
+    const badgeClass =
+      stat==="Clos" ? "green" :
+      (sev==="Élevée" ? "red" : (sev==="Modérée" ? "orange" : ""));
+    const title = safeText(inc.titre) || "Incident";
+    const date = inc.date ? parseISOToFR(inc.date) : "—";
+    const cat = safeText(inc.categorie) || "—";
+    const photos = Array.isArray(inc.photos) ? inc.photos : [];
+
+    return `
+      <div class="incident">
+        <div class="incidentTop">
+          <div class="left">
+            <div class="t">${escapeHtml(title)} <span class="badge ${badgeClass}">${escapeHtml(stat)}</span></div>
+            <div class="d">Date: ${escapeHtml(date)} • Catégorie: ${escapeHtml(cat)} • Gravité: ${escapeHtml(sev)}</div>
+          </div>
+          <div class="right">
+            <button class="tiny" data-inc-edit="${inc.id}">Modifier</button>
+            <button class="tiny red" data-inc-del="${inc.id}">Supprimer</button>
+          </div>
+        </div>
+
+        <div class="desc">${escapeHtml(inc.description||"")}</div>
+
+        ${photos.length ? `
+          <div class="thumbs">
+            ${photos.map(p=>`
+              <div class="thumb" title="Ouvrir" data-photo="${escapeHtml(p.dataUrl)}" data-photoname="${escapeHtml(p.name||"photo")}">
+                <img src="${escapeHtml(p.dataUrl)}" alt="photo">
+              </div>
+            `).join("")}
+          </div>
+        ` : ``}
+      </div>
+    `;
+  }).join("");
+
+  $$("[data-inc-del]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-inc-del");
+      if(confirm("Supprimer cet incident ?")){
+        agent.incidents = agent.incidents.filter(x=>x.id!==id);
+        touchAgent(agent); save(); renderAll();
+      }
+    });
+  });
+
+  $$("[data-inc-edit]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-inc-edit");
+      const inc = agent.incidents.find(x=>x.id===id);
+      if(!inc) return;
+
+      const newStat = prompt("Statut (Ouvert / En cours / Clos) :", inc.statut || "Ouvert");
+      if(newStat === null) return;
+
+      const newSev = prompt("Gravité (Faible / Modérée / Élevée) :", inc.gravite || "Modérée");
+      if(newSev === null) return;
+
+      const newTitle = prompt("Titre :", inc.titre || "Incident");
+      if(newTitle === null) return;
+
+      const newDesc = prompt("Description :", inc.description || "");
+      if(newDesc === null) return;
+
+      inc.statut = safeText(newStat) || inc.statut;
+      inc.gravite = safeText(newSev) || inc.gravite;
+      inc.titre = safeText(newTitle) || inc.titre;
+      inc.description = safeText(newDesc);
+
+      touchAgent(agent);
+      save();
+      renderAll();
+    });
+  });
+
+  $$("[data-photo]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const dataUrl = el.getAttribute("data-photo");
+      const name = el.getAttribute("data-photoname") || "photo";
+      openPhotoModal(dataUrl, name);
+    });
+  });
+}
+
+function renderAll(){
+  renderList();
+  renderDetails();
+}
+
+/* ========= Actions ========= */
+function createEmptyAgent(){
+  return {
+    id: uid("agent"),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    identity: {
+      prenom: "",
+      nom: "",
+      telephone: "",
+      email: "",
+      adresse: "",
+      dateNaissance: "",
+      secu: "",
+      permis: "",
+      vehicule: ""
+    },
+    job: {
+      poste: "",
+      typeContrat: "",
+      dateEntree: "",
+      sitePrincipal: "",
+      disponibilites: "",
+      notes: ""
+    },
+    docs: [],
+    incidents: []
+  };
+}
+
+function newAgent(){
+  const a = createEmptyAgent();
+  state.agents.push(a);
+  state.selectedId = a.id;
+  save();
+  renderAll();
+  setTimeout(()=> $("#f_prenom")?.focus(), 60);
+}
+
+function deleteAgent(id){
+  const agent = state.agents.find(a=>a.id===id);
+  if(!agent) return;
+  const label = `${safeText(agent.identity?.prenom)} ${safeText(agent.identity?.nom)}`.trim() || "cet agent";
+  if(confirm(`Supprimer la fiche de ${label} ?\n\nCette action est irréversible.`)){
+    state.agents = state.agents.filter(a=>a.id!==id);
+    state.selectedId = state.agents[0]?.id || null;
+    save();
+    renderAll();
+  }
+}
+
+function saveAgentForm(id){
+  const agent = state.agents.find(a=>a.id===id);
+  if(!agent) return;
+
+  agent.identity = agent.identity || {};
+  agent.job = agent.job || {};
+
+  agent.identity.prenom = safeText($("#f_prenom").value);
+  agent.identity.nom = safeText($("#f_nom").value);
+  agent.identity.telephone = safeText($("#f_tel").value);
+  agent.identity.email = safeText($("#f_email").value);
+  agent.identity.adresse = safeText($("#f_adresse").value);
+  agent.identity.dateNaissance = $("#f_dn").value || "";
+  agent.identity.secu = safeText($("#f_secu").value);
+  agent.identity.permis = safeText($("#f_permis").value);
+  agent.identity.vehicule = safeText($("#f_vehicule").value);
+
+  agent.job.poste = safeText($("#f_poste").value);
+  agent.job.typeContrat = safeText($("#f_contrat").value);
+  agent.job.dateEntree = $("#f_entree").value || "";
+  agent.job.sitePrincipal = safeText($("#f_site").value);
+  agent.job.disponibilites = safeText($("#f_dispo").value);
+  agent.job.notes = safeText($("#f_notes").value);
+
+  touchAgent(agent);
+  save();
+  renderAll();
+}
+
+function duplicateAgent(id){
+  const agent = state.agents.find(a=>a.id===id);
+  if(!agent) return;
+  const copy = JSON.parse(JSON.stringify(agent));
+  copy.id = uid("agent");
+  copy.createdAt = new Date().toISOString();
+  copy.updatedAt = new Date().toISOString();
+  copy.identity = copy.identity || {};
+  copy.identity.nom = safeText(copy.identity.nom) ? (safeText(copy.identity.nom) + " (copie)") : "Copie";
+  state.agents.push(copy);
+  state.selectedId = copy.id;
+  save();
+  renderAll();
+}
+
+async function addDocuments(agentId, fileList){
+  const agent = state.agents.find(a=>a.id===agentId);
+  if(!agent) return;
+  const files = Array.from(fileList || []);
+  if(files.length === 0) return;
+
+  for(const f of files){
+    if(f.size > 12 * 1024 * 1024){
+      alert(`Fichier trop lourd: "${f.name}" (${formatBytes(f.size)}). Essaie un fichier plus léger.`);
+      continue;
+    }
+    const dataUrl = await fileToDataURL(f);
+    agent.docs.push({
+      id: uid("doc"),
+      name: f.name,
+      type: f.type || "application/octet-stream",
+      size: f.size,
+      addedAt: new Date().toISOString(),
+      dataUrl
+    });
+  }
+  touchAgent(agent);
+  save();
+  renderAll();
+  $("#docUpload").value = "";
+}
+
+async function addIncidentFromForm(agentId){
+  const agent = state.agents.find(a=>a.id===agentId);
+  if(!agent) return;
+
+  const date = $("#inc_date").value || todayISO();
+  const categorie = safeText($("#inc_cat").value);
+  const gravite = $("#inc_sev").value;
+  const statut = $("#inc_stat").value;
+  const titre = safeText($("#inc_title").value);
+  const description = safeText($("#inc_desc").value);
+  const photoFiles = Array.from($("#inc_photos").files || []);
+
+  if(!titre && !description){
+    alert("Ajoute au minimum un titre ou une description pour l’incident.");
+    return;
+  }
+
+  const photos = [];
+  for(const f of photoFiles){
+    if(f.size > 10 * 1024 * 1024){
+      alert(`Photo trop lourde: "${f.name}" (${formatBytes(f.size)}).`);
+      continue;
+    }
+    const dataUrl = await fileToDataURL(f);
+    photos.push({
+      id: uid("ph"),
+      name: f.name,
+      type: f.type || "image/*",
+      size: f.size,
+      dataUrl
+    });
+  }
+
+  agent.incidents.push({
+    id: uid("inc"),
+    date,
+    categorie,
+    gravite,
+    statut,
+    titre: titre || "Incident",
+    description,
+    createdAt: new Date().toISOString(),
+    photos
+  });
+
+  touchAgent(agent);
+  save();
+  renderAll();
+
+  $("#inc_cat").value = "";
+  $("#inc_title").value = "";
+  $("#inc_desc").value = "";
+  $("#inc_photos").value = "";
+}
+
+/* ========= Export / Import ========= */
+function exportJSON(){
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    agents: state.agents
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `KONTROL_classeur_agents_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(file){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const data = JSON.parse(fr.result);
+      const agents = Array.isArray(data) ? data : data?.agents;
+      if(!Array.isArray(agents)) throw new Error("Format non reconnu");
+
+      state.agents = agents.map(a => ({
+        ...a,
+        id: a.id || uid("agent"),
+        createdAt: a.createdAt || new Date().toISOString(),
+        updatedAt: a.updatedAt || new Date().toISOString(),
+        identity: a.identity || {},
+        job: a.job || {},
+        docs: Array.isArray(a.docs) ? a.docs : [],
+        incidents: Array.isArray(a.incidents) ? a.incidents : []
+      }));
+
+      state.selectedId = state.agents[0]?.id || null;
+      save();
+      renderAll();
+      alert("Import terminé ✅");
+    }catch(e){
+      alert("Impossible d’importer ce fichier JSON.");
+      console.warn(e);
+    }
+  };
+  fr.readAsText(file);
+}
+
+function resetAll(){
+  if(confirm("Réinitialiser toute l’application ?\n\nCela efface toutes les fiches sur cet appareil.")){
+    localStorage.removeItem(STORE_KEY);
+    state.agents = [];
+    state.selectedId = null;
+    state.search = "";
+    $("#search").value = "";
+    renderAll();
+  }
+}
+
+/* ========= Open / Download ========= */
+function openDataUrl(dataUrl){
+  const w = window.open(dataUrl, "_blank");
+  if(!w){
+    alert("Popup bloquée. Autorise les popups pour ouvrir le document.");
+  }
+}
+function downloadDataUrl(dataUrl, filename){
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename || "download";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/* ========= Modal ========= */
+function openPhotoModal(dataUrl, title){
+  $("#modalTitle").textContent = title || "Photo";
+  $("#modalImg").src = dataUrl;
+  $("#modal").classList.add("open");
+}
+function closePhotoModal(){
+  $("#modal").classList.remove("open");
+  $("#modalImg").src = "";
+}
+$("#modalClose").addEventListener("click", closePhotoModal);
+$("#modal").addEventListener("click", (e)=>{
+  if(e.target.id === "modal") closePhotoModal();
+});
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape") closePhotoModal();
+});
+
+/* ========= Init ========= */
+$("#btnNewAgent").addEventListener("click", newAgent);
+$("#btnExport").addEventListener("click", exportJSON);
+$("#btnReset").addEventListener("click", resetAll);
+
+$("#fileImport").addEventListener("change", (e)=>{
+  const f = e.target.files?.[0];
+  if(f) importJSON(f);
+  e.target.value = "";
+});
+
+$("#search").addEventListener("input", (e)=>{
+  state.search = e.target.value || "";
+  renderList();
+});
+$("#btnClearSearch").addEventListener("click", ()=>{
+  state.search = "";
+  $("#search").value = "";
+  renderList();
+});
+
+load();
+if(state.agents.length > 0){
+  state.selectedId = state.agents[0].id;
+}
+renderAll();
 </script>
 </body>
 </html>
