@@ -37,35 +37,19 @@
     color:var(--text);
   }
 
-  /* Layout */
-  .app{
-    min-height:100dvh;
-    display:flex;
-    flex-direction:column;
-  }
+  .app{min-height:100dvh;display:flex;flex-direction:column;}
 
   .topbar{
-    position:sticky;
-    top:0;
-    z-index:50;
+    position:sticky; top:0; z-index:50;
     background:linear-gradient(135deg, var(--brand), var(--brand2));
     color:#fff;
     padding:14px 14px calc(14px + env(safe-area-inset-top));
     box-shadow: 0 10px 24px rgba(22,163,74,.22);
   }
   .topbar .row{
-    display:flex;
-    gap:10px;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
+    display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
   }
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    min-width:220px;
-  }
+  .brand{display:flex;align-items:center;gap:10px;min-width:220px;}
   .logo{
     width:40px;height:40px;border-radius:14px;
     background:rgba(255,255,255,.18);
@@ -74,24 +58,10 @@
     backdrop-filter: blur(8px);
   }
   .logo svg{width:22px;height:22px;fill:#fff}
-  .brand h1{
-    font-size:15px;
-    line-height:1.15;
-    font-weight:800;
-    letter-spacing:.2px;
-  }
-  .brand p{
-    font-size:12px;
-    opacity:.92;
-    margin-top:2px;
-  }
+  .brand h1{font-size:15px;line-height:1.15;font-weight:800;letter-spacing:.2px;}
+  .brand p{font-size:12px;opacity:.92;margin-top:2px;}
 
-  .actions{
-    display:flex;
-    gap:8px;
-    align-items:center;
-    flex-wrap:wrap;
-  }
+  .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
   .btn{
     border:1px solid rgba(255,255,255,.22);
@@ -110,17 +80,9 @@
   }
   .btn:hover{transform:translateY(-1px); background:rgba(255,255,255,.18)}
   .btn:active{transform:translateY(0px)}
-  .btn.secondary{
-    background:rgba(255,255,255,.10);
-  }
-  .btn.danger{
-    border-color:rgba(239,68,68,.35);
-    background:rgba(239,68,68,.18);
-  }
-  .btn.dark{
-    border-color:rgba(15,23,42,.12);
-    background:#0f172a;
-  }
+  .btn.secondary{background:rgba(255,255,255,.10);}
+  .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.18);}
+  .btn.dark{border-color:rgba(15,23,42,.12);background:#0f172a;}
 
   .content{
     padding:14px;
@@ -129,10 +91,7 @@
     grid-template-columns: 360px 1fr;
     align-items:start;
   }
-
-  @media (max-width: 980px){
-    .content{grid-template-columns: 1fr}
-  }
+  @media (max-width: 980px){ .content{grid-template-columns: 1fr} }
 
   .card{
     background:var(--panel);
@@ -141,7 +100,6 @@
     box-shadow:var(--shadow);
     overflow:hidden;
   }
-
   .cardHeader{
     padding:14px;
     border-bottom:1px solid var(--border);
@@ -150,10 +108,7 @@
     justify-content:space-between;
     gap:10px;
   }
-  .cardHeader h2{
-    font-size:14px;
-    font-weight:900;
-  }
+  .cardHeader h2{font-size:14px;font-weight:900;}
   .chip{
     font-size:12px;
     color:var(--muted);
@@ -163,14 +118,9 @@
     border-radius:999px;
     border:1px solid rgba(148,163,184,.24);
   }
-
   .cardBody{padding:14px}
 
-  .search{
-    display:flex;
-    gap:10px;
-    align-items:center;
-  }
+  .search{display:flex;gap:10px;align-items:center;}
   .input{
     width:100%;
     background:#fff;
@@ -209,6 +159,7 @@
   }
   .list::-webkit-scrollbar{width:10px}
   .list::-webkit-scrollbar-thumb{background:rgba(148,163,184,.35); border-radius:999px}
+
   .listItem{
     border:1px solid var(--border);
     background:#fff;
@@ -234,10 +185,7 @@
     font-weight:900;
     color:var(--brand);
   }
-  .liMain{
-    display:flex;gap:10px;align-items:center;
-    min-width:0;
-  }
+  .liMain{display:flex;gap:10px;align-items:center;min-width:0;}
   .liText{min-width:0}
   .liText .name{
     font-weight:900;font-size:14px;
@@ -248,6 +196,7 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     margin-top:2px;
   }
+
   .badge{
     font-size:12px;font-weight:900;
     padding:6px 10px;border-radius:999px;
@@ -282,37 +231,16 @@
     line-height:1.4;
   }
 
-  /* Details */
-  .titleRow{
-    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;
-  }
-  .bigTitle{
-    font-size:18px;font-weight:900;
-    letter-spacing:.2px;
-  }
+  .titleRow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .bigTitle{font-size:18px;font-weight:900;letter-spacing:.2px;}
   .muted{color:var(--muted); font-weight:700; font-size:12px; margin-top:4px}
 
-  .grid2{
-    display:grid;
-    gap:10px;
-    grid-template-columns: 1fr 1fr;
-  }
-  @media (max-width: 560px){
-    .grid2{grid-template-columns: 1fr}
-  }
+  .grid2{display:grid;gap:10px;grid-template-columns: 1fr 1fr;}
+  @media (max-width: 560px){ .grid2{grid-template-columns: 1fr} }
 
-  label{
-    display:block;
-    font-size:12px;
-    color:var(--muted);
-    font-weight:900;
-    margin-bottom:6px;
-  }
+  label{display:block;font-size:12px;color:var(--muted);font-weight:900;margin-bottom:6px;}
   .field{margin-top:10px}
-  .textarea{
-    min-height:90px;
-    resize:vertical;
-  }
+  .textarea{min-height:90px;resize:vertical;}
 
   .sectionTitle{
     margin-top:16px;
@@ -322,14 +250,9 @@
     gap:10px;
     flex-wrap:wrap;
   }
-  .sectionTitle h3{
-    font-size:13px;
-    font-weight:900;
-  }
-
+  .sectionTitle h3{font-size:13px;font-weight:900;}
   .hr{height:1px;background:var(--border); margin-top:14px}
 
-  /* Files */
   .fileRow{
     border:1px solid var(--border);
     border-radius:16px;
@@ -341,12 +264,9 @@
     gap:10px;
     margin-top:10px;
   }
-  .fileRow .meta{
-    min-width:0;
-  }
+  .fileRow .meta{min-width:0;}
   .fileRow .meta .fn{
-    font-weight:900;
-    font-size:13px;
+    font-weight:900;font-size:13px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     max-width: 560px;
   }
@@ -357,10 +277,7 @@
     font-weight:700;
   }
   .fileRow .right{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    justify-content:flex-end;
+    display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;
   }
 
   .tiny{
@@ -372,20 +289,15 @@
     font-weight:900;
     font-size:12px;
     cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
   }
   .tiny:hover{background:rgba(148,163,184,.16)}
-  .tiny.green{
-    border-color: rgba(22,163,74,.22);
-    background: rgba(22,163,74,.10);
-    color: var(--brand);
-  }
-  .tiny.red{
-    border-color: rgba(239,68,68,.22);
-    background: rgba(239,68,68,.10);
-    color: var(--danger);
-  }
+  .tiny.green{border-color: rgba(22,163,74,.22);background: rgba(22,163,74,.10);color: var(--brand);}
+  .tiny.red{border-color: rgba(239,68,68,.22);background: rgba(239,68,68,.10);color: var(--danger);}
 
-  /* Incidents */
   .incident{
     border:1px solid var(--border);
     border-radius:18px;
@@ -400,22 +312,10 @@
     gap:10px;
     flex-wrap:wrap;
   }
-  .incidentTop .left{
-    min-width:0;
-  }
-  .incidentTop .t{
-    font-weight:900;
-    font-size:13px;
-  }
-  .incidentTop .d{
-    margin-top:3px;
-    font-size:12px;
-    color:var(--muted);
-    font-weight:700;
-  }
-  .incidentTop .right{
-    display:flex;gap:8px;flex-wrap:wrap;
-  }
+  .incidentTop .left{min-width:0;}
+  .incidentTop .t{font-weight:900;font-size:13px;}
+  .incidentTop .d{margin-top:3px;font-size:12px;color:var(--muted);font-weight:700;}
+  .incidentTop .right{display:flex;gap:8px;flex-wrap:wrap;}
   .incident .desc{
     margin-top:10px;
     color:#0f172a;
@@ -424,12 +324,7 @@
     font-weight:600;
     white-space:pre-wrap;
   }
-  .thumbs{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-top:10px;
-  }
+  .thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
   .thumb{
     width:92px;height:92px;
     border-radius:16px;
@@ -442,7 +337,6 @@
   }
   .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 
-  /* Modal viewer */
   .modal{
     position:fixed;
     inset:0;
@@ -501,7 +395,6 @@
     display:block;
   }
 
-  /* Footer note */
   .footNote{
     padding:0 14px 16px;
     color:var(--muted);
@@ -534,7 +427,7 @@
         </div>
         <div>
           <h1>KONTROL — Classeur Agents</h1>
-          <p>Fiches agents + documents + suivi d’incidents (photos)</p>
+          <p>Fiches agents + documents + incidents (photos)</p>
         </div>
       </div>
 
@@ -552,7 +445,6 @@
 
   <main class="content">
 
-    <!-- LEFT: Agents list -->
     <section class="card">
       <div class="cardHeader">
         <h2>Agents</h2>
@@ -573,7 +465,6 @@
       </div>
     </section>
 
-    <!-- RIGHT: Details -->
     <section class="card">
       <div class="cardHeader">
         <h2>Fiche agent</h2>
@@ -592,11 +483,10 @@
   <div class="footNote">
     Données enregistrées en <span class="kbd">localStorage</span> (sur l’appareil / navigateur). Pour transférer sur un autre appareil, utilise <span class="kbd">Exporter</span> puis <span class="kbd">Importer</span>.
     <br>
-    Astuce : les documents & photos sont stockés dans le navigateur (base64) — évite des fichiers trop lourds.
+    Note : les documents & photos sont stockés dans le navigateur (base64) — évite des fichiers trop lourds.
   </div>
 </div>
 
-<!-- Photo viewer modal -->
 <div class="modal" id="modal">
   <div class="modalBox" role="dialog" aria-modal="true">
     <div class="modalBar">
@@ -610,12 +500,13 @@
 </div>
 
 <script>
-/* =========================
-   KONTROL - Classeur Agents
-   - Stockage: localStorage
-   - Export/Import JSON
-   - Documents + Incidents + Photos
-========================= */
+/*
+✅ CE QUI N’ALLAIT PAS (corrigé ici)
+1) Un BUG de syntaxe dans renderList() (un ` mal placé) cassait tout le JS -> l’app ne chargeait pas.
+2) Le bouton "Télécharger" des documents utilisait un <a href="#"> + preventDefault -> parfois aucun téléchargement.
+   -> remplacé par un vrai bouton qui déclenche downloadDataUrl().
+Le reste fonctionne en statique (GitHub Pages) : stockage local, ajout fichiers/photos, export/import JSON.
+*/
 
 const STORE_KEY = "kontrol_agents_classeur_v1";
 
@@ -626,7 +517,7 @@ function uid(prefix="id"){
   return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
 }
 function formatBytes(bytes){
-  if (!bytes && bytes !== 0) return "";
+  if (bytes === null || bytes === undefined) return "";
   const units = ["B","KB","MB","GB"];
   let i = 0, n = bytes;
   while(n >= 1024 && i < units.length-1){ n/=1024; i++; }
@@ -650,6 +541,14 @@ function parseISOToFR(iso){
   if(!y||!m||!d) return iso;
   return `${d}/${m}/${y}`;
 }
+function escapeHtml(str){
+  return (str ?? "").toString()
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
 async function fileToDataURL(file){
   return new Promise((resolve,reject)=>{
@@ -659,19 +558,6 @@ async function fileToDataURL(file){
     fr.readAsDataURL(file);
   });
 }
-
-/* ========= Data model =========
-agent = {
-  id, createdAt, updatedAt,
-  identity: { nom, prenom, telephone, email, adresse, dateNaissance, secu, permis, vehicule },
-  job: { poste, typeContrat, dateEntree, sitePrincipal, disponibilites, notes },
-  docs: [{ id, name, type, size, addedAt, dataUrl }],
-  incidents: [{
-    id, date, categorie, gravite, statut, titre, description, createdAt,
-    photos: [{ id, name, type, size, dataUrl }]
-  }]
-}
-================================ */
 
 let state = {
   agents: [],
@@ -696,20 +582,17 @@ function save(){
 function touchAgent(agent){
   agent.updatedAt = new Date().toISOString();
 }
-
 function getSelectedAgent(){
   return state.agents.find(a=>a.id===state.selectedId) || null;
 }
 
 function sortAgents(arr){
-  // Tri: nom/prenom
   return [...arr].sort((a,b)=>{
     const an = (safeText(a.identity?.nom) + " " + safeText(a.identity?.prenom)).toLowerCase();
     const bn = (safeText(b.identity?.nom) + " " + safeText(b.identity?.prenom)).toLowerCase();
     return an.localeCompare(bn);
   });
 }
-
 function filterAgents(){
   const q = safeText(state.search).toLowerCase();
   const all = sortAgents(state.agents);
@@ -725,7 +608,7 @@ function filterAgents(){
   });
 }
 
-/* ========= Rendering ========= */
+/* ========= RENDER ========= */
 
 function renderList(){
   const list = $("#agentList");
@@ -746,14 +629,17 @@ function renderList(){
     const incidents = Array.isArray(a.incidents) ? a.incidents : [];
     const openCount = incidents.filter(x => (x.statut||"Ouvert") !== "Clos").length;
 
+    const fullName = `${safeText(i.prenom)} ${safeText(i.nom)}`.trim() || "Sans nom";
+    const sub = `${safeText(a.job?.sitePrincipal) || "—"} • ${safeText(i.telephone) || "Téléphone: —"}`;
+
     const item = document.createElement("div");
     item.className = "listItem" + (a.id===state.selectedId ? " active" : "");
     item.innerHTML = `
       <div class="liMain">
-        <div class="avatar">${initials(`${i.prenom||""} ${i.nom||""}`)}</div>
+        <div class="avatar">${escapeHtml(initials(fullName))}</div>
         <div class="liText">
-          <div class="name">${safeText(i.prenom)} ${safeText(i.nom)}`.trim() || "Sans nom"}</div>
-          <div class="sub">${safeText(a.job?.sitePrincipal) || "—"} • ${safeText(i.telephone) || "Téléphone: —"}</div>
+          <div class="name">${escapeHtml(fullName)}</div>
+          <div class="sub">${escapeHtml(sub)}</div>
         </div>
       </div>
       <div class="badge ${openCount>0 ? "orange" : "green"}" title="Incidents non clos">
@@ -781,7 +667,6 @@ function renderDetails(){
     return;
   }
 
-  // Ensure arrays exist
   agent.docs = Array.isArray(agent.docs) ? agent.docs : [];
   agent.incidents = Array.isArray(agent.incidents) ? agent.incidents : [];
 
@@ -791,7 +676,7 @@ function renderDetails(){
   root.innerHTML = `
     <div class="titleRow">
       <div>
-        <div class="bigTitle">${(safeText(i.prenom)+" "+safeText(i.nom)).trim() || "Fiche agent"}</div>
+        <div class="bigTitle">${escapeHtml((safeText(i.prenom)+" "+safeText(i.nom)).trim() || "Fiche agent")}</div>
         <div class="muted">Créé: ${agent.createdAt ? new Date(agent.createdAt).toLocaleString("fr-FR") : "—"} • Modifié: ${agent.updatedAt ? new Date(agent.updatedAt).toLocaleString("fr-FR") : "—"}</div>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
@@ -957,7 +842,6 @@ function renderDetails(){
     <div id="incidentList"></div>
   `;
 
-  // Bind actions
   $("#btnDeleteAgent").addEventListener("click", ()=> deleteAgent(agent.id));
   $("#btnSaveAgent").addEventListener("click", ()=> saveAgentForm(agent.id));
   $("#btnDuplicateAgent").addEventListener("click", ()=> duplicateAgent(agent.id));
@@ -988,14 +872,13 @@ function renderDocs(agent){
         </div>
         <div class="right">
           <button class="tiny green" data-doc-open="${d.id}">Ouvrir</button>
-          <a class="tiny" data-doc-dl="${d.id}" href="#" download> Télécharger</a>
+          <button class="tiny" data-doc-dl="${d.id}">Télécharger</button>
           <button class="tiny red" data-doc-del="${d.id}">Supprimer</button>
         </div>
       </div>
     `;
   }).join("");
 
-  // open / download / delete
   $$("[data-doc-open]").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const id = btn.getAttribute("data-doc-open");
@@ -1004,15 +887,16 @@ function renderDocs(agent){
       openDataUrl(doc.dataUrl, doc.name || "document");
     });
   });
-  $$("[data-doc-dl]").forEach(a=>{
-    a.addEventListener("click", (e)=>{
-      e.preventDefault();
-      const id = a.getAttribute("data-doc-dl");
+
+  $$("[data-doc-dl]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-doc-dl");
       const doc = agent.docs.find(x=>x.id===id);
       if(!doc) return;
       downloadDataUrl(doc.dataUrl, doc.name || "document");
     });
   });
+
   $$("[data-doc-del]").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const id = btn.getAttribute("data-doc-del");
@@ -1044,6 +928,7 @@ function renderIncidents(agent){
     const date = inc.date ? parseISOToFR(inc.date) : "—";
     const cat = safeText(inc.categorie) || "—";
     const photos = Array.isArray(inc.photos) ? inc.photos : [];
+
     return `
       <div class="incident">
         <div class="incidentTop">
@@ -1056,6 +941,7 @@ function renderIncidents(agent){
             <button class="tiny red" data-inc-del="${inc.id}">Supprimer</button>
           </div>
         </div>
+
         <div class="desc">${escapeHtml(inc.description||"")}</div>
 
         ${photos.length ? `
@@ -1071,7 +957,6 @@ function renderIncidents(agent){
     `;
   }).join("");
 
-  // bind
   $$("[data-inc-del]").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const id = btn.getAttribute("data-inc-del");
@@ -1087,7 +972,27 @@ function renderIncidents(agent){
       const id = btn.getAttribute("data-inc-edit");
       const inc = agent.incidents.find(x=>x.id===id);
       if(!inc) return;
-      openIncidentEditor(agent.id, inc.id);
+
+      const newStat = prompt("Statut (Ouvert / En cours / Clos) :", inc.statut || "Ouvert");
+      if(newStat === null) return;
+
+      const newSev = prompt("Gravité (Faible / Modérée / Élevée) :", inc.gravite || "Modérée");
+      if(newSev === null) return;
+
+      const newTitle = prompt("Titre :", inc.titre || "Incident");
+      if(newTitle === null) return;
+
+      const newDesc = prompt("Description :", inc.description || "");
+      if(newDesc === null) return;
+
+      inc.statut = safeText(newStat) || inc.statut;
+      inc.gravite = safeText(newSev) || inc.gravite;
+      inc.titre = safeText(newTitle) || inc.titre;
+      inc.description = safeText(newDesc);
+
+      touchAgent(agent);
+      save();
+      renderAll();
     });
   });
 
@@ -1105,7 +1010,7 @@ function renderAll(){
   renderDetails();
 }
 
-/* ========= Actions ========= */
+/* ========= ACTIONS ========= */
 
 function createEmptyAgent(){
   return {
@@ -1142,8 +1047,7 @@ function newAgent(){
   state.selectedId = a.id;
   save();
   renderAll();
-  // focus
-  setTimeout(()=> $("#f_prenom")?.focus(), 50);
+  setTimeout(()=> $("#f_prenom")?.focus(), 60);
 }
 
 function deleteAgent(id){
@@ -1194,10 +1098,8 @@ function duplicateAgent(id){
   copy.id = uid("agent");
   copy.createdAt = new Date().toISOString();
   copy.updatedAt = new Date().toISOString();
-  // small tweak: "Copie"
-  copy.identity.prenom = safeText(copy.identity.prenom);
+  copy.identity = copy.identity || {};
   copy.identity.nom = safeText(copy.identity.nom) ? (safeText(copy.identity.nom) + " (copie)") : "Copie";
-  // docs/incidents keep inside duplication (useful)
   state.agents.push(copy);
   state.selectedId = copy.id;
   save();
@@ -1211,7 +1113,6 @@ async function addDocuments(agentId, fileList){
   if(files.length === 0) return;
 
   for(const f of files){
-    // basic size guard (optional)
     if(f.size > 12 * 1024 * 1024){
       alert(`Fichier trop lourd: "${f.name}" (${formatBytes(f.size)}). Essaie un fichier plus léger.`);
       continue;
@@ -1281,43 +1182,13 @@ async function addIncidentFromForm(agentId){
   save();
   renderAll();
 
-  // reset incident form
   $("#inc_cat").value = "";
   $("#inc_title").value = "";
   $("#inc_desc").value = "";
   $("#inc_photos").value = "";
 }
 
-function openIncidentEditor(agentId, incidentId){
-  const agent = state.agents.find(a=>a.id===agentId);
-  if(!agent) return;
-  const inc = agent.incidents.find(x=>x.id===incidentId);
-  if(!inc) return;
-
-  // Simple editor via prompt (rapide). On reste 100% offline.
-  const newStat = prompt("Statut (Ouvert / En cours / Clos) :", inc.statut || "Ouvert");
-  if(newStat === null) return;
-
-  const newSev = prompt("Gravité (Faible / Modérée / Élevée) :", inc.gravite || "Modérée");
-  if(newSev === null) return;
-
-  const newTitle = prompt("Titre :", inc.titre || "Incident");
-  if(newTitle === null) return;
-
-  const newDesc = prompt("Description :", inc.description || "");
-  if(newDesc === null) return;
-
-  inc.statut = safeText(newStat) || inc.statut;
-  inc.gravite = safeText(newSev) || inc.gravite;
-  inc.titre = safeText(newTitle) || inc.titre;
-  inc.description = safeText(newDesc);
-
-  touchAgent(agent);
-  save();
-  renderAll();
-}
-
-/* ========= Export / Import ========= */
+/* ========= EXPORT / IMPORT ========= */
 
 function exportJSON(){
   const payload = {
@@ -1343,15 +1214,18 @@ function importJSON(file){
       const data = JSON.parse(fr.result);
       const agents = Array.isArray(data) ? data : data?.agents;
       if(!Array.isArray(agents)) throw new Error("Format non reconnu");
-      // minimal sanitize
+
       state.agents = agents.map(a => ({
         ...a,
         id: a.id || uid("agent"),
+        createdAt: a.createdAt || new Date().toISOString(),
+        updatedAt: a.updatedAt || new Date().toISOString(),
         identity: a.identity || {},
         job: a.job || {},
         docs: Array.isArray(a.docs) ? a.docs : [],
         incidents: Array.isArray(a.incidents) ? a.incidents : []
       }));
+
       state.selectedId = state.agents[0]?.id || null;
       save();
       renderAll();
@@ -1375,24 +1249,16 @@ function resetAll(){
   }
 }
 
-/* ========= Helpers: open/download dataUrl ========= */
+/* ========= OPEN / DOWNLOAD ========= */
 
 function openDataUrl(dataUrl, name){
-  // open in new tab
-  const w = window.open();
+  // Ouverture dans un nouvel onglet (bloqué seulement si popup-blocker, mais déclenché par clic -> OK)
+  const w = window.open(dataUrl, "_blank");
   if(!w){
     alert("Popup bloquée. Autorise les popups pour ouvrir le document.");
     return;
   }
-  // For better display
-  w.document.title = name || "Document";
-  w.document.body.style.margin = "0";
-  const iframe = w.document.createElement("iframe");
-  iframe.style.border = "0";
-  iframe.style.width = "100%";
-  iframe.style.height = "100vh";
-  iframe.src = dataUrl;
-  w.document.body.appendChild(iframe);
+  try{ w.document.title = name || "Document"; }catch(e){}
 }
 
 function downloadDataUrl(dataUrl, filename){
@@ -1404,7 +1270,7 @@ function downloadDataUrl(dataUrl, filename){
   a.remove();
 }
 
-/* ========= Modal ========= */
+/* ========= MODAL PHOTO ========= */
 
 function openPhotoModal(dataUrl, title){
   $("#modalTitle").textContent = title || "Photo";
@@ -1423,17 +1289,7 @@ document.addEventListener("keydown", (e)=>{
   if(e.key === "Escape") closePhotoModal();
 });
 
-/* ========= Security-ish: escape HTML for inputs/render ========= */
-function escapeHtml(str){
-  return (str ?? "").toString()
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-/* ========= Init ========= */
+/* ========= INIT ========= */
 
 $("#btnNewAgent").addEventListener("click", newAgent);
 $("#btnExport").addEventListener("click", exportJSON);
@@ -1455,7 +1311,6 @@ $("#btnClearSearch").addEventListener("click", ()=>{
   renderList();
 });
 
-// First load
 load();
 if(state.agents.length > 0){
   state.selectedId = state.agents[0].id;
@@ -1464,4 +1319,3 @@ renderAll();
 </script>
 </body>
 </html>
-
