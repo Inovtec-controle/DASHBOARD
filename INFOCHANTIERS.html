@@ -186,6 +186,7 @@
       display:flex;
       flex-direction:column;
       gap:2px;
+      min-width:0;
     }
 
     .panel-title{
@@ -314,6 +315,8 @@
       justify-content:space-between;
       align-items:center;
       padding:4px 4px 4px;
+      gap:8px;
+      flex-wrap:wrap;
     }
 
     .stats-main{
@@ -339,6 +342,43 @@
       height:6px;
       border-radius:999px;
       background:#16a34a;
+    }
+
+    /* Actions rapides (nouveau / supprimer) */
+    .list-actions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .action-btn{
+      padding:6px 12px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.8);
+      background:#f8fafc;
+      font-size:11px;
+      cursor:pointer;
+      color:#0f172a;
+      white-space:nowrap;
+    }
+
+    .action-btn:active{ transform:translateY(1px); }
+
+    .action-btn--primary{
+      border-color:rgba(22,163,74,.6);
+      background:rgba(22,163,74,.08);
+    }
+
+    .action-btn--danger{
+      border-color:rgba(225,29,72,.35);
+      background:rgba(225,29,72,.08);
+      color:#9f1239;
+    }
+
+    .action-btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
     }
 
     .chantiers-list{
@@ -695,7 +735,7 @@
             </div>
             <div class="badge-pill">
               <span class="pill-dot"></span>
-              Liste compacte
+              A → Z auto
             </div>
           </div>
 
@@ -716,12 +756,6 @@
                   <option value="">Tous les syndics</option>
                 </select>
               </div>
-              <div class="select-field">
-                <select id="triSelect">
-                  <option value="alpha">Tri A → Z (résidence)</option>
-                  <option value="syndic">Trier par syndic</option>
-                </select>
-              </div>
             </div>
           </div>
 
@@ -734,6 +768,12 @@
               <div class="stat-pill">
                 <span>Résidences distinctes : <strong id="countTotal">0</strong></span>
               </div>
+            </div>
+
+            <!-- ✅ Boutons demandés -->
+            <div class="list-actions">
+              <button type="button" id="addChantierBtnTop" class="action-btn action-btn--primary">+ Nouveau chantier</button>
+              <button type="button" id="deleteChantierBtnTop" class="action-btn action-btn--danger" disabled>Supprimer</button>
             </div>
           </div>
 
@@ -1164,7 +1204,7 @@
         "Adresse": "51 avenue de la Garonnette 31000 Toulouse ",
         "Contact": "Mr Bernard ",
         "Téléphone": "0561143640",
-        "Mails": "Bernard.immo@orange.fr",
+        "Mails": "",
         "Syndic": "Cabinet Bernard ",
         "Intervention": " Base",
         "Agents": "Stoian ",
@@ -1334,7 +1374,7 @@
         "N° De Clef": "36",
         "Adresse": "22 bis chemin du canal 31170 Tournefeuille",
         "Contact": "Mme Levanphung",
-        "Téléphone": "0562219876 - 0643402956",
+        "Téléphone": "0562219876 - 0643502956",
         "Mails": "Alexandra.levanphung@square.fr",
         "Syndic": "Square Habitat ",
         "Intervention": "Base \nÉvacuation entreprise",
@@ -1783,7 +1823,6 @@
 
     const searchInput = document.getElementById("searchInput");
     const syndicFilter = document.getElementById("syndicFilter");
-    const triSelect = document.getElementById("triSelect");
     const listEl = document.getElementById("chantiersList");
     const countVisibleEl = document.getElementById("countVisible");
     const countTotalEl = document.getElementById("countTotal");
@@ -1828,10 +1867,13 @@
     const addChantierBtn = document.getElementById("addChantierBtn");
     const deleteChantierBtn = document.getElementById("deleteChantierBtn");
 
+    // ✅ Boutons haut (liste)
+    const addChantierBtnTop = document.getElementById("addChantierBtnTop");
+    const deleteChantierBtnTop = document.getElementById("deleteChantierBtnTop");
+
     let etat = {
       recherche: "",
       syndic: "",
-      tri: "alpha",
       selectionIndex: null
     };
 
@@ -1861,19 +1903,14 @@
     function reindexCahiersAfterDeletion(deletedIndex) {
       try {
         const temp = {};
-        // On récupère tous les PDF existants
         for (let i = 0; i < CHANTIERS.length + 1; i++) {
           const key = "chantier_pdf_" + i;
           const raw = localStorage.getItem(key);
-          if (raw) {
-            temp[i] = raw;
-          }
+          if (raw) temp[i] = raw;
         }
-        // On supprime toutes les anciennes clés
         for (let i = 0; i < CHANTIERS.length + 2; i++) {
           localStorage.removeItem("chantier_pdf_" + i);
         }
-        // On recrée les clés en décalant les index > deletedIndex
         Object.keys(temp).forEach((oldKey) => {
           const oldIndex = parseInt(oldKey, 10);
           if (Number.isNaN(oldIndex)) return;
@@ -1882,7 +1919,6 @@
           } else if (oldIndex > deletedIndex) {
             localStorage.setItem("chantier_pdf_" + (oldIndex - 1), temp[oldKey]);
           }
-          // oldIndex === deletedIndex -> on laisse tomber (chantier supprimé)
         });
       } catch (e) {
         console.warn("Erreur pendant le ré-indexage des PDF :", e);
@@ -1899,10 +1935,14 @@
         .trim();
     }
 
-    const totalDistinct = new Set(
-      CHANTIERS.map(c => (c["Nom de la résidence"] || "").trim()).filter(Boolean)
-    ).size;
-    countTotalEl.textContent = totalDistinct;
+    function majCompteurTotalDistinct(){
+      const totalDistinct = new Set(
+        CHANTIERS.map(c => (c["Nom de la résidence"] || "").trim()).filter(Boolean)
+      ).size;
+      countTotalEl.textContent = totalDistinct;
+    }
+
+    majCompteurTotalDistinct();
 
     function buildSyndicOptions() {
       const current = etat.syndic;
@@ -1958,38 +1998,35 @@
       });
     }
 
-    function trierChantiers(liste){
-      const tri = etat.tri;
+    // ✅ Toujours tri A→Z automatiquement (plus de choix de tri)
+    function trierChantiersAlpha(liste){
       return [...liste].sort((a,b) => {
-        if (tri === "syndic"){
-          const sa = normaliserTexte(a["Syndic"] || "");
-          const sb = normaliserTexte(b["Syndic"] || "");
-          if (sa === sb){
-            const ra = normaliserTexte(a["Nom de la résidence"] || "");
-            const rb = normaliserTexte(b["Nom de la résidence"] || "");
-            return ra.localeCompare(rb,"fr");
-          }
-          return sa.localeCompare(sb,"fr");
-        }
         const ra = normaliserTexte(a["Nom de la résidence"] || "");
         const rb = normaliserTexte(b["Nom de la résidence"] || "");
         return ra.localeCompare(rb,"fr");
       });
     }
 
+    function updateTopDeleteEnabled(){
+      const enabled = etat.selectionIndex !== null && etat.selectionIndex >= 0 && etat.selectionIndex < CHANTIERS.length;
+      deleteChantierBtnTop.disabled = !enabled;
+    }
+
     function renderListe(){
-      const filtrés = filtrerChantiers();
-      const chantiersAffiches = trierChantiers(filtrés);
+      const filtres = filtrerChantiers();
+      const chantiersAffiches = trierChantiersAlpha(filtres);
 
       listEl.innerHTML = "";
       countVisibleEl.textContent = chantiersAffiches.length;
+
+      updateTopDeleteEnabled();
 
       if (!chantiersAffiches.length){
         const div = document.createElement("div");
         div.className = "no-results";
         div.innerHTML = `
           <strong>Aucun chantier trouvé.</strong><br>
-          Vérifie l'orthographe ou enlève des filtres (syndic, tri).
+          Vérifie l'orthographe ou enlève des filtres (syndic).
         `;
         listEl.appendChild(div);
         detailEmpty.style.display = "block";
@@ -2055,6 +2092,7 @@
       if (idx === null || idx < 0 || idx >= CHANTIERS.length){
         detailEmpty.style.display = "block";
         detailContent.style.display = "none";
+        updateTopDeleteEnabled();
         return;
       }
       const c = CHANTIERS[idx];
@@ -2114,6 +2152,7 @@
 
       updateCahierUI();
       saveStatus.textContent = "";
+      updateTopDeleteEnabled();
     }
 
     function sauvegarderSelection(){
@@ -2156,6 +2195,7 @@
       }
 
       buildSyndicOptions();
+      majCompteurTotalDistinct();
       renderListe();
       renderDetail();
     }
@@ -2174,6 +2214,7 @@
       }
 
       buildSyndicOptions();
+      majCompteurTotalDistinct();
       renderListe();
       renderDetail();
     }
@@ -2209,6 +2250,7 @@
       }
 
       buildSyndicOptions();
+      majCompteurTotalDistinct();
       renderListe();
       renderDetail();
     }
@@ -2223,14 +2265,15 @@
       renderListe();
     });
 
-    triSelect.addEventListener("change", (e) => {
-      etat.tri = e.target.value;
-      renderListe();
-    });
-
     saveButton.addEventListener("click", sauvegarderSelection);
+
+    // Boutons detail
     addChantierBtn.addEventListener("click", ajouterChantier);
     deleteChantierBtn.addEventListener("click", supprimerChantier);
+
+    // ✅ Boutons liste (haut)
+    addChantierBtnTop.addEventListener("click", ajouterChantier);
+    deleteChantierBtnTop.addEventListener("click", supprimerChantier);
 
     infoCahierFile.addEventListener("change", (e) => {
       const idx = etat.selectionIndex;
