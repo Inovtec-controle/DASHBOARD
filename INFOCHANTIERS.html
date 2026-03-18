@@ -14,6 +14,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
 
+  <!-- Librairie PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <style>
     :root{
       --bg:#f1f5f9;
@@ -344,7 +347,6 @@
       background:#16a34a;
     }
 
-    /* Actions rapides (nouveau / supprimer) */
     .list-actions{
       display:flex;
       gap:6px;
@@ -642,6 +644,16 @@
       font-size:11px;
       padding:6px 14px;
       margin-left:6px;
+    }
+
+    .save-button--pdf{
+      background:#0f172a;
+      color:#ffffff;
+      box-shadow:none;
+      font-size:11px;
+      padding:6px 14px;
+      text-transform:none;
+      letter-spacing:0;
     }
 
     .save-status{
@@ -954,6 +966,9 @@
                 </button>
                 <button type="button" id="deleteChantierBtn" class="save-button save-button--danger">
                   <span>Supprimer ce chantier</span>
+                </button>
+                <button type="button" id="generatePdfBtn" class="save-button save-button--pdf">
+                  <span>Générer la fiche PDF agent</span>
                 </button>
               </div>
               <button type="button" id="saveButton" class="save-button">
@@ -1857,7 +1872,6 @@
       }
     ];
 
-    // Si des données existantes ont été enregistrées en localStorage, on les recharge
     try {
       const stored = localStorage.getItem("chantiersData_editable");
       if (stored) {
@@ -1916,6 +1930,7 @@
     const saveStatus = document.getElementById("saveStatus");
     const addChantierBtn = document.getElementById("addChantierBtn");
     const deleteChantierBtn = document.getElementById("deleteChantierBtn");
+    const generatePdfBtn = document.getElementById("generatePdfBtn");
 
     const addChantierBtnTop = document.getElementById("addChantierBtnTop");
     const deleteChantierBtnTop = document.getElementById("deleteChantierBtnTop");
@@ -1983,6 +1998,21 @@
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g," ")
         .trim();
+    }
+
+    function texteAffiche(valeur){
+      const txt = String(valeur || "").trim();
+      return txt ? txt : "Non renseigné";
+    }
+
+    function nettoyerNomFichier(valeur){
+      return String(valeur || "fiche-chantier")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .toLowerCase();
     }
 
     function majCompteurTotalDistinct(){
@@ -2308,6 +2338,98 @@
       renderDetail();
     }
 
+    function getSelectedChantierDataForPdf(){
+      const idx = etat.selectionIndex;
+      if (idx === null || idx < 0 || idx >= CHANTIERS.length) return null;
+      const chantier = CHANTIERS[idx];
+
+      return {
+        residence: infoResidence.value.trim() || chantier["Nom de la résidence"] || "",
+        clef: (chantier["N° De Clef"] || "").trim(),
+        jours: infoJours.value.trim() || chantier["Jour de passage /Tache"] || "",
+        sortieOm: infoSortieOm.value.trim() || chantier["Sortie om"] || "",
+        sortieTri: infoSortieTri.value.trim() || chantier["Sortie tri"] || "",
+        localNettoyage: infoLocalNettoyage.value.trim() || chantier["Local nettoyage"] || "",
+        note: infoNote.value.trim() || chantier["Note chantier"] || ""
+      };
+    }
+
+    function addPdfField(doc, label, value, y){
+      const left = 18;
+      const width = 170;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text(label, left, y);
+
+      const lines = doc.splitTextToSize(texteAffiche(value), width);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.text(lines, left, y + 7);
+
+      return y + 7 + (lines.length * 6) + 6;
+    }
+
+    function generatePdfFicheAgent(){
+      const data = getSelectedChantierDataForPdf();
+
+      if (!data) {
+        saveStatus.textContent = "Sélectionne d'abord un chantier.";
+        return;
+      }
+
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        saveStatus.textContent = "La librairie PDF n'est pas chargée.";
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4"
+      });
+
+      let y = 18;
+
+      doc.setDrawColor(22, 163, 74);
+      doc.setLineWidth(0.8);
+      doc.rect(10, 10, 190, 277);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("Fiche chantier agent", 18, y);
+
+      y += 10;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text("Document de mise en place sur residence", 18, y);
+
+      y += 10;
+      doc.setLineWidth(0.3);
+      doc.line(18, y, 192, y);
+
+      y += 8;
+      y = addPdfField(doc, "Nom de la residence", data.residence, y);
+      y = addPdfField(doc, "Numero de clef", data.clef, y);
+      y = addPdfField(doc, "Jour et taches", data.jours, y);
+      y = addPdfField(doc, "Sortie OM", data.sortieOm, y);
+      y = addPdfField(doc, "Sortie tri", data.sortieTri, y);
+      y = addPdfField(doc, "Local nettoyage", data.localNettoyage, y);
+      y = addPdfField(doc, "Note chantier", data.note, y);
+
+      y += 8;
+      if (y < 255) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.text("Fiche generee depuis Base chantiers - INOVTEC KONTROL", 18, y);
+      }
+
+      const nomFichier = "fiche-agent-" + nettoyerNomFichier(data.residence || "chantier") + ".pdf";
+      doc.save(nomFichier);
+      saveStatus.textContent = "Fiche PDF générée.";
+    }
+
     searchInput.addEventListener("input", (e) => {
       etat.recherche = e.target.value;
       renderListe();
@@ -2319,9 +2441,9 @@
     });
 
     saveButton.addEventListener("click", sauvegarderSelection);
-
     addChantierBtn.addEventListener("click", ajouterChantier);
     deleteChantierBtn.addEventListener("click", supprimerChantier);
+    generatePdfBtn.addEventListener("click", generatePdfFicheAgent);
 
     addChantierBtnTop.addEventListener("click", ajouterChantier);
     deleteChantierBtnTop.addEventListener("click", supprimerChantier);
