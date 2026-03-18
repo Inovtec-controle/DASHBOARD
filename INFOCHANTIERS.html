@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <title>Base chantiers – INOVTEC KONTROL</title>
 
   <!-- iPhone friendly -->
@@ -948,8 +949,11 @@
                   <span>Ajouter un chantier</span>
                 </button>
                 <button type="button" id="deleteChantierBtn" class="save-button save-button--danger">
-                  <span>Supprimer ce chantier</span>
+                  <span></span>
                 </button>
+                <button type="button" id="pdfChantierBtn" class="save-button save-button--secondary">
+    <span>📄 PDF</span>
+  </button>
               </div>
               <button type="button" id="saveButton" class="save-button">
                 <span>Enregistrer les modifications</span>
@@ -2337,6 +2341,51 @@
 
     buildSyndicOptions();
     renderListe();
+    const { jsPDF } = window.jspdf;
+
+function genererPdfChantier(){
+
+    const idx = etat.selectionIndex;
+
+    if (idx === null){
+        alert("Sélectionne un chantier");
+        return;
+    }
+
+    const c = CHANTIERS[idx];
+
+    const doc = new jsPDF();
+
+    let y = 20;
+
+    doc.setFontSize(16);
+    doc.text("FICHE CHANTIER", 20, y);
+
+    y += 15;
+
+    function add(label, value){
+        doc.text(label + " :", 20, y);
+        y += 6;
+
+        const lines = doc.splitTextToSize(String(value || ""), 170);
+        doc.text(lines, 20, y);
+
+        y += (lines.length * 6) + 4;
+    }
+
+    add("Résidence", c["Nom de la résidence"]);
+    add("Adresse", c["Adresse"]);
+    add("Code / clef", c["Code / clef"]);
+    add("Jour / tâches", c["Jour de passage /Tache"]);
+    add("Sortie OM", c["Sortie om"]);
+    add("Sortie tri", c["Sortie tri"]);
+    add("Note chantier", c["Note chantier"]);
+
+    doc.save("Fiche_" + (c["Nom de la résidence"] || "chantier") + ".pdf");
+}
+
+document.getElementById("pdfChantierBtn")
+  .addEventListener("click", genererPdfChantier);
   </script>
 </body>
 </html>
