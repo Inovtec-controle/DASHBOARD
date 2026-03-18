@@ -2372,74 +2372,70 @@
       return y + 7 + (lines.length * 6) + 6;
     }
 
-   function generatePdfFicheAgent(){
+  function generatePdfFicheAgent(){
 
-      if (!data) {
-        saveStatus.textContent = "Sélectionne d'abord un chantier.";
-        return;
-      }
+  const data = getSelectedChantierDataForPdf();
 
-      if (!window.jspdf || !window.jspdf.jsPDF) {
-        saveStatus.textContent = "La librairie PDF n'est pas chargée.";
-        return;
-      }
+  if (!data) {
+    saveStatus.textContent = "Sélectionne d'abord un chantier.";
+    return;
+  }
 
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4"
-      });
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    saveStatus.textContent = "Librairie PDF non chargée.";
+    return;
+  }
 
-      let y = 18;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-      doc.setDrawColor(22, 163, 74);
-      doc.setLineWidth(0.8);
-      doc.rect(10, 10, 190, 277);
+  let y = 20;
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.text("Fiche chantier agent", 18, y);
+  doc.setFontSize(16);
+  doc.text("FICHE CHANTIER AGENT", 20, y);
 
-      y += 10;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text("Document de mise en place sur residence", 18, y);
+  y += 15;
 
-      y += 10;
-      doc.setLineWidth(0.3);
-      doc.line(18, y, 192, y);
+  doc.setFontSize(12);
 
-      y += 8;
-      y = addPdfField(doc, "Nom de la residence", data.residence, y);
-      y = addPdfField(doc, "Numero de clef", data.clef, y);
-      y = addPdfField(doc, "Jour et taches", data.jours, y);
-      y = addPdfField(doc, "Sortie OM", data.sortieOm, y);
-      y = addPdfField(doc, "Sortie tri", data.sortieTri, y);
-      y = addPdfField(doc, "Local nettoyage", data.localNettoyage, y);
-      y = addPdfField(doc, "Note chantier", data.note, y);
+  doc.text("Nom de la résidence :", 20, y);
+  y += 7;
+  doc.text(data.residence || "Non renseigné", 20, y);
 
-      y += 8;
-      if (y < 255) {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(9);
-        doc.text("Fiche generee depuis Base chantiers - INOVTEC KONTROL", 18, y);
-      }
+  y += 12;
+  doc.text("Numero de clef :", 20, y);
+  y += 7;
+  doc.text(data.clef || "Non renseigné", 20, y);
 
-      const nomFichier = "fiche-agent-" + nettoyerNomFichier(data.residence || "chantier") + ".pdf";
-      doc.save(nomFichier);
-      saveStatus.textContent = "Fiche PDF générée.";
-    }
+  y += 12;
+  doc.text("Jour et taches :", 20, y);
+  y += 7;
+  doc.text(doc.splitTextToSize(data.jours || "Non renseigné", 170), 20, y);
 
-    searchInput.addEventListener("input", (e) => {
-      etat.recherche = e.target.value;
-      renderListe();
-    });
+  y += 20;
+  doc.text("Sortie OM :", 20, y);
+  y += 7;
+  doc.text(data.sortieOm || "Non renseigné", 20, y);
 
-    syndicFilter.addEventListener("change", (e) => {
-      etat.syndic = e.target.value;
-      renderListe();
-    });
+  y += 12;
+  doc.text("Sortie tri :", 20, y);
+  y += 7;
+  doc.text(data.sortieTri || "Non renseigné", 20, y);
+
+  y += 12;
+  doc.text("Local nettoyage :", 20, y);
+  y += 7;
+  doc.text(doc.splitTextToSize(data.localNettoyage || "Non renseigné", 170), 20, y);
+
+  y += 20;
+  doc.text("Note chantier :", 20, y);
+  y += 7;
+  doc.text(doc.splitTextToSize(data.note || "Non renseigné", 170), 20, y);
+
+  doc.save("fiche-agent.pdf");
+
+  saveStatus.textContent = "PDF généré.";
+}
 
     saveButton.addEventListener("click", sauvegarderSelection);
     addChantierBtn.addEventListener("click", ajouterChantier);
