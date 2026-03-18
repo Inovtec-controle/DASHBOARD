@@ -2370,8 +2370,7 @@
       return y + 7 + (lines.length * 6) + 6;
     }
 
-    function generatePdfFicheAgent(){
-      const data = getSelectedChantierDataForPdf();
+   function generatePdfFicheAgent(){
 
       if (!data) {
         saveStatus.textContent = "Sélectionne d'abord un chantier.";
