@@ -2202,15 +2202,6 @@
   renderListe();
   renderDetail();
 }
-     function sauvegarderSelection(){
-
-  const idx = etat.selectionIndex;
-
-  if (idx === null || idx < 0 || idx >= CHANTIERS.length){
-    saveStatus.textContent = "Aucun chantier sélectionné.";
-    return;
-  }
-
   const c = CHANTIERS[idx];
 
   c["Nom de la résidence"] = infoResidence.value.trim();
@@ -2508,6 +2499,6 @@ document.getElementById("pdfChantierBtn")
     });
 }
     chargerDepuisFirebase();
-</script>}
+</script>
 </body>
 </html>
