@@ -2461,7 +2461,7 @@ document.getElementById("pdfChantierBtn")
   }
   function chargerDepuisFirebase(){
 
-  CHANTIERS = [];
+ CHANTIERS.length = 0;
 
   db.collection("chantiers").get()
     .then((snapshot) => {
