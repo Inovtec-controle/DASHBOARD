@@ -2412,7 +2412,39 @@ document.getElementById("pdfChantierBtn")
     });
     alert("Firebase connecté !");
   }
+</script>
+  <!-- Firebase simple -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAuJodWrx4GLYf8Lw2e2fDk7vEJPGRdPUQ",
+    authDomain: "inovtec-3c418.firebaseapp.com",
+    projectId: "inovtec-3c418"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // TEST
+  function testFirebase(){
+    db.collection("test").add({
+      message: "ça fonctionne !",
+      date: new Date()
+    }).then(()=>{
+      alert("Firebase connecté !");
+    });
+  }
+
+  // MIGRATION
+  function migrerVersFirebase(){
+    CHANTIERS.forEach(c => {
+      db.collection("chantiers").add(c);
+    });
+
+    alert("Migration terminée !");
+  }
 </script>
 </body>
 </html>
