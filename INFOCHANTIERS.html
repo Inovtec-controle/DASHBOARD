@@ -2159,12 +2159,49 @@
       updateTopDeleteEnabled();
     }
 
-    function sauvegarderSelection(){}
-      const idx = etat.selectionIndex;
-      if (idx === null || idx < 0 || idx >= CHANTIERS.length){
-        saveStatus.textContent = "Aucun chantier sélectionné.";
-        return;
-      }
+ function sauvegarderSelection(){
+
+  const idx = etat.selectionIndex;
+  if (idx === null || idx < 0 || idx >= CHANTIERS.length){
+    saveStatus.textContent = "Aucun chantier sélectionné.";
+    return;
+  }
+
+  const c = CHANTIERS[idx];
+
+  c["Nom de la résidence"] = infoResidence.value.trim();
+  c["Adresse"] = infoAdresse.value.trim();
+  c["Syndic"] = infoSyndic.value.trim();
+
+  c["Contact"] = infoContact.value.trim();
+  c["Téléphone"] = infoTelephone.value.trim();
+  c["Mails"] = infoMail.value.trim();
+
+  c["Intervention"] = infoIntervention.value.trim();
+  c["Jour de passage /Tache"] = infoJours.value.trim();
+  c["Agents"] = infoAgents.value.trim();
+  c["Numéro Agents"] = infoNumAgents.value.trim();
+
+  c["Code / clef"] = infoCodeClef.value.trim();
+  c["Sortie om"] = infoSortieOm.value.trim();
+  c["Sortie tri"] = infoSortieTri.value.trim();
+  c["sac poubelle"] = infoSac.value.trim();
+
+  c["Frange"] = infoFrange.value.trim();
+  c["type  ampoules néons"] = infoAmpoules.value.trim();
+
+  c["Note chantier"] = infoNote.value.trim();
+
+  // 🔥 ENVOI FIREBASE
+  sauvegarderChantierFirebase(c);
+
+  saveStatus.textContent = "Sauvegardé sur Firebase ✅";
+
+  buildSyndicOptions();
+  majCompteurTotalDistinct();
+  renderListe();
+  renderDetail();
+}
       const c = CHANTIERS[idx];
 
       c["Nom de la résidence"] = infoResidence.value.trim();
