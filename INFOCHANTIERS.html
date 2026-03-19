@@ -2445,6 +2445,29 @@ document.getElementById("pdfChantierBtn")
 
     alert("Migration terminée !");
   }
+  function chargerDepuisFirebase(){
+
+  CHANTIERS = [];
+
+  db.collection("chantiers").get()
+    .then((snapshot) => {
+
+      snapshot.forEach(doc => {
+        CHANTIERS.push(doc.data());
+      });
+
+      console.log("Chantiers chargés :", CHANTIERS);
+
+      // 👉 IMPORTANT : relancer ton affichage
+      buildSyndicOptions();
+      majCompteurTotalDistinct();
+      renderListe();
+
+    })
+    .catch((error) => {
+      console.error("Erreur chargement Firebase :", error);
+    });
+}
 </script>
 </body>
 </html>
