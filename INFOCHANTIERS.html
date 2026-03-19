@@ -2192,6 +2192,7 @@
 
       try {
         localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
+        sauvegarderChantierFirebase(c);
         saveStatus.textContent = "Modifications enregistrées sur cet appareil.";
       } catch (e) {
         console.warn("Impossible d'enregistrer en localStorage :", e);
