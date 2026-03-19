@@ -2433,24 +2433,7 @@ document.getElementById("pdfChantierBtn")
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAuJodWrx4GLYf8Lw2e2fDk7vEJPGRdPUQ",
-    authDomain: "inovtec-3c418.firebaseapp.com",
-    projectId: "inovtec-3c418"
-  
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-
-  // TEST
-  function testFirebase(){
-    db.collection("test").add({
-      message: "ça fonctionne !",
-      date: new Date()
-    }).then(()=>{
-      alert("Firebase connecté !");
-    });
-  }
-
+ 
   // MIGRATION
   function migrerVersFirebase(){
     CHANTIERS.forEach(c => {
@@ -2499,6 +2482,18 @@ document.getElementById("pdfChantierBtn")
     });
 }
     chargerDepuisFirebase();
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAuJodWrx4GLYf8Lw2e2fDk7vEJPGRdPUQ",
+  authDomain: "inovtec-3c418.firebaseapp.com",
+  projectId: "inovtec-3c418"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 </script>
 </body>
 </html>
