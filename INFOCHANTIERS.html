@@ -2425,32 +2425,7 @@ function genererPdfChantier(){
 document.getElementById("pdfChantierBtn")
   .addEventListener("click", genererPdfChantier);
   </script>
-  <script type="module">
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAuJodWrx4GLYf8Lw2e2fDk7vEJPGRdPUQ",
-    authDomain: "inovtec-3c418.firebaseapp.com",
-    projectId: "inovtec-3c418",
-    storageBucket: "inovtec-3c418.firebasestorage.app",
-    messagingSenderId: "321955002045",
-    appId: "1:321955002045:web:bebd3c9a5d0da5d86229d4"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  // 🔥 test simple
-  window.testFirebase = async function(){
-    await addDoc(collection(db, "test"), {
-      message: "ça fonctionne !",
-      date: new Date()
-    });
-    alert("Firebase connecté !");
-  }
-</script>
   <!-- Firebase simple -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
