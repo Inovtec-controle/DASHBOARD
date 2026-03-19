@@ -2488,5 +2488,20 @@ document.getElementById("pdfChantierBtn")
 }
   function sauvegarderSelection()
 </script>
+  function sauvegarderChantierFirebase(chantier){
+
+  const id = chantier["Nom de la résidence"]
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^\w]/g, "");
+
+  db.collection("chantiers").doc(id).set(chantier)
+    .then(() => {
+      console.log("✅ Chantier sauvegardé :", id);
+    })
+    .catch((error) => {
+      console.error("❌ Erreur Firebase :", error);
+    });
+}
 </body>
 </html>
