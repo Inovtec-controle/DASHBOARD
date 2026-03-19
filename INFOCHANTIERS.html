@@ -2159,7 +2159,7 @@
       updateTopDeleteEnabled();
     }
 
-    function sauvegarderSelection(){
+    function sauvegarderSelection(){}
       const idx = etat.selectionIndex;
       if (idx === null || idx < 0 || idx >= CHANTIERS.length){
         saveStatus.textContent = "Aucun chantier sélectionné.";
@@ -2487,20 +2487,6 @@ document.getElementById("pdfChantierBtn")
     });
 }
   function sauvegarderSelection()
-  function sauvegarderChantierFirebase(chantier){
-
-  const id = chantier["Nom de la résidence"]
-    .toLowerCase()
-    .replace(/\s+/g, "_")
-    .replace(/[^\w]/g, "");
-
-  db.collection("chantiers").doc(id).set(chantier)
-    .then(() => {
-      console.log("✅ Chantier sauvegardé :", id);
-    })
-    .catch((error) => {
-      console.error("❌ Erreur Firebase :", error);
-    });
 </script>
   
 }
