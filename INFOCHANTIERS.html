@@ -2202,7 +2202,8 @@
   renderListe();
   renderDetail();
 }
-  const c = CHANTIERS[idx];
+ const idx = etat.selectionIndex;
+    const c = CHANTIERS[idx];
 
   c["Nom de la résidence"] = infoResidence.value.trim();
   c["Adresse"] = infoAdresse.value.trim();
