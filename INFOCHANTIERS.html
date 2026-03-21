@@ -1,358 +1,175 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <title>Base chantiers – INOVTEC KONTROL</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base Chantiers</title>
 
-  <!-- iPhone friendly -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#16a34a">
+<style>
+body {
+  font-family: Arial;
+  background: #f3f4f6;
+  margin: 0;
+  padding: 20px;
+}
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
+h1 {
+  text-align: center;
+}
 
-  <style>
-    :root{
-      --bg:#f1f5f9;
-      --panel:#ffffff;
-      --panel-soft:#e2e8f0;
-      --text:#0f172a;
-      --muted:#64748b;
-      --border:rgba(148,163,184,.4);
-      --brand:#16a34a;
-      --brand-soft:rgba(22,163,74,.08);
-      --brand-strong:rgba(22,163,74,.18);
-      --danger:#e11d48;
-      --radius-lg:18px;
-      --radius-xl:24px;
-      --shadow-soft:0 20px 50px rgba(15,23,42,.12);
-      --shadow-card:0 14px 35px rgba(15,23,42,.16);
-    }
+.container {
+  max-width: 900px;
+  margin: auto;
+}
 
-    *{
-      box-sizing:border-box;
-      margin:0;
-      padding:0;
-    }
+.form {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
 
-    html, body{
-      height:100%;
-    }
+.form input, .form textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
 
-    body{
-      font-family:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:radial-gradient(circle at top left, rgba(148,163,184,.3), transparent 60%), var(--bg);
-      color:var(--text);
-      min-height:100vh;
-      -webkit-font-smoothing:antialiased;
-    }
+button {
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
-    .app-shell{
-      height:100vh;
-      display:flex;
-      justify-content:center;
-      padding:16px;
-    }
+.add {
+  background: #16a34a;
+  color: white;
+  width: 100%;
+}
 
-    .app-container{
-      width:100%;
-      max-width:1200px;
-      background:
-        radial-gradient(circle at top left, rgba(22,163,74,.06), transparent 55%),
-        radial-gradient(circle at bottom right, rgba(59,130,246,.06), transparent 60%),
-        var(--panel);
-      border-radius:28px;
-      border:1px solid var(--border);
-      box-shadow:var(--shadow-soft);
-      padding:12px 10px calc(14px + env(safe-area-inset-bottom,0px));
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-      max-height:100%;
-    }
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
 
-    @media (min-width:768px){
-      .app-container{
-        padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));
-      }
-    }
+.actions {
+  margin-top: 10px;
+}
 
-    /* ⚠️ TOUT LE RESTE DE TON CSS EST CONSERVÉ À L’IDENTIQUE */
-  </style>
+.delete {
+  background: red;
+  color: white;
+}
+
+</style>
 </head>
 
 <body>
-  <div class="app-shell">
-    <div class="app-container">
-      <header class="app-header">
-  <div class="app-title-wrap">
-    <div class="app-icon"><span>K</span></div>
-    <div class="app-title-block">
-      <div class="app-title">Base chantiers nettoyage</div>
-      <div class="app-subtitle">Vue rapide de toutes les résidences – style KONTROL</div>
-    </div>
+
+<div class="container">
+  <h1>📋 Base Chantiers</h1>
+
+  <div class="form">
+    <input id="nom" placeholder="Nom du chantier">
+    <input id="adresse" placeholder="Adresse">
+    <input id="responsable" placeholder="Responsable">
+    <input id="cles" placeholder="Nombre de clés">
+    <input id="ampoules" placeholder="Type d’ampoules">
+    <input id="conteneurs" placeholder="Conteneurs (avec / sans sacs)">
+    <textarea id="notes" placeholder="Notes"></textarea>
+
+    <button class="add" onclick="ajouterChantier()">➕ Ajouter chantier</button>
   </div>
-  <div class="app-badge">INOVTEC · KONTROL</div>
-</header>
 
-<div class="content-shell">
-
-  <!-- LISTE -->
-  <section class="panel">
-    <div class="panel-header">
-      <div class="panel-title">Résidences</div>
-    </div>
-
-    <input id="searchInput" placeholder="Rechercher..." />
-
-    <div id="chantiersList"></div>
-
-    <div style="margin-top:10px;">
-      <button id="addChantierBtnTop">+ Nouveau chantier</button>
-      <button id="deleteChantierBtnTop">Supprimer</button>
-    </div>
-  </section>
-
-  <!-- DETAIL -->
-  <section class="panel detail-panel">
-
-    <div id="detailEmpty">
-      Aucun chantier sélectionné
-    </div>
-
-    <div id="detailContent" style="display:none;">
-
-      <input id="infoResidence" placeholder="Résidence"><br>
-      <input id="infoAdresse" placeholder="Adresse"><br>
-      <input id="infoSyndic" placeholder="Syndic"><br>
-
-      <input id="infoContact" placeholder="Contact"><br>
-      <input id="infoTelephone" placeholder="Téléphone"><br>
-      <input id="infoMail" placeholder="Mail"><br>
-
-      <textarea id="infoJours" placeholder="Jour / tâches"></textarea>
-
-      <textarea id="infoCodeClef" placeholder="Code / clef"></textarea>
-
-      <textarea id="infoNote" placeholder="Note chantier"></textarea>
-
-      <br>
-
-      <button id="saveButton">💾 Enregistrer</button>
-      <button id="pdfChantierBtn">📄 PDF</button>
-
-    </div>
-
-  </section>
-
+  <div id="liste"></div>
 </div>
 
-</div>
-</div>
-<script>
+<script type="module">
 
-let CHANTIERS = [];
-let etat = { selectionIndex:null };
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { 
+  getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const listEl = document.getElementById("chantiersList");
 
-function renderListe(){
-
-listEl.innerHTML="";
-
-CHANTIERS.forEach((c,i)=>{
-
-const btn=document.createElement("button");
-btn.textContent=c["Nom de la résidence"] || "Sans nom";
-
-btn.onclick=()=>{
-etat.selectionIndex=i;
-renderDetail();
-};
-
-listEl.appendChild(btn);
-
-});
-
-}
-
-function renderDetail(){
-
-const idx=etat.selectionIndex;
-
-if(idx===null){
-document.getElementById("detailEmpty").style.display="block";
-document.getElementById("detailContent").style.display="none";
-return;
-}
-
-const c=CHANTIERS[idx];
-
-document.getElementById("detailEmpty").style.display="none";
-document.getElementById("detailContent").style.display="block";
-
-infoResidence.value=c["Nom de la résidence"]||"";
-infoAdresse.value=c["Adresse"]||"";
-infoSyndic.value=c["Syndic"]||"";
-infoContact.value=c["Contact"]||"";
-infoTelephone.value=c["Téléphone"]||"";
-infoMail.value=c["Mails"]||"";
-infoJours.value=c["Jour de passage /Tache"]||"";
-infoCodeClef.value=c["Code / clef"]||"";
-infoNote.value=c["Note chantier"]||"";
-
-}
-
-function ajouterChantier(){
-
-CHANTIERS.push({"Nom de la résidence":"Nouveau chantier"});
-etat.selectionIndex=CHANTIERS.length-1;
-
-renderListe();
-renderDetail();
-
-saveFirebase(CHANTIERS[etat.selectionIndex]);
-
-}
-
-async function sauvegarderSelection(){
-
-const idx=etat.selectionIndex;
-if(idx===null) return;
-
-const c=CHANTIERS[idx];
-
-c["Nom de la résidence"]=infoResidence.value;
-c["Adresse"]=infoAdresse.value;
-c["Syndic"]=infoSyndic.value;
-c["Contact"]=infoContact.value;
-c["Téléphone"]=infoTelephone.value;
-c["Mails"]=infoMail.value;
-c["Jour de passage /Tache"]=infoJours.value;
-c["Code / clef"]=infoCodeClef.value;
-c["Note chantier"]=infoNote.value;
-
-localStorage.setItem("data",JSON.stringify(CHANTIERS));
-
-await saveFirebase(c);
-
-alert("Sauvegardé");
-
-renderListe();
-
-}
-
-// PDF
-document.getElementById("pdfChantierBtn").onclick=()=>{
-
-const idx=etat.selectionIndex;
-if(idx===null) return;
-
-const c=CHANTIERS[idx];
-
-const {jsPDF}=window.jspdf;
-const doc=new jsPDF();
-
-doc.text("FICHE CHANTIER",20,20);
-doc.text("Nom: "+(c["Nom de la résidence"]||""),20,40);
-doc.text("Adresse: "+(c["Adresse"]||""),20,50);
-doc.text("Note: "+(c["Note chantier"]||""),20,60);
-
-doc.save("chantier.pdf");
-
-};
-
-document.getElementById("addChantierBtnTop").onclick=ajouterChantier;
-document.getElementById("saveButton").onclick=sauvegarderSelection;
-
-// 🔥 FIREBASE
-let db;
-
-async function initFirebase(){
-
-const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
-const { getFirestore, collection, getDocs, addDoc, updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-
+// 🔥 REMPLACE PAR TA CONFIG FIREBASE
 const firebaseConfig = {
-apiKey: "AIzaSyAuJodWrx4GLYf8Lw2e2fDk7vEJPGRdPUQ",
-authDomain: "inovtec-3c418.firebaseapp.com",
-projectId: "inovtec-3c418",
-storageBucket: "inovtec-3c418.firebasestorage.app",
-messagingSenderId: "321955002045",
-appId: "1:321955002045:web:bebd3c9a5d0da5d86229d4"
+  apiKey: "XXX",
+  authDomain: "XXX",
+  projectId: "XXX",
+  storageBucket: "XXX",
+  messagingSenderId: "XXX",
+  appId: "XXX"
 };
 
+
+// INIT FIREBASE
 const app = initializeApp(firebaseConfig);
-db = getFirestore(app);
+const db = getFirestore(app);
 
-await chargerFirebase();
+// COLLECTION
+const chantiersRef = collection(db, "chantiers");
 
-}
 
-// charger cloud
-async function chargerFirebase(){
+// ➕ AJOUTER
+window.ajouterChantier = async function() {
 
-const snap=await getDocs(collection(db,"chantiers"));
+  const chantier = {
+    nom: document.getElementById("nom").value,
+    adresse: document.getElementById("adresse").value,
+    responsable: document.getElementById("responsable").value,
+    cles: document.getElementById("cles").value,
+    ampoules: document.getElementById("ampoules").value,
+    conteneurs: document.getElementById("conteneurs").value,
+    notes: document.getElementById("notes").value,
+    date: new Date()
+  };
 
-if(!snap.empty){
+  await addDoc(chantiersRef, chantier);
 
-CHANTIERS=[];
+  document.querySelectorAll("input, textarea").forEach(el => el.value = "");
+};
 
-snap.forEach(d=>{
-CHANTIERS.push({id:d.id,...d.data()});
+
+// 🔄 AFFICHAGE TEMPS RÉEL
+onSnapshot(chantiersRef, (snapshot) => {
+
+  const liste = document.getElementById("liste");
+  liste.innerHTML = "";
+
+  snapshot.forEach((docItem) => {
+
+    const c = docItem.data();
+
+    liste.innerHTML += `
+      <div class="card">
+        <h3>${c.nom || ""}</h3>
+        <p><b>Adresse :</b> ${c.adresse || ""}</p>
+        <p><b>Responsable :</b> ${c.responsable || ""}</p>
+        <p><b>Clés :</b> ${c.cles || ""}</p>
+        <p><b>Ampoules :</b> ${c.ampoules || ""}</p>
+        <p><b>Conteneurs :</b> ${c.conteneurs || ""}</p>
+        <p><b>Notes :</b> ${c.notes || ""}</p>
+
+        <div class="actions">
+          <button class="delete" onclick="supprimerChantier('${docItem.id}')">🗑️ Supprimer</button>
+        </div>
+      </div>
+    `;
+  });
+
 });
 
-renderListe();
 
-}
-
-}
-
-// save cloud
-async function saveFirebase(c){
-
-if(!db) return;
-
-if(c.id){
-await updateDoc(doc(db,"chantiers",c.id),c);
-}else{
-const ref=await addDoc(collection(db,"chantiers"),c);
-c.id=ref.id;
-}
-
-}
-
-// 🔄 SYNC AUTO
-setInterval(async ()=>{
-
-if(!db) return;
-
-const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-
-const snap=await getDocs(collection(db,"chantiers"));
-
-const temp=[];
-
-snap.forEach(d=>{
-temp.push({id:d.id,...d.data()});
-});
-
-if(JSON.stringify(temp)!==JSON.stringify(CHANTIERS)){
-CHANTIERS=temp;
-renderListe();
-renderDetail();
-console.log("sync");
-}
-
-},4000);
-
-// INIT
-initFirebase();
-renderListe();
+// 🗑️ SUPPRIMER
+window.supprimerChantier = async function(id) {
+  await deleteDoc(doc(db, "chantiers", id));
+};
 
 </script>
 
