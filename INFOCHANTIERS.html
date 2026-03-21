@@ -86,26 +86,6 @@ button.save {
   border:none;
   border-radius:6px;
 }
-
-button.pdf {
-  width:100%;
-  background:#2563eb;
-  color:white;
-  padding:10px;
-  border:none;
-  border-radius:6px;
-  margin-bottom:10px;
-}
-
-button.view {
-  width:100%;
-  background:#9333ea;
-  color:white;
-  padding:10px;
-  border:none;
-  border-radius:6px;
-  margin-bottom:10px;
-}
 </style>
 </head>
 
@@ -114,17 +94,19 @@ button.view {
 <div class="app">
 
 <div class="sidebar">
+
   <div class="top-actions">
     <button class="btn new" onclick="nouveau()">➕ Nouveau</button>
     <button class="btn delete" onclick="supprimer()">🗑️ Supprimer</button>
   </div>
 
-  <input class="filter" id="filtreNom" placeholder="🔤 Nom du chantier" oninput="appliquerFiltres()">
+  <input class="filter" id="filtreNom" placeholder="🔤 Nom" oninput="appliquerFiltres()">
   <input class="filter" id="filtreAgent" placeholder="👥 Agent" oninput="appliquerFiltres()">
   <input class="filter" id="filtreClient" placeholder="📞 Contact" oninput="appliquerFiltres()">
   <input class="filter" id="filtreVille" placeholder="📍 Ville" oninput="appliquerFiltres()">
 
   <div id="liste"></div>
+
 </div>
 
 <div class="detail">
@@ -132,15 +114,15 @@ button.view {
   <div class="card">
     <div class="section-title">📞 Contact</div>
     <input id="nom" placeholder="Nom du chantier">
-    <input id="adresse" placeholder="Adresse complète">
-    <input id="client" placeholder="Nom du client">
+    <input id="adresse" placeholder="Adresse">
+    <input id="client" placeholder="Client">
     <input id="telephone" placeholder="Téléphone">
     <input id="email" placeholder="Email">
   </div>
 
   <div class="card">
     <div class="section-title">👥 Agents</div>
-    <input id="agents" placeholder="Noms des agents">
+    <input id="agents" placeholder="Agents">
     <input id="horaires" placeholder="Horaires">
     <input id="jours" placeholder="Jours">
     <textarea id="consignesAgents" placeholder="Consignes"></textarea>
@@ -161,13 +143,6 @@ button.view {
     <textarea id="notes" placeholder="Notes"></textarea>
   </div>
 
-  <div class="card">
-    <div class="section-title">📄 Cahier des charges</div>
-    <input type="file" id="pdfFile" accept="application/pdf">
-    <button class="pdf" onclick="uploadPDF()">📎 Importer PDF</button>
-    <button class="view" id="btnVoirPDF" style="display:none;" onclick="ouvrirPDF()">👁️ Voir le PDF</button>
-  </div>
-
   <button class="save" onclick="ajouterOuModifier()">💾 Enregistrer</button>
 
 </div>
@@ -178,7 +153,6 @@ button.view {
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
@@ -191,12 +165,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
-
 const chantiersRef = collection(db, "chantiers");
 
 let currentId = null;
-let pdfURL = null;
 let allChantiers = [];
 
 onSnapshot(chantiersRef, (snapshot) => {
@@ -204,82 +175,114 @@ onSnapshot(chantiersRef, (snapshot) => {
   snapshot.forEach(docItem => {
     allChantiers.push({ id: docItem.id, ...docItem.data() });
   });
-  afficherListe(allChantiers);
+  appliquerFiltres();
 });
+
+window.appliquerFiltres = function() {
+
+  const fNom = val("filtreNom").toLowerCase();
+  const fAgent = val("filtreAgent").toLowerCase();
+  const fClient = val("filtreClient").toLowerCase();
+  const fVille = val("filtreVille").toLowerCase();
+
+  const result = allChantiers.filter(c => {
+    return (!fNom || (c.nom || "").toLowerCase().includes(fNom))
+      && (!fAgent || (c.agents || "").toLowerCase().includes(fAgent))
+      && (!fClient || (c.client || "").toLowerCase().includes(fClient))
+      && (!fVille || (c.adresse || "").toLowerCase().includes(fVille));
+  });
+
+  afficherListe(result);
+};
 
 function afficherListe(data) {
   const liste = document.getElementById("liste");
   liste.innerHTML = "";
+
   data.forEach(c => {
-    liste.innerHTML += `<div class="item" onclick="charger('${c.id}')"><b>${c.nom || ""}</b></div>`;
+    liste.innerHTML += `
+      <div class="item" onclick="charger('${c.id}')">
+        <b>${c.nom || "Sans nom"}</b><br>
+        <small>${c.adresse || ""}</small>
+      </div>
+    `;
   });
 }
 
 window.charger = function(id) {
   const c = allChantiers.find(x => x.id === id);
   currentId = id;
+
   for (let key in c) {
     if (document.getElementById(key)) {
       document.getElementById(key).value = c[key];
     }
   }
-  pdfURL = c.pdfURL || null;
-  document.getElementById("btnVoirPDF").style.display = pdfURL ? "block" : "none";
 };
 
 window.ajouterOuModifier = async function() {
-  try {
-    const data = {
-      nom: val("nom"),
-      adresse: val("adresse"),
-      client: val("client"),
-      telephone: val("telephone"),
-      email: val("email"),
-      agents: val("agents"),
-      horaires: val("horaires"),
-      jours: val("jours"),
-      consignesAgents: val("consignesAgents"),
-      materiel: val("materiel"),
-      produits: val("produits"),
-      ampoules: val("ampoules"),
-      cles: val("cles"),
-      conteneurs: val("conteneurs"),
-      frequence: val("frequence"),
-      notes: val("notes"),
-      pdfURL: pdfURL || null
-    };
 
-    if (currentId) {
-      await updateDoc(doc(db, "chantiers", currentId), data);
-    } else {
-      const docRef = await addDoc(chantiersRef, data);
-      currentId = docRef.id;
-    }
+  const data = {
+    nom: val("nom"),
+    adresse: val("adresse"),
+    client: val("client"),
+    telephone: val("telephone"),
+    email: val("email"),
+    agents: val("agents"),
+    horaires: val("horaires"),
+    jours: val("jours"),
+    consignesAgents: val("consignesAgents"),
+    materiel: val("materiel"),
+    produits: val("produits"),
+    ampoules: val("ampoules"),
+    cles: val("cles"),
+    conteneurs: val("conteneurs"),
+    frequence: val("frequence"),
+    notes: val("notes"),
+    lastUpdate: new Date()
+  };
 
-    alert("✅ Enregistré");
-
-  } catch (e) {
-    console.error(e);
-    alert("❌ Erreur Firebase (ouvre F12)");
+  if (currentId) {
+    await updateDoc(doc(db, "chantiers", currentId), data);
+  } else {
+    const docRef = await addDoc(chantiersRef, data);
+    currentId = docRef.id;
   }
+
+  alert("✅ Enregistré");
 };
 
-window.uploadPDF = async function() {
-  const file = document.getElementById("pdfFile").files[0];
-  if (!file || !currentId) return alert("Enregistre d'abord");
+function autoSave() {
+  if (!currentId) return;
 
-  const storageRef = ref(storage, "pdfs/" + currentId);
-  await uploadBytes(storageRef, file);
-  pdfURL = await getDownloadURL(storageRef);
+  const data = {
+    nom: val("nom"),
+    adresse: val("adresse"),
+    client: val("client"),
+    telephone: val("telephone"),
+    email: val("email"),
+    agents: val("agents"),
+    horaires: val("horaires"),
+    jours: val("jours"),
+    consignesAgents: val("consignesAgents"),
+    materiel: val("materiel"),
+    produits: val("produits"),
+    ampoules: val("ampoules"),
+    cles: val("cles"),
+    conteneurs: val("conteneurs"),
+    frequence: val("frequence"),
+    notes: val("notes"),
+    lastUpdate: new Date()
+  };
 
-  await updateDoc(doc(db, "chantiers", currentId), { pdfURL });
+  updateDoc(doc(db, "chantiers", currentId), data);
+}
 
-  document.getElementById("btnVoirPDF").style.display = "block";
-};
-
-window.ouvrirPDF = function() {
-  if (pdfURL) window.open(pdfURL);
-};
+setTimeout(() => {
+  document.querySelectorAll("input, textarea").forEach(el => {
+    el.addEventListener("change", autoSave);
+  });
+}, 1000);
 
 window.supprimer = async function() {
   if (!currentId) return;
@@ -289,9 +292,7 @@ window.supprimer = async function() {
 
 window.nouveau = function() {
   currentId = null;
-  pdfURL = null;
   document.querySelectorAll("input, textarea").forEach(el => el.value = "");
-  document.getElementById("btnVoirPDF").style.display = "none";
 };
 
 function val(id) {
