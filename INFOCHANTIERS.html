@@ -2172,27 +2172,18 @@ const db = firebase.firestore();
       saveStatus.textContent = "";
       updateTopDeleteEnabled();
     }
+function sauvegarderSelection(){
 
- function sauvegarderSelection(){
+  const idx = etat.selectionIndex;
 
   if (idx === null || idx < 0 || idx >= CHANTIERS.length){
     saveStatus.textContent = "Aucun chantier sélectionné.";
     return;
   }
 
-  // 🔥 ENVOI FIREBASE
-  sauvegarderChantierFirebase(c);
+  const c = CHANTIERS[idx];
 
-  saveStatus.textContent = "Sauvegardé sur Firebase ✅";
-
-  buildSyndicOptions();
-  majCompteurTotalDistinct();
-  renderListe();
-  renderDetail();
-}
- const idx = etat.selectionIndex;
-    const c = CHANTIERS[idx];
-
+  // ✅ MAJ données
   c["Nom de la résidence"] = infoResidence.value.trim();
   c["Adresse"] = infoAdresse.value.trim();
   c["Syndic"] = infoSyndic.value.trim();
@@ -2216,22 +2207,23 @@ const db = firebase.firestore();
 
   c["Note chantier"] = infoNote.value.trim();
 
-  // 🔥 SAUVEGARDE FIREBASE
+  // 💾 sauvegarde local
+  try {
+    localStorage.setItem("chantiersData_editable", JSON.stringify(CHANTIERS));
+  } catch(e){
+    console.warn("Erreur localStorage :", e);
+  }
+
+  // 🔥 Firebase
   sauvegarderChantierFirebase(c);
 
-  saveStatus.textContent = "Sauvegardé sur Firebase ✅";
+  saveStatus.textContent = "Sauvegardé ✅";
 
   buildSyndicOptions();
   majCompteurTotalDistinct();
   renderListe();
   renderDetail();
-
-
-      buildSyndicOptions();
-      majCompteurTotalDistinct();
-      renderListe();
-      renderDetail();
-
+}
     function ajouterChantier(){
       const nouveau = createEmptyChantier();
       CHANTIERS.push(nouveau);
