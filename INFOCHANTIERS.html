@@ -9,6 +9,7 @@
 body { margin:0; font-family:Arial; background:#f3f4f6; }
 .app { display:flex; height:100vh; }
 
+/* GAUCHE */
 .sidebar {
   width:30%;
   background:white;
@@ -36,7 +37,7 @@ body { margin:0; font-family:Arial; background:#f3f4f6; }
 
 .filter {
   width:100%;
-  margin-bottom:8px;
+  margin-bottom:6px;
   padding:8px;
 }
 
@@ -48,6 +49,7 @@ body { margin:0; font-family:Arial; background:#f3f4f6; }
   cursor:pointer;
 }
 
+/* DROITE */
 .detail {
   flex:1;
   padding:20px;
@@ -101,7 +103,6 @@ button.view {
   border-radius:6px;
   margin-bottom:10px;
 }
-
 </style>
 </head>
 
@@ -111,14 +112,20 @@ button.view {
 
 <!-- GAUCHE -->
 <div class="sidebar">
+
   <div class="top-actions">
     <button class="btn new" onclick="nouveau()">➕ Nouveau</button>
     <button class="btn delete" onclick="supprimer()">🗑️ Supprimer</button>
   </div>
 
-  <input class="filter" id="filtreNom" placeholder="Filtrer..." oninput="appliquerFiltres()">
+  <!-- FILTRES -->
+  <input class="filter" id="filtreNom" placeholder="Nom" oninput="appliquerFiltres()">
+  <input class="filter" id="filtreAgent" placeholder="Agent" oninput="appliquerFiltres()">
+  <input class="filter" id="filtreClient" placeholder="Contact" oninput="appliquerFiltres()">
+  <input class="filter" id="filtreVille" placeholder="Ville" oninput="appliquerFiltres()">
 
   <div id="liste"></div>
+
 </div>
 
 <!-- DROITE -->
@@ -127,11 +134,8 @@ button.view {
   <!-- PDF -->
   <div class="card">
     <div class="section-title">📄 Cahier des charges</div>
-
     <input type="file" id="pdfFile" accept="application/pdf">
-
     <button class="pdf" onclick="uploadPDF()">📎 Importer PDF</button>
-
     <button class="view" id="btnVoirPDF" style="display:none;" onclick="ouvrirPDF()">👁️ Voir le PDF</button>
   </div>
 
@@ -141,6 +145,34 @@ button.view {
     <input id="nom" placeholder="Nom du chantier">
     <input id="adresse" placeholder="Adresse">
     <input id="client" placeholder="Client">
+    <input id="telephone" placeholder="Téléphone">
+    <input id="email" placeholder="Email">
+  </div>
+
+  <!-- AGENTS -->
+  <div class="card">
+    <div class="section-title">👥 Agents</div>
+    <input id="agents">
+    <input id="horaires">
+    <input id="jours">
+    <textarea id="consignesAgents"></textarea>
+  </div>
+
+  <!-- MATERIEL -->
+  <div class="card">
+    <div class="section-title">🧰 Matériel</div>
+    <input id="materiel">
+    <input id="produits">
+    <input id="ampoules">
+    <input id="cles">
+  </div>
+
+  <!-- GESTION -->
+  <div class="card">
+    <div class="section-title">⚙️ Gestion</div>
+    <input id="conteneurs">
+    <input id="frequence">
+    <textarea id="notes"></textarea>
   </div>
 
   <button class="save" onclick="ajouterOuModifier()">💾 Enregistrer</button>
@@ -157,7 +189,6 @@ from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import { getStorage, ref, uploadBytes, getDownloadURL } 
 from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-
 
 const firebaseConfig = {
   apiKey: "XXX",
@@ -183,8 +214,25 @@ onSnapshot(chantiersRef, (snapshot) => {
   snapshot.forEach(docItem => {
     allChantiers.push({ id: docItem.id, ...docItem.data() });
   });
-  afficherListe(allChantiers);
+  appliquerFiltres();
 });
+
+window.appliquerFiltres = function() {
+
+  const fNom = val("filtreNom").toLowerCase();
+  const fAgent = val("filtreAgent").toLowerCase();
+  const fClient = val("filtreClient").toLowerCase();
+  const fVille = val("filtreVille").toLowerCase();
+
+  const result = allChantiers.filter(c => {
+    return (!fNom || (c.nom || "").toLowerCase().includes(fNom))
+      && (!fAgent || (c.agents || "").toLowerCase().includes(fAgent))
+      && (!fClient || (c.client || "").toLowerCase().includes(fClient))
+      && (!fVille || (c.adresse || "").toLowerCase().includes(fVille));
+  });
+
+  afficherListe(result);
+};
 
 function afficherListe(data) {
   const liste = document.getElementById("liste");
@@ -193,7 +241,8 @@ function afficherListe(data) {
   data.forEach(c => {
     liste.innerHTML += `
       <div class="item" onclick="charger('${c.id}')">
-        <b>${c.nom || "Sans nom"}</b>
+        <b>${c.nom || "Sans nom"}</b><br>
+        <small>${c.adresse || ""}</small>
       </div>
     `;
   });
@@ -203,21 +252,19 @@ window.charger = function(id) {
   const c = allChantiers.find(x => x.id === id);
   currentId = id;
 
-  document.getElementById("nom").value = c.nom || "";
-  document.getElementById("adresse").value = c.adresse || "";
-  document.getElementById("client").value = c.client || "";
+  for (let key in c) {
+    if (document.getElementById(key)) {
+      document.getElementById(key).value = c[key];
+    }
+  }
 
   pdfURL = c.pdfURL || null;
-
   document.getElementById("btnVoirPDF").style.display = pdfURL ? "block" : "none";
 };
 
 window.uploadPDF = async function() {
 
-  if (!currentId) {
-    alert("Enregistre le chantier avant");
-    return;
-  }
+  if (!currentId) return alert("Enregistre d'abord le chantier");
 
   const file = document.getElementById("pdfFile").files[0];
   if (!file) return alert("Choisis un PDF");
@@ -225,7 +272,6 @@ window.uploadPDF = async function() {
   const storageRef = ref(storage, "pdfs/" + currentId);
 
   await uploadBytes(storageRef, file);
-
   pdfURL = await getDownloadURL(storageRef);
 
   await updateDoc(doc(db, "chantiers", currentId), {
@@ -239,12 +285,32 @@ window.ouvrirPDF = function() {
   if (pdfURL) window.open(pdfURL, "_blank");
 };
 
+window.nouveau = function() {
+  currentId = null;
+  pdfURL = null;
+  document.querySelectorAll("input, textarea").forEach(el => el.value = "");
+  document.getElementById("btnVoirPDF").style.display = "none";
+};
+
 window.ajouterOuModifier = async function() {
 
   const data = {
     nom: val("nom"),
     adresse: val("adresse"),
     client: val("client"),
+    telephone: val("telephone"),
+    email: val("email"),
+    agents: val("agents"),
+    horaires: val("horaires"),
+    jours: val("jours"),
+    consignesAgents: val("consignesAgents"),
+    materiel: val("materiel"),
+    produits: val("produits"),
+    ampoules: val("ampoules"),
+    cles: val("cles"),
+    conteneurs: val("conteneurs"),
+    frequence: val("frequence"),
+    notes: val("notes"),
     pdfURL: pdfURL || null
   };
 
@@ -260,13 +326,6 @@ window.supprimer = async function() {
   if (!currentId) return;
   await deleteDoc(doc(db, "chantiers", currentId));
   nouveau();
-};
-
-window.nouveau = function() {
-  currentId = null;
-  pdfURL = null;
-  document.querySelectorAll("input").forEach(el => el.value = "");
-  document.getElementById("btnVoirPDF").style.display = "none";
 };
 
 function val(id) {
