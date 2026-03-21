@@ -36,10 +36,10 @@ body { margin:0; font-family:Arial; background:#f3f4f6; }
 .new { background:#16a34a; color:white; }
 .delete { background:red; color:white; }
 
-select {
-  width:100%;
+.filter {
+  margin-bottom:8px;
   padding:8px;
-  margin-bottom:10px;
+  width:100%;
   border-radius:6px;
   border:1px solid #ccc;
 }
@@ -106,15 +106,12 @@ button.save {
     <button class="btn delete" onclick="supprimer()">🗑️ Supprimer</button>
   </div>
 
-  <!-- TRI -->
-  <select id="tri" onchange="changerTri()">
-    <option value="nom">🔤 Trier par nom</option>
-    <option value="agents">👥 Trier par agents</option>
-    <option value="client">📞 Trier par contact</option>
-    <option value="adresse">📍 Trier par ville</option>
-  </select>
+  <!-- FILTRES -->
+  <input class="filter" id="filtreNom" placeholder="🔤 Filtrer par nom" oninput="appliquerFiltres()">
+  <input class="filter" id="filtreAgent" placeholder="👥 Filtrer par agent" oninput="appliquerFiltres()">
+  <input class="filter" id="filtreClient" placeholder="📞 Filtrer par contact" oninput="appliquerFiltres()">
+  <input class="filter" id="filtreVille" placeholder="📍 Filtrer par ville" oninput="appliquerFiltres()">
 
-  <input id="search" placeholder="🔍 Rechercher..." oninput="filtrer()">
   <div id="liste"></div>
 
 </div>
@@ -181,29 +178,34 @@ const chantiersRef = collection(db, "chantiers");
 
 let currentId = null;
 let allChantiers = [];
-let triActuel = "nom";
 
+// 🔄 LOAD
 onSnapshot(chantiersRef, (snapshot) => {
   allChantiers = [];
   snapshot.forEach(docItem => {
     allChantiers.push({ id: docItem.id, ...docItem.data() });
   });
-  appliquerTri();
+  appliquerFiltres();
 });
 
-function appliquerTri() {
-  let data = [...allChantiers];
+// 🎯 FILTRAGE MULTI
+window.appliquerFiltres = function() {
 
-  data.sort((a, b) => {
-    return (a[triActuel] || "").localeCompare(b[triActuel] || "");
+  const fNom = val("filtreNom").toLowerCase();
+  const fAgent = val("filtreAgent").toLowerCase();
+  const fClient = val("filtreClient").toLowerCase();
+  const fVille = val("filtreVille").toLowerCase();
+
+  const result = allChantiers.filter(c => {
+
+    return (!fNom || (c.nom || "").toLowerCase().includes(fNom))
+      && (!fAgent || (c.agents || "").toLowerCase().includes(fAgent))
+      && (!fClient || (c.client || "").toLowerCase().includes(fClient))
+      && (!fVille || (c.adresse || "").toLowerCase().includes(fVille));
+
   });
 
-  afficherListe(data);
-}
-
-window.changerTri = function() {
-  triActuel = document.getElementById("tri").value;
-  appliquerTri();
+  afficherListe(result);
 };
 
 function afficherListe(data) {
@@ -219,16 +221,6 @@ function afficherListe(data) {
     `;
   });
 }
-
-window.filtrer = function() {
-  const val = document.getElementById("search").value.toLowerCase();
-
-  const filtre = allChantiers.filter(c =>
-    (c.nom || "").toLowerCase().includes(val)
-  );
-
-  afficherListe(filtre);
-};
 
 window.charger = function(id) {
   const c = allChantiers.find(x => x.id === id);
