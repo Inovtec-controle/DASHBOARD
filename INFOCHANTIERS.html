@@ -73,6 +73,11 @@ input, textarea {
   padding:8px;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color:#9ca3af;
+}
+
 button.save {
   width:100%;
   background:#16a34a;
@@ -116,10 +121,10 @@ button.view {
     <button class="btn delete" onclick="supprimer()">🗑️ Supprimer</button>
   </div>
 
-  <input class="filter" id="filtreNom" placeholder="Nom" oninput="appliquerFiltres()">
-  <input class="filter" id="filtreAgent" placeholder="Agent" oninput="appliquerFiltres()">
-  <input class="filter" id="filtreClient" placeholder="Contact" oninput="appliquerFiltres()">
-  <input class="filter" id="filtreVille" placeholder="Ville" oninput="appliquerFiltres()">
+  <input class="filter" id="filtreNom" placeholder="🔤 Nom du chantier">
+  <input class="filter" id="filtreAgent" placeholder="👥 Agent">
+  <input class="filter" id="filtreClient" placeholder="📞 Contact">
+  <input class="filter" id="filtreVille" placeholder="📍 Ville">
 
   <div id="liste"></div>
 
@@ -128,43 +133,38 @@ button.view {
 <!-- DROITE -->
 <div class="detail">
 
-  <!-- CONTACT -->
   <div class="card">
     <div class="section-title">📞 Contact</div>
-    <input id="nom">
-    <input id="adresse">
-    <input id="client">
-    <input id="telephone">
-    <input id="email">
+    <input id="nom" placeholder="Nom du chantier">
+    <input id="adresse" placeholder="Adresse complète">
+    <input id="client" placeholder="Nom du client">
+    <input id="telephone" placeholder="Téléphone du client">
+    <input id="email" placeholder="Email du client">
   </div>
 
-  <!-- AGENTS -->
   <div class="card">
     <div class="section-title">👥 Agents</div>
-    <input id="agents">
-    <input id="horaires">
-    <input id="jours">
-    <textarea id="consignesAgents"></textarea>
+    <input id="agents" placeholder="Noms des agents">
+    <input id="horaires" placeholder="Horaires (ex: 8h-12h)">
+    <input id="jours" placeholder="Jours d’intervention">
+    <textarea id="consignesAgents" placeholder="Consignes spécifiques agents"></textarea>
   </div>
 
-  <!-- MATERIEL -->
   <div class="card">
     <div class="section-title">🧰 Matériel</div>
-    <input id="materiel">
-    <input id="produits">
-    <input id="ampoules">
-    <input id="cles">
+    <input id="materiel" placeholder="Matériel présent sur site">
+    <input id="produits" placeholder="Produits utilisés">
+    <input id="ampoules" placeholder="Type d’ampoules">
+    <input id="cles" placeholder="Nombre de clés">
   </div>
 
-  <!-- GESTION -->
   <div class="card">
     <div class="section-title">⚙️ Gestion</div>
-    <input id="conteneurs">
-    <input id="frequence">
-    <textarea id="notes"></textarea>
+    <input id="conteneurs" placeholder="Gestion des conteneurs">
+    <input id="frequence" placeholder="Fréquence de nettoyage">
+    <textarea id="notes" placeholder="Notes générales"></textarea>
   </div>
 
-  <!-- PDF -->
   <div class="card">
     <div class="section-title">📄 Cahier des charges</div>
     <input type="file" id="pdfFile" accept="application/pdf">
@@ -178,191 +178,7 @@ button.view {
 
 </div>
 
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } 
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-import { getStorage, ref, uploadBytes, getDownloadURL } 
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-
-const firebaseConfig = {
-  apiKey: "XXX",
-  authDomain: "XXX",
-  projectId: "XXX",
-  storageBucket: "XXX",
-  messagingSenderId: "XXX",
-  appId: "XXX"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-const chantiersRef = collection(db, "chantiers");
-
-let currentId = null;
-let pdfURL = null;
-let allChantiers = [];
-
-onSnapshot(chantiersRef, (snapshot) => {
-  allChantiers = [];
-  snapshot.forEach(docItem => {
-    allChantiers.push({ id: docItem.id, ...docItem.data() });
-  });
-  appliquerFiltres();
-});
-
-window.appliquerFiltres = function() {
-  const fNom = val("filtreNom").toLowerCase();
-  const fAgent = val("filtreAgent").toLowerCase();
-  const fClient = val("filtreClient").toLowerCase();
-  const fVille = val("filtreVille").toLowerCase();
-
-  const result = allChantiers.filter(c => {
-    return (!fNom || (c.nom || "").toLowerCase().includes(fNom))
-      && (!fAgent || (c.agents || "").toLowerCase().includes(fAgent))
-      && (!fClient || (c.client || "").toLowerCase().includes(fClient))
-      && (!fVille || (c.adresse || "").toLowerCase().includes(fVille));
-  });
-
-  afficherListe(result);
-};
-
-function afficherListe(data) {
-  const liste = document.getElementById("liste");
-  liste.innerHTML = "";
-
-  data.forEach(c => {
-    liste.innerHTML += `
-      <div class="item" onclick="charger('${c.id}')">
-        <b>${c.nom || "Sans nom"}</b><br>
-        <small>${c.adresse || ""}</small>
-      </div>
-    `;
-  });
-}
-
-window.charger = function(id) {
-  const c = allChantiers.find(x => x.id === id);
-  currentId = id;
-
-  for (let key in c) {
-    if (document.getElementById(key)) {
-      document.getElementById(key).value = c[key];
-    }
-  }
-
-  pdfURL = c.pdfURL || null;
-  document.getElementById("btnVoirPDF").style.display = pdfURL ? "block" : "none";
-};
-
-window.uploadPDF = async function() {
-
-  if (!currentId) return alert("Enregistre d'abord le chantier");
-
-  const file = document.getElementById("pdfFile").files[0];
-  if (!file) return alert("Choisis un PDF");
-
-  const storageRef = ref(storage, "pdfs/" + currentId);
-
-  await uploadBytes(storageRef, file);
-  pdfURL = await getDownloadURL(storageRef);
-
-  await updateDoc(doc(db, "chantiers", currentId), {
-    pdfURL: pdfURL
-  });
-
-  document.getElementById("btnVoirPDF").style.display = "block";
-};
-
-window.ouvrirPDF = function() {
-  if (pdfURL) window.open(pdfURL, "_blank");
-};
-
-window.nouveau = function() {
-  currentId = null;
-  pdfURL = null;
-  document.querySelectorAll("input, textarea").forEach(el => el.value = "");
-  document.getElementById("btnVoirPDF").style.display = "none";
-};
-
-window.ajouterOuModifier = async function() {
-
-  const data = {
-    nom: val("nom"),
-    adresse: val("adresse"),
-    client: val("client"),
-    telephone: val("telephone"),
-    email: val("email"),
-    agents: val("agents"),
-    horaires: val("horaires"),
-    jours: val("jours"),
-    consignesAgents: val("consignesAgents"),
-    materiel: val("materiel"),
-    produits: val("produits"),
-    ampoules: val("ampoules"),
-    cles: val("cles"),
-    conteneurs: val("conteneurs"),
-    frequence: val("frequence"),
-    notes: val("notes"),
-    pdfURL: pdfURL || null,
-    lastUpdate: new Date()
-  };
-
-  if (currentId) {
-    await updateDoc(doc(db, "chantiers", currentId), data);
-  } else {
-    const docRef = await addDoc(chantiersRef, data);
-    currentId = docRef.id;
-  }
-};
-
-// 🔥 AUTO SAVE
-function autoSave() {
-  if (!currentId) return;
-
-  const data = {
-    nom: val("nom"),
-    adresse: val("adresse"),
-    client: val("client"),
-    telephone: val("telephone"),
-    email: val("email"),
-    agents: val("agents"),
-    horaires: val("horaires"),
-    jours: val("jours"),
-    consignesAgents: val("consignesAgents"),
-    materiel: val("materiel"),
-    produits: val("produits"),
-    ampoules: val("ampoules"),
-    cles: val("cles"),
-    conteneurs: val("conteneurs"),
-    frequence: val("frequence"),
-    notes: val("notes"),
-    pdfURL: pdfURL || null,
-    lastUpdate: new Date()
-  };
-
-  updateDoc(doc(db, "chantiers", currentId), data);
-}
-
-// écoute des champs
-document.querySelectorAll("input, textarea").forEach(el => {
-  el.addEventListener("change", autoSave);
-});
-
-window.supprimer = async function() {
-  if (!currentId) return;
-  await deleteDoc(doc(db, "chantiers", currentId));
-  nouveau();
-};
-
-function val(id) {
-  return document.getElementById(id).value;
-}
-
-</script>
+<!-- ⚠️ Garde ton script actuel tel quel ici -->
 
 </body>
 </html>
