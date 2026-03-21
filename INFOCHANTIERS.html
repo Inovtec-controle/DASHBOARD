@@ -113,9 +113,7 @@ button.view {
 
 <div class="app">
 
-<!-- GAUCHE -->
 <div class="sidebar">
-
   <div class="top-actions">
     <button class="btn new" onclick="nouveau()">➕ Nouveau</button>
     <button class="btn delete" onclick="supprimer()">🗑️ Supprimer</button>
@@ -127,10 +125,8 @@ button.view {
   <input class="filter" id="filtreVille" placeholder="📍 Ville" oninput="appliquerFiltres()">
 
   <div id="liste"></div>
-
 </div>
 
-<!-- DROITE -->
 <div class="detail">
 
   <div class="card">
@@ -138,31 +134,31 @@ button.view {
     <input id="nom" placeholder="Nom du chantier">
     <input id="adresse" placeholder="Adresse complète">
     <input id="client" placeholder="Nom du client">
-    <input id="telephone" placeholder="Téléphone du client">
-    <input id="email" placeholder="Email du client">
+    <input id="telephone" placeholder="Téléphone">
+    <input id="email" placeholder="Email">
   </div>
 
   <div class="card">
     <div class="section-title">👥 Agents</div>
     <input id="agents" placeholder="Noms des agents">
-    <input id="horaires" placeholder="Horaires (ex: 8h-12h)">
-    <input id="jours" placeholder="Jours d’intervention">
-    <textarea id="consignesAgents" placeholder="Consignes spécifiques agents"></textarea>
+    <input id="horaires" placeholder="Horaires">
+    <input id="jours" placeholder="Jours">
+    <textarea id="consignesAgents" placeholder="Consignes"></textarea>
   </div>
 
   <div class="card">
     <div class="section-title">🧰 Matériel</div>
-    <input id="materiel" placeholder="Matériel présent sur site">
-    <input id="produits" placeholder="Produits utilisés">
-    <input id="ampoules" placeholder="Type d’ampoules">
-    <input id="cles" placeholder="Nombre de clés">
+    <input id="materiel" placeholder="Matériel">
+    <input id="produits" placeholder="Produits">
+    <input id="ampoules" placeholder="Ampoules">
+    <input id="cles" placeholder="Clés">
   </div>
 
   <div class="card">
     <div class="section-title">⚙️ Gestion</div>
-    <input id="conteneurs" placeholder="Gestion des conteneurs">
-    <input id="frequence" placeholder="Fréquence de nettoyage">
-    <textarea id="notes" placeholder="Notes générales"></textarea>
+    <input id="conteneurs" placeholder="Conteneurs">
+    <input id="frequence" placeholder="Fréquence">
+    <textarea id="notes" placeholder="Notes"></textarea>
   </div>
 
   <div class="card">
@@ -181,11 +177,8 @@ button.view {
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } 
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-import { getStorage, ref, uploadBytes, getDownloadURL } 
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAuJodWrx4GLYf8Lw2e2fDk7vEJPGRdPUQ",
@@ -211,75 +204,87 @@ onSnapshot(chantiersRef, (snapshot) => {
   snapshot.forEach(docItem => {
     allChantiers.push({ id: docItem.id, ...docItem.data() });
   });
-  appliquerFiltres();
+  afficherListe(allChantiers);
 });
-
-window.appliquerFiltres = function() {
-
-  const fNom = val("filtreNom").toLowerCase();
-  const fAgent = val("filtreAgent").toLowerCase();
-  const fClient = val("filtreClient").toLowerCase();
-  const fVille = val("filtreVille").toLowerCase();
-
-  const result = allChantiers.filter(c => {
-    return (!fNom || (c.nom || "").toLowerCase().includes(fNom))
-      && (!fAgent || (c.agents || "").toLowerCase().includes(fAgent))
-      && (!fClient || (c.client || "").toLowerCase().includes(fClient))
-      && (!fVille || (c.adresse || "").toLowerCase().includes(fVille));
-  });
-
-  afficherListe(result);
-};
 
 function afficherListe(data) {
   const liste = document.getElementById("liste");
   liste.innerHTML = "";
-
   data.forEach(c => {
-    liste.innerHTML += `
-      <div class="item" onclick="charger('${c.id}')">
-        <b>${c.nom || "Sans nom"}</b><br>
-        <small>${c.adresse || ""}</small>
-      </div>
-    `;
+    liste.innerHTML += `<div class="item" onclick="charger('${c.id}')"><b>${c.nom || ""}</b></div>`;
   });
 }
 
 window.charger = function(id) {
   const c = allChantiers.find(x => x.id === id);
   currentId = id;
-
   for (let key in c) {
     if (document.getElementById(key)) {
       document.getElementById(key).value = c[key];
     }
   }
-
   pdfURL = c.pdfURL || null;
   document.getElementById("btnVoirPDF").style.display = pdfURL ? "block" : "none";
 };
 
+window.ajouterOuModifier = async function() {
+  try {
+    const data = {
+      nom: val("nom"),
+      adresse: val("adresse"),
+      client: val("client"),
+      telephone: val("telephone"),
+      email: val("email"),
+      agents: val("agents"),
+      horaires: val("horaires"),
+      jours: val("jours"),
+      consignesAgents: val("consignesAgents"),
+      materiel: val("materiel"),
+      produits: val("produits"),
+      ampoules: val("ampoules"),
+      cles: val("cles"),
+      conteneurs: val("conteneurs"),
+      frequence: val("frequence"),
+      notes: val("notes"),
+      pdfURL: pdfURL || null
+    };
+
+    if (currentId) {
+      await updateDoc(doc(db, "chantiers", currentId), data);
+    } else {
+      const docRef = await addDoc(chantiersRef, data);
+      currentId = docRef.id;
+    }
+
+    alert("✅ Enregistré");
+
+  } catch (e) {
+    console.error(e);
+    alert("❌ Erreur Firebase (ouvre F12)");
+  }
+};
+
 window.uploadPDF = async function() {
-
-  if (!currentId) return alert("Enregistre d'abord le chantier");
-
   const file = document.getElementById("pdfFile").files[0];
-  if (!file) return alert("Choisis un PDF");
+  if (!file || !currentId) return alert("Enregistre d'abord");
 
   const storageRef = ref(storage, "pdfs/" + currentId);
-
   await uploadBytes(storageRef, file);
   pdfURL = await getDownloadURL(storageRef);
 
-  await updateDoc(doc(db, "chantiers", currentId), {
-    pdfURL: pdfURL
-  });
+  await updateDoc(doc(db, "chantiers", currentId), { pdfURL });
 
   document.getElementById("btnVoirPDF").style.display = "block";
 };
 
 window.ouvrirPDF = function() {
-  if (pdfURL) window.open(pdfURL, "_blank");
+  if (pdfURL) window.open(pdfURL);
+};
+
+window.supprimer = async function() {
+  if (!currentId) return;
+  await deleteDoc(doc(db, "chantiers", currentId));
+  nouveau();
 };
 
 window.nouveau = function() {
@@ -287,74 +292,6 @@ window.nouveau = function() {
   pdfURL = null;
   document.querySelectorAll("input, textarea").forEach(el => el.value = "");
   document.getElementById("btnVoirPDF").style.display = "none";
-};
-
-window.ajouterOuModifier = async function() {
-
-  const data = {
-    nom: val("nom"),
-    adresse: val("adresse"),
-    client: val("client"),
-    telephone: val("telephone"),
-    email: val("email"),
-    agents: val("agents"),
-    horaires: val("horaires"),
-    jours: val("jours"),
-    consignesAgents: val("consignesAgents"),
-    materiel: val("materiel"),
-    produits: val("produits"),
-    ampoules: val("ampoules"),
-    cles: val("cles"),
-    conteneurs: val("conteneurs"),
-    frequence: val("frequence"),
-    notes: val("notes"),
-    pdfURL: pdfURL || null,
-    lastUpdate: new Date()
-  };
-
-  if (currentId) {
-    await updateDoc(doc(db, "chantiers", currentId), data);
-  } else {
-    const docRef = await addDoc(chantiersRef, data);
-    currentId = docRef.id;
-  }
-};
-
-function autoSave() {
-  if (!currentId) return;
-
-  const data = {
-    nom: val("nom"),
-    adresse: val("adresse"),
-    client: val("client"),
-    telephone: val("telephone"),
-    email: val("email"),
-    agents: val("agents"),
-    horaires: val("horaires"),
-    jours: val("jours"),
-    consignesAgents: val("consignesAgents"),
-    materiel: val("materiel"),
-    produits: val("produits"),
-    ampoules: val("ampoules"),
-    cles: val("cles"),
-    conteneurs: val("conteneurs"),
-    frequence: val("frequence"),
-    notes: val("notes"),
-    pdfURL: pdfURL || null,
-    lastUpdate: new Date()
-  };
-
-  updateDoc(doc(db, "chantiers", currentId), data);
-}
-
-document.querySelectorAll("input, textarea").forEach(el => {
-  el.addEventListener("change", autoSave);
-});
-
-window.supprimer = async function() {
-  if (!currentId) return;
-  await deleteDoc(doc(db, "chantiers", currentId));
-  nouveau();
 };
 
 function val(id) {
