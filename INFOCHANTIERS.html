@@ -131,11 +131,11 @@ button.view {
   <!-- CONTACT -->
   <div class="card">
     <div class="section-title">📞 Contact</div>
-    <input id="nom" placeholder="Nom du chantier">
-    <input id="adresse" placeholder="Adresse">
-    <input id="client" placeholder="Client">
-    <input id="telephone" placeholder="Téléphone">
-    <input id="email" placeholder="Email">
+    <input id="nom">
+    <input id="adresse">
+    <input id="client">
+    <input id="telephone">
+    <input id="email">
   </div>
 
   <!-- AGENTS -->
@@ -164,7 +164,7 @@ button.view {
     <textarea id="notes"></textarea>
   </div>
 
-  <!-- PDF (DEPLACÉ ICI) -->
+  <!-- PDF -->
   <div class="card">
     <div class="section-title">📄 Cahier des charges</div>
     <input type="file" id="pdfFile" accept="application/pdf">
@@ -307,7 +307,8 @@ window.ajouterOuModifier = async function() {
     conteneurs: val("conteneurs"),
     frequence: val("frequence"),
     notes: val("notes"),
-    pdfURL: pdfURL || null
+    pdfURL: pdfURL || null,
+    lastUpdate: new Date()
   };
 
   if (currentId) {
@@ -317,6 +318,39 @@ window.ajouterOuModifier = async function() {
     currentId = docRef.id;
   }
 };
+
+// 🔥 AUTO SAVE
+function autoSave() {
+  if (!currentId) return;
+
+  const data = {
+    nom: val("nom"),
+    adresse: val("adresse"),
+    client: val("client"),
+    telephone: val("telephone"),
+    email: val("email"),
+    agents: val("agents"),
+    horaires: val("horaires"),
+    jours: val("jours"),
+    consignesAgents: val("consignesAgents"),
+    materiel: val("materiel"),
+    produits: val("produits"),
+    ampoules: val("ampoules"),
+    cles: val("cles"),
+    conteneurs: val("conteneurs"),
+    frequence: val("frequence"),
+    notes: val("notes"),
+    pdfURL: pdfURL || null,
+    lastUpdate: new Date()
+  };
+
+  updateDoc(doc(db, "chantiers", currentId), data);
+}
+
+// écoute des champs
+document.querySelectorAll("input, textarea").forEach(el => {
+  el.addEventListener("change", autoSave);
+});
 
 window.supprimer = async function() {
   if (!currentId) return;
