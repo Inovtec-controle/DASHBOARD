@@ -7,7 +7,6 @@
 
 <style>
 body { margin:0; font-family:Arial; background:#f3f4f6; }
-
 .app { display:flex; height:100vh; }
 
 /* GAUCHE */
@@ -36,6 +35,14 @@ body { margin:0; font-family:Arial; background:#f3f4f6; }
 
 .new { background:#16a34a; color:white; }
 .delete { background:red; color:white; }
+
+select {
+  width:100%;
+  padding:8px;
+  margin-bottom:10px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
 
 .item {
   padding:10px;
@@ -82,7 +89,6 @@ button.save {
   background:#16a34a;
   color:white;
   width:100%;
-  margin-top:10px;
 }
 
 </style>
@@ -100,6 +106,14 @@ button.save {
     <button class="btn delete" onclick="supprimer()">🗑️ Supprimer</button>
   </div>
 
+  <!-- TRI -->
+  <select id="tri" onchange="changerTri()">
+    <option value="nom">🔤 Trier par nom</option>
+    <option value="agents">👥 Trier par agents</option>
+    <option value="client">📞 Trier par contact</option>
+    <option value="adresse">📍 Trier par ville</option>
+  </select>
+
   <input id="search" placeholder="🔍 Rechercher..." oninput="filtrer()">
   <div id="liste"></div>
 
@@ -108,7 +122,6 @@ button.save {
 <!-- DROITE -->
 <div class="detail">
 
-  <!-- CONTACT -->
   <div class="card">
     <div class="section-title">📞 Contact</div>
     <input id="nom" placeholder="Nom du chantier">
@@ -118,7 +131,6 @@ button.save {
     <input id="email" placeholder="Email">
   </div>
 
-  <!-- AGENTS -->
   <div class="card">
     <div class="section-title">👥 Agents</div>
     <input id="agents" placeholder="Noms des agents">
@@ -127,7 +139,6 @@ button.save {
     <textarea id="consignesAgents" placeholder="Consignes spécifiques agents"></textarea>
   </div>
 
-  <!-- MATERIEL -->
   <div class="card">
     <div class="section-title">🧰 Matériel</div>
     <input id="materiel" placeholder="Matériel sur site">
@@ -136,7 +147,6 @@ button.save {
     <input id="cles" placeholder="Nombre de clés">
   </div>
 
-  <!-- GESTION -->
   <div class="card">
     <div class="section-title">⚙️ Gestion</div>
     <input id="conteneurs" placeholder="Gestion conteneurs">
@@ -171,14 +181,30 @@ const chantiersRef = collection(db, "chantiers");
 
 let currentId = null;
 let allChantiers = [];
+let triActuel = "nom";
 
 onSnapshot(chantiersRef, (snapshot) => {
   allChantiers = [];
   snapshot.forEach(docItem => {
     allChantiers.push({ id: docItem.id, ...docItem.data() });
   });
-  afficherListe(allChantiers);
+  appliquerTri();
 });
+
+function appliquerTri() {
+  let data = [...allChantiers];
+
+  data.sort((a, b) => {
+    return (a[triActuel] || "").localeCompare(b[triActuel] || "");
+  });
+
+  afficherListe(data);
+}
+
+window.changerTri = function() {
+  triActuel = document.getElementById("tri").value;
+  appliquerTri();
+};
 
 function afficherListe(data) {
   const liste = document.getElementById("liste");
@@ -196,7 +222,12 @@ function afficherListe(data) {
 
 window.filtrer = function() {
   const val = document.getElementById("search").value.toLowerCase();
-  afficherListe(allChantiers.filter(c => (c.nom || "").toLowerCase().includes(val)));
+
+  const filtre = allChantiers.filter(c =>
+    (c.nom || "").toLowerCase().includes(val)
+  );
+
+  afficherListe(filtre);
 };
 
 window.charger = function(id) {
