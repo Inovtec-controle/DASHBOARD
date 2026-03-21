@@ -9,7 +9,6 @@
 body { margin:0; font-family:Arial; background:#f3f4f6; }
 .app { display:flex; height:100vh; }
 
-/* GAUCHE */
 .sidebar {
   width:30%;
   background:white;
@@ -49,7 +48,6 @@ body { margin:0; font-family:Arial; background:#f3f4f6; }
   cursor:pointer;
 }
 
-/* DROITE */
 .detail {
   flex:1;
   padding:20px;
@@ -118,7 +116,6 @@ button.view {
     <button class="btn delete" onclick="supprimer()">🗑️ Supprimer</button>
   </div>
 
-  <!-- FILTRES -->
   <input class="filter" id="filtreNom" placeholder="Nom" oninput="appliquerFiltres()">
   <input class="filter" id="filtreAgent" placeholder="Agent" oninput="appliquerFiltres()">
   <input class="filter" id="filtreClient" placeholder="Contact" oninput="appliquerFiltres()">
@@ -130,14 +127,6 @@ button.view {
 
 <!-- DROITE -->
 <div class="detail">
-
-  <!-- PDF -->
-  <div class="card">
-    <div class="section-title">📄 Cahier des charges</div>
-    <input type="file" id="pdfFile" accept="application/pdf">
-    <button class="pdf" onclick="uploadPDF()">📎 Importer PDF</button>
-    <button class="view" id="btnVoirPDF" style="display:none;" onclick="ouvrirPDF()">👁️ Voir le PDF</button>
-  </div>
 
   <!-- CONTACT -->
   <div class="card">
@@ -173,6 +162,14 @@ button.view {
     <input id="conteneurs">
     <input id="frequence">
     <textarea id="notes"></textarea>
+  </div>
+
+  <!-- PDF (DEPLACÉ ICI) -->
+  <div class="card">
+    <div class="section-title">📄 Cahier des charges</div>
+    <input type="file" id="pdfFile" accept="application/pdf">
+    <button class="pdf" onclick="uploadPDF()">📎 Importer PDF</button>
+    <button class="view" id="btnVoirPDF" style="display:none;" onclick="ouvrirPDF()">👁️ Voir le PDF</button>
   </div>
 
   <button class="save" onclick="ajouterOuModifier()">💾 Enregistrer</button>
@@ -218,7 +215,6 @@ onSnapshot(chantiersRef, (snapshot) => {
 });
 
 window.appliquerFiltres = function() {
-
   const fNom = val("filtreNom").toLowerCase();
   const fAgent = val("filtreAgent").toLowerCase();
   const fClient = val("filtreClient").toLowerCase();
