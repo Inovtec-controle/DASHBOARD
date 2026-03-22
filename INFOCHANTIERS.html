@@ -7,6 +7,9 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
 
+<!-- LIB PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <style>
 * { box-sizing:border-box; }
 
@@ -147,14 +150,6 @@ input, textarea {
 <input id="cles" placeholder="Numéro de clé / badge d’accès">
 <input id="code" placeholder="Code d'accès">
 <input id="nbatiments" placeholder="Nombre de batîments">
-<input id="syndic" placeholder="Nom du syndic">
-<input id="contactsyndic" placeholder="Contact Syndic">
-<input id="telephone" placeholder="Téléphone - Syndic">
-<input id="emailsyndic" placeholder="Email du contact syndic">
-<input id="presidentCS" placeholder="Nom du Président du Conseil Syndical">
-<input id="telephoneCS" placeholder="Téléphone du Président Conseil Syndical">
-<input id="emailCS" placeholder="Email Président Conseil Syndical">
-
 </div>
 
 <div class="card">
@@ -172,15 +167,10 @@ input, textarea {
 <textarea id="samedi"></textarea>
 <textarea id="dimanche"></textarea>
 </div>
-
-<textarea id="consignesAgents" placeholder="Consignes spécifiques pour l’agent"></textarea>
 </div>
 
 <div class="card">
 <div class="section-title">Gestion</div>
-
-<input id="franges">
-<input id="ampoules">
 
 <input id="sortieOM">
 <input id="rentreeOM">
@@ -189,8 +179,8 @@ input, textarea {
 <input id="localnettoyage">
 <input id="electricité">
 <input id="Eau">
+<textarea id="notes"></textarea>
 
-<textarea id="infopropres"></textarea>
 </div>
 
 <button class="pdf" onclick="genererFiche()">📄 Fiche agent</button>
@@ -256,23 +246,23 @@ const planning=jours.map(j=>`
 <div class="pval">${val(j)}</div>
 </div>`).join("");
 
-const html=`
-<html>
-<head>
-<link href="https://api.fontshare.com/v2/css?f[]=satoshi@500,600,700&display=swap" rel="stylesheet">
+const element = document.createElement("div");
+
+element.innerHTML = `
 <style>
-body{font-family:'Satoshi',sans-serif;padding:20px;}
+body{font-family:Inter;padding:20px;}
+.header{font-size:26px;font-weight:700;margin-bottom:10px;}
 .section{background:#f3f4f6;border-radius:12px;padding:10px;margin-bottom:10px;}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
 .planning{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
-.pcol{background:white;padding:5px;border:1px solid #ddd;}
+.pcol{background:white;border:1px solid #ddd;padding:5px;height:120px;}
+.plabel{font-size:10px;font-weight:600;}
+.pval{font-size:11px;}
 </style>
-</head>
-<body>
 
-<h2>${val("nom")}</h2>
+<div class="header">${val("nom")}</div>
 
-<div class="section">Clé : ${val("cles")}</div>
+<div class="section">Numéro de clé : ${val("cles")}</div>
 <div class="section">Adresse : ${val("adresse")}</div>
 
 <div class="grid">
@@ -284,17 +274,29 @@ body{font-family:'Satoshi',sans-serif;padding:20px;}
 </div>
 
 <div class="section">
-<div class="planning">${planning}</div>
+${planning}
 </div>
 
-</body>
-</html>`;
+<div class="grid">
+<div class="section">Sortie OM : ${val("sortieOM")}</div>
+<div class="section">Rentrée OM : ${val("rentreeOM")}</div>
+<div class="section">Sortie TRI : ${val("sortieTRI")}</div>
+<div class="section">Rentrée TRI : ${val("rentreeTRI")}</div>
+</div>
 
-const w=window.open("","_blank");
-w.document.write(html);
-w.document.close();
-w.focus();
-w.print();
+<div class="section">Notes : ${val("notes")}</div>
+`;
+
+html2pdf()
+.set({
+  margin:10,
+  filename: "fiche-agent.pdf",
+  html2canvas: { scale:2 },
+  jsPDF: { unit:"mm", format:"a4", orientation:"portrait" }
+})
+.from(element)
+.save();
+
 };
 
 window.supprimer=async()=>{
