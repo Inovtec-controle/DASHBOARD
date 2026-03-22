@@ -253,20 +253,24 @@ const planning=jours.map(j=>`
 const html=`
 <html>
 <head>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@500,600&display=swap" rel="stylesheet">
+
 <style>
+*{
+font-family:'Satoshi', sans-serif !important;
+}
+
 body{
-font-family:Inter;
 padding:20px;
 color:#111827;
 }
 
 .header{
 font-size:26px;
-font-weight:800;
+font-weight:700;
 margin-bottom:15px;
 }
-.header span{color:#22c55e;}
 
 .section{
 background:#f3f4f6;
@@ -279,7 +283,6 @@ margin-bottom:10px;
 font-size:13px;
 font-weight:600;
 margin-bottom:4px;
-color:#374151;
 }
 
 .value{
@@ -317,13 +320,6 @@ margin-bottom:3px;
 .pval{
 font-size:11px;
 white-space:pre-line;
-}
-
-.footer{
-margin-top:10px;
-font-size:10px;
-color:#6b7280;
-text-align:right;
 }
 </style>
 </head>
@@ -375,8 +371,6 @@ text-align:right;
 <div class="title">Notes</div>
 <div class="value">${val("notes")}</div>
 </div>
-
-<div class="footer">Fiche opérationnelle agent</div>
 
 </body>
 </html>`;
