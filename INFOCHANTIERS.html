@@ -7,7 +7,6 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
 
-<!-- LIB PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
@@ -146,54 +145,55 @@ input, textarea {
 <div class="section-title">Informations</div>
 
 <input id="nom" placeholder="Nom de la résidence">
-<input id="adresse" placeholder="Adresse de la résidence">
+<input id="adresse" placeholder="Adresse complète du site">
 <input id="cles" placeholder="Numéro de clé / badge d’accès">
-<input id="code" placeholder="Code d'accès">
-<input id="nbatiments" placeholder="Nombre de batîments">
+<input id="code" placeholder="Code d'accès immeuble / portail">
+<input id="nbatiments" placeholder="Nombre de bâtiments sur le site">
 <input id="syndic" placeholder="Nom du syndic">
-<input id="contactsyndic" placeholder="Contact Syndic">
-<input id="telephone" placeholder="Téléphone - Syndic">
-<input id="emailsyndic" placeholder="Email du contact syndic">
+<input id="contactsyndic" placeholder="Nom du contact syndic">
+<input id="telephone" placeholder="Téléphone du syndic">
+<input id="emailsyndic" placeholder="Email du syndic">
 <input id="presidentCS" placeholder="Nom du Président du Conseil Syndical">
-<input id="telephoneCS" placeholder="Téléphone du Président Conseil Syndical">
-<input id="emailCS" placeholder="Email Président Conseil Syndical">
+<input id="telephoneCS" placeholder="Téléphone Président CS">
+<input id="emailCS" placeholder="Email Président CS">
 
 </div>
 
 <div class="card">
 <div class="section-title">Agent</div>
 
-<input id="agentNom" placeholder="Nom de l’agent">
+<input id="agentNom" placeholder="Nom et prénom de l’agent">
 <input id="agentTel" placeholder="Téléphone de l’agent">
 
 <div class="planning">
-<textarea id="lundi"></textarea>
-<textarea id="mardi"></textarea>
-<textarea id="mercredi"></textarea>
-<textarea id="jeudi"></textarea>
-<textarea id="vendredi"></textarea>
-<textarea id="samedi"></textarea>
-<textarea id="dimanche"></textarea>
+<textarea id="lundi" placeholder="Horaires / tâches lundi"></textarea>
+<textarea id="mardi" placeholder="Horaires / tâches mardi"></textarea>
+<textarea id="mercredi" placeholder="Horaires / tâches mercredi"></textarea>
+<textarea id="jeudi" placeholder="Horaires / tâches jeudi"></textarea>
+<textarea id="vendredi" placeholder="Horaires / tâches vendredi"></textarea>
+<textarea id="samedi" placeholder="Horaires / tâches samedi"></textarea>
+<textarea id="dimanche" placeholder="Horaires / tâches dimanche"></textarea>
 </div>
 
-<textarea id="consignesAgents" placeholder="Consignes spécifiques pour l’agent"></textarea>
+<textarea id="consignesAgents" placeholder="Consignes spécifiques pour l’agent (zones, priorités, points de vigilance)"></textarea>
 </div>
 
 <div class="card">
 <div class="section-title">Gestion</div>
 
-<input id="franges">
-<input id="ampoules">
+<input id="franges" placeholder="Type de franges / matériel spécifique">
+<input id="ampoules" placeholder="Type d’ampoules utilisées">
 
-<input id="sortieOM">
-<input id="rentreeOM">
-<input id="sortieTRI">
-<input id="rentreeTRI">
-<input id="localnettoyage">
-<input id="electricité">
-<input id="Eau">
+<input id="sortieOM" placeholder="Jour / heure sortie OM">
+<input id="rentreeOM" placeholder="Jour / heure rentrée OM">
+<input id="sortieTRI" placeholder="Jour / heure sortie TRI">
+<input id="rentreeTRI" placeholder="Jour / heure rentrée TRI">
 
-<textarea id="infopropres"></textarea>
+<input id="localnettoyage" placeholder="Emplacement du local nettoyage">
+<input id="electricité" placeholder="Emplacement prises électriques">
+<input id="Eau" placeholder="Emplacement robinet d’eau">
+
+<textarea id="infopropres" placeholder="Informations complémentaires de gestion"></textarea>
 </div>
 
 <button class="pdf" onclick="genererFiche()">📄 Fiche agent</button>
