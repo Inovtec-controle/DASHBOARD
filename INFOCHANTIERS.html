@@ -245,51 +245,37 @@ window.genererFiche = ()=>{
       body {
         margin:0;
         font-family:'Inter', Arial;
-        background:#f3f4f6;
+        background:white;
+        padding:25px;
       }
 
       .header {
-        background:#22c55e;
-        color:white;
-        padding:25px;
-        text-align:center;
-      }
-
-      .logo {
-        font-size:20px;
+        font-size:24px;
         font-weight:800;
-        letter-spacing:1px;
-        margin-bottom:5px;
+        margin-bottom:25px;
       }
 
-      .residence {
-        font-size:26px;
-        font-weight:700;
-      }
-
-      .container {
-        padding:25px;
+      .header span {
+        color:#22c55e;
       }
 
       .card {
-        background:white;
-        border-radius:12px;
-        padding:18px;
-        margin-bottom:15px;
-        box-shadow:0 4px 10px rgba(0,0,0,0.05);
+        border:1px solid #e5e7eb;
+        border-radius:10px;
+        padding:15px;
+        margin-bottom:12px;
       }
 
       .label {
-        font-size:13px;
+        font-size:12px;
         color:#6b7280;
-        margin-bottom:5px;
+        margin-bottom:4px;
         text-transform:uppercase;
       }
 
       .value {
-        font-size:16px;
+        font-size:15px;
         font-weight:600;
-        color:#111827;
       }
 
       .grid {
@@ -302,56 +288,45 @@ window.genererFiche = ()=>{
         min-height:80px;
         white-space:pre-line;
       }
-
-      @media print {
-        body { background:white; }
-      }
     </style>
   </head>
 
   <body>
 
   <div class="header">
-    <div class="logo">INOVTEC KONTROL</div>
-    <div class="residence">${val("nom")}</div>
+    ${val("nom")}<span>.</span>
   </div>
 
-  <div class="container">
+  <div class="card">
+    <div class="label">Numéro de clé</div>
+    <div class="value">${val("cles")}</div>
+  </div>
 
+  <div class="card">
+    <div class="label">Adresse</div>
+    <div class="value">${val("adresse")}</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Jour</div>
+    <div class="value">${val("jours")}</div>
+  </div>
+
+  <div class="grid">
     <div class="card">
-      <div class="label">Numéro de clé</div>
-      <div class="value">${val("cles")}</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Adresse</div>
-      <div class="value">${val("adresse")}</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Jour d'intervention</div>
-      <div class="value">${val("jours")}</div>
-    </div>
-
-    <div class="grid">
-
-      <div class="card">
-        <div class="label">Sortie OM</div>
-        <div class="value">${val("sortieOM")}</div>
-      </div>
-
-      <div class="card">
-        <div class="label">Sortie TRI</div>
-        <div class="value">${val("sortieTRI")}</div>
-      </div>
-
+      <div class="label">Sortie OM</div>
+      <div class="value">${val("sortieOM")}</div>
     </div>
 
     <div class="card">
-      <div class="label">Notes de gestion</div>
-      <div class="value notes">${val("notes")}</div>
+      <div class="label">Sortie TRI</div>
+      <div class="value">${val("sortieTRI")}</div>
     </div>
+  </div>
 
+  <div class="card">
+    <div class="label">Notes de gestion</div>
+    <div class="value notes">${val("notes")}</div>
   </div>
 
   </body>
