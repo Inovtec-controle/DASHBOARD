@@ -146,7 +146,7 @@ input, textarea {
 <input id="adresse" placeholder="Adresse de la résidence">
 <input id="cles" placeholder="Numéro de clé / badge d’accès">
 <input id="code" placeholder="Code d'accès">
-<input id="n°batiments" placeholder="Nombre de batîments">
+<input id="nbatiments" placeholder="Nombre de batîments">
 <input id="syndic" placeholder="Nom du syndic">
 <input id="contactsyndic" placeholder="Contact Syndic">
 <input id="telephone" placeholder="Téléphone - Syndic">
@@ -164,13 +164,13 @@ input, textarea {
 <input id="agentTel" placeholder="Téléphone de l’agent">
 
 <div class="planning">
-<textarea id="lundi" placeholder="Lundi"></textarea>
-<textarea id="mardi" placeholder="Mardi"></textarea>
-<textarea id="mercredi" placeholder="Mercredi"></textarea>
-<textarea id="jeudi" placeholder="Jeudi"></textarea>
-<textarea id="vendredi" placeholder="Vendredi"></textarea>
-<textarea id="samedi" placeholder="Samedi"></textarea>
-<textarea id="dimanche" placeholder="Dimanche"></textarea>
+<textarea id="lundi"></textarea>
+<textarea id="mardi"></textarea>
+<textarea id="mercredi"></textarea>
+<textarea id="jeudi"></textarea>
+<textarea id="vendredi"></textarea>
+<textarea id="samedi"></textarea>
+<textarea id="dimanche"></textarea>
 </div>
 
 <textarea id="consignesAgents" placeholder="Consignes spécifiques pour l’agent"></textarea>
@@ -179,18 +179,18 @@ input, textarea {
 <div class="card">
 <div class="section-title">Gestion</div>
 
-<input id="franges" placeholder="Type de franges utilisées et nombres de franges/mois">
-<input id="ampoules" placeholder="Type d’ampoules à remplacer">
+<input id="franges">
+<input id="ampoules">
 
-<input id="sortieOM" placeholder="Jour de sortie des OM">
-<input id="rentreeOM" placeholder="Jour de rentrée des OM">
-<input id="sortieTRI" placeholder="Jour de sortie du TRI">
-<input id="rentreeTRI" placeholder="Jour de rentrée du TRI">
-<input id="localnettoyage" placeholder="Emplacements local nettoyage">
-<input id="electricité" placeholder="Emplacements prise éléctriques">
-<input id="Eau" placeholder="Emplacements robinets d'eau">
+<input id="sortieOM">
+<input id="rentreeOM">
+<input id="sortieTRI">
+<input id="rentreeTRI">
+<input id="localnettoyage">
+<input id="electricité">
+<input id="Eau">
 
-<textarea id="infopropres" placeholder="Infos propre aun chantier "></textarea>
+<textarea id="infopropres"></textarea>
 </div>
 
 <button class="pdf" onclick="genererFiche()">📄 Fiche agent</button>
@@ -246,6 +246,8 @@ window.ajouterOuModifier=async()=>{
 
 window.genererFiche=()=>{
 
+const val=id=>document.getElementById(id)?.value || "";
+
 const jours=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 
 const planning=jours.map(j=>`
@@ -257,163 +259,41 @@ const planning=jours.map(j=>`
 const html=`
 <html>
 <head>
-
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@500,600,700&display=swap" rel="stylesheet">
-
 <style>
-*{
-font-family:'Satoshi', sans-serif !important;
-}
-
-body{
-padding:20px;
-color:#111827;
-}
-
-.header{
-font-size:26px;
-font-weight:700;
-margin-bottom:15px;
-}
-
-.header span{
-color:#22c55e;
-}
-
-.section{
-background:#f3f4f6;
-border-radius:12px;
-padding:12px;
-margin-bottom:10px;
-}
-
-.title{
-font-size:13px;
-font-weight:600;
-margin-bottom:4px;
-}
-
-.value{
-font-size:14px;
-font-weight:500;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:8px;
-}
-
-.planning{
-display:grid;
-grid-template-columns:repeat(7,1fr);
-gap:5px;
-margin-top:5px;
-}
-
-.pcol{
-background:white;
-border-radius:8px;
-padding:6px;
-height:130px;
-border:1px solid #e5e7eb;
-}
-
-.plabel{
-font-size:10px;
-font-weight:600;
-margin-bottom:3px;
-}
-
-.pval{
-font-size:11px;
-white-space:pre-line;
-}
+body{font-family:'Satoshi',sans-serif;padding:20px;}
+.section{background:#f3f4f6;border-radius:12px;padding:10px;margin-bottom:10px;}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.planning{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.pcol{background:white;padding:5px;border:1px solid #ddd;}
 </style>
 </head>
-
 <body>
 
-<div class="header">${val("nom")}<span>.</span></div>
+<h2>${val("nom")}</h2>
 
-<div class="section">
-<div class="title">Numéro de clé</div>
-<div class="value">${val("cles")}</div>
-</div>
-
-<div class="section">
-<div class="title">Adresse</div>
-<div class="value">${val("adresse")}</div>
-</div>
+<div class="section">Clé : ${val("cles")}</div>
+<div class="section">Adresse : ${val("adresse")}</div>
 
 <div class="grid">
-
-<div class="section">
-<div class="title">Code d'accès</div>
-<div class="value">${val("code")}</div>
+<div class="section">Code : ${val("code")}</div>
+<div class="section">Bâtiments : ${val("nbatiments")}</div>
+<div class="section">Local nettoyage : ${val("localnettoyage")}</div>
+<div class="section">Prises : ${val("electricité")}</div>
+<div class="section">Eau : ${val("Eau")}</div>
 </div>
 
 <div class="section">
-<div class="title">Nombre de bâtiments</div>
-<div class="value">${val("n°batiments")}</div>
-</div>
-
-<div class="section">
-<div class="title">Local nettoyage</div>
-<div class="value">${val("localnettoyage")}</div>
-</div>
-
-<div class="section">
-<div class="title">Prises électriques</div>
-<div class="value">${val("electricité")}</div>
-</div>
-
-<div class="section">
-<div class="title">Robinets d'eau</div>
-<div class="value">${val("Eau")}</div>
-</div>
-
-</div>
-
-<div class="section">
-<div class="title">Planning hebdomadaire</div>
 <div class="planning">${planning}</div>
-</div>
-
-<div class="grid">
-
-<div class="section">
-<div class="title">Sortie OM</div>
-<div class="value">${val("sortieOM")}</div>
-</div>
-
-<div class="section">
-<div class="title">Rentré OM</div>
-<div class="value">${val("rentreeOM")}</div>
-</div>
-
-<div class="section">
-<div class="title">Sortie TRI</div>
-<div class="value">${val("sortieTRI")}</div>
-</div>
-
-<div class="section">
-<div class="title">Rentré TRI</div>
-<div class="value">${val("rentreeTRI")}</div>
-</div>
-
-</div>
-
-<div class="section">
-<div class="title">Notes</div>
-<div class="value">${val("notes")}</div>
 </div>
 
 </body>
 </html>`;
 
-const w=window.open();
+const w=window.open("","_blank");
 w.document.write(html);
+w.document.close();
+w.focus();
 w.print();
 };
 
@@ -427,8 +307,6 @@ window.nouveau=()=>{
 currentId=null;
 document.querySelectorAll("input,textarea").forEach(e=>e.value="");
 };
-
-function val(id){return document.getElementById(id).value;}
 
 </script>
 
