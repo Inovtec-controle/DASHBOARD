@@ -1,240 +1,3 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INOVTEC KONTROL</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
-<style>
-* { box-sizing:border-box; }
-
-body {
-  margin:0;
-  font-family:'Inter', sans-serif;
-  background:#e5e7eb;
-}
-
-.app { display:flex; height:100vh; }
-
-.sidebar {
-  width:320px;
-  background:#f9fafb;
-  padding:15px;
-  border-right:1px solid #d1d5db;
-}
-
-.logo {
-  font-size:24px;
-  font-weight:800;
-  margin-bottom:15px;
-}
-.logo span { color:#22c55e; }
-
-.top-actions {
-  display:flex;
-  gap:8px;
-  margin-bottom:10px;
-}
-
-.btn {
-  flex:1;
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  font-weight:600;
-}
-.new { background:#22c55e; color:white; }
-.delete { background:#e5e7eb; }
-
-.filter {
-  width:100%;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid #d1d5db;
-  margin-bottom:6px;
-}
-
-.item {
-  padding:10px;
-  border-radius:10px;
-  margin-bottom:6px;
-  background:white;
-  border:1px solid #d1d5db;
-}
-
-.detail {
-  flex:1;
-  padding:15px;
-  overflow-y:auto;
-}
-
-.card {
-  background:white;
-  border-radius:14px;
-  padding:15px;
-  margin-bottom:15px;
-}
-
-.section-title {
-  font-weight:700;
-  margin-bottom:10px;
-  color:#22c55e;
-}
-
-input, textarea {
-  width:100%;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid #d1d5db;
-  margin-bottom:8px;
-}
-
-.save, .pdf {
-  width:100%;
-  padding:14px;
-  border:none;
-  border-radius:10px;
-  font-weight:700;
-  margin-top:10px;
-}
-
-.save { background:#22c55e; color:white; }
-.pdf { background:#111827; color:white; }
-
-@media (max-width:768px){
-  .app { flex-direction:column; }
-  .sidebar { width:100%; }
-}
-</style>
-</head>
-
-<body>
-
-<div class="app">
-
-<div class="sidebar">
-  <div class="logo">inovtec<span>.</span></div>
-
-  <div class="top-actions">
-    <button class="btn new" onclick="nouveau()">+ Nouveau</button>
-    <button class="btn delete" onclick="supprimer()">Supprimer</button>
-  </div>
-
-  <input class="filter" id="filtreNom" placeholder="Nom..." oninput="appliquerFiltres()">
-
-  <div id="liste"></div>
-</div>
-
-<div class="detail">
-
-  <!-- INFOS -->
-  <div class="card">
-    <div class="section-title">Informations</div>
-
-    <input id="nom" placeholder="Nom du chantier">
-    <input id="cles" placeholder="Numéro de clé">
-    <input id="adresse" placeholder="Adresse">
-    <input id="syndic" placeholder="Syndic">
-
-    <input id="telephone" placeholder="Téléphone du chantier">
-
-    <input id="presidentCS" placeholder="Président CS">
-    <input id="telephoneCS" placeholder="Téléphone CS">
-
-    <input id="email" placeholder="Email">
-  </div>
-
-  <!-- AGENT -->
-  <div class="card">
-    <div class="section-title">Agent</div>
-
-    <input id="agentNom" placeholder="Nom de l'agent">
-    <input id="agentTel" placeholder="Téléphone agent">
-
-    <input id="jours" placeholder="Jours">
-    <input id="horaires" placeholder="Horaires">
-    <textarea id="consignesAgents" placeholder="Consignes"></textarea>
-  </div>
-
-  <!-- GESTION -->
-  <div class="card">
-    <div class="section-title">Gestion</div>
-
-    <input id="franges" placeholder="Franges">
-    <input id="ampoules" placeholder="Ampoules">
-    <input id="sortieOM" placeholder="Sortie OM">
-    <input id="sortieTRI" placeholder="Sortie TRI">
-    <textarea id="notes" placeholder="Notes"></textarea>
-  </div>
-
-  <button class="pdf" onclick="genererFiche()">📄 Fiche agent</button>
-  <button class="save" onclick="ajouterOuModifier()">Enregistrer</button>
-
-</div>
-
-</div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
-  authDomain: "inovtec-chantiers.firebaseapp.com",
-  projectId: "inovtec-chantiers",
-  storageBucket: "inovtec-chantiers.firebasestorage.app",
-  messagingSenderId: "313162345276",
-  appId: "1:313162345276:web:1a270f797dd736a4060c39"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const ref = collection(db, "chantiers");
-
-let currentId = null;
-let allChantiers = [];
-
-onSnapshot(ref, snap => {
-  allChantiers = [];
-  snap.forEach(d => allChantiers.push({ id:d.id, ...d.data() }));
-  afficherListe();
-});
-
-function afficherListe(){
-  document.getElementById("liste").innerHTML =
-    allChantiers.map(c=>`
-      <div class="item" onclick="charger('${c.id}')">
-        <b>${c.nom || ""}</b><br>
-        🔑 ${c.cles || ""}
-      </div>
-    `).join("");
-}
-
-window.charger = id=>{
-  const c = allChantiers.find(x=>x.id===id);
-  currentId = id;
-  Object.keys(c).forEach(k=>{
-    if(document.getElementById(k)) document.getElementById(k).value = c[k];
-  });
-};
-
-window.ajouterOuModifier = async ()=>{
-  const data = {};
-  document.querySelectorAll("input,textarea").forEach(el=>{
-    data[el.id] = el.value;
-  });
-
-  if(currentId){
-    await updateDoc(doc(db,"chantiers",currentId),data);
-  }else{
-    const d = await addDoc(ref,data);
-    currentId = d.id;
-  }
-};
-
 window.genererFiche = ()=>{
   const html = `
   <html>
@@ -247,7 +10,13 @@ window.genererFiche = ()=>{
       }
       h1 {
         text-align:center;
+        margin-bottom:5px;
+      }
+      h2 {
+        text-align:center;
         margin-bottom:30px;
+        font-weight:normal;
+        color:#555;
       }
       .bloc {
         border:2px solid #000;
@@ -265,6 +34,7 @@ window.genererFiche = ()=>{
   <body>
 
   <h1>${val("nom")}</h1>
+  <h2>Fiche Agent</h2>
 
   <div class="bloc">
     <div class="label">Numéro de clé</div>
@@ -304,21 +74,3 @@ window.genererFiche = ()=>{
   w.document.write(html);
   w.print();
 };
-
-window.supprimer = async ()=>{
-  if(!currentId) return;
-  await deleteDoc(doc(db,"chantiers",currentId));
-  nouveau();
-};
-
-window.nouveau = ()=>{
-  currentId=null;
-  document.querySelectorAll("input,textarea").forEach(el=>el.value="");
-};
-
-function val(id){ return document.getElementById(id).value; }
-
-</script>
-
-</body>
-</html>
