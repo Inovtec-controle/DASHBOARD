@@ -237,25 +237,69 @@ window.ajouterOuModifier = async ()=>{
 
 window.genererFiche = ()=>{
   const html = `
+  <html>
+  <head>
+    <title>Fiche Agent</title>
+    <style>
+      body {
+        font-family: Arial;
+        padding:30px;
+      }
+      h1 {
+        text-align:center;
+        margin-bottom:30px;
+      }
+      .bloc {
+        border:2px solid #000;
+        border-radius:10px;
+        padding:15px;
+        margin-bottom:15px;
+      }
+      .label {
+        font-weight:bold;
+        margin-bottom:5px;
+      }
+    </style>
+  </head>
+
+  <body>
+
   <h1>${val("nom")}</h1>
-  <p>Clé : ${val("cles")}</p>
-  <p>${val("adresse")}</p>
 
-  <h2>Agent</h2>
-  <p>${val("agentNom")} - ${val("agentTel")}</p>
+  <div class="bloc">
+    <div class="label">Numéro de clé</div>
+    ${val("cles")}
+  </div>
 
-  <h2>Horaires</h2>
-  <p>${val("jours")} - ${val("horaires")}</p>
+  <div class="bloc">
+    <div class="label">Adresse</div>
+    ${val("adresse")}
+  </div>
 
-  <h2>Consignes</h2>
-  <p>${val("consignesAgents")}</p>
+  <div class="bloc">
+    <div class="label">Jour</div>
+    ${val("jours")}
+  </div>
 
-  <h2>Gestion</h2>
-  <p>Franges : ${val("franges")}</p>
-  <p>Ampoules : ${val("ampoules")}</p>
-  <p>OM : ${val("sortieOM")}</p>
-  <p>TRI : ${val("sortieTRI")}</p>
+  <div class="bloc">
+    <div class="label">Sortie OM</div>
+    ${val("sortieOM")}
+  </div>
+
+  <div class="bloc">
+    <div class="label">Sortie TRI</div>
+    ${val("sortieTRI")}
+  </div>
+
+  <div class="bloc">
+    <div class="label">Notes de gestion</div>
+    ${val("notes")}
+  </div>
+
+  </body>
+  </html>
   `;
+
   const w = window.open("");
   w.document.write(html);
   w.print();
