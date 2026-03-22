@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>INOVTEC KONTROL</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
 
 <style>
 * { box-sizing:border-box; }
@@ -91,7 +91,6 @@ input, textarea {
   margin-bottom:8px;
 }
 
-/* planning */
 .planning {
   display:grid;
   grid-template-columns:repeat(7,1fr);
@@ -143,51 +142,51 @@ input, textarea {
 <div class="card">
 <div class="section-title">Informations</div>
 
-<input id="nom" placeholder="Nom du chantier">
-<input id="cles" placeholder="Numéro de clé">
-<input id="adresse" placeholder="Adresse">
-<input id="syndic" placeholder="Syndic">
-<input id="telephone" placeholder="Téléphone">
-<input id="presidentCS" placeholder="Président CS">
-<input id="telephoneCS" placeholder="Téléphone CS">
-<input id="email" placeholder="Email">
+<input id="nom">
+<input id="cles">
+<input id="adresse">
+<input id="syndic">
+<input id="telephone">
+<input id="presidentCS">
+<input id="telephoneCS">
+<input id="email">
 </div>
 
 <div class="card">
 <div class="section-title">Agent</div>
 
-<input id="agentNom" placeholder="Nom agent">
-<input id="agentTel" placeholder="Téléphone agent">
+<input id="agentNom">
+<input id="agentTel">
 
 <div class="planning">
-<textarea id="lundi" placeholder="Lundi"></textarea>
-<textarea id="mardi" placeholder="Mardi"></textarea>
-<textarea id="mercredi" placeholder="Mercredi"></textarea>
-<textarea id="jeudi" placeholder="Jeudi"></textarea>
-<textarea id="vendredi" placeholder="Vendredi"></textarea>
-<textarea id="samedi" placeholder="Samedi"></textarea>
-<textarea id="dimanche" placeholder="Dimanche"></textarea>
+<textarea id="lundi"></textarea>
+<textarea id="mardi"></textarea>
+<textarea id="mercredi"></textarea>
+<textarea id="jeudi"></textarea>
+<textarea id="vendredi"></textarea>
+<textarea id="samedi"></textarea>
+<textarea id="dimanche"></textarea>
 </div>
 
-<input id="jours" placeholder="Jours">
-<input id="horaires" placeholder="Horaires">
+<input id="jours">
+<input id="horaires">
 
-<textarea id="consignesAgents" placeholder="Consignes"></textarea>
+<textarea id="consignesAgents"></textarea>
 </div>
 
 <div class="card">
 <div class="section-title">Gestion</div>
 
-<input id="franges" placeholder="Franges">
-<input id="ampoules" placeholder="Ampoules">
+<input id="franges">
+<input id="ampoules">
 
-<input id="sortieOM" placeholder="Sortie OM">
-<input id="rentreeOM" placeholder="Rentré OM">
+<input id="sortieOM">
+<input id="rentreeOM">
 
-<input id="sortieTRI" placeholder="Sortie TRI">
-<input id="rentreeTRI" placeholder="Rentré TRI">
+<input id="sortieTRI">
+<input id="rentreeTRI">
 
-<textarea id="notes" placeholder="Notes"></textarea>
+<textarea id="notes"></textarea>
 </div>
 
 <button class="pdf" onclick="genererFiche()">📄 Fiche agent</button>
@@ -254,8 +253,14 @@ const planning=jours.map(j=>`
 const html=`
 <html>
 <head>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
-body{font-family:Inter;padding:25px;}
+
+body{
+font-family:'Inter';
+padding:25px;
+background:white;
+}
 
 .header{
 font-size:24px;
@@ -265,7 +270,7 @@ margin-bottom:20px;
 .header span{color:#22c55e;}
 
 .card{
-background:#f9fafb;
+background:#f3f4f6;
 border-radius:12px;
 padding:15px;
 margin-bottom:10px;
@@ -312,6 +317,7 @@ margin-bottom:4px;
 font-size:12px;
 white-space:pre-line;
 }
+
 </style>
 </head>
 
