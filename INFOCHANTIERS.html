@@ -146,7 +146,7 @@ textarea::placeholder {
 
   <input class="filter" id="filtreNom" placeholder="Nom..." oninput="appliquerFiltres()">
   <input class="filter" id="filtreAgent" placeholder="Agent..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreClient" placeholder="Client..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreSyndic" placeholder="Syndic..." oninput="appliquerFiltres()">
   <input class="filter" id="filtreVille" placeholder="Ville..." oninput="appliquerFiltres()">
 
   <div id="liste" class="list"></div>
@@ -160,9 +160,11 @@ textarea::placeholder {
     <div class="section-title">Informations chantiers</div>
     <input id="nom" placeholder="Nom du chantier">
     <input id="adresse" placeholder="Adresse">
-    <input id="client" placeholder="Client">
+    <input id="Syndic" placeholder="Syndic">
     <input id="telephone" placeholder="Téléphone">
     <input id="email" placeholder="Email">
+    <input id="Président CS" placeholder="Président CS">
+    <input id="telephone" placeholder="Téléphone">
   </div>
 
   <div class="card">
@@ -228,13 +230,13 @@ window.appliquerFiltres = function() {
 
   const fNom = val("filtreNom").toLowerCase();
   const fAgent = val("filtreAgent").toLowerCase();
-  const fClient = val("filtreClient").toLowerCase();
+  const fSyndic = val("filtreSyndic").toLowerCase();
   const fVille = val("filtreVille").toLowerCase();
 
   const result = allChantiers.filter(c => {
     return (!fNom || (c.nom || "").toLowerCase().includes(fNom))
       && (!fAgent || (c.agents || "").toLowerCase().includes(fAgent))
-      && (!fClient || (c.client || "").toLowerCase().includes(fClient))
+      && (!fSyndic || (c.Syndic || "").toLowerCase().includes(fSyndic))
       && (!fVille || (c.adresse || "").toLowerCase().includes(fVille));
   });
 
@@ -271,7 +273,7 @@ window.ajouterOuModifier = async function() {
   const data = {
     nom: val("nom"),
     adresse: val("adresse"),
-    client: val("client"),
+    syndic: val("syndic"),
     telephone: val("telephone"),
     email: val("email"),
     agents: val("agents"),
