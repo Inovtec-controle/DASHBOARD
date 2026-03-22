@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-
 * { box-sizing:border-box; }
 
 body {
@@ -31,7 +30,6 @@ body {
   font-weight:800;
   margin-bottom:15px;
 }
-
 .logo span { color:#22c55e; }
 
 .top-actions {
@@ -47,7 +45,6 @@ body {
   border-radius:8px;
   font-weight:600;
 }
-
 .new { background:#22c55e; color:white; }
 .delete { background:#e5e7eb; }
 
@@ -58,8 +55,6 @@ body {
   border:1px solid #d1d5db;
   margin-bottom:6px;
 }
-
-.list { margin-top:10px; }
 
 .item {
   padding:10px;
@@ -96,32 +91,22 @@ input, textarea {
   margin-bottom:8px;
 }
 
-.save {
+.save, .pdf {
   width:100%;
   padding:14px;
   border:none;
   border-radius:10px;
-  background:#22c55e;
-  color:white;
   font-weight:700;
   margin-top:10px;
 }
 
-.pdf {
-  width:100%;
-  padding:14px;
-  border:none;
-  border-radius:10px;
-  background:#111827;
-  color:white;
-  font-weight:700;
-}
+.save { background:#22c55e; color:white; }
+.pdf { background:#111827; color:white; }
 
 @media (max-width:768px){
   .app { flex-direction:column; }
   .sidebar { width:100%; }
 }
-
 </style>
 </head>
 
@@ -130,7 +115,6 @@ input, textarea {
 <div class="app">
 
 <div class="sidebar">
-
   <div class="logo">inovtec<span>.</span></div>
 
   <div class="top-actions">
@@ -140,33 +124,48 @@ input, textarea {
 
   <input class="filter" id="filtreNom" placeholder="Nom..." oninput="appliquerFiltres()">
 
-  <div id="liste" class="list"></div>
-
+  <div id="liste"></div>
 </div>
 
 <div class="detail">
 
+  <!-- INFOS -->
   <div class="card">
     <div class="section-title">Informations</div>
+
     <input id="nom" placeholder="Nom du chantier">
     <input id="cles" placeholder="Numéro de clé">
     <input id="adresse" placeholder="Adresse">
     <input id="syndic" placeholder="Syndic">
+
+    <input id="telephone" placeholder="Téléphone du chantier">
+
+    <input id="presidentCS" placeholder="Président CS">
+    <input id="telephoneCS" placeholder="Téléphone CS">
+
+    <input id="email" placeholder="Email">
   </div>
 
+  <!-- AGENT -->
   <div class="card">
-    <div class="section-title">Agents</div>
-    <input id="agents" placeholder="Agents">
+    <div class="section-title">Agent</div>
+
+    <input id="agentNom" placeholder="Nom de l'agent">
+    <input id="agentTel" placeholder="Téléphone agent">
+
     <input id="jours" placeholder="Jours">
     <input id="horaires" placeholder="Horaires">
     <textarea id="consignesAgents" placeholder="Consignes"></textarea>
   </div>
 
+  <!-- GESTION -->
   <div class="card">
     <div class="section-title">Gestion</div>
+
     <input id="franges" placeholder="Franges">
     <input id="ampoules" placeholder="Ampoules">
     <input id="sortieOM" placeholder="Sortie OM">
+    <input id="sortieTRI" placeholder="Sortie TRI">
     <textarea id="notes" placeholder="Notes"></textarea>
   </div>
 
@@ -193,113 +192,87 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const chantiersRef = collection(db, "chantiers");
+const ref = collection(db, "chantiers");
 
 let currentId = null;
 let allChantiers = [];
 
-onSnapshot(chantiersRef, (snapshot) => {
+onSnapshot(ref, snap => {
   allChantiers = [];
-  snapshot.forEach(docItem => {
-    allChantiers.push({ id: docItem.id, ...docItem.data() });
-  });
-  afficherListe(allChantiers);
+  snap.forEach(d => allChantiers.push({ id:d.id, ...d.data() }));
+  afficherListe();
 });
 
-function afficherListe(data) {
-  const liste = document.getElementById("liste");
-  liste.innerHTML = "";
-
-  data.forEach(c => {
-    liste.innerHTML += `
+function afficherListe(){
+  document.getElementById("liste").innerHTML =
+    allChantiers.map(c=>`
       <div class="item" onclick="charger('${c.id}')">
         <b>${c.nom || ""}</b><br>
         🔑 ${c.cles || ""}
       </div>
-    `;
-  });
+    `).join("");
 }
 
-window.charger = function(id) {
-  const c = allChantiers.find(x => x.id === id);
+window.charger = id=>{
+  const c = allChantiers.find(x=>x.id===id);
   currentId = id;
-
-  Object.keys(c).forEach(key => {
-    if (document.getElementById(key)) {
-      document.getElementById(key).value = c[key];
-    }
+  Object.keys(c).forEach(k=>{
+    if(document.getElementById(k)) document.getElementById(k).value = c[k];
   });
 };
 
-window.ajouterOuModifier = async function() {
+window.ajouterOuModifier = async ()=>{
+  const data = {};
+  document.querySelectorAll("input,textarea").forEach(el=>{
+    data[el.id] = el.value;
+  });
 
-  const data = {
-    nom: val("nom"),
-    cles: val("cles"),
-    adresse: val("adresse"),
-    syndic: val("syndic"),
-    agents: val("agents"),
-    jours: val("jours"),
-    horaires: val("horaires"),
-    consignesAgents: val("consignesAgents"),
-    franges: val("franges"),
-    ampoules: val("ampoules"),
-    sortieOM: val("sortieOM"),
-    notes: val("notes"),
-  };
-
-  if (currentId) {
-    await updateDoc(doc(db, "chantiers", currentId), data);
-  } else {
-    const docRef = await addDoc(chantiersRef, data);
-    currentId = docRef.id;
+  if(currentId){
+    await updateDoc(doc(db,"chantiers",currentId),data);
+  }else{
+    const d = await addDoc(ref,data);
+    currentId = d.id;
   }
-
 };
 
-window.genererFiche = function() {
-
+window.genererFiche = ()=>{
   const html = `
-    <h1>${val("nom")}</h1>
-    <p><b>Clé :</b> ${val("cles")}</p>
-    <p><b>Adresse :</b> ${val("adresse")}</p>
+  <h1>${val("nom")}</h1>
+  <p>Clé : ${val("cles")}</p>
+  <p>${val("adresse")}</p>
 
-    <h2>Agents</h2>
-    <p>${val("agents")}</p>
-    <p><b>Jours :</b> ${val("jours")}</p>
-    <p><b>Horaires :</b> ${val("horaires")}</p>
+  <h2>Agent</h2>
+  <p>${val("agentNom")} - ${val("agentTel")}</p>
 
-    <h2>Consignes</h2>
-    <p>${val("consignesAgents")}</p>
+  <h2>Horaires</h2>
+  <p>${val("jours")} - ${val("horaires")}</p>
 
-    <h2>Gestion</h2>
-    <p>Franges : ${val("franges")}</p>
-    <p>Ampoules : ${val("ampoules")}</p>
-    <p>OM : ${val("sortieOM")}</p>
+  <h2>Consignes</h2>
+  <p>${val("consignesAgents")}</p>
 
-    <h2>Notes</h2>
-    <p>${val("notes")}</p>
+  <h2>Gestion</h2>
+  <p>Franges : ${val("franges")}</p>
+  <p>Ampoules : ${val("ampoules")}</p>
+  <p>OM : ${val("sortieOM")}</p>
+  <p>TRI : ${val("sortieTRI")}</p>
   `;
-
-  const win = window.open("", "_blank");
-  win.document.write(html);
-  win.print();
+  const w = window.open("");
+  w.document.write(html);
+  w.print();
 };
 
-window.supprimer = async function() {
-  if (!currentId) return;
-  await deleteDoc(doc(db, "chantiers", currentId));
+window.supprimer = async ()=>{
+  if(!currentId) return;
+  await deleteDoc(doc(db,"chantiers",currentId));
   nouveau();
 };
 
-window.nouveau = function() {
-  currentId = null;
-  document.querySelectorAll("input, textarea").forEach(el => el.value = "");
+window.nouveau = ()=>{
+  currentId=null;
+  document.querySelectorAll("input,textarea").forEach(el=>el.value="");
 };
 
-function val(id) {
-  return document.getElementById(id).value;
-}
+function val(id){ return document.getElementById(id).value; }
 
 </script>
 
