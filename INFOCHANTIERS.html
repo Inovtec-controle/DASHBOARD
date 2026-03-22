@@ -113,10 +113,6 @@ input, textarea {
 .save { background:#22c55e; color:white; }
 .pdf { background:#111827; color:white; }
 
-@media (max-width:768px){
-  .app { flex-direction:column; }
-  .sidebar { width:100%; }
-}
 </style>
 </head>
 
@@ -132,7 +128,7 @@ input, textarea {
     <button class="btn delete" onclick="supprimer()">Supprimer</button>
   </div>
 
-  <input class="filter" id="filtreNom" placeholder="Rechercher un chantier...">
+  <input class="filter" id="filtreNom" placeholder="Nom...">
 
   <div id="liste"></div>
 </div>
@@ -142,51 +138,51 @@ input, textarea {
 <div class="card">
 <div class="section-title">Informations</div>
 
-<input id="nom" placeholder="Nom de la résidence / chantier">
-<input id="cles" placeholder="Numéro de clé / badge d’accès">
-<input id="adresse" placeholder="Adresse complète du site">
-<input id="syndic" placeholder="Nom du syndic">
-<input id="telephone" placeholder="Téléphone du site">
-<input id="presidentCS" placeholder="Nom du président du conseil syndical">
-<input id="telephoneCS" placeholder="Téléphone du président CS">
-<input id="email" placeholder="Email du contact principal">
+<input id="nom">
+<input id="cles">
+<input id="adresse">
+<input id="syndic">
+<input id="telephone">
+<input id="presidentCS">
+<input id="telephoneCS">
+<input id="email">
 </div>
 
 <div class="card">
 <div class="section-title">Agent</div>
 
-<input id="agentNom" placeholder="Nom de l’agent affecté">
-<input id="agentTel" placeholder="Téléphone de l’agent">
+<input id="agentNom">
+<input id="agentTel">
 
 <div class="planning">
-<textarea id="lundi" placeholder="Tâches du lundi"></textarea>
-<textarea id="mardi" placeholder="Tâches du mardi"></textarea>
-<textarea id="mercredi" placeholder="Tâches du mercredi"></textarea>
-<textarea id="jeudi" placeholder="Tâches du jeudi"></textarea>
-<textarea id="vendredi" placeholder="Tâches du vendredi"></textarea>
-<textarea id="samedi" placeholder="Tâches du samedi"></textarea>
-<textarea id="dimanche" placeholder="Tâches du dimanche"></textarea>
+<textarea id="lundi"></textarea>
+<textarea id="mardi"></textarea>
+<textarea id="mercredi"></textarea>
+<textarea id="jeudi"></textarea>
+<textarea id="vendredi"></textarea>
+<textarea id="samedi"></textarea>
+<textarea id="dimanche"></textarea>
 </div>
 
-<input id="jours" placeholder="(optionnel) jours d’intervention globaux">
-<input id="horaires" placeholder="(optionnel) horaires d’intervention">
+<input id="jours">
+<input id="horaires">
 
-<textarea id="consignesAgents" placeholder="Consignes spécifiques pour l’agent"></textarea>
+<textarea id="consignesAgents"></textarea>
 </div>
 
 <div class="card">
 <div class="section-title">Gestion</div>
 
-<input id="franges" placeholder="Type de franges utilisées">
-<input id="ampoules" placeholder="Type d’ampoules à remplacer">
+<input id="franges">
+<input id="ampoules">
 
-<input id="sortieOM" placeholder="Jour de sortie des OM">
-<input id="rentreeOM" placeholder="Jour de rentrée des OM">
+<input id="sortieOM">
+<input id="rentreeOM">
 
-<input id="sortieTRI" placeholder="Jour de sortie du TRI">
-<input id="rentreeTRI" placeholder="Jour de rentrée du TRI">
+<input id="sortieTRI">
+<input id="rentreeTRI">
 
-<textarea id="notes" placeholder="Notes de gestion / remarques importantes"></textarea>
+<textarea id="notes"></textarea>
 </div>
 
 <button class="pdf" onclick="genererFiche()">📄 Fiche agent</button>
@@ -246,15 +242,17 @@ const jours=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 
 const planning=jours.map(j=>`
 <div class="pcol">
-<div class="plabel">${j.toUpperCase()}</div>
+<div class="ptitle">${j.toUpperCase()}</div>
 <div class="pval">${val(j)}</div>
 </div>`).join("");
 
 const html=`
 <html>
 <head>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
-body{font-family:Inter;padding:25px;}
+
+body{font-family:'Inter';padding:25px;}
 
 .header{
 font-size:24px;
@@ -263,35 +261,27 @@ margin-bottom:20px;
 }
 .header span{color:#22c55e;}
 
-.card{
+.section{
 background:rgba(243,244,246,0.3);
 border-radius:12px;
-padding:15px;
+padding:10px;
 margin-bottom:10px;
 }
 
-.label{
-font-size:15px;
+.title{
 font-weight:600;
-margin-bottom:5px;
+margin-bottom:6px;
 }
 
 .value{
 font-size:14px;
-font-weight:400;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:10px;
+margin-bottom:10px;
 }
 
 .planning{
 display:grid;
 grid-template-columns:repeat(7,1fr);
 gap:6px;
-margin-top:10px;
 }
 
 .pcol{
@@ -301,22 +291,16 @@ padding:6px;
 height:180px;
 }
 
-.plabel{
-font-size:11px;
+.ptitle{
 font-weight:600;
+font-size:11px;
 margin-bottom:4px;
 }
 
 .pval{
 font-size:12px;
-white-space:pre-line;
 }
 
-.desc{
-font-size:11px;
-color:#6b7280;
-margin-bottom:4px;
-}
 </style>
 </head>
 
@@ -324,55 +308,44 @@ margin-bottom:4px;
 
 <div class="header">${val("nom")}<span>.</span></div>
 
-<div class="card">
-<div class="desc">Identification du site</div>
-<div class="label">Numéro de clé</div>
+<div class="section">
+<div class="title">Identification du site</div>
+<div class="title">Numéro de clé</div>
 <div class="value">${val("cles")}</div>
 </div>
 
-<div class="card">
-<div class="desc">Localisation du chantier</div>
-<div class="label">Adresse</div>
+<div class="section">
+<div class="title">Adresse</div>
 <div class="value">${val("adresse")}</div>
 </div>
 
-<div class="card">
-<div class="desc">Organisation des tâches hebdomadaires</div>
-<div class="label">Planning</div>
+<div class="section">
+<div class="title">LUNDI MARDI MERCREDI JEUDI VENDREDI SAMEDI DIMANCHE</div>
 <div class="planning">${planning}</div>
 </div>
 
-<div class="grid">
-
-<div class="card">
-<div class="desc">Gestion des déchets ménagers</div>
-<div class="label">Sortie OM</div>
+<div class="section">
+<div class="title">Sortie OM</div>
 <div class="value">${val("sortieOM")}</div>
 </div>
 
-<div class="card">
-<div class="desc">Retour des conteneurs OM</div>
-<div class="label">Rentré OM</div>
+<div class="section">
+<div class="title">Rentré OM</div>
 <div class="value">${val("rentreeOM")}</div>
 </div>
 
-<div class="card">
-<div class="desc">Gestion du tri sélectif</div>
-<div class="label">Sortie TRI</div>
+<div class="section">
+<div class="title">Sortie TRI</div>
 <div class="value">${val("sortieTRI")}</div>
 </div>
 
-<div class="card">
-<div class="desc">Retour des conteneurs TRI</div>
-<div class="label">Rentré TRI</div>
+<div class="section">
+<div class="title">Rentré TRI</div>
 <div class="value">${val("rentreeTRI")}</div>
 </div>
 
-</div>
-
-<div class="card">
-<div class="desc">Informations complémentaires</div>
-<div class="label">Notes</div>
+<div class="section">
+<div class="title">Note</div>
 <div class="value">${val("notes")}</div>
 </div>
 
