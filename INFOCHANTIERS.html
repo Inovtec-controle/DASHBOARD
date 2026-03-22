@@ -13,18 +13,14 @@ body { margin:0; font-family:'Inter', sans-serif; background:#f1f5f9; }
 
 .sidebar {
   width:320px; background:white; padding:15px;
-  border-right:1px solid #e2e8f0; display:flex; flex-direction:column;
+  border-right:1px solid #e2e8f0;
 }
 
 .logo { font-weight:800; font-size:20px; color:#16a34a; margin-bottom:15px; }
 
 .top-actions { display:flex; gap:10px; margin-bottom:10px; }
 
-.btn {
-  flex:1; padding:10px; border:none; border-radius:10px;
-  font-weight:600; cursor:pointer;
-}
-
+.btn { flex:1; padding:10px; border:none; border-radius:10px; font-weight:600; cursor:pointer; }
 .new { background:#16a34a; color:white; }
 .delete { background:#ef4444; color:white; }
 
@@ -33,7 +29,7 @@ body { margin:0; font-family:'Inter', sans-serif; background:#f1f5f9; }
   border:1px solid #e2e8f0; margin-bottom:8px;
 }
 
-.list { flex:1; overflow-y:auto; }
+.list { overflow-y:auto; height:100%; }
 
 .item {
   background:#f8fafc; padding:12px;
@@ -55,6 +51,10 @@ input, textarea {
   width:100%; padding:10px;
   border-radius:10px; border:1px solid #e2e8f0;
   margin-bottom:8px;
+}
+
+input::placeholder, textarea::placeholder {
+  color:#94a3b8;
 }
 
 .save {
@@ -79,10 +79,10 @@ input, textarea {
     <button class="btn delete" onclick="supprimer()">Supprimer</button>
   </div>
 
-  <input class="filter" id="filtreNom" placeholder="Nom..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreAgent" placeholder="Agent..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreSyndic" placeholder="Syndic..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreVille" placeholder="Ville..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreNom" placeholder="🔤 Nom du chantier..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreAgent" placeholder="👥 Agent..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreSyndic" placeholder="🏢 Syndic..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreVille" placeholder="📍 Ville..." oninput="appliquerFiltres()">
 
   <div id="liste" class="list"></div>
 
@@ -91,38 +91,38 @@ input, textarea {
 <div class="detail">
 
   <div class="card">
-    <div class="section-title">Informations</div>
+    <div class="section-title">Informations chantier</div>
     <input id="nom" placeholder="Nom du chantier">
-    <input id="adresse" placeholder="Adresse">
-    <input id="syndic" placeholder="Syndic">
-    <input id="telephone" placeholder="Téléphone">
-    <input id="email" placeholder="Email">
-    <input id="presidentCS" placeholder="Président CS">
-    <input id="telephoneCS" placeholder="Téléphone CS">
+    <input id="adresse" placeholder="Adresse complète du chantier">
+    <input id="syndic" placeholder="Nom du syndic">
+    <input id="telephone" placeholder="Téléphone principal">
+    <input id="email" placeholder="Email de contact">
+    <input id="presidentCS" placeholder="Nom du président du conseil syndical">
+    <input id="telephoneCS" placeholder="Téléphone du président CS">
   </div>
 
   <div class="card">
     <div class="section-title">Agents</div>
-    <input id="agents">
-    <input id="horaires">
-    <input id="jours">
-    <textarea id="consignesAgents"></textarea>
+    <input id="agents" placeholder="Nom des agents affectés">
+    <input id="horaires" placeholder="Horaires d'intervention (ex: 8h-12h)">
+    <input id="jours" placeholder="Jours d'intervention (ex: lundi / jeudi)">
+    <textarea id="consignesAgents" placeholder="Consignes importantes pour les agents"></textarea>
   </div>
 
   <div class="card">
-    <div class="section-title">Matériel</div>
-    <input id="materiel">
-    <input id="produits">
-    <input id="ampoules">
-    <input id="cles">
+    <div class="section-title">Matériel & Accès</div>
+    <input id="materiel" placeholder="Matériel disponible sur site">
+    <input id="produits" placeholder="Produits utilisés">
+    <input id="ampoules" placeholder="Type d'ampoules">
+    <input id="cles" placeholder="Numéro de clé / badge / accès">
   </div>
 
   <div class="card">
     <div class="section-title">Gestion</div>
-    <input id="sortieOM">
-    <input id="sortieTRI">
-    <input id="franges">
-    <textarea id="notes"></textarea>
+    <input id="sortieOM" placeholder="Sortie des ordures ménagères">
+    <input id="sortieTRI" placeholder="Sortie du tri">
+    <input id="franges" placeholder="Nombre de franges / mois">
+    <textarea id="notes" placeholder="Notes générales"></textarea>
   </div>
 
   <button class="save" onclick="ajouterOuModifier()">Enregistrer</button>
@@ -165,9 +165,12 @@ function afficherListe(data) {
   liste.innerHTML = "";
 
   data.forEach(c => {
-    liste.innerHTML += `<div class="item" onclick="charger('${c.id}')">
-      <b>${c.nom || ""}</b><br>${c.adresse || ""}
-    </div>`;
+    liste.innerHTML += `
+      <div class="item" onclick="charger('${c.id}')">
+        <b>${c.nom || ""}</b><br>
+        🔑 ${c.cles || "Pas de clé"}
+      </div>
+    `;
   });
 }
 
