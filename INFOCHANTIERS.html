@@ -129,6 +129,7 @@ input, textarea {
 
 <div class="detail">
 
+  <!-- INFOS -->
   <div class="card">
     <div class="section-title">Informations</div>
 
@@ -145,6 +146,7 @@ input, textarea {
     <input id="email" placeholder="Email">
   </div>
 
+  <!-- AGENT -->
   <div class="card">
     <div class="section-title">Agent</div>
 
@@ -156,13 +158,19 @@ input, textarea {
     <textarea id="consignesAgents" placeholder="Consignes"></textarea>
   </div>
 
+  <!-- GESTION -->
   <div class="card">
     <div class="section-title">Gestion</div>
 
     <input id="franges" placeholder="Franges">
     <input id="ampoules" placeholder="Ampoules">
+
     <input id="sortieOM" placeholder="Sortie OM">
+    <input id="rentreeOM" placeholder="Rentré OM">
+
     <input id="sortieTRI" placeholder="Sortie TRI">
+    <input id="rentreeTRI" placeholder="Rentré TRI">
+
     <textarea id="notes" placeholder="Notes"></textarea>
   </div>
 
@@ -315,8 +323,18 @@ window.genererFiche = ()=>{
     </div>
 
     <div class="card">
+      <div class="label">Rentré OM</div>
+      <div class="value">${val("rentreeOM")}</div>
+    </div>
+
+    <div class="card">
       <div class="label">Sortie TRI</div>
       <div class="value">${val("sortieTRI")}</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Rentré TRI</div>
+      <div class="value">${val("rentreeTRI")}</div>
     </div>
   </div>
 
