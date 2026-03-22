@@ -254,10 +254,10 @@ const val=id=>document.getElementById(id)?.value || "";
 const jours=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 
 const planning=jours.map(j=>`
-<tr>
-<td style="padding:6px;border:1px solid #ddd;font-weight:700">${j.toUpperCase()}</td>
-<td style="padding:6px;border:1px solid #ddd">${val(j)}</td>
-</tr>
+<div style="flex:1;border:1px solid #ddd;padding:6px">
+<div style="font-weight:700;font-size:11px">${j.toUpperCase()}</div>
+<div style="font-size:11px">${val(j)}</div>
+</div>
 `).join("");
 
 const element = document.createElement("div");
@@ -266,16 +266,11 @@ element.innerHTML = `
 <div style="font-family:Inter;padding:20px">
 
 <!-- HEADER -->
-<div style="display:flex;justify-content:space-between;margin-bottom:20px">
-<div style="font-weight:800;font-size:20px">
-inovtec<span style="color:#22c55e">.</span>
-</div>
-<div style="text-align:right;font-weight:800;font-size:18px">
+<div style="text-align:right;font-weight:800;font-size:20px;margin-bottom:20px">
 ${val("nom")}
 </div>
-</div>
 
-<!-- INFOS LIGNES -->
+<!-- INFOS -->
 <div style="margin-bottom:15px">
 <div><b>Adresse :</b> ${val("adresse")}</div>
 <div><b>Clé :</b> ${val("cles")}</div>
@@ -283,10 +278,10 @@ ${val("nom")}
 <div><b>Bâtiments :</b> ${val("nbatiments")}</div>
 </div>
 
-<!-- TABLE PLANNING -->
-<table style="width:100%;border-collapse:collapse;margin-bottom:15px">
+<!-- PLANNING COLONNES -->
+<div style="display:flex;gap:4px;margin-bottom:15px">
 ${planning}
-</table>
+</div>
 
 <!-- INFOS TERRAIN -->
 <div>
@@ -297,6 +292,11 @@ ${planning}
 <div><b>Local nettoyage :</b> ${val("localnettoyage")}</div>
 <div><b>Prises électriques :</b> ${val("electricité")}</div>
 <div><b>Robinet d’eau :</b> ${val("Eau")}</div>
+</div>
+
+<!-- INFOS COMPLEMENTAIRES -->
+<div style="margin-top:15px">
+<div><b>Informations complémentaires :</b> ${val("infopropres")}</div>
 </div>
 
 </div>
