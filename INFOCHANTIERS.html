@@ -3,18 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Base Chantiers PRO</title>
+<title>INOVTEC KONTROL – Chantiers</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-body { margin:0; font-family:Arial; background:#f3f4f6; }
-.app { display:flex; height:100vh; }
 
+body {
+  margin:0;
+  font-family:'Inter', sans-serif;
+  background:#f1f5f9;
+}
+
+.app {
+  display:flex;
+  height:100vh;
+}
+
+/* SIDEBAR */
 .sidebar {
-  width:30%;
+  width:320px;
   background:white;
-  border-right:2px solid #ddd;
-  padding:10px;
-  overflow-y:auto;
+  padding:15px;
+  border-right:1px solid #e2e8f0;
+  display:flex;
+  flex-direction:column;
+}
+
+.logo {
+  font-weight:800;
+  font-size:20px;
+  color:#16a34a;
+  margin-bottom:15px;
 }
 
 .top-actions {
@@ -27,27 +47,41 @@ body { margin:0; font-family:Arial; background:#f3f4f6; }
   flex:1;
   padding:10px;
   border:none;
-  border-radius:6px;
+  border-radius:10px;
+  font-weight:600;
   cursor:pointer;
 }
 
 .new { background:#16a34a; color:white; }
-.delete { background:red; color:white; }
+.delete { background:#ef4444; color:white; }
 
 .filter {
-  width:100%;
-  margin-bottom:6px;
-  padding:8px;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #e2e8f0;
+  margin-bottom:8px;
+}
+
+/* LISTE */
+.list {
+  flex:1;
+  overflow-y:auto;
 }
 
 .item {
-  padding:10px;
-  background:#f9fafb;
+  background:#f8fafc;
+  padding:12px;
+  border-radius:12px;
   margin-bottom:8px;
-  border-radius:8px;
   cursor:pointer;
+  transition:0.2s;
 }
 
+.item:hover {
+  background:#e2e8f0;
+}
+
+/* DROITE */
 .detail {
   flex:1;
   padding:20px;
@@ -56,36 +90,43 @@ body { margin:0; font-family:Arial; background:#f3f4f6; }
 
 .card {
   background:white;
-  padding:20px;
+  padding:18px;
+  border-radius:16px;
   margin-bottom:15px;
-  border-radius:10px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.05);
 }
 
 .section-title {
-  font-weight:bold;
+  font-weight:700;
   margin-bottom:10px;
   color:#16a34a;
 }
 
 input, textarea {
   width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #e2e8f0;
   margin-bottom:8px;
-  padding:8px;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color:#9ca3af;
+  color:#94a3b8;
 }
 
-button.save {
+.save {
   width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
   background:#16a34a;
   color:white;
-  padding:10px;
-  border:none;
-  border-radius:6px;
+  font-weight:700;
+  font-size:16px;
+  cursor:pointer;
 }
+
 </style>
 </head>
 
@@ -93,26 +134,30 @@ button.save {
 
 <div class="app">
 
+<!-- GAUCHE -->
 <div class="sidebar">
 
+  <div class="logo">INOVTEC</div>
+
   <div class="top-actions">
-    <button class="btn new" onclick="nouveau()">➕ Nouveau</button>
-    <button class="btn delete" onclick="supprimer()">🗑️ Supprimer</button>
+    <button class="btn new" onclick="nouveau()">+ Nouveau</button>
+    <button class="btn delete" onclick="supprimer()">Supprimer</button>
   </div>
 
-  <input class="filter" id="filtreNom" placeholder="🔤 Nom" oninput="appliquerFiltres()">
-  <input class="filter" id="filtreAgent" placeholder="👥 Agent" oninput="appliquerFiltres()">
-  <input class="filter" id="filtreClient" placeholder="📞 Contact" oninput="appliquerFiltres()">
-  <input class="filter" id="filtreVille" placeholder="📍 Ville" oninput="appliquerFiltres()">
+  <input class="filter" id="filtreNom" placeholder="Nom..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreAgent" placeholder="Agent..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreClient" placeholder="Client..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreVille" placeholder="Ville..." oninput="appliquerFiltres()">
 
-  <div id="liste"></div>
+  <div id="liste" class="list"></div>
 
 </div>
 
+<!-- DROITE -->
 <div class="detail">
 
   <div class="card">
-    <div class="section-title">📞 Contact</div>
+    <div class="section-title">Contact</div>
     <input id="nom" placeholder="Nom du chantier">
     <input id="adresse" placeholder="Adresse">
     <input id="client" placeholder="Client">
@@ -121,7 +166,7 @@ button.save {
   </div>
 
   <div class="card">
-    <div class="section-title">👥 Agents</div>
+    <div class="section-title">Agents</div>
     <input id="agents" placeholder="Agents">
     <input id="horaires" placeholder="Horaires">
     <input id="jours" placeholder="Jours">
@@ -129,7 +174,7 @@ button.save {
   </div>
 
   <div class="card">
-    <div class="section-title">🧰 Matériel</div>
+    <div class="section-title">Matériel</div>
     <input id="materiel" placeholder="Matériel">
     <input id="produits" placeholder="Produits">
     <input id="ampoules" placeholder="Ampoules">
@@ -137,13 +182,13 @@ button.save {
   </div>
 
   <div class="card">
-    <div class="section-title">⚙️ Gestion</div>
+    <div class="section-title">Gestion</div>
     <input id="conteneurs" placeholder="Conteneurs">
     <input id="frequence" placeholder="Fréquence">
     <textarea id="notes" placeholder="Notes"></textarea>
   </div>
 
-  <button class="save" onclick="ajouterOuModifier()">💾 Enregistrer</button>
+  <button class="save" onclick="ajouterOuModifier()">Enregistrer</button>
 
 </div>
 
@@ -249,40 +294,8 @@ window.ajouterOuModifier = async function() {
     currentId = docRef.id;
   }
 
-  alert("✅ Enregistré");
+  alert("Enregistré");
 };
-
-function autoSave() {
-  if (!currentId) return;
-
-  const data = {
-    nom: val("nom"),
-    adresse: val("adresse"),
-    client: val("client"),
-    telephone: val("telephone"),
-    email: val("email"),
-    agents: val("agents"),
-    horaires: val("horaires"),
-    jours: val("jours"),
-    consignesAgents: val("consignesAgents"),
-    materiel: val("materiel"),
-    produits: val("produits"),
-    ampoules: val("ampoules"),
-    cles: val("cles"),
-    conteneurs: val("conteneurs"),
-    frequence: val("frequence"),
-    notes: val("notes"),
-    lastUpdate: new Date()
-  };
-
-  updateDoc(doc(db, "chantiers", currentId), data);
-}
-
-setTimeout(() => {
-  document.querySelectorAll("input, textarea").forEach(el => {
-    el.addEventListener("change", autoSave);
-  });
-}, 1000);
 
 window.supprimer = async function() {
   if (!currentId) return;
