@@ -3,66 +3,182 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INOVTEC KONTROL – Chantiers</title>
+<title>INOVTEC KONTROL</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-body { margin:0; font-family:'Inter', sans-serif; background:#f1f5f9; }
-.app { display:flex; height:100vh; }
 
+body {
+  margin:0;
+  font-family:'Inter', sans-serif;
+  background:#0f172a;
+  color:white;
+}
+
+/* ANIMATIONS */
+* {
+  transition:all 0.25s ease;
+}
+
+/* LAYOUT */
+.app {
+  display:flex;
+  height:100vh;
+}
+
+/* SIDEBAR */
 .sidebar {
-  width:320px; background:white; padding:15px;
-  border-right:1px solid #e2e8f0;
+  width:320px;
+  background:#020617;
+  padding:20px;
+  border-right:1px solid #1e293b;
 }
 
-.logo { font-weight:800; font-size:20px; color:#16a34a; margin-bottom:15px; }
+.logo {
+  font-size:28px;
+  font-weight:800;
+  margin-bottom:20px;
+}
 
-.top-actions { display:flex; gap:10px; margin-bottom:10px; }
+.logo span {
+  color:#22c55e;
+}
 
-.btn { flex:1; padding:10px; border:none; border-radius:10px; font-weight:600; cursor:pointer; }
-.new { background:#16a34a; color:white; }
-.delete { background:#ef4444; color:white; }
+.top-actions {
+  display:flex;
+  gap:10px;
+  margin-bottom:15px;
+}
 
+.btn {
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.new { background:#22c55e; color:black; }
+.delete { background:#1e293b; color:white; }
+
+.btn:hover {
+  transform:scale(1.05);
+}
+
+/* FILTER */
 .filter {
-  padding:10px; border-radius:10px;
-  border:1px solid #e2e8f0; margin-bottom:8px;
+  width:100%;
+  padding:10px;
+  margin-bottom:8px;
+  border-radius:8px;
+  border:none;
+  background:#020617;
+  color:white;
+  border:1px solid #1e293b;
 }
 
-.list { overflow-y:auto; height:100%; }
+.filter:focus {
+  border-color:#22c55e;
+  outline:none;
+}
+
+/* LIST */
+.list {
+  margin-top:10px;
+  overflow-y:auto;
+}
 
 .item {
-  background:#f8fafc; padding:12px;
-  border-radius:12px; margin-bottom:8px;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:8px;
+  background:#020617;
+  border:1px solid #1e293b;
+  cursor:pointer;
+  transform:translateX(0);
+}
+
+.item:hover {
+  border-color:#22c55e;
+  transform:translateX(5px);
+  background:#0f172a;
+}
+
+.item.active {
+  border-color:#22c55e;
+  background:#0f172a;
+}
+
+/* RIGHT */
+.detail {
+  flex:1;
+  padding:30px;
+  overflow-y:auto;
+}
+
+/* CARDS */
+.card {
+  background:#020617;
+  border:1px solid #1e293b;
+  border-radius:16px;
+  padding:20px;
+  margin-bottom:20px;
+  animation:fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(10px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+.section-title {
+  font-weight:700;
+  margin-bottom:10px;
+  color:#22c55e;
+}
+
+/* INPUT */
+input, textarea {
+  width:100%;
+  padding:10px;
+  margin-bottom:8px;
+  border-radius:8px;
+  border:1px solid #1e293b;
+  background:#0f172a;
+  color:white;
+}
+
+input:focus, textarea:focus {
+  border-color:#22c55e;
+  outline:none;
+  transform:scale(1.02);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color:#64748b;
+}
+
+/* BUTTON SAVE */
+.save {
+  width:100%;
+  padding:15px;
+  border:none;
+  border-radius:12px;
+  background:#22c55e;
+  color:black;
+  font-weight:700;
+  font-size:16px;
   cursor:pointer;
 }
 
-.detail { flex:1; padding:20px; overflow-y:auto; }
-
-.card {
-  background:white; padding:18px;
-  border-radius:16px; margin-bottom:15px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.05);
+.save:hover {
+  transform:scale(1.03);
+  box-shadow:0 10px 20px rgba(34,197,94,0.2);
 }
 
-.section-title { font-weight:700; margin-bottom:10px; color:#16a34a; }
-
-input, textarea {
-  width:100%; padding:10px;
-  border-radius:10px; border:1px solid #e2e8f0;
-  margin-bottom:8px;
-}
-
-input::placeholder, textarea::placeholder {
-  color:#94a3b8;
-}
-
-.save {
-  width:100%; padding:14px;
-  border:none; border-radius:12px;
-  background:#16a34a; color:white;
-  font-weight:700; cursor:pointer;
-}
 </style>
 </head>
 
@@ -72,17 +188,17 @@ input::placeholder, textarea::placeholder {
 
 <div class="sidebar">
 
-  <div class="logo">Infos Chantiers</div>
+  <div class="logo">inovtec<span>.</span></div>
 
   <div class="top-actions">
     <button class="btn new" onclick="nouveau()">+ Nouveau</button>
     <button class="btn delete" onclick="supprimer()">Supprimer</button>
   </div>
 
-  <input class="filter" id="filtreNom" placeholder="🔤 Nom du chantier..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreAgent" placeholder="👥 Agent..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreSyndic" placeholder="🏢 Syndic..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreVille" placeholder="📍 Ville..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreNom" placeholder="Nom..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreAgent" placeholder="Agent..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreSyndic" placeholder="Syndic..." oninput="appliquerFiltres()">
+  <input class="filter" id="filtreVille" placeholder="Ville..." oninput="appliquerFiltres()">
 
   <div id="liste" class="list"></div>
 
@@ -91,38 +207,38 @@ input::placeholder, textarea::placeholder {
 <div class="detail">
 
   <div class="card">
-    <div class="section-title">Informations chantier</div>
+    <div class="section-title">Informations</div>
     <input id="nom" placeholder="Nom du chantier">
-    <input id="adresse" placeholder="Adresse complète du chantier">
-    <input id="syndic" placeholder="Nom du syndic">
-    <input id="telephone" placeholder="Téléphone principal">
-    <input id="email" placeholder="Email de contact">
-    <input id="presidentCS" placeholder="Nom du président du conseil syndical">
-    <input id="telephoneCS" placeholder="Téléphone du président CS">
+    <input id="adresse" placeholder="Adresse">
+    <input id="syndic" placeholder="Syndic">
+    <input id="telephone" placeholder="Téléphone">
+    <input id="email" placeholder="Email">
+    <input id="presidentCS" placeholder="Président CS">
+    <input id="telephoneCS" placeholder="Téléphone CS">
   </div>
 
   <div class="card">
     <div class="section-title">Agents</div>
-    <input id="agents" placeholder="Nom des agents affectés">
-    <input id="horaires" placeholder="Horaires d'intervention (ex: 8h-12h)">
-    <input id="jours" placeholder="Jours d'intervention (ex: lundi / jeudi)">
-    <textarea id="consignesAgents" placeholder="Consignes importantes pour les agents"></textarea>
+    <input id="agents" placeholder="Agents">
+    <input id="horaires" placeholder="Horaires">
+    <input id="jours" placeholder="Jours">
+    <textarea id="consignesAgents" placeholder="Consignes"></textarea>
   </div>
 
   <div class="card">
-    <div class="section-title">Matériel & Accès</div>
-    <input id="materiel" placeholder="Matériel disponible sur site">
-    <input id="produits" placeholder="Produits utilisés">
-    <input id="ampoules" placeholder="Type d'ampoules">
-    <input id="cles" placeholder="Numéro de clé / badge / accès">
+    <div class="section-title">Matériel</div>
+    <input id="materiel" placeholder="Matériel">
+    <input id="produits" placeholder="Produits">
+    <input id="ampoules" placeholder="Ampoules">
+    <input id="cles" placeholder="Numéro de clé">
   </div>
 
   <div class="card">
     <div class="section-title">Gestion</div>
-    <input id="sortieOM" placeholder="Sortie des ordures ménagères">
-    <input id="sortieTRI" placeholder="Sortie du tri">
-    <input id="franges" placeholder="Nombre de franges / mois">
-    <textarea id="notes" placeholder="Notes générales"></textarea>
+    <input id="sortieOM" placeholder="Sortie OM">
+    <input id="sortieTRI" placeholder="Sortie TRI">
+    <input id="franges" placeholder="Franges">
+    <textarea id="notes" placeholder="Notes"></textarea>
   </div>
 
   <button class="save" onclick="ajouterOuModifier()">Enregistrer</button>
@@ -166,7 +282,7 @@ function afficherListe(data) {
 
   data.forEach(c => {
     liste.innerHTML += `
-      <div class="item" onclick="charger('${c.id}')">
+      <div class="item" onclick="charger('${c.id}', this)">
         <b>${c.nom || ""}</b><br>
         🔑 ${c.cles || "Pas de clé"}
       </div>
@@ -174,7 +290,10 @@ function afficherListe(data) {
   });
 }
 
-window.charger = function(id) {
+window.charger = function(id, el) {
+  document.querySelectorAll(".item").forEach(i => i.classList.remove("active"));
+  if (el) el.classList.add("active");
+
   const c = allChantiers.find(x => x.id === id);
   currentId = id;
 
@@ -186,7 +305,6 @@ window.charger = function(id) {
 };
 
 window.ajouterOuModifier = async function() {
-
   const data = {
     nom: val("nom"),
     adresse: val("adresse"),
@@ -216,8 +334,6 @@ window.ajouterOuModifier = async function() {
     const docRef = await addDoc(chantiersRef, data);
     currentId = docRef.id;
   }
-
-  alert("✅ Enregistré");
 };
 
 window.supprimer = async function() {
