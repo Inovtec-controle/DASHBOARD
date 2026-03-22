@@ -254,31 +254,36 @@ const html=`
 <html>
 <head>
 <style>
-body{font-family:Inter;padding:25px;}
+body{
+font-family:Inter;
+padding:20px;
+color:#111827;
+}
 
 .header{
-font-size:24px;
+font-size:26px;
 font-weight:800;
-margin-bottom:20px;
+margin-bottom:15px;
 }
 .header span{color:#22c55e;}
 
-.card{
-background:rgba(243,244,246,0.3);
+.section{
+background:#f3f4f6;
 border-radius:12px;
 padding:12px;
-margin-bottom:8px;
+margin-bottom:10px;
 }
 
-.label{
-font-size:14px;
+.title{
+font-size:13px;
 font-weight:600;
 margin-bottom:4px;
+color:#374151;
 }
 
 .value{
-font-size:13px;
-margin-bottom:6px;
+font-size:14px;
+font-weight:500;
 }
 
 .grid{
@@ -290,26 +295,34 @@ gap:8px;
 .planning{
 display:grid;
 grid-template-columns:repeat(7,1fr);
-gap:4px;
-margin-top:8px;
+gap:5px;
+margin-top:5px;
 }
 
 .pcol{
 background:white;
-border-radius:6px;
-padding:4px;
-height:140px;
+border-radius:8px;
+padding:6px;
+height:130px;
+border:1px solid #e5e7eb;
 }
 
 .plabel{
 font-size:10px;
 font-weight:600;
-margin-bottom:2px;
+margin-bottom:3px;
 }
 
 .pval{
 font-size:11px;
 white-space:pre-line;
+}
+
+.footer{
+margin-top:10px;
+font-size:10px;
+color:#6b7280;
+text-align:right;
 }
 </style>
 </head>
@@ -318,49 +331,51 @@ white-space:pre-line;
 
 <div class="header">${val("nom")}<span>.</span></div>
 
-<div class="card">
-<div class="label">Numéro de clé</div>
+<div class="section">
+<div class="title">Numéro de clé</div>
 <div class="value">${val("cles")}</div>
 </div>
 
-<div class="card">
-<div class="label">Adresse</div>
+<div class="section">
+<div class="title">Adresse</div>
 <div class="value">${val("adresse")}</div>
 </div>
 
-<div class="card">
-<div class="label">LUNDI MARDI MERCREDI JEUDI VENDREDI SAMEDI DIMANCHE</div>
+<div class="section">
+<div class="title">Planning hebdomadaire</div>
 <div class="planning">${planning}</div>
 </div>
 
 <div class="grid">
 
-<div class="card">
-<div class="label">Sortie OM</div>
+<div class="section">
+<div class="title">Sortie OM</div>
 <div class="value">${val("sortieOM")}</div>
 </div>
 
-<div class="card">
-<div class="label">Rentré OM</div>
+<div class="section">
+<div class="title">Rentré OM</div>
 <div class="value">${val("rentreeOM")}</div>
 </div>
 
-<div class="card">
-<div class="label">Sortie TRI</div>
+<div class="section">
+<div class="title">Sortie TRI</div>
 <div class="value">${val("sortieTRI")}</div>
 </div>
 
-<div class="card">
-<div class="label">Rentré TRI</div>
+<div class="section">
+<div class="title">Rentré TRI</div>
 <div class="value">${val("rentreeTRI")}</div>
 </div>
 
 </div>
 
-<div class="card">
-<div class="label">Note</div>
+<div class="section">
+<div class="title">Notes</div>
 <div class="value">${val("notes")}</div>
 </div>
+
+<div class="footer">Fiche opérationnelle agent</div>
 
 </body>
 </html>`;
