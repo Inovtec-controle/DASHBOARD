@@ -266,56 +266,50 @@ margin-bottom:20px;
 .card{
 background:rgba(243,244,246,0.3);
 border-radius:12px;
-padding:15px;
-margin-bottom:10px;
+padding:12px;
+margin-bottom:8px;
 }
 
 .label{
-font-size:15px;
+font-size:14px;
 font-weight:600;
-margin-bottom:5px;
+margin-bottom:4px;
 }
 
 .value{
-font-size:14px;
-font-weight:400;
+font-size:13px;
+margin-bottom:6px;
 }
 
 .grid{
 display:grid;
 grid-template-columns:repeat(2,1fr);
-gap:10px;
+gap:8px;
 }
 
 .planning{
 display:grid;
 grid-template-columns:repeat(7,1fr);
-gap:6px;
-margin-top:10px;
+gap:4px;
+margin-top:8px;
 }
 
 .pcol{
 background:white;
-border-radius:8px;
-padding:6px;
-height:180px;
+border-radius:6px;
+padding:4px;
+height:140px;
 }
 
 .plabel{
-font-size:11px;
+font-size:10px;
 font-weight:600;
-margin-bottom:4px;
+margin-bottom:2px;
 }
 
 .pval{
-font-size:12px;
-white-space:pre-line;
-}
-
-.desc{
 font-size:11px;
-color:#6b7280;
-margin-bottom:4px;
+white-space:pre-line;
 }
 </style>
 </head>
@@ -325,45 +319,38 @@ margin-bottom:4px;
 <div class="header">${val("nom")}<span>.</span></div>
 
 <div class="card">
-<div class="desc">Identification du site</div>
 <div class="label">Numéro de clé</div>
 <div class="value">${val("cles")}</div>
 </div>
 
 <div class="card">
-<div class="desc">Localisation du chantier</div>
 <div class="label">Adresse</div>
 <div class="value">${val("adresse")}</div>
 </div>
 
 <div class="card">
-<div class="desc">Organisation des tâches hebdomadaires</div>
-<div class="label">Planning</div>
+<div class="label">LUNDI MARDI MERCREDI JEUDI VENDREDI SAMEDI DIMANCHE</div>
 <div class="planning">${planning}</div>
 </div>
 
 <div class="grid">
 
 <div class="card">
-<div class="desc">Gestion des déchets ménagers</div>
 <div class="label">Sortie OM</div>
 <div class="value">${val("sortieOM")}</div>
 </div>
 
 <div class="card">
-<div class="desc">Retour des conteneurs OM</div>
 <div class="label">Rentré OM</div>
 <div class="value">${val("rentreeOM")}</div>
 </div>
 
 <div class="card">
-<div class="desc">Gestion du tri sélectif</div>
 <div class="label">Sortie TRI</div>
 <div class="value">${val("sortieTRI")}</div>
 </div>
 
 <div class="card">
-<div class="desc">Retour des conteneurs TRI</div>
 <div class="label">Rentré TRI</div>
 <div class="value">${val("rentreeTRI")}</div>
 </div>
@@ -371,8 +358,7 @@ margin-bottom:4px;
 </div>
 
 <div class="card">
-<div class="desc">Informations complémentaires</div>
-<div class="label">Notes</div>
+<div class="label">Note</div>
 <div class="value">${val("notes")}</div>
 </div>
 
