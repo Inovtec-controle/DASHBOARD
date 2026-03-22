@@ -122,23 +122,48 @@ input, textarea {
     <button class="btn delete" onclick="supprimer()">Supprimer</button>
   </div>
 
-  <input class="filter" id="filtreNom" placeholder="Nom...">
+  <input class="filter" id="filtreNom" placeholder="Nom..." oninput="appliquerFiltres()">
 
   <div id="liste"></div>
 </div>
 
 <div class="detail">
 
+  <!-- INFOS -->
   <div class="card">
     <div class="section-title">Informations</div>
+
     <input id="nom" placeholder="Nom du chantier">
     <input id="cles" placeholder="Numéro de clé">
     <input id="adresse" placeholder="Adresse">
-    <input id="jours" placeholder="Jours">
+    <input id="syndic" placeholder="Syndic">
+
+    <input id="telephone" placeholder="Téléphone du chantier">
+
+    <input id="presidentCS" placeholder="Président CS">
+    <input id="telephoneCS" placeholder="Téléphone CS">
+
+    <input id="email" placeholder="Email">
   </div>
 
+  <!-- AGENT -->
+  <div class="card">
+    <div class="section-title">Agent</div>
+
+    <input id="agentNom" placeholder="Nom de l'agent">
+    <input id="agentTel" placeholder="Téléphone agent">
+
+    <input id="jours" placeholder="Jours">
+    <input id="horaires" placeholder="Horaires">
+    <textarea id="consignesAgents" placeholder="Consignes"></textarea>
+  </div>
+
+  <!-- GESTION -->
   <div class="card">
     <div class="section-title">Gestion</div>
+
+    <input id="franges" placeholder="Franges">
+    <input id="ampoules" placeholder="Ampoules">
     <input id="sortieOM" placeholder="Sortie OM">
     <input id="sortieTRI" placeholder="Sortie TRI">
     <textarea id="notes" placeholder="Notes"></textarea>
@@ -211,48 +236,26 @@ window.ajouterOuModifier = async ()=>{
 };
 
 window.genererFiche = ()=>{
-
   const html = `
-  <html>
-  <head>
-  <style>
-    body {
-      font-family: Arial;
-      padding:30px;
-    }
-    .card {
-      border-radius:15px;
-      padding:20px;
-      box-shadow:0 5px 20px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color:#22c55e;
-    }
-    .bloc {
-      margin-top:15px;
-    }
-  </style>
-  </head>
+  <h1>${val("nom")}</h1>
+  <p>Clé : ${val("cles")}</p>
+  <p>${val("adresse")}</p>
 
-  <body>
+  <h2>Agent</h2>
+  <p>${val("agentNom")} - ${val("agentTel")}</p>
 
-  <div class="card">
-    <h1>${val("nom")}</h1>
+  <h2>Horaires</h2>
+  <p>${val("jours")} - ${val("horaires")}</p>
 
-    <div class="bloc"><b>🔑 Clé :</b> ${val("cles")}</div>
-    <div class="bloc"><b>📍 Adresse :</b> ${val("adresse")}</div>
-    <div class="bloc"><b>📅 Jours :</b> ${val("jours")}</div>
+  <h2>Consignes</h2>
+  <p>${val("consignesAgents")}</p>
 
-    <div class="bloc"><b>🗑️ Sortie OM :</b> ${val("sortieOM")}</div>
-    <div class="bloc"><b>♻️ Sortie TRI :</b> ${val("sortieTRI")}</div>
-
-    <div class="bloc"><b>📝 Notes :</b><br>${val("notes")}</div>
-  </div>
-
-  </body>
-  </html>
+  <h2>Gestion</h2>
+  <p>Franges : ${val("franges")}</p>
+  <p>Ampoules : ${val("ampoules")}</p>
+  <p>OM : ${val("sortieOM")}</p>
+  <p>TRI : ${val("sortieTRI")}</p>
   `;
-
   const w = window.open("");
   w.document.write(html);
   w.print();
