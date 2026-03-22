@@ -132,7 +132,7 @@ input, textarea {
     <button class="btn delete" onclick="supprimer()">Supprimer</button>
   </div>
 
-  <input class="filter" id="filtreNom" placeholder="Nom...">
+  <input class="filter" id="filtreNom" placeholder="Rechercher un chantier...">
 
   <div id="liste"></div>
 </div>
@@ -142,51 +142,51 @@ input, textarea {
 <div class="card">
 <div class="section-title">Informations</div>
 
-<input id="nom">
-<input id="cles">
-<input id="adresse">
-<input id="syndic">
-<input id="telephone">
-<input id="presidentCS">
-<input id="telephoneCS">
-<input id="email">
+<input id="nom" placeholder="Nom de la résidence / chantier">
+<input id="cles" placeholder="Numéro de clé / badge d’accès">
+<input id="adresse" placeholder="Adresse complète du site">
+<input id="syndic" placeholder="Nom du syndic">
+<input id="telephone" placeholder="Téléphone du site">
+<input id="presidentCS" placeholder="Nom du président du conseil syndical">
+<input id="telephoneCS" placeholder="Téléphone du président CS">
+<input id="email" placeholder="Email du contact principal">
 </div>
 
 <div class="card">
 <div class="section-title">Agent</div>
 
-<input id="agentNom">
-<input id="agentTel">
+<input id="agentNom" placeholder="Nom de l’agent affecté">
+<input id="agentTel" placeholder="Téléphone de l’agent">
 
 <div class="planning">
-<textarea id="lundi"></textarea>
-<textarea id="mardi"></textarea>
-<textarea id="mercredi"></textarea>
-<textarea id="jeudi"></textarea>
-<textarea id="vendredi"></textarea>
-<textarea id="samedi"></textarea>
-<textarea id="dimanche"></textarea>
+<textarea id="lundi" placeholder="Tâches du lundi"></textarea>
+<textarea id="mardi" placeholder="Tâches du mardi"></textarea>
+<textarea id="mercredi" placeholder="Tâches du mercredi"></textarea>
+<textarea id="jeudi" placeholder="Tâches du jeudi"></textarea>
+<textarea id="vendredi" placeholder="Tâches du vendredi"></textarea>
+<textarea id="samedi" placeholder="Tâches du samedi"></textarea>
+<textarea id="dimanche" placeholder="Tâches du dimanche"></textarea>
 </div>
 
-<input id="jours">
-<input id="horaires">
+<input id="jours" placeholder="(optionnel) jours d’intervention globaux">
+<input id="horaires" placeholder="(optionnel) horaires d’intervention">
 
-<textarea id="consignesAgents"></textarea>
+<textarea id="consignesAgents" placeholder="Consignes spécifiques pour l’agent"></textarea>
 </div>
 
 <div class="card">
 <div class="section-title">Gestion</div>
 
-<input id="franges">
-<input id="ampoules">
+<input id="franges" placeholder="Type de franges utilisées">
+<input id="ampoules" placeholder="Type d’ampoules à remplacer">
 
-<input id="sortieOM">
-<input id="rentreeOM">
+<input id="sortieOM" placeholder="Jour de sortie des OM">
+<input id="rentreeOM" placeholder="Jour de rentrée des OM">
 
-<input id="sortieTRI">
-<input id="rentreeTRI">
+<input id="sortieTRI" placeholder="Jour de sortie du TRI">
+<input id="rentreeTRI" placeholder="Jour de rentrée du TRI">
 
-<textarea id="notes"></textarea>
+<textarea id="notes" placeholder="Notes de gestion / remarques importantes"></textarea>
 </div>
 
 <button class="pdf" onclick="genererFiche()">📄 Fiche agent</button>
@@ -201,7 +201,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const app = initializeApp({
-  apiKey:"AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
+  apiKey:"AIzaSy...",
   authDomain:"inovtec-chantiers.firebaseapp.com",
   projectId:"inovtec-chantiers"
 });
@@ -253,14 +253,8 @@ const planning=jours.map(j=>`
 const html=`
 <html>
 <head>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
-
-body{
-font-family:'Inter';
-padding:25px;
-background:white;
-}
+body{font-family:Inter;padding:25px;}
 
 .header{
 font-size:24px;
@@ -270,7 +264,7 @@ margin-bottom:20px;
 .header span{color:#22c55e;}
 
 .card{
-background:#f3f4f6;
+background:rgba(243,244,246,0.3);
 border-radius:12px;
 padding:15px;
 margin-bottom:10px;
@@ -318,6 +312,11 @@ font-size:12px;
 white-space:pre-line;
 }
 
+.desc{
+font-size:11px;
+color:#6b7280;
+margin-bottom:4px;
+}
 </style>
 </head>
 
@@ -326,16 +325,19 @@ white-space:pre-line;
 <div class="header">${val("nom")}<span>.</span></div>
 
 <div class="card">
+<div class="desc">Identification du site</div>
 <div class="label">Numéro de clé</div>
 <div class="value">${val("cles")}</div>
 </div>
 
 <div class="card">
+<div class="desc">Localisation du chantier</div>
 <div class="label">Adresse</div>
 <div class="value">${val("adresse")}</div>
 </div>
 
 <div class="card">
+<div class="desc">Organisation des tâches hebdomadaires</div>
 <div class="label">Planning</div>
 <div class="planning">${planning}</div>
 </div>
@@ -343,21 +345,25 @@ white-space:pre-line;
 <div class="grid">
 
 <div class="card">
+<div class="desc">Gestion des déchets ménagers</div>
 <div class="label">Sortie OM</div>
 <div class="value">${val("sortieOM")}</div>
 </div>
 
 <div class="card">
+<div class="desc">Retour des conteneurs OM</div>
 <div class="label">Rentré OM</div>
 <div class="value">${val("rentreeOM")}</div>
 </div>
 
 <div class="card">
+<div class="desc">Gestion du tri sélectif</div>
 <div class="label">Sortie TRI</div>
 <div class="value">${val("sortieTRI")}</div>
 </div>
 
 <div class="card">
+<div class="desc">Retour des conteneurs TRI</div>
 <div class="label">Rentré TRI</div>
 <div class="value">${val("rentreeTRI")}</div>
 </div>
@@ -365,6 +371,7 @@ white-space:pre-line;
 </div>
 
 <div class="card">
+<div class="desc">Informations complémentaires</div>
 <div class="label">Notes</div>
 <div class="value">${val("notes")}</div>
 </div>
