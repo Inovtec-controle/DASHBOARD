@@ -254,8 +254,8 @@ const val=id=>document.getElementById(id)?.value || "";
 const jours=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 
 const planning=jours.map(j=>`
-<div style="flex:1;border:1px solid #ddd;padding:6px">
-<div style="font-weight:700;font-size:11px">${j.toUpperCase()}</div>
+<div style="flex:1;border:1px solid #ddd;padding:8px">
+<div style="font-weight:700;font-size:11px;margin-bottom:6px">${j.toUpperCase()}</div>
 <div style="font-size:11px">${val(j)}</div>
 </div>
 `).join("");
@@ -263,39 +263,39 @@ const planning=jours.map(j=>`
 const element = document.createElement("div");
 
 element.innerHTML = `
-<div style="font-family:Inter;padding:20px">
+<div style="font-family:Inter;padding:20px;line-height:1.8">
 
 <!-- HEADER -->
-<div style="text-align:right;font-weight:800;font-size:28px;margin-bottom:20px">
+<div style="text-align:left;font-weight:800;font-size:28px;margin-bottom:25px">
 ${val("nom")}<span style="color:#22c55e">.</span>
 </div>
 
 <!-- INFOS -->
-<div style="margin-bottom:15px">
-<div><b>Adresse :</b> ${val("adresse")}</div>
-<div><b>Clé :</b> ${val("cles")}</div>
-<div><b>Code accès :</b> ${val("code")}</div>
-<div><b>Bâtiments :</b> ${val("nbatiments")}</div>
+<div style="margin-bottom:20px">
+<div style="margin-bottom:8px"><b>Adresse :</b> ${val("adresse")}</div>
+<div style="margin-bottom:8px"><b>Clé :</b> ${val("cles")}</div>
+<div style="margin-bottom:8px"><b>Code accès :</b> ${val("code")}</div>
+<div style="margin-bottom:8px"><b>Bâtiments :</b> ${val("nbatiments")}</div>
 </div>
 
 <!-- PLANNING -->
-<div style="display:flex;gap:4px;margin-bottom:15px">
+<div style="display:flex;gap:6px;margin-bottom:20px">
 ${planning}
 </div>
 
 <!-- INFOS TERRAIN -->
-<div>
-<div><b>Sortie OM :</b> ${val("sortieOM")}</div>
-<div><b>Rentrée OM :</b> ${val("rentreeOM")}</div>
-<div><b>Sortie TRI :</b> ${val("sortieTRI")}</div>
-<div><b>Rentrée TRI :</b> ${val("rentreeTRI")}</div>
-<div><b>Local nettoyage :</b> ${val("localnettoyage")}</div>
-<div><b>Prises électriques :</b> ${val("electricité")}</div>
-<div><b>Robinet d’eau :</b> ${val("Eau")}</div>
+<div style="margin-bottom:20px">
+<div style="margin-bottom:8px"><b>Sortie OM :</b> ${val("sortieOM")}</div>
+<div style="margin-bottom:8px"><b>Rentrée OM :</b> ${val("rentreeOM")}</div>
+<div style="margin-bottom:8px"><b>Sortie TRI :</b> ${val("sortieTRI")}</div>
+<div style="margin-bottom:8px"><b>Rentrée TRI :</b> ${val("rentreeTRI")}</div>
+<div style="margin-bottom:8px"><b>Local nettoyage :</b> ${val("localnettoyage")}</div>
+<div style="margin-bottom:8px"><b>Prises électriques :</b> ${val("electricité")}</div>
+<div style="margin-bottom:8px"><b>Robinet d’eau :</b> ${val("Eau")}</div>
 </div>
 
 <!-- INFOS COMPLEMENTAIRES -->
-<div style="margin-top:15px">
+<div>
 <div><b>Informations complémentaires :</b> ${val("infopropres")}</div>
 </div>
 
