@@ -9,31 +9,21 @@
 
 <style>
 
-* {
-  box-sizing: border-box;
-  transition: all 0.25s ease;
-}
+* { box-sizing:border-box; }
 
 body {
   margin:0;
   font-family:'Inter', sans-serif;
   background:#e5e7eb;
-  color:#111827;
 }
 
-/* LAYOUT */
-.app {
-  display:flex;
-  height:100vh;
-}
+.app { display:flex; height:100vh; }
 
-/* SIDEBAR */
 .sidebar {
   width:320px;
   background:#f9fafb;
   padding:15px;
   border-right:1px solid #d1d5db;
-  overflow-y:auto;
 }
 
 .logo {
@@ -42,9 +32,7 @@ body {
   margin-bottom:15px;
 }
 
-.logo span {
-  color:#22c55e;
-}
+.logo span { color:#22c55e; }
 
 .top-actions {
   display:flex;
@@ -71,10 +59,7 @@ body {
   margin-bottom:6px;
 }
 
-/* LIST */
-.list {
-  margin-top:10px;
-}
+.list { margin-top:10px; }
 
 .item {
   padding:10px;
@@ -84,24 +69,17 @@ body {
   border:1px solid #d1d5db;
 }
 
-.item:hover {
-  border-color:#22c55e;
-}
-
-/* RIGHT */
 .detail {
   flex:1;
   padding:15px;
   overflow-y:auto;
 }
 
-/* CARDS */
 .card {
   background:white;
   border-radius:14px;
   padding:15px;
   margin-bottom:15px;
-  box-shadow:0 3px 10px rgba(0,0,0,0.05);
 }
 
 .section-title {
@@ -110,22 +88,14 @@ body {
   color:#22c55e;
 }
 
-/* INPUT */
 input, textarea {
   width:100%;
   padding:10px;
   border-radius:8px;
   border:1px solid #d1d5db;
   margin-bottom:8px;
-  font-size:14px;
 }
 
-input::placeholder,
-textarea::placeholder {
-  color:#9ca3af;
-}
-
-/* SAVE */
 .save {
   width:100%;
   padding:14px;
@@ -134,35 +104,22 @@ textarea::placeholder {
   background:#22c55e;
   color:white;
   font-weight:700;
-  font-size:16px;
+  margin-top:10px;
 }
 
-/* MOBILE */
-@media (max-width: 768px) {
+.pdf {
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:10px;
+  background:#111827;
+  color:white;
+  font-weight:700;
+}
 
-  .app {
-    flex-direction:column;
-  }
-
-  .sidebar {
-    width:100%;
-    height:auto;
-    border-right:none;
-    border-bottom:1px solid #d1d5db;
-  }
-
-  .detail {
-    padding:10px;
-  }
-
-  .card {
-    padding:12px;
-  }
-
-  input, textarea {
-    font-size:16px;
-  }
-
+@media (max-width:768px){
+  .app { flex-direction:column; }
+  .sidebar { width:100%; }
 }
 
 </style>
@@ -182,9 +139,6 @@ textarea::placeholder {
   </div>
 
   <input class="filter" id="filtreNom" placeholder="Nom..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreAgent" placeholder="Agent..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreSyndic" placeholder="Syndic..." oninput="appliquerFiltres()">
-  <input class="filter" id="filtreVille" placeholder="Ville..." oninput="appliquerFiltres()">
 
   <div id="liste" class="list"></div>
 
@@ -195,38 +149,28 @@ textarea::placeholder {
   <div class="card">
     <div class="section-title">Informations</div>
     <input id="nom" placeholder="Nom du chantier">
+    <input id="cles" placeholder="Numéro de clé">
     <input id="adresse" placeholder="Adresse">
     <input id="syndic" placeholder="Syndic">
-    <input id="telephone" placeholder="Téléphone">
-    <input id="email" placeholder="Email">
-    <input id="presidentCS" placeholder="Président CS">
-    <input id="telephoneCS" placeholder="Téléphone CS">
   </div>
 
   <div class="card">
     <div class="section-title">Agents</div>
     <input id="agents" placeholder="Agents">
-    <input id="horaires" placeholder="Horaires">
     <input id="jours" placeholder="Jours">
+    <input id="horaires" placeholder="Horaires">
     <textarea id="consignesAgents" placeholder="Consignes"></textarea>
   </div>
 
   <div class="card">
-    <div class="section-title">Matériel</div>
-    <input id="materiel" placeholder="Matériel">
-    <input id="produits" placeholder="Produits">
-    <input id="ampoules" placeholder="Ampoules">
-    <input id="cles" placeholder="Numéro de clé">
-  </div>
-
-  <div class="card">
     <div class="section-title">Gestion</div>
-    <input id="sortieOM" placeholder="Sortie OM">
-    <input id="sortieTRI" placeholder="Sortie TRI">
     <input id="franges" placeholder="Franges">
+    <input id="ampoules" placeholder="Ampoules">
+    <input id="sortieOM" placeholder="Sortie OM">
     <textarea id="notes" placeholder="Notes"></textarea>
   </div>
 
+  <button class="pdf" onclick="genererFiche()">📄 Fiche agent</button>
   <button class="save" onclick="ajouterOuModifier()">Enregistrer</button>
 
 </div>
@@ -291,25 +235,17 @@ window.ajouterOuModifier = async function() {
 
   const data = {
     nom: val("nom"),
+    cles: val("cles"),
     adresse: val("adresse"),
     syndic: val("syndic"),
-    telephone: val("telephone"),
-    email: val("email"),
-    presidentCS: val("presidentCS"),
-    telephoneCS: val("telephoneCS"),
     agents: val("agents"),
-    horaires: val("horaires"),
     jours: val("jours"),
+    horaires: val("horaires"),
     consignesAgents: val("consignesAgents"),
-    materiel: val("materiel"),
-    produits: val("produits"),
-    ampoules: val("ampoules"),
-    cles: val("cles"),
-    sortieOM: val("sortieOM"),
-    sortieTRI: val("sortieTRI"),
     franges: val("franges"),
+    ampoules: val("ampoules"),
+    sortieOM: val("sortieOM"),
     notes: val("notes"),
-    lastUpdate: new Date()
   };
 
   if (currentId) {
@@ -319,6 +255,35 @@ window.ajouterOuModifier = async function() {
     currentId = docRef.id;
   }
 
+};
+
+window.genererFiche = function() {
+
+  const html = `
+    <h1>${val("nom")}</h1>
+    <p><b>Clé :</b> ${val("cles")}</p>
+    <p><b>Adresse :</b> ${val("adresse")}</p>
+
+    <h2>Agents</h2>
+    <p>${val("agents")}</p>
+    <p><b>Jours :</b> ${val("jours")}</p>
+    <p><b>Horaires :</b> ${val("horaires")}</p>
+
+    <h2>Consignes</h2>
+    <p>${val("consignesAgents")}</p>
+
+    <h2>Gestion</h2>
+    <p>Franges : ${val("franges")}</p>
+    <p>Ampoules : ${val("ampoules")}</p>
+    <p>OM : ${val("sortieOM")}</p>
+
+    <h2>Notes</h2>
+    <p>${val("notes")}</p>
+  `;
+
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.print();
 };
 
 window.supprimer = async function() {
