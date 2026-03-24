@@ -85,6 +85,12 @@ body {
   color:#22c55e;
 }
 
+.field-title{
+  font-size:12px;
+  font-weight:600;
+  margin-bottom:4px;
+}
+
 input, textarea {
   width:100%;
   padding:10px;
@@ -144,56 +150,128 @@ input, textarea {
 <div class="card">
 <div class="section-title">Informations</div>
 
-<input id="nom" placeholder="Nom de la résidence">
-<input id="adresse" placeholder="Adresse complète du site">
-<input id="cles" placeholder="Numéro de clé / badge d’accès">
-<input id="code" placeholder="Code d'accès immeuble / portail">
-<input id="nbatiments" placeholder="Nombre de bâtiments sur le site">
-<input id="syndic" placeholder="Nom du syndic">
-<input id="contactsyndic" placeholder="Nom du contact syndic">
-<input id="telephone" placeholder="Téléphone du syndic">
-<input id="emailsyndic" placeholder="Email du syndic">
-<input id="presidentCS" placeholder="Nom du Président du Conseil Syndical">
-<input id="telephoneCS" placeholder="Téléphone Président CS">
-<input id="emailCS" placeholder="Email Président CS">
+<div class="field-title">Nom de la résidence</div>
+<input id="nom">
+
+<div class="field-title">Adresse complète du site</div>
+<input id="adresse">
+
+<div class="field-title">Numéro de clé / badge d’accès</div>
+<input id="cles">
+
+<div class="field-title">Code d'accès immeuble / portail</div>
+<input id="code">
+
+<div class="field-title">Nombre de bâtiments sur le site</div>
+<input id="nbatiments">
+
+<div class="field-title">Nom du syndic</div>
+<input id="syndic">
+
+<div class="field-title">Nom du contact syndic</div>
+<input id="contactsyndic">
+
+<div class="field-title">Téléphone du syndic</div>
+<input id="telephone">
+
+<div class="field-title">Email du syndic</div>
+<input id="emailsyndic">
+
+<div class="field-title">Nom du Président du Conseil Syndical</div>
+<input id="presidentCS">
+
+<div class="field-title">Téléphone Président CS</div>
+<input id="telephoneCS">
+
+<div class="field-title">Email Président CS</div>
+<input id="emailCS">
 
 </div>
 
 <div class="card">
 <div class="section-title">Agent</div>
 
-<input id="agentNom" placeholder="Nom et prénom de l’agent">
-<input id="agentTel" placeholder="Téléphone de l’agent">
+<div class="field-title">Nom et prénom de l’agent</div>
+<input id="agentNom">
+
+<div class="field-title">Téléphone de l’agent</div>
+<input id="agentTel">
 
 <div class="planning">
-<textarea id="lundi" placeholder="Horaires / tâches lundi"></textarea>
-<textarea id="mardi" placeholder="Horaires / tâches mardi"></textarea>
-<textarea id="mercredi" placeholder="Horaires / tâches mercredi"></textarea>
-<textarea id="jeudi" placeholder="Horaires / tâches jeudi"></textarea>
-<textarea id="vendredi" placeholder="Horaires / tâches vendredi"></textarea>
-<textarea id="samedi" placeholder="Horaires / tâches samedi"></textarea>
-<textarea id="dimanche" placeholder="Horaires / tâches dimanche"></textarea>
+
+<div>
+<div class="field-title">Lundi</div>
+<textarea id="lundi"></textarea>
 </div>
 
-<textarea id="consignesAgents" placeholder="Consignes spécifiques pour l’agent"></textarea>
+<div>
+<div class="field-title">Mardi</div>
+<textarea id="mardi"></textarea>
+</div>
+
+<div>
+<div class="field-title">Mercredi</div>
+<textarea id="mercredi"></textarea>
+</div>
+
+<div>
+<div class="field-title">Jeudi</div>
+<textarea id="jeudi"></textarea>
+</div>
+
+<div>
+<div class="field-title">Vendredi</div>
+<textarea id="vendredi"></textarea>
+</div>
+
+<div>
+<div class="field-title">Samedi</div>
+<textarea id="samedi"></textarea>
+</div>
+
+<div>
+<div class="field-title">Dimanche</div>
+<textarea id="dimanche"></textarea>
+</div>
+
+</div>
+
+<div class="field-title">Consignes spécifiques pour l’agent</div>
+<textarea id="consignesAgents"></textarea>
 </div>
 
 <div class="card">
 <div class="section-title">Gestion</div>
 
-<input id="franges" placeholder="Type de franges / matériel spécifique">
-<input id="ampoules" placeholder="Type d’ampoules utilisées">
+<div class="field-title">Type de franges / matériel spécifique</div>
+<input id="franges">
 
-<input id="sortieOM" placeholder="Jour / heure sortie OM">
-<input id="rentreeOM" placeholder="Jour / heure rentrée OM">
-<input id="sortieTRI" placeholder="Jour / heure sortie TRI">
-<input id="rentreeTRI" placeholder="Jour / heure rentrée TRI">
+<div class="field-title">Type d’ampoules utilisées</div>
+<input id="ampoules">
 
-<input id="localnettoyage" placeholder="Emplacement du local nettoyage">
-<input id="electricité" placeholder="Emplacement prises électriques">
-<input id="Eau" placeholder="Emplacement robinet d’eau">
+<div class="field-title">Jour / heure sortie OM</div>
+<input id="sortieOM">
 
-<textarea id="infopropres" placeholder="Informations complémentaires de gestion"></textarea>
+<div class="field-title">Jour / heure rentrée OM</div>
+<input id="rentreeOM">
+
+<div class="field-title">Jour / heure sortie TRI</div>
+<input id="sortieTRI">
+
+<div class="field-title">Jour / heure rentrée TRI</div>
+<input id="rentreeTRI">
+
+<div class="field-title">Emplacement du local nettoyage</div>
+<input id="localnettoyage">
+
+<div class="field-title">Emplacement prises électriques</div>
+<input id="electricité">
+
+<div class="field-title">Emplacement robinet d’eau</div>
+<input id="Eau">
+
+<div class="field-title">Informations complémentaires de gestion</div>
+<textarea id="infopropres"></textarea>
 </div>
 
 <button class="pdf" onclick="genererFiche()">📄 Fiche agent</button>
@@ -265,12 +343,10 @@ const element = document.createElement("div");
 element.innerHTML = `
 <div style="font-family:Inter;padding:20px;line-height:1.8">
 
-<!-- HEADER -->
 <div style="text-align:left;font-weight:800;font-size:28px;margin-bottom:25px">
 ${val("nom")}<span style="color:#22c55e">.</span>
 </div>
 
-<!-- INFOS -->
 <div style="margin-bottom:20px">
 <div style="margin-bottom:8px"><b>Adresse :</b> ${val("adresse")}</div>
 <div style="margin-bottom:8px"><b>Clé :</b> ${val("cles")}</div>
@@ -278,12 +354,10 @@ ${val("nom")}<span style="color:#22c55e">.</span>
 <div style="margin-bottom:8px"><b>Bâtiments :</b> ${val("nbatiments")}</div>
 </div>
 
-<!-- PLANNING -->
 <div style="display:flex;gap:6px;margin-bottom:20px">
 ${planning}
 </div>
 
-<!-- INFOS TERRAIN -->
 <div style="margin-bottom:20px">
 <div style="margin-bottom:8px"><b>Sortie OM :</b> ${val("sortieOM")}</div>
 <div style="margin-bottom:8px"><b>Rentrée OM :</b> ${val("rentreeOM")}</div>
@@ -294,7 +368,6 @@ ${planning}
 <div style="margin-bottom:8px"><b>Robinet d’eau :</b> ${val("Eau")}</div>
 </div>
 
-<!-- INFOS COMPLEMENTAIRES -->
 <div>
 <div><b>Informations complémentaires :</b> ${val("infopropres")}</div>
 </div>
