@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>HUB Encadrant • Planning</title>
+<title>HUB KONTROL • Encadrant</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -23,19 +23,17 @@
 body{
   margin:0;
   font-family:'Inter',sans-serif;
-  background:linear-gradient(180deg,#eef2f7 0%,#e5e7eb 100%);
+  background:linear-gradient(180deg,#eef2f7,#e5e7eb);
 }
 
-.app{
-  max-width:600px;
-  margin:auto;
-  padding:20px;
-}
+.app{max-width:900px;margin:auto;padding:20px}
 
-.title{
-  font-size:22px;
-  font-weight:800;
-  margin-bottom:20px;
+h1{font-size:24px;margin-bottom:20px}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:16px;
 }
 
 .card{
@@ -43,7 +41,6 @@ body{
   border-radius:18px;
   padding:18px;
   box-shadow:0 10px 25px rgba(0,0,0,0.08);
-  margin-bottom:16px;
 }
 
 .label{
@@ -53,69 +50,124 @@ body{
   margin-bottom:6px;
 }
 
-.input{
+.input, select{
   width:100%;
-  padding:12px;
-  border-radius:12px;
+  padding:10px;
+  border-radius:10px;
   border:1px solid #e5e7eb;
-  margin-bottom:12px;
+  margin-bottom:10px;
 }
 
-.btn{
+button{
   width:100%;
-  padding:14px;
-  border-radius:14px;
+  padding:12px;
   border:none;
-  background:#16a34a;
+  border-radius:12px;
+  background:var(--green);
   color:white;
   font-weight:700;
 }
 
-.list{
-  margin-top:10px;
+.list{margin-top:10px}
+.item{padding:10px;border-bottom:1px solid #eee;font-size:14px}
+
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:15px;
 }
 
-.item{
+.tab{
+  flex:1;
   padding:10px;
-  border-bottom:1px solid #eee;
-  font-size:14px;
+  border-radius:10px;
+  background:#e5e7eb;
+  text-align:center;
+  cursor:pointer;
 }
+
+.active{background:var(--green);color:white}
+
+.hidden{display:none}
 </style>
 </head>
 <body>
 
 <div class="app">
-  <div class="title">HUB Encadrant</div>
 
-  <div class="card">
-    <div class="label">Agent</div>
-    <input id="agent" class="input" placeholder="Nom agent">
+<h1>HUB Encadrant</h1>
 
-    <div class="label">Chantier</div>
-    <input id="chantier" class="input" placeholder="Nom chantier">
+<div class="tabs">
+  <div class="tab active" onclick="showTab('agents')">Agents</div>
+  <div class="tab" onclick="showTab('chantiers')">Chantiers</div>
+  <div class="tab" onclick="showTab('planning')">Planning</div>
+  <div class="tab" onclick="showTab('suivi')">Suivi</div>
+</div>
 
-    <div class="label">Latitude</div>
-    <input id="lat" class="input" placeholder="43.6">
+<div id="agents" class="card">
+  <div class="label">Nom agent</div>
+  <input id="agentNom" class="input">
 
-    <div class="label">Longitude</div>
-    <input id="lon" class="input" placeholder="1.44">
+  <div class="label">Téléphone</div>
+  <input id="agentTel" class="input">
 
-    <div class="label">Jour</div>
-    <input id="jour" class="input" placeholder="lundi">
+  <button onclick="addAgent()">Ajouter agent</button>
 
-    <div class="label">Heure début</div>
-    <input id="debut" class="input" placeholder="12:00">
+  <div id="agentsList" class="list"></div>
+</div>
 
-    <div class="label">Heure fin</div>
-    <input id="fin" class="input" placeholder="13:00">
+<div id="chantiers" class="card hidden">
+  <div class="label">Nom chantier</div>
+  <input id="chantierNom" class="input">
 
-    <button class="btn" onclick="savePlanning()">Enregistrer planning</button>
-  </div>
+  <div class="label">Adresse</div>
+  <input id="chantierAdresse" class="input">
 
-  <div class="card">
-    <div class="label">Planning enregistré</div>
-    <div id="list" class="list"></div>
-  </div>
+  <div class="label">Latitude</div>
+  <input id="chantierLat" class="input">
+
+  <div class="label">Longitude</div>
+  <input id="chantierLon" class="input">
+
+  <button onclick="addChantier()">Ajouter chantier</button>
+
+  <div id="chantiersList" class="list"></div>
+</div>
+
+<div id="planning" class="card hidden">
+  <div class="label">Agent</div>
+  <select id="selectAgent"></select>
+
+  <div class="label">Chantier</div>
+  <select id="selectChantier"></select>
+
+  <div class="label">Jour</div>
+  <select id="jour">
+    <option>lundi</option>
+    <option>mardi</option>
+    <option>mercredi</option>
+    <option>jeudi</option>
+    <option>vendredi</option>
+    <option>samedi</option>
+    <option>dimanche</option>
+  </select>
+
+  <div class="label">Début</div>
+  <input id="debut" class="input" placeholder="12:00">
+
+  <div class="label">Fin</div>
+  <input id="fin" class="input" placeholder="13:00">
+
+  <button onclick="addPlanning()">Créer planning</button>
+
+  <div id="planningList" class="list"></div>
+</div>
+
+<div id="suivi" class="card hidden">
+  <div class="label">Historique</div>
+  <div id="suiviList" class="list"></div>
+</div>
+
 </div>
 
 <script>
@@ -131,42 +183,92 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-async function savePlanning(){
-  await db.collection("planning").add({
-    agent: val("agent"),
-    chantier: val("chantier"),
-    lat: parseFloat(val("lat")),
-    lon: parseFloat(val("lon")),
-    jour: val("jour"),
-    debut: val("debut"),
-    fin: val("fin")
-  });
+function showTab(id){
+  document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
 
-  loadPlanning();
-  alert("Planning enregistré ✅");
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  event.target.classList.add('active');
 }
 
-function val(id){
-  return document.getElementById(id).value;
+function val(id){return document.getElementById(id).value}
+
+async function addAgent(){
+  await db.collection('agents').add({nom:val('agentNom'),tel:val('agentTel')});
+  loadAgents();
+}
+
+async function addChantier(){
+  await db.collection('chantiers').add({
+    nom:val('chantierNom'),
+    adresse:val('chantierAdresse'),
+    lat:parseFloat(val('chantierLat')),
+    lon:parseFloat(val('chantierLon'))
+  });
+  loadChantiers();
+}
+
+async function addPlanning(){
+  await db.collection('planning').add({
+    agent:val('selectAgent'),
+    chantier:val('selectChantier'),
+    jour:val('jour'),
+    debut:val('debut'),
+    fin:val('fin')
+  });
+  loadPlanning();
+}
+
+async function loadAgents(){
+  const snap=await db.collection('agents').get();
+  let html="";
+  let options="";
+  snap.forEach(d=>{
+    const a=d.data();
+    html+=`<div class='item'>${a.nom}</div>`;
+    options+=`<option>${a.nom}</option>`;
+  });
+  document.getElementById('agentsList').innerHTML=html;
+  document.getElementById('selectAgent').innerHTML=options;
+}
+
+async function loadChantiers(){
+  const snap=await db.collection('chantiers').get();
+  let html="";
+  let options="";
+  snap.forEach(d=>{
+    const c=d.data();
+    html+=`<div class='item'>${c.nom}</div>`;
+    options+=`<option>${c.nom}</option>`;
+  });
+  document.getElementById('chantiersList').innerHTML=html;
+  document.getElementById('selectChantier').innerHTML=options;
 }
 
 async function loadPlanning(){
-  const snap = await db.collection("planning").get();
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-
-  snap.forEach(doc=>{
-    const p = doc.data();
-    list.innerHTML += `
-      <div class="item">
-        <b>${p.agent}</b> • ${p.chantier}<br>
-        ${p.jour} ${p.debut} → ${p.fin}
-      </div>
-    `;
+  const snap=await db.collection('planning').get();
+  let html="";
+  snap.forEach(d=>{
+    const p=d.data();
+    html+=`<div class='item'>${p.agent} • ${p.chantier}<br>${p.jour} ${p.debut}-${p.fin}</div>`;
   });
+  document.getElementById('planningList').innerHTML=html;
 }
 
+async function loadSuivi(){
+  const snap=await db.collection('suiviAgents').get();
+  let html="";
+  snap.forEach(d=>{
+    const s=d.data();
+    html+=`<div class='item'>${s.agent} • ${s.chantier}<br>${s.statut}</div>`;
+  });
+  document.getElementById('suiviList').innerHTML=html;
+}
+
+loadAgents();
+loadChantiers();
 loadPlanning();
+loadSuivi();
 </script>
 
 </body>
