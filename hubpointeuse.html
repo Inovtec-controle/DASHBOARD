@@ -2,74 +2,123 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Suivi Agent - Firebase</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUB Encadrant • Planning</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
-body {
-  font-family: 'Inter', sans-serif;
-  background:#f3f4f6;
-  margin:0;
+:root{
+  --green:#16a34a;
+  --bg:#eef2f7;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
 }
-.container {
-  max-width:500px;
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(180deg,#eef2f7 0%,#e5e7eb 100%);
+}
+
+.app{
+  max-width:600px;
   margin:auto;
   padding:20px;
 }
-.card {
-  background:white;
-  padding:20px;
-  border-radius:16px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.1);
-}
-h1 {
+
+.title{
   font-size:22px;
+  font-weight:800;
+  margin-bottom:20px;
 }
-input, button {
+
+.card{
+  background:white;
+  border-radius:18px;
+  padding:18px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.08);
+  margin-bottom:16px;
+}
+
+.label{
+  font-size:12px;
+  font-weight:600;
+  color:#64748b;
+  margin-bottom:6px;
+}
+
+.input{
   width:100%;
   padding:12px;
-  margin-top:10px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  font-size:16px;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  margin-bottom:12px;
 }
-button {
+
+.btn{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:none;
   background:#16a34a;
   color:white;
-  font-weight:600;
-  border:none;
+  font-weight:700;
 }
-.status {
-  margin-top:15px;
-  font-weight:600;
+
+.list{
+  margin-top:10px;
+}
+
+.item{
+  padding:10px;
+  border-bottom:1px solid #eee;
+  font-size:14px;
 }
 </style>
 </head>
 <body>
 
-<div class="container">
+<div class="app">
+  <div class="title">HUB Encadrant</div>
+
   <div class="card">
-    <h1>Suivi chantier (Firebase)</h1>
+    <div class="label">Agent</div>
+    <input id="agent" class="input" placeholder="Nom agent">
 
-    <input type="text" id="agent" placeholder="Nom agent">
-    <input type="text" id="chantier" placeholder="Nom chantier">
-    <input type="number" id="duree" placeholder="Durée prévue (minutes)">
+    <div class="label">Chantier</div>
+    <input id="chantier" class="input" placeholder="Nom chantier">
 
-    <button onclick="arrivee()">Arrivée chantier</button>
-    <button onclick="depart()">Départ chantier</button>
+    <div class="label">Latitude</div>
+    <input id="lat" class="input" placeholder="43.6">
 
-    <div class="status" id="status"></div>
+    <div class="label">Longitude</div>
+    <input id="lon" class="input" placeholder="1.44">
+
+    <div class="label">Jour</div>
+    <input id="jour" class="input" placeholder="lundi">
+
+    <div class="label">Heure début</div>
+    <input id="debut" class="input" placeholder="12:00">
+
+    <div class="label">Heure fin</div>
+    <input id="fin" class="input" placeholder="13:00">
+
+    <button class="btn" onclick="savePlanning()">Enregistrer planning</button>
+  </div>
+
+  <div class="card">
+    <div class="label">Planning enregistré</div>
+    <div id="list" class="list"></div>
   </div>
 </div>
 
 <script>
-// 🔥 CONFIG FIREBASE (REMPLACE ICI)
 const firebaseConfig = {
   apiKey: "AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
   authDomain: "inovtec-chantiers.firebaseapp.com",
@@ -82,89 +131,43 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let startTime = null;
-let startPos = null;
+async function savePlanning(){
+  await db.collection("planning").add({
+    agent: val("agent"),
+    chantier: val("chantier"),
+    lat: parseFloat(val("lat")),
+    lon: parseFloat(val("lon")),
+    jour: val("jour"),
+    debut: val("debut"),
+    fin: val("fin")
+  });
 
-function arrivee(){
-  navigator.geolocation.getCurrentPosition(pos => {
-    startTime = new Date();
-    startPos = pos.coords;
+  loadPlanning();
+  alert("Planning enregistré ✅");
+}
 
-    db.collection("pointages").add({
-      agent: document.getElementById('agent').value,
-      chantier: document.getElementById('chantier').value,
-      type: "arrivee",
-      time: startTime,
-      lat: pos.coords.latitude,
-      lon: pos.coords.longitude
-    });
+function val(id){
+  return document.getElementById(id).value;
+}
 
-    document.getElementById('status').innerText = "Arrivée enregistrée";
+async function loadPlanning(){
+  const snap = await db.collection("planning").get();
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  snap.forEach(doc=>{
+    const p = doc.data();
+    list.innerHTML += `
+      <div class="item">
+        <b>${p.agent}</b> • ${p.chantier}<br>
+        ${p.jour} ${p.debut} → ${p.fin}
+      </div>
+    `;
   });
 }
 
-function depart(){
-  if(!startTime){
-    alert("Pas d'arrivée enregistrée");
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(pos => {
-
-    let endTime = new Date();
-    let dureeReelle = (endTime - startTime) / 60000;
-    let dureePrevue = parseFloat(document.getElementById('duree').value);
-
-    let distance = getDistance(startPos.latitude, startPos.longitude, pos.coords.latitude, pos.coords.longitude);
-
-    let statut = "OK";
-
-    if(dureeReelle < dureePrevue){
-      statut = "DEPART ANTICIPE";
-    }
-
-    if(distance > 0.1){
-      statut = "HORS ZONE";
-    }
-
-    db.collection("pointages").add({
-      agent: document.getElementById('agent').value,
-      chantier: document.getElementById('chantier').value,
-      type: "depart",
-      duree: Math.round(dureeReelle),
-      statut: statut,
-      time: endTime,
-      lat: pos.coords.latitude,
-      lon: pos.coords.longitude
-    });
-
-    document.getElementById('status').innerText = statut + " (" + Math.round(dureeReelle) + " min)";
-
-    // 🔔 ALERTE TEMPS REEL
-    if(statut !== "OK"){
-      envoyerAlerte(statut);
-    }
-
-  });
-}
-
-function envoyerAlerte(statut){
-  alert("🚨 ALERTE : " + statut);
-}
-
-function getDistance(lat1, lon1, lat2, lon2) {
-  let R = 6371;
-  let dLat = (lat2-lat1) * Math.PI/180;
-  let dLon = (lon2-lon1) * Math.PI/180;
-  let a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
-          Math.sin(dLon/2) * Math.sin(dLon/2);
-  let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
-
+loadPlanning();
 </script>
 
 </body>
 </html>
-
