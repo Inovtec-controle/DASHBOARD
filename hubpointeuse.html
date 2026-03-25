@@ -26,14 +26,9 @@ body{
   margin:0;
   font-family:'Inter',sans-serif;
   background:linear-gradient(180deg,#eef2f7 0%,#e5e7eb 100%);
-  color:var(--text);
 }
 
-.app{
-  max-width:1100px;
-  margin:auto;
-  padding:20px;
-}
+.app{max-width:1100px;margin:auto;padding:20px;}
 
 .header{
   display:flex;
@@ -42,10 +37,7 @@ body{
   margin-bottom:20px;
 }
 
-h1{
-  font-size:22px;
-  font-weight:800;
-}
+h1{font-size:22px;font-weight:800;}
 
 .badge{
   background:var(--green-soft);
@@ -58,19 +50,14 @@ h1{
 }
 
 .card{
-  background:var(--card);
+  background:white;
   border-radius:20px;
   padding:18px;
   box-shadow:0 15px 35px rgba(0,0,0,0.08);
   margin-bottom:16px;
 }
 
-.label{
-  font-size:12px;
-  font-weight:600;
-  color:var(--muted);
-  margin-bottom:6px;
-}
+.label{font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px;}
 
 .input,select{
   width:100%;
@@ -78,7 +65,6 @@ h1{
   border-radius:14px;
   border:1px solid #e5e7eb;
   margin-bottom:10px;
-  font-size:14px;
 }
 
 button{
@@ -98,8 +84,6 @@ button{
 .item{
   padding:12px;
   border-bottom:1px solid #f1f5f9;
-  display:flex;
-  justify-content:space-between;
 }
 
 .planning-block{
@@ -110,11 +94,7 @@ button{
   border:1px solid #e5e7eb;
 }
 
-.tabs{
-  display:flex;
-  gap:10px;
-  margin-bottom:15px;
-}
+.tabs{display:flex;gap:10px;margin-bottom:15px;}
 
 .tab{
   flex:1;
@@ -129,17 +109,11 @@ button{
 .active{background:var(--green);color:white}
 .hidden{display:none}
 
-hr{
-  border:none;
-  border-top:1px solid #e5e7eb;
-  margin:20px 0;
-}
-
-/* POPUP LIVE */
+/* POPUP */
 .livePopup{
  position:fixed;
  top:0;left:0;right:0;bottom:0;
- background:rgba(0,0,0,0.4);
+ background:rgba(0,0,0,0.5);
  display:flex;
  justify-content:center;
  align-items:center;
@@ -151,8 +125,8 @@ hr{
  padding:20px;
  border-radius:20px;
  width:90%;
- max-width:400px;
- max-height:80vh;
+ max-width:420px;
+ max-height:85vh;
  overflow:auto;
 }
 
@@ -165,6 +139,9 @@ hr{
  padding:10px;
  border-bottom:1px solid #eee;
 }
+
+.present{color:green;font-weight:600;}
+.absent{color:red;font-weight:600;}
 </style>
 </head>
 
@@ -184,7 +161,6 @@ hr{
   <div class="tab" onclick="showTab('suivi')">Suivi</div>
 </div>
 
-<!-- CONTENU IDENTIQUE (inchangé) -->
 <div id="planning" class="card">
   <div class="label">Agent</div>
   <select id="selectAgent"></select>
@@ -237,41 +213,25 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 
-function showTab(id){
- document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
- document.getElementById(id).classList.remove('hidden');
- document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
- event.target.classList.add('active');
-}
+let agentsMap={}, chantiersMap={};
 
 function val(id){return document.getElementById(id).value}
-
-let agentsMap={}, chantiersMap={};
 
 async function loadAgents(){
  const snap=await db.collection('agents').get();
  agentsMap={};
- let options="",html="";
+ let options="";
  snap.forEach(d=>{
-  const a=d.data();
-  agentsMap[d.id]=a;
-  html+=`<div class="item">${a.nom}</div>`;
-  options+=`<option value="${d.id}">${a.nom}</option>`;
+  agentsMap[d.id]=d.data();
+  options+=`<option value="${d.id}">${d.data().nom}</option>`;
  });
- document.getElementById('agentsList').innerHTML=html;
  document.getElementById('selectAgent').innerHTML=options;
 }
 
 async function loadChantiers(){
  const snap=await db.collection('chantiers').get();
  chantiersMap={};
- let options="";
- snap.forEach(d=>{
-  const c=d.data();
-  chantiersMap[d.id]=c;
-  options+=`<option value="${d.id}">${c.nom}</option>`;
- });
- document.querySelectorAll('.chantierSelect').forEach(s=>s.innerHTML=options);
+ snap.forEach(d=>chantiersMap[d.id]=d.data());
 }
 
 function addZone(){
@@ -282,30 +242,11 @@ function addZone(){
   <div class="row">
    <input type="time" class="debut">
    <input type="time" class="fin">
-  </div>
- `;
+  </div>`;
  document.getElementById('zones').appendChild(div);
- loadChantiers();
 }
 
-async function saveMultiPlanning(){
- const agentId=val('selectAgent');
- const jour=val('jour');
- const zones=document.querySelectorAll('.planning-block');
-
- for(let z of zones){
-  await db.collection('planning').add({
-    agentId,
-    chantierId:z.querySelector('.chantierSelect').value,
-    jour,
-    debut:z.querySelector('.debut').value,
-    fin:z.querySelector('.fin').value
-  });
- }
- alert("Planning enregistré");
-}
-
-/* 🔥 FONCTION LIVE */
+/* 🔥 LIVE + ALERTES */
 async function showLive(){
 
  const jours=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
@@ -313,38 +254,58 @@ async function showLive(){
  const jourActuel=jours[now.getDay()];
  const heureActuelle=now.toTimeString().slice(0,5);
 
- const snap=await db.collection('planning').get();
+ const planningSnap=await db.collection('planning').get();
+ const suiviSnap=await db.collection('suiviAgents').get();
 
- let html=`<div class="liveTitle">🟢 Agents en cours (${heureActuelle})</div>`;
- let count=0;
-
- snap.forEach(d=>{
-  const p=d.data();
-
-  if(p.jour===jourActuel && p.debut<=heureActuelle && p.fin>=heureActuelle){
-    const agent=agentsMap[p.agentId]?.nom || "?";
-    const chantier=chantiersMap[p.chantierId]?.nom || "?";
-
-    html+=`<div class="liveItem">
-      <strong>${agent}</strong><br>
-      ${chantier}<br>
-      ${p.debut} → ${p.fin}
-    </div>`;
-    count++;
+ let presents={};
+ suiviSnap.forEach(d=>{
+  const s=d.data();
+  if(s.statut==="present"){
+    presents[s.agentId]=true;
   }
  });
 
- if(count===0){
-  html+=`<div class="liveItem">Aucun agent en cours</div>`;
+ let html=`<div class="liveTitle">📡 LIVE (${heureActuelle})</div>`;
+ let countPresent=0, countAbsent=0;
+
+ planningSnap.forEach(d=>{
+  const p=d.data();
+
+  if(p.jour===jourActuel && p.debut<=heureActuelle && p.fin>=heureActuelle){
+
+    const agent=agentsMap[p.agentId]?.nom || "?";
+    const chantier=chantiersMap[p.chantierId]?.nom || "?";
+
+    if(presents[p.agentId]){
+      html+=`<div class="liveItem present">🟢 ${agent}<br>${chantier}</div>`;
+      countPresent++;
+    }else{
+      html+=`<div class="liveItem absent">🔴 ABSENT : ${agent}<br>${chantier}</div>`;
+      countAbsent++;
+    }
+  }
+ });
+
+ if(countPresent===0 && countAbsent===0){
+  html+=`<div class="liveItem">Aucun agent prévu actuellement</div>`;
  }
 
- html+=`<br><button onclick="closeLive()">Fermer</button>`;
+ html+=`<hr>
+  <div>🟢 Présents : ${countPresent}</div>
+  <div>🔴 Absents : ${countAbsent}</div>
+  <br>
+  <button onclick="closeLive()">Fermer</button>
+ `;
 
  const div=document.createElement('div');
  div.className='livePopup';
  div.id='livePopup';
  div.innerHTML=`<div class="liveBox">${html}</div>`;
  document.body.appendChild(div);
+
+ if(countAbsent>0){
+   alert("⚠️ Attention : agents absents détectés !");
+ }
 }
 
 function closeLive(){
