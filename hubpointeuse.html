@@ -11,11 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
-:root{
-  --green:#16a34a;
-  --danger:#ef4444;
-}
-
+:root{--green:#16a34a;--danger:#ef4444}
 *{box-sizing:border-box}
 body{margin:0;font-family:'Inter',sans-serif;background:linear-gradient(180deg,#eef2f7,#e5e7eb)}
 .app{max-width:1000px;margin:auto;padding:20px}
@@ -24,9 +20,9 @@ h1{font-size:24px;margin-bottom:20px}
 .label{font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px}
 .input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:10px}
 button{padding:10px 12px;border:none;border-radius:10px;background:var(--green);color:white;font-weight:600;cursor:pointer}
+.delete{background:var(--danger)}
 .row{display:flex;gap:10px}
 .item{padding:10px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
-.delete{background:var(--danger)}
 .planning-block{background:#f9fafb;padding:12px;border-radius:12px;margin-bottom:10px}
 .tabs{display:flex;gap:10px;margin-bottom:15px}
 .tab{flex:1;padding:10px;border-radius:10px;background:#e5e7eb;text-align:center;cursor:pointer}
@@ -37,7 +33,6 @@ button{padding:10px 12px;border:none;border-radius:10px;background:var(--green);
 <body>
 
 <div class="app">
-
 <h1>HUB Encadrant</h1>
 
 <div class="tabs">
@@ -49,19 +44,13 @@ button{padding:10px 12px;border:none;border-radius:10px;background:var(--green);
 
 <!-- PLANNING -->
 <div id="planning" class="card">
-
   <div class="label">Agent</div>
   <select id="selectAgent"></select>
 
   <div class="label">Jour</div>
   <select id="jour">
-    <option>lundi</option>
-    <option>mardi</option>
-    <option>mercredi</option>
-    <option>jeudi</option>
-    <option>vendredi</option>
-    <option>samedi</option>
-    <option>dimanche</option>
+    <option>lundi</option><option>mardi</option><option>mercredi</option>
+    <option>jeudi</option><option>vendredi</option><option>samedi</option><option>dimanche</option>
   </select>
 
   <div id="zones"></div>
@@ -70,6 +59,8 @@ button{padding:10px 12px;border:none;border-radius:10px;background:var(--green);
   <br><br>
   <button onclick="saveMultiPlanning()">💾 Enregistrer</button>
 
+  <hr>
+  <div id="planningList"></div>
 </div>
 
 <!-- AGENTS -->
@@ -98,127 +89,128 @@ button{padding:10px 12px;border:none;border-radius:10px;background:var(--green);
 </div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
-  authDomain: "inovtec-chantiers.firebaseapp.com",
-  projectId: "inovtec-chantiers"
+const firebaseConfig={
+ apiKey:"AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
+ authDomain:"inovtec-chantiers.firebaseapp.com",
+ projectId:"inovtec-chantiers"
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db=firebase.firestore();
 
 function showTab(id){
-  document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  event.target.classList.add('active');
+ document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
+ document.getElementById(id).classList.remove('hidden');
+ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+ event.target.classList.add('active');
 }
 
 function val(id){return document.getElementById(id).value}
 
-// -------- AGENTS --------
+// AGENTS
 async function addAgent(){
-  await db.collection('agents').add({nom:val('agentNom'),tel:val('agentTel')});
-  loadAgents();
+ await db.collection('agents').add({nom:val('agentNom'),tel:val('agentTel')});
+ loadAgents();
 }
-
-async function deleteAgent(id){
-  await db.collection('agents').doc(id).delete();
-  loadAgents();
-}
-
+async function deleteAgent(id){await db.collection('agents').doc(id).delete();loadAgents()}
 async function loadAgents(){
-  const snap=await db.collection('agents').get();
-  let html="";
-  let options="";
-  snap.forEach(d=>{
-    const a=d.data();
-    html+=`<div class="item">${a.nom}<button class="delete" onclick="deleteAgent('${d.id}')">Supprimer</button></div>`;
-    options+=`<option value="${a.nom}">${a.nom}</option>`;
-  });
-  document.getElementById('agentsList').innerHTML=html;
-  document.getElementById('selectAgent').innerHTML=options;
+ const snap=await db.collection('agents').get();
+ let html="",options="";
+ snap.forEach(d=>{
+  html+=`<div class="item">${d.data().nom}<button class="delete" onclick="deleteAgent('${d.id}')">Supprimer</button></div>`;
+  options+=`<option>${d.data().nom}</option>`;
+ });
+ document.getElementById('agentsList').innerHTML=html;
+ document.getElementById('selectAgent').innerHTML=options;
 }
 
-// -------- CHANTIERS --------
+// CHANTIERS
 async function addChantier(){
-  await db.collection('chantiers').add({
-    nom:val('chantierNom'),
-    adresse:val('chantierAdresse'),
-    lat:parseFloat(val('chantierLat')),
-    lon:parseFloat(val('chantierLon'))
-  });
-  loadChantiers();
+ await db.collection('chantiers').add({
+  nom:val('chantierNom'),adresse:val('chantierAdresse'),
+  lat:parseFloat(val('chantierLat')),lon:parseFloat(val('chantierLon'))
+ });
+ loadChantiers();
 }
-
-async function deleteChantier(id){
-  await db.collection('chantiers').doc(id).delete();
-  loadChantiers();
-}
-
+async function deleteChantier(id){await db.collection('chantiers').doc(id).delete();loadChantiers()}
 async function loadChantiers(){
-  const snap=await db.collection('chantiers').get();
-  let html="";
-  let options="";
-  snap.forEach(d=>{
-    const c=d.data();
-    html+=`<div class="item">${c.nom}<button class="delete" onclick="deleteChantier('${d.id}')">Supprimer</button></div>`;
-    options+=`<option value="${c.nom}">${c.nom}</option>`;
-  });
-  document.getElementById('chantiersList').innerHTML=html;
-  document.querySelectorAll('.chantierSelect').forEach(s=>s.innerHTML=options);
+ const snap=await db.collection('chantiers').get();
+ let html="",options="";
+ snap.forEach(d=>{
+  html+=`<div class="item">${d.data().nom}<button class="delete" onclick="deleteChantier('${d.id}')">Supprimer</button></div>`;
+  options+=`<option>${d.data().nom}</option>`;
+ });
+ document.getElementById('chantiersList').innerHTML=html;
+ document.querySelectorAll('.chantierSelect').forEach(s=>s.innerHTML=options);
 }
 
-// -------- PLANNING --------
+// PLANNING
 function addZone(){
-  const div=document.createElement('div');
-  div.className='planning-block';
-  div.innerHTML=`
-    <select class="chantierSelect"></select>
-    <div class="row">
-      <input type="time" class="debut">
-      <input type="time" class="fin">
-    </div>
-  `;
-  document.getElementById('zones').appendChild(div);
-  loadChantiers();
+ const div=document.createElement('div');
+ div.className='planning-block';
+ div.innerHTML=`
+  <select class="chantierSelect"></select>
+  <div class="row">
+   <input type="time" class="debut">
+   <input type="time" class="fin">
+  </div>
+  <button class="delete" onclick="this.parentElement.remove()">Supprimer passage</button>
+ `;
+ document.getElementById('zones').appendChild(div);
+ loadChantiers();
 }
 
 async function saveMultiPlanning(){
-  const agent=val('selectAgent');
-  const jour=val('jour');
-  const zones=document.querySelectorAll('.planning-block');
+ const agent=val('selectAgent');
+ const jour=val('jour');
+ const zones=document.querySelectorAll('.planning-block');
 
-  for(let z of zones){
-    await db.collection('planning').add({
-      agent,
-      chantier:z.querySelector('.chantierSelect').value,
-      jour,
-      debut:z.querySelector('.debut').value,
-      fin:z.querySelector('.fin').value
-    });
-  }
-
-  alert("Planning enregistré");
+ for(let z of zones){
+  await db.collection('planning').add({
+   agent,
+   chantier:z.querySelector('.chantierSelect').value,
+   jour,
+   debut:z.querySelector('.debut').value,
+   fin:z.querySelector('.fin').value
+  });
+ }
+ loadPlanning();
+ alert("Planning enregistré");
 }
 
-// -------- SUIVI --------
+async function deletePlanning(id){
+ await db.collection('planning').doc(id).delete();
+ loadPlanning();
+}
+
+async function loadPlanning(){
+ const snap=await db.collection('planning').get();
+ let html="";
+ snap.forEach(d=>{
+  const p=d.data();
+  html+=`<div class="item">${p.agent} • ${p.chantier} (${p.jour} ${p.debut}-${p.fin})
+  <button class="delete" onclick="deletePlanning('${d.id}')">Supprimer</button></div>`;
+ });
+ document.getElementById('planningList').innerHTML=html;
+}
+
+// SUIVI
 async function loadSuivi(){
-  const snap=await db.collection('suiviAgents').get();
-  let html="";
-  snap.forEach(d=>{
-    const s=d.data();
-    html+=`<div class="item">${s.agent} • ${s.chantier} → ${s.statut}</div>`;
-  });
-  document.getElementById('suiviList').innerHTML=html;
+ const snap=await db.collection('suiviAgents').get();
+ let html="";
+ snap.forEach(d=>{
+  const s=d.data();
+  html+=`<div class="item">${s.agent} • ${s.chantier} → ${s.statut}</div>`;
+ });
+ document.getElementById('suiviList').innerHTML=html;
 }
 
 // INIT
 loadAgents();
 loadChantiers();
+loadPlanning();
 loadSuivi();
 </script>
 
 </body>
 </html>
-
