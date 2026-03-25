@@ -107,6 +107,8 @@ function showTab(id){
 
 function val(id){return document.getElementById(id).value}
 
+let agentsMap={}, chantiersMap={};
+
 // AGENTS
 async function addAgent(){
  await db.collection('agents').add({nom:val('agentNom'),tel:val('agentTel')});
@@ -116,9 +118,12 @@ async function deleteAgent(id){await db.collection('agents').doc(id).delete();lo
 async function loadAgents(){
  const snap=await db.collection('agents').get();
  let html="",options="";
+ agentsMap={};
  snap.forEach(d=>{
-  html+=`<div class="item">${d.data().nom}<button class="delete" onclick="deleteAgent('${d.id}')">Supprimer</button></div>`;
-  options+=`<option>${d.data().nom}</option>`;
+  const a=d.data();
+  agentsMap[d.id]=a;
+  html+=`<div class="item">${a.nom}<button class="delete" onclick="deleteAgent('${d.id}')">Supprimer</button></div>`;
+  options+=`<option value="${d.id}">${a.nom}</option>`;
  });
  document.getElementById('agentsList').innerHTML=html;
  document.getElementById('selectAgent').innerHTML=options;
@@ -136,9 +141,12 @@ async function deleteChantier(id){await db.collection('chantiers').doc(id).delet
 async function loadChantiers(){
  const snap=await db.collection('chantiers').get();
  let html="",options="";
+ chantiersMap={};
  snap.forEach(d=>{
-  html+=`<div class="item">${d.data().nom}<button class="delete" onclick="deleteChantier('${d.id}')">Supprimer</button></div>`;
-  options+=`<option>${d.data().nom}</option>`;
+  const c=d.data();
+  chantiersMap[d.id]=c;
+  html+=`<div class="item">${c.nom}<button class="delete" onclick="deleteChantier('${d.id}')">Supprimer</button></div>`;
+  options+=`<option value="${d.id}">${c.nom}</option>`;
  });
  document.getElementById('chantiersList').innerHTML=html;
  document.querySelectorAll('.chantierSelect').forEach(s=>s.innerHTML=options);
@@ -161,14 +169,16 @@ function addZone(){
 }
 
 async function saveMultiPlanning(){
- const agent=val('selectAgent');
+ const agentId=val('selectAgent');
  const jour=val('jour');
  const zones=document.querySelectorAll('.planning-block');
 
  for(let z of zones){
+  const chantierId=z.querySelector('.chantierSelect').value;
+
   await db.collection('planning').add({
-   agent,
-   chantier:z.querySelector('.chantierSelect').value,
+   agentId,
+   chantierId,
    jour,
    debut:z.querySelector('.debut').value,
    fin:z.querySelector('.fin').value
@@ -188,7 +198,10 @@ async function loadPlanning(){
  let html="";
  snap.forEach(d=>{
   const p=d.data();
-  html+=`<div class="item">${p.agent} • ${p.chantier} (${p.jour} ${p.debut}-${p.fin})
+  const agent=agentsMap[p.agentId]?.nom || "?";
+  const chantier=chantiersMap[p.chantierId]?.nom || "?";
+
+  html+=`<div class="item">${agent} • ${chantier} (${p.jour} ${p.debut}-${p.fin})
   <button class="delete" onclick="deletePlanning('${d.id}')">Supprimer</button></div>`;
  });
  document.getElementById('planningList').innerHTML=html;
@@ -206,10 +219,13 @@ async function loadSuivi(){
 }
 
 // INIT
-loadAgents();
-loadChantiers();
-loadPlanning();
-loadSuivi();
+async function init(){
+ await loadAgents();
+ await loadChantiers();
+ await loadPlanning();
+ await loadSuivi();
+}
+init();
 </script>
 
 </body>
