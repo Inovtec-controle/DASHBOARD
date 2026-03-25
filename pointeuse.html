@@ -1,1 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi Agent - Firebase</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+  font-family: 'Inter', sans-serif;
+  background:#f3f4f6;
+  margin:0;
+}
+.container {
+  max-width:500px;
+  margin:auto;
+  padding:20px;
+}
+.card {
+  background:white;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+h1 {
+  font-size:22px;
+}
+input, button {
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  font-size:16px;
+}
+button {
+  background:#16a34a;
+  color:white;
+  font-weight:600;
+  border:none;
+}
+.status {
+  margin-top:15px;
+  font-weight:600;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h1>Suivi chantier (Firebase)</h1>
+
+    <input type="text" id="agent" placeholder="Nom agent">
+    <input type="text" id="chantier" placeholder="Nom chantier">
+    <input type="number" id="duree" placeholder="Durée prévue (minutes)">
+
+    <button onclick="arrivee()">Arrivée chantier</button>
+    <button onclick="depart()">Départ chantier</button>
+
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<script>
+// 🔥 CONFIG FIREBASE (REMPLACE ICI)
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let startTime = null;
+let startPos = null;
+
+function arrivee(){
+  navigator.geolocation.getCurrentPosition(pos => {
+    startTime = new Date();
+    startPos = pos.coords;
+
+    db.collection("pointages").add({
+      agent: document.getElementById('agent').value,
+      chantier: document.getElementById('chantier').value,
+      type: "arrivee",
+      time: startTime,
+      lat: pos.coords.latitude,
+      lon: pos.coords.longitude
+    });
+
+    document.getElementById('status').innerText = "Arrivée enregistrée";
+  });
+}
+
+function depart(){
+  if(!startTime){
+    alert("Pas d'arrivée enregistrée");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(pos => {
+
+    let endTime = new Date();
+    let dureeReelle = (endTime - startTime) / 60000;
+    let dureePrevue = parseFloat(document.getElementById('duree').value);
+
+    let distance = getDistance(startPos.latitude, startPos.longitude, pos.coords.latitude, pos.coords.longitude);
+
+    let statut = "OK";
+
+    if(dureeReelle < dureePrevue){
+      statut = "DEPART ANTICIPE";
+    }
+
+    if(distance > 0.1){
+      statut = "HORS ZONE";
+    }
+
+    db.collection("pointages").add({
+      agent: document.getElementById('agent').value,
+      chantier: document.getElementById('chantier').value,
+      type: "depart",
+      duree: Math.round(dureeReelle),
+      statut: statut,
+      time: endTime,
+      lat: pos.coords.latitude,
+      lon: pos.coords.longitude
+    });
+
+    document.getElementById('status').innerText = statut + " (" + Math.round(dureeReelle) + " min)";
+
+    // 🔔 ALERTE TEMPS REEL
+    if(statut !== "OK"){
+      envoyerAlerte(statut);
+    }
+
+  });
+}
+
+function envoyerAlerte(statut){
+  alert("🚨 ALERTE : " + statut);
+}
+
+function getDistance(lat1, lon1, lat2, lon2) {
+  let R = 6371;
+  let dLat = (lat2-lat1) * Math.PI/180;
+  let dLon = (lon2-lon1) * Math.PI/180;
+  let a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+          Math.sin(dLon/2) * Math.sin(dLon/2);
+  let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+</script>
+
+</body>
+</html>
 
