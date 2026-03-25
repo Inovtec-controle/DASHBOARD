@@ -11,29 +11,155 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
-:root{--green:#16a34a;--danger:#ef4444}
+:root{
+  --green:#16a34a;
+  --green-soft:#dcfce7;
+  --danger:#ef4444;
+  --bg:#eef2f7;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+}
+
 *{box-sizing:border-box}
-body{margin:0;font-family:'Inter',sans-serif;background:linear-gradient(180deg,#eef2f7,#e5e7eb)}
-.app{max-width:1000px;margin:auto;padding:20px}
-h1{font-size:24px;margin-bottom:20px}
-.card{background:white;border-radius:18px;padding:18px;box-shadow:0 10px 25px rgba(0,0,0,0.08);margin-bottom:16px}
-.label{font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px}
-.input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:10px}
-button{padding:10px 12px;border:none;border-radius:10px;background:var(--green);color:white;font-weight:600;cursor:pointer}
-.delete{background:var(--danger)}
-.row{display:flex;gap:10px}
-.item{padding:10px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
-.planning-block{background:#f9fafb;padding:12px;border-radius:12px;margin-bottom:10px}
-.tabs{display:flex;gap:10px;margin-bottom:15px}
-.tab{flex:1;padding:10px;border-radius:10px;background:#e5e7eb;text-align:center;cursor:pointer}
-.active{background:var(--green);color:white}
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(180deg,#eef2f7 0%,#e5e7eb 100%);
+  color:var(--text);
+}
+
+.app{
+  max-width:1100px;
+  margin:auto;
+  padding:20px;
+}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+h1{
+  font-size:22px;
+  font-weight:800;
+}
+
+.badge{
+  background:var(--green-soft);
+  color:var(--green);
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+}
+
+.card{
+  background:var(--card);
+  border-radius:20px;
+  padding:18px;
+  box-shadow:0 15px 35px rgba(0,0,0,0.08);
+  margin-bottom:16px;
+}
+
+.label{
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+
+.input,select{
+  width:100%;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid #e5e7eb;
+  margin-bottom:10px;
+  font-size:14px;
+}
+
+button{
+  padding:12px 14px;
+  border:none;
+  border-radius:14px;
+  background:var(--green);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+button:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 15px rgba(0,0,0,0.1);
+}
+
+.delete{
+  background:var(--danger);
+}
+
+.row{
+  display:flex;
+  gap:10px;
+}
+
+.item{
+  padding:12px;
+  border-bottom:1px solid #f1f5f9;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:14px;
+}
+
+.planning-block{
+  background:#f9fafb;
+  padding:14px;
+  border-radius:14px;
+  margin-bottom:10px;
+  border:1px solid #e5e7eb;
+}
+
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:15px;
+}
+
+.tab{
+  flex:1;
+  padding:12px;
+  border-radius:12px;
+  background:#e5e7eb;
+  text-align:center;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.active{
+  background:var(--green);
+  color:white;
+}
+
 .hidden{display:none}
+
+hr{
+  border:none;
+  border-top:1px solid #e5e7eb;
+  margin:20px 0;
+}
 </style>
 </head>
 <body>
 
 <div class="app">
-<h1>HUB Encadrant</h1>
+
+<div class="header">
+  <h1>HUB Encadrant</h1>
+  <div class="badge">LIVE</div>
+</div>
 
 <div class="tabs">
   <div class="tab active" onclick="showTab('planning')">Planning</div>
@@ -109,12 +235,13 @@ function val(id){return document.getElementById(id).value}
 
 let agentsMap={}, chantiersMap={};
 
-// AGENTS
 async function addAgent(){
  await db.collection('agents').add({nom:val('agentNom'),tel:val('agentTel')});
  loadAgents();
 }
+
 async function deleteAgent(id){await db.collection('agents').doc(id).delete();loadAgents()}
+
 async function loadAgents(){
  const snap=await db.collection('agents').get();
  let html="",options="";
@@ -129,15 +256,13 @@ async function loadAgents(){
  document.getElementById('selectAgent').innerHTML=options;
 }
 
-// CHANTIERS
 async function addChantier(){
- await db.collection('chantiers').add({
-  nom:val('chantierNom'),adresse:val('chantierAdresse'),
-  lat:parseFloat(val('chantierLat')),lon:parseFloat(val('chantierLon'))
- });
+ await db.collection('chantiers').add({nom:val('chantierNom'),adresse:val('chantierAdresse'),lat:parseFloat(val('chantierLat')),lon:parseFloat(val('chantierLon'))});
  loadChantiers();
 }
+
 async function deleteChantier(id){await db.collection('chantiers').doc(id).delete();loadChantiers()}
+
 async function loadChantiers(){
  const snap=await db.collection('chantiers').get();
  let html="",options="";
@@ -152,7 +277,6 @@ async function loadChantiers(){
  document.querySelectorAll('.chantierSelect').forEach(s=>s.innerHTML=options);
 }
 
-// PLANNING
 function addZone(){
  const div=document.createElement('div');
  div.className='planning-block';
@@ -175,14 +299,7 @@ async function saveMultiPlanning(){
 
  for(let z of zones){
   const chantierId=z.querySelector('.chantierSelect').value;
-
-  await db.collection('planning').add({
-   agentId,
-   chantierId,
-   jour,
-   debut:z.querySelector('.debut').value,
-   fin:z.querySelector('.fin').value
-  });
+  await db.collection('planning').add({agentId,chantierId,jour,debut:z.querySelector('.debut').value,fin:z.querySelector('.fin').value});
  }
  loadPlanning();
  alert("Planning enregistré");
@@ -200,14 +317,11 @@ async function loadPlanning(){
   const p=d.data();
   const agent=agentsMap[p.agentId]?.nom || "?";
   const chantier=chantiersMap[p.chantierId]?.nom || "?";
-
-  html+=`<div class="item">${agent} • ${chantier} (${p.jour} ${p.debut}-${p.fin})
-  <button class="delete" onclick="deletePlanning('${d.id}')">Supprimer</button></div>`;
+  html+=`<div class="item">${agent} • ${chantier} (${p.jour} ${p.debut}-${p.fin})<button class="delete" onclick="deletePlanning('${d.id}')">Supprimer</button></div>`;
  });
  document.getElementById('planningList').innerHTML=html;
 }
 
-// SUIVI
 async function loadSuivi(){
  const snap=await db.collection('suiviAgents').get();
  let html="";
@@ -218,7 +332,6 @@ async function loadSuivi(){
  document.getElementById('suiviList').innerHTML=html;
 }
 
-// INIT
 async function init(){
  await loadAgents();
  await loadChantiers();
