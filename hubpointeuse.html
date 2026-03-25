@@ -26,68 +26,53 @@ body{
   background:linear-gradient(180deg,#eef2f7,#e5e7eb);
 }
 
-.app{max-width:900px;margin:auto;padding:20px}
+.app{max-width:1000px;margin:auto;padding:20px}
 
 h1{font-size:24px;margin-bottom:20px}
-
-.grid{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:16px;
-}
 
 .card{
   background:white;
   border-radius:18px;
   padding:18px;
   box-shadow:0 10px 25px rgba(0,0,0,0.08);
+  margin-bottom:16px;
 }
 
-.label{
-  font-size:12px;
-  font-weight:600;
-  color:#64748b;
-  margin-bottom:6px;
-}
+.label{font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px}
 
 .input, select{
   width:100%;
-  padding:10px;
-  border-radius:10px;
+  padding:12px;
+  border-radius:12px;
   border:1px solid #e5e7eb;
   margin-bottom:10px;
 }
 
 button{
-  width:100%;
   padding:12px;
   border:none;
   border-radius:12px;
   background:var(--green);
   color:white;
   font-weight:700;
+  cursor:pointer;
 }
+
+.row{display:flex;gap:10px}
 
 .list{margin-top:10px}
 .item{padding:10px;border-bottom:1px solid #eee;font-size:14px}
 
-.tabs{
-  display:flex;
-  gap:10px;
-  margin-bottom:15px;
+.planning-block{
+  background:#f9fafb;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:10px;
 }
 
-.tab{
-  flex:1;
-  padding:10px;
-  border-radius:10px;
-  background:#e5e7eb;
-  text-align:center;
-  cursor:pointer;
-}
-
+.tabs{display:flex;gap:10px;margin-bottom:15px}
+.tab{flex:1;padding:10px;border-radius:10px;background:#e5e7eb;text-align:center;cursor:pointer}
 .active{background:var(--green);color:white}
-
 .hidden{display:none}
 </style>
 </head>
@@ -98,48 +83,17 @@ button{
 <h1>HUB Encadrant</h1>
 
 <div class="tabs">
-  <div class="tab active" onclick="showTab('agents')">Agents</div>
+  <div class="tab active" onclick="showTab('planning')">Planning rapide</div>
+  <div class="tab" onclick="showTab('agents')">Agents</div>
   <div class="tab" onclick="showTab('chantiers')">Chantiers</div>
-  <div class="tab" onclick="showTab('planning')">Planning</div>
   <div class="tab" onclick="showTab('suivi')">Suivi</div>
 </div>
 
-<div id="agents" class="card">
-  <div class="label">Nom agent</div>
-  <input id="agentNom" class="input">
+<!-- PLANNING OPTIMISÉ MULTI SITE -->
+<div id="planning" class="card">
 
-  <div class="label">Téléphone</div>
-  <input id="agentTel" class="input">
-
-  <button onclick="addAgent()">Ajouter agent</button>
-
-  <div id="agentsList" class="list"></div>
-</div>
-
-<div id="chantiers" class="card hidden">
-  <div class="label">Nom chantier</div>
-  <input id="chantierNom" class="input">
-
-  <div class="label">Adresse</div>
-  <input id="chantierAdresse" class="input">
-
-  <div class="label">Latitude</div>
-  <input id="chantierLat" class="input">
-
-  <div class="label">Longitude</div>
-  <input id="chantierLon" class="input">
-
-  <button onclick="addChantier()">Ajouter chantier</button>
-
-  <div id="chantiersList" class="list"></div>
-</div>
-
-<div id="planning" class="card hidden">
   <div class="label">Agent</div>
   <select id="selectAgent"></select>
-
-  <div class="label">Chantier</div>
-  <select id="selectChantier"></select>
 
   <div class="label">Jour</div>
   <select id="jour">
@@ -152,20 +106,35 @@ button{
     <option>dimanche</option>
   </select>
 
-  <div class="label">Début</div>
-  <input id="debut" class="input" placeholder="12:00">
+  <div id="zones"></div>
 
-  <div class="label">Fin</div>
-  <input id="fin" class="input" placeholder="13:00">
+  <button onclick="addZone()">➕ Ajouter un passage</button>
+  <br><br>
+  <button onclick="saveMultiPlanning()">💾 Enregistrer la tournée</button>
 
-  <button onclick="addPlanning()">Créer planning</button>
-
-  <div id="planningList" class="list"></div>
 </div>
 
+<!-- AGENTS -->
+<div id="agents" class="card hidden">
+  <input id="agentNom" class="input" placeholder="Nom agent">
+  <input id="agentTel" class="input" placeholder="Téléphone">
+  <button onclick="addAgent()">Ajouter agent</button>
+  <div id="agentsList" class="list"></div>
+</div>
+
+<!-- CHANTIERS -->
+<div id="chantiers" class="card hidden">
+  <input id="chantierNom" class="input" placeholder="Nom chantier">
+  <input id="chantierAdresse" class="input" placeholder="Adresse">
+  <input id="chantierLat" class="input" placeholder="Latitude">
+  <input id="chantierLon" class="input" placeholder="Longitude">
+  <button onclick="addChantier()">Ajouter chantier</button>
+  <div id="chantiersList" class="list"></div>
+</div>
+
+<!-- SUIVI -->
 <div id="suivi" class="card hidden">
-  <div class="label">Historique</div>
-  <div id="suiviList" class="list"></div>
+  <div id="suiviList"></div>
 </div>
 
 </div>
@@ -191,7 +160,40 @@ function showTab(id){
   event.target.classList.add('active');
 }
 
-function val(id){return document.getElementById(id).value}
+let zoneIndex = 0;
+
+function addZone(){
+  const div = document.createElement('div');
+  div.className = 'planning-block';
+
+  div.innerHTML = `
+    <select class="chantierSelect"></select>
+    <div class="row">
+      <input type="time" class="debut">
+      <input type="time" class="fin">
+    </div>
+  `;
+
+  document.getElementById('zones').appendChild(div);
+  loadChantiersOptions();
+}
+
+async function saveMultiPlanning(){
+  const agent = document.getElementById('selectAgent').value;
+  const jour = document.getElementById('jour').value;
+
+  const zones = document.querySelectorAll('.planning-block');
+
+  for(let z of zones){
+    const chantier = z.querySelector('.chantierSelect').value;
+    const debut = z.querySelector('.debut').value;
+    const fin = z.querySelector('.fin').value;
+
+    await db.collection('planning').add({agent, chantier, jour, debut, fin});
+  }
+
+  alert("Tournée enregistrée ✅");
+}
 
 async function addAgent(){
   await db.collection('agents').add({nom:val('agentNom'),tel:val('agentTel')});
@@ -208,51 +210,31 @@ async function addChantier(){
   loadChantiers();
 }
 
-async function addPlanning(){
-  await db.collection('planning').add({
-    agent:val('selectAgent'),
-    chantier:val('selectChantier'),
-    jour:val('jour'),
-    debut:val('debut'),
-    fin:val('fin')
-  });
-  loadPlanning();
-}
+function val(id){return document.getElementById(id).value}
 
 async function loadAgents(){
   const snap=await db.collection('agents').get();
-  let html="";
   let options="";
-  snap.forEach(d=>{
-    const a=d.data();
-    html+=`<div class='item'>${a.nom}</div>`;
-    options+=`<option>${a.nom}</option>`;
-  });
-  document.getElementById('agentsList').innerHTML=html;
+  snap.forEach(d=>options+=`<option>${d.data().nom}</option>`);
   document.getElementById('selectAgent').innerHTML=options;
 }
 
 async function loadChantiers(){
   const snap=await db.collection('chantiers').get();
   let html="";
-  let options="";
-  snap.forEach(d=>{
-    const c=d.data();
-    html+=`<div class='item'>${c.nom}</div>`;
-    options+=`<option>${c.nom}</option>`;
-  });
+  snap.forEach(d=>html+=`<div class='item'>${d.data().nom}</div>`);
   document.getElementById('chantiersList').innerHTML=html;
-  document.getElementById('selectChantier').innerHTML=options;
+  loadChantiersOptions();
 }
 
-async function loadPlanning(){
-  const snap=await db.collection('planning').get();
-  let html="";
-  snap.forEach(d=>{
-    const p=d.data();
-    html+=`<div class='item'>${p.agent} • ${p.chantier}<br>${p.jour} ${p.debut}-${p.fin}</div>`;
-  });
-  document.getElementById('planningList').innerHTML=html;
+async function loadChantiersOptions(){
+  const snap=await db.collection('chantiers').get();
+  const selects=document.querySelectorAll('.chantierSelect');
+
+  let options="";
+  snap.forEach(d=>options+=`<option>${d.data().nom}</option>`);
+
+  selects.forEach(s=>s.innerHTML=options);
 }
 
 async function loadSuivi(){
@@ -260,14 +242,13 @@ async function loadSuivi(){
   let html="";
   snap.forEach(d=>{
     const s=d.data();
-    html+=`<div class='item'>${s.agent} • ${s.chantier}<br>${s.statut}</div>`;
+    html+=`<div class='item'>${s.agent} • ${s.chantier} → ${s.statut}</div>`;
   });
   document.getElementById('suiviList').innerHTML=html;
 }
 
 loadAgents();
 loadChantiers();
-loadPlanning();
 loadSuivi();
 </script>
 
