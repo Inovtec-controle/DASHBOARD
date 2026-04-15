@@ -1413,17 +1413,20 @@ async function saveTasks() {
     await new Promise(r => setTimeout(r, 200));
     tries++;
   }
+// Init PROPRE
+window.addEventListener("load", () => {
+  console.log("App chargée");
 
+  // Sécurité Firebase
   if (!window.firebaseDB) {
-    console.error("Firebase pas prêt");
-    return;
+    console.error("Firebase non chargé");
+  } else {
+    console.log("Firebase OK");
+    loadTasksRealtime();
   }
-setTimeout(() => {
-  loadTasksRealtime();
+
   attachListDnD();
-}, 500);
-  }); 
-  })();
+});
 </script>
 </body>
 </html>
