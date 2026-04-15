@@ -1405,11 +1405,24 @@ async function saveTasks() {
       resetDataBtn.addEventListener("click", handleResetData);
 
       // Init
-(() => {
+(async () => {
+
+  let tries = 0;
+
+  while (!window.firebaseDB && tries < 10) {
+    await new Promise(r => setTimeout(r, 200));
+    tries++;
+  }
+
+  if (!window.firebaseDB) {
+    console.error("Firebase pas prêt");
+    return;
+  }
+
   loadTasksRealtime();
   attachListDnD();
+
 })();
-      })();
 </script>
 </body>
 </html>
