@@ -640,6 +640,27 @@
       }
     }
   </style>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+  apiKey: "AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
+  authDomain: "inovtec-chantiers.firebaseapp.com",
+  projectId: "inovtec-chantiers",
+  storageBucket: "inovtec-chantiers.firebasestorage.app",
+  messagingSenderId: "313162345276",
+  appId: "1:313162345276:web:1a270f797dd736a4060c39"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.firebaseDB = db;
+  window.firebaseDoc = doc;
+  window.firebaseSetDoc = setDoc;
+  window.firebaseGetDoc = getDoc;
+</script>
 </head>
 <body>
   <div class="app-shell">
@@ -808,34 +829,44 @@
       const archiveList = document.getElementById("archiveList");
       const archiveCountEl = document.getElementById("archiveCount");
 
-      function loadTasks() {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              tasks = parsed.map(t => ({
-                ...t,
-                priority: t.priority || "normal",
-                dueDate: t.dueDate || "",
-                archived: Boolean(t.archived) || false,
-                archivedAt: t.archivedAt || ""
-              }));
-            }
-          }
+      async function loadTasks() {
+  try {
+    const db = window.firebaseDB;
+    const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
+    const snap = await window.firebaseGetDoc(ref);
+
+    if (snap.exists()) {
+      tasks = snap.data().tasks || [];
+      return;
+    }
+
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) tasks = JSON.parse(raw);
+
+  } catch (e) {
+    console.error("Erreur Firebase load", e);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) tasks = JSON.parse(raw);
+  }
+}
         } catch (e) {
           console.error("Erreur de lecture des tâches", e);
           tasks = [];
         }
       }
 
-      function saveTasks() {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-        } catch (e) {
-          console.error("Erreur de sauvegarde des tâches", e);
-        }
-      }
+     async function saveTasks() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+
+    const db = window.firebaseDB;
+    const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
+    await window.firebaseSetDoc(ref, { tasks });
+
+  } catch (e) {
+    console.error("Erreur Firebase save", e);
+  }
+}
 
       function formatDate(dateStr) {
         if (!dateStr) return "";
@@ -1370,9 +1401,11 @@
       resetDataBtn.addEventListener("click", handleResetData);
 
       // Init
-      loadTasks();
-      attachListDnD();
-      renderTasks();
+(async () => {
+  await loadTasks();
+  attachListDnD();
+  renderTasks();
+})();
     })();
   </script>
 </body>
