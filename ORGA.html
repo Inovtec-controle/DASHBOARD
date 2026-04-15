@@ -855,12 +855,17 @@
 
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) tasks = JSON.parse(raw);
+try {
+  const db = window.firebaseDB;
+  const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
+  const snap = await window.firebaseGetDoc(ref);
 
-  } catch (e) {
-    console.error("Erreur Firebase load", e);
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) tasks = JSON.parse(raw);
+  if (snap.exists()) {
+    tasks = snap.data().tasks || [];
   }
+
+} catch (e) {
+  console.error("Erreur Firebase", e);
 }
         } catch (e) {
           console.error("Erreur de lecture des tâches", e);
