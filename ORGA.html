@@ -829,16 +829,29 @@
       const archiveList = document.getElementById("archiveList");
       const archiveCountEl = document.getElementById("archiveCount");
 
-      async function loadTasks() {
+     async function loadTasks() {
   try {
-    const db = window.firebaseDB;
-    const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
-    const snap = await window.firebaseGetDoc(ref);
-
-    if (snap.exists()) {
-      tasks = snap.data().tasks || [];
-      return;
+    // 🔥 PRIORITÉ AU LOCAL (ultra important)
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      tasks = JSON.parse(raw);
     }
+
+    // 🔥 ESSAI FIREBASE (sans bloquer)
+    if (window.firebaseDB) {
+      const db = window.firebaseDB;
+      const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
+      const snap = await window.firebaseGetDoc(ref);
+
+      if (snap.exists()) {
+        tasks = snap.data().tasks || tasks;
+      }
+    }
+
+  } catch (e) {
+    console.error("Erreur load Firebase", e);
+  }
+}
 
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) tasks = JSON.parse(raw);
@@ -855,16 +868,20 @@
         }
       }
 
-     async function saveTasks() {
+async function saveTasks() {
   try {
+    // 🔥 SAUVEGARDE LOCALE PRIORITAIRE (important)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 
-    const db = window.firebaseDB;
-    const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
-    await window.firebaseSetDoc(ref, { tasks });
+    // 🔥 TENTATIVE FIREBASE
+    if (window.firebaseDB) {
+      const db = window.firebaseDB;
+      const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
+      await window.firebaseSetDoc(ref, { tasks });
+    }
 
   } catch (e) {
-    console.error("Erreur Firebase save", e);
+    console.error("Firebase erreur MAIS app continue", e);
   }
 }
 
@@ -1406,7 +1423,6 @@
   attachListDnD();
   renderTasks();
 })();
-    })();
   </script>
 </body>
 </html>
