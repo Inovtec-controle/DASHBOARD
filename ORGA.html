@@ -642,7 +642,7 @@
   </style>
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
   apiKey: "AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
@@ -829,28 +829,23 @@
       const archiveList = document.getElementById("archiveList");
       const archiveCountEl = document.getElementById("archiveCount");
 
-     async function loadTasks() {
+ function loadTasksRealtime() {
   try {
-    // 🔥 1. PRIORITÉ AU LOCAL
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      tasks = JSON.parse(raw);
-    }
+    const db = window.firebaseDB;
+    const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
 
-    // 🔥 2. FIREBASE (optionnel)
-    if (window.firebaseDB) {
-      const db = window.firebaseDB;
-      const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
-      const snap = await window.firebaseGetDoc(ref);
-
+    onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        tasks = snap.data().tasks || tasks;
+        tasks = snap.data().tasks || [];
+      } else {
+        tasks = [];
       }
-    }
+
+      renderTasks();
+    });
 
   } catch (e) {
-    console.error("Erreur load Firebase", e);
-    tasks = [];
+    console.error("Erreur Firebase realtime", e);
   }
 }
 
@@ -1404,10 +1399,9 @@ async function saveTasks() {
       resetDataBtn.addEventListener("click", handleResetData);
 
       // Init
-(async () => {
-  await loadTasks();
+(() => {
+  loadTasksRealtime();
   attachListDnD();
-  renderTasks();
 })();
       })();
 </script>
