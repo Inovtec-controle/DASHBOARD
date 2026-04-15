@@ -659,7 +659,7 @@
   window.firebaseDB = db;
   window.firebaseDoc = doc;
   window.firebaseSetDoc = setDoc;
-  window.firebaseGetDoc = getDoc;
+  window.firebaseOnSnapshot= onSnapshot;
 </script>
 </head>
 <body>
@@ -829,12 +829,18 @@
       const archiveList = document.getElementById("archiveList");
       const archiveCountEl = document.getElementById("archiveCount");
 
- function loadTasksRealtime() {
+function loadTasksRealtime() {
   try {
     const db = window.firebaseDB;
+
+    if (!db) {
+      console.error("Firebase non chargé");
+      return;
+    }
+
     const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
 
-    onSnapshot(ref, (snap) => {
+    window.firebaseOnSnapshot(ref, (snap) => {
       if (snap.exists()) {
         tasks = snap.data().tasks || [];
       } else {
