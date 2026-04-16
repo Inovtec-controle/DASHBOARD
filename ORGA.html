@@ -819,9 +819,6 @@ z-index:99999;
         <div class="overdue-badge" id="overdueBadge">
           Aucune tâche en retard
         </div>
-        <button class="btn-reset-data" id="resetDataBtn" title="Effacer toutes les tâches">
-          ⟳ Réinitialiser
-        </button>
         <button id="logoutBtn" class="btn-reset-data">⎋ Déconnexion</button>
       </div>
     </header>
@@ -962,7 +959,6 @@ z-index:99999;
       const dueInput = document.getElementById("taskDueInput");
       const prioritySelect = document.getElementById("taskPrioritySelect");
       const addTaskBtn = document.getElementById("addTaskBtn");
-      const resetDataBtn = document.getElementById("resetDataBtn");
       const overdueBadge = document.getElementById("overdueBadge");
 
       const archiveSection = document.getElementById("archiveSection");
@@ -1549,13 +1545,6 @@ function loadLocalTasks() {
         });
       }
 
-      function handleResetData() {
-        if (!confirm("Effacer toutes les tâches de ce tableau (y compris les archives) ?")) return;
-        tasks = [];
-        saveTasks();
-        renderTasks();
-      }
-
       // Listeners
       addTaskBtn.addEventListener("click", handleAddTask);
       document.getElementById("logoutBtn").addEventListener("click", async () => {
@@ -1567,8 +1556,6 @@ function loadLocalTasks() {
           handleAddTask();
         }
       });
-
-      resetDataBtn.addEventListener("click", handleResetData);
 
       document.getElementById("loginBtn").addEventListener("click", async () => {
   const email = document.getElementById("email").value;
