@@ -642,7 +642,7 @@
   </style>
  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
@@ -655,7 +655,8 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-
+const auth = firebase.auth();
+  
 window.firebaseDB = db;
 window.firebaseDoc = (db, col, docId) => db.collection(col).doc(docId);
 window.firebaseSetDoc = (ref, data) => ref.set(data);
@@ -663,6 +664,12 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
 </script>
 </head>
 <body>
+  <div id="loginScreen" style="position:fixed; inset:0; background:white; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:10px; z-index:9999;">
+  <h2>Connexion</h2>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Mot de passe">
+  <button id="loginBtn">Se connecter</button>
+</div>
   <div class="app-shell">
     <header>
       <div class="app-title">
@@ -815,6 +822,7 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
 
       let tasks = [];
       let draggedTaskId = null;
+      let currentUser = null;
 
       const titleInput = document.getElementById("taskTitleInput");
       const descInput = document.getElementById("taskDescInput");
@@ -838,7 +846,7 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
       return;
     }
 
-    const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
+    const ref = window.firebaseDoc(db, "kanban", currentUser.uid);
 
     window.firebaseOnSnapshot(ref, (snap) => {
       isSyncingFromFirebase = true;
@@ -862,6 +870,7 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
 }
 
 async function saveTasks() {
+  if (!currentUser) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 
@@ -870,7 +879,7 @@ async function saveTasks() {
 
     if (window.firebaseDB) {
       const db = window.firebaseDB;
-      const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
+      const ref = window.firebaseDoc(db, "kanban", currentUser.uid);
       await window.firebaseSetDoc(ref, { tasks });
     }
 
@@ -1424,6 +1433,29 @@ function loadLocalTasks() {
 
       resetDataBtn.addEventListener("click", handleResetData);
 
+      document.getElementById("loginBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch (e) {
+    alert("Erreur : " + e.message);
+  }
+});
+
+      auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+
+    document.getElementById("loginScreen").style.display = "none";
+
+    loadLocalTasks();
+    renderTasks();
+    loadTasksRealtime();
+  }
+});
+  
       // Init
 window.addEventListener("load", () => {
   console.log("App chargée");
