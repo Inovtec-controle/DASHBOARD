@@ -829,7 +829,7 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
       const archiveList = document.getElementById("archiveList");
       const archiveCountEl = document.getElementById("archiveCount");
 
-function loadTasksRealtime() {
+      function loadTasksRealtime() {
   try {
     const db = window.firebaseDB;
 
@@ -860,6 +860,7 @@ function loadTasksRealtime() {
     console.error("Erreur Firebase realtime", e);
   }
 }
+
 async function saveTasks() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
