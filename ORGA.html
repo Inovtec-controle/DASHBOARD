@@ -939,6 +939,7 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
       const archiveCountEl = document.getElementById("archiveCount");
 
       function loadTasksRealtime() {
+        if (!currentUser) return;
   try {
     const db = window.firebaseDB;
 
