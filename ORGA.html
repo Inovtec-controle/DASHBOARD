@@ -829,6 +829,8 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
       const archiveList = document.getElementById("archiveList");
       const archiveCountEl = document.getElementById("archiveCount");
 
+let isSyncingFromFirebase = false;
+
 function loadTasksRealtime() {
   try {
     const db = window.firebaseDB;
@@ -841,11 +843,25 @@ function loadTasksRealtime() {
     const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
 
     window.firebaseOnSnapshot(ref, (snap) => {
+      isSyncingFromFirebase = true;
+
       if (snap.exists()) {
         tasks = snap.data().tasks || [];
       } else {
         tasks = [];
       }
+
+      renderTasks();
+
+      setTimeout(() => {
+        isSyncingFromFirebase = false;
+      }, 100);
+    });
+
+  } catch (e) {
+    console.error("Erreur Firebase realtime", e);
+  }
+}
 
       renderTasks();
     });
@@ -857,10 +873,11 @@ function loadTasksRealtime() {
 
 async function saveTasks() {
   try {
-    // 🔥 SAUVEGARDE LOCALE PRIORITAIRE (important)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 
-    // 🔥 TENTATIVE FIREBASE
+    // 🚫 évite boucle infinie Firebase
+    if (isSyncingFromFirebase) return;
+
     if (window.firebaseDB) {
       const db = window.firebaseDB;
       const ref = window.firebaseDoc(db, "kanban", "kanban_principal");
@@ -1104,7 +1121,17 @@ async function saveTasks() {
           archiveList.appendChild(card);
         });
       }
-
+function loadLocalTasks() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+      tasks = JSON.parse(data);
+    }
+  } catch (e) {
+    console.warn("Erreur lecture localStorage", e);
+    tasks = [];
+  }
+}
       function renderTasks() {
         const lists = document.querySelectorAll(".tasks-list");
         lists.forEach(list => list.innerHTML = "");
@@ -1295,12 +1322,14 @@ async function saveTasks() {
               ? "basse"
               : "normale"
         );
-        if (newPrio !== null) {
-          const val = newPrio.trim().toLowerCase();
-          if (val.startsWith("h")) task.priority = "high";
-          else if (val.startsWith("b")) task.priority = "low";
-          else task.priority = "normal";
-        }
+        if (newDue !== null) {
+  const val = newDue.trim();
+  if (!val || /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    task.dueDate = val;
+  } else {
+    alert("Format invalide. Utilise AAAA-MM-JJ");
+  }
+}
 
         saveTasks();
         renderTasks();
@@ -1369,7 +1398,8 @@ async function saveTasks() {
         const status = list.dataset.listFor;
         if (!draggedTaskId || !status) return;
 
-        const task = tasks.find(t => t.id === draggedTaskId);
+        const id = draggedTaskId || e.dataTransfer?.getData("text/plain");
+        const task = tasks.find(t => t.id === id);
         if (!task || task.archived) return;
 
         task.status = status;
@@ -1405,31 +1435,18 @@ async function saveTasks() {
       resetDataBtn.addEventListener("click", handleResetData);
 
       // Init
-(async () => {
-
-  let tries = 0;
-
-  while (!window.firebaseDB && tries < 10) {
-    await new Promise(r => setTimeout(r, 200));
-    tries++;
-  }
-// Init PROPRE
 window.addEventListener("load", () => {
   console.log("App chargée");
 
-  // Sécurité Firebase
-  if (!window.firebaseDB) {
-    console.error("Firebase non chargé");
-  } else {
-    console.log("Firebase OK");
+  loadLocalTasks();
+  renderTasks();
+
+  if (window.firebaseDB) {
     loadTasksRealtime();
   }
 
   attachListDnD();
 });
-  
-  })();
-      
 </script>
 </body>
 </html>
