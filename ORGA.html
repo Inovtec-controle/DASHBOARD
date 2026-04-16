@@ -866,10 +866,9 @@ function loadTasksRealtime() {
       renderTasks();
     });
 
-  } catch (e) {
+  catch (e) {
     console.error("Erreur Firebase realtime", e);
   }
-}
 
 async function saveTasks() {
   try {
