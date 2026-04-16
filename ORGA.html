@@ -831,6 +831,8 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
 
 let isSyncingFromFirebase = false;
 
+let isSyncingFromFirebase = false;
+
 function loadTasksRealtime() {
   try {
     const db = window.firebaseDB;
