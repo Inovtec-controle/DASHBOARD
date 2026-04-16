@@ -771,7 +771,7 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
         Se connecter
       </button>
     </div>
-  <div class="app-shell">
+  <div class="app-shell"style="display:none;>
     <header>
       <div class="app-title">
         <div class="app-icon">✔</div>
@@ -792,6 +792,7 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
         <button class="btn-reset-data" id="resetDataBtn" title="Effacer toutes les tâches">
           ⟳ Réinitialiser
         </button>
+        <button id="logoutBtn" class="btn-reset-data">⎋ Déconnexion</button>
       </div>
     </header>
 
@@ -1527,6 +1528,9 @@ function loadLocalTasks() {
 
       // Listeners
       addTaskBtn.addEventListener("click", handleAddTask);
+      document.getElementById("logoutBtn").addEventListener("click", async () => {
+  await auth.signOut();
+});
       titleInput.addEventListener("keydown", e => {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
@@ -1547,16 +1551,33 @@ function loadLocalTasks() {
   }
 });
 
-      auth.onAuthStateChanged(user => {
+  auth.onAuthStateChanged(user => {
+
   if (user) {
     currentUser = user;
 
+    // cacher login
     document.getElementById("loginScreen").style.display = "none";
+
+    // afficher app
+    document.querySelector(".app-shell").style.display = "flex";
 
     loadLocalTasks();
     renderTasks();
     loadTasksRealtime();
+
+  } else {
+
+    currentUser = null;
+
+    // afficher login
+    document.getElementById("loginScreen").style.display = "flex";
+
+    // cacher app
+    document.querySelector(".app-shell").style.display = "none";
+
   }
+
 });
   
       // Init
