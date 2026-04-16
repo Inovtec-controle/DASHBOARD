@@ -639,6 +639,95 @@
         white-space: normal;
       }
     }
+    /* ===== LOGIN DESIGN ===== */
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at top left, #e5f9ed 0, #f9fafb 40%, #eef2ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(18px);
+  border-radius: 22px;
+  padding: 28px 22px;
+  box-shadow: 0 15px 35px rgba(15,23,42,0.2);
+  border: 1px solid rgba(148,163,184,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.login-header {
+  text-align: center;
+}
+
+.login-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  font-size: 22px;
+  box-shadow: 0 10px 20px rgba(22,163,74,0.5);
+}
+
+.login-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.login-header p {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login-form input {
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.7);
+  padding: 10px 14px;
+  font-size: 13px;
+  outline: none;
+}
+
+.login-form input:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 1px rgba(22,163,74,0.4);
+}
+
+.login-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(22,163,74,0.5);
+  transition: 0.2s;
+}
+
+.login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 25px rgba(22,163,74,0.6);
+}
   </style>
  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -664,12 +753,23 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
 </script>
 </head>
 <body>
-  <div id="loginScreen" style="position:fixed; inset:0; background:white; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:10px; z-index:9999;">
-  <h2>Connexion</h2>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Mot de passe">
-  <button id="loginBtn">Se connecter</button>
-</div>
+ <div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    
+    <div class="login-header">
+      <div class="login-logo">✔</div>
+      <h2>INOVTEC KONTROL</h2>
+      <p>Connexion à votre espace</p>
+    </div>
+
+    <div class="login-form">
+      <input id="email" type="email" placeholder="Adresse email" />
+      <input id="password" type="password" placeholder="Mot de passe" />
+
+      <button id="loginBtn" class="login-btn">
+        Se connecter
+      </button>
+    </div>
   <div class="app-shell">
     <header>
       <div class="app-title">
