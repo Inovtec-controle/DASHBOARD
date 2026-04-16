@@ -940,6 +940,7 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
 
       function loadTasksRealtime() {
         if (!currentUser) return;
+        
   try {
     const db = window.firebaseDB;
 
@@ -1565,9 +1566,7 @@ window.addEventListener("load", () => {
   loadLocalTasks();
   renderTasks();
 
-  if (window.firebaseDB) {
-    loadTasksRealtime();
-  }
+  if (window.firebaseDB) 
 
   attachListDnD();
 });
