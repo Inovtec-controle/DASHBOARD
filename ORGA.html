@@ -860,14 +860,6 @@ function loadTasksRealtime() {
     console.error("Erreur Firebase realtime", e);
   }
 }
-
-      renderTasks();
-    });
-
-  catch (e) {
-    console.error("Erreur Firebase realtime", e);
-  }
-
 async function saveTasks() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
