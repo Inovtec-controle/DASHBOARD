@@ -843,7 +843,7 @@ window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
     window.firebaseOnSnapshot(ref, (snap) => {
       isSyncingFromFirebase = true;
 
-      if (snap.exists()) {
+      if (snap && snap.data()) {
         tasks = snap.data().tasks || [];
       } else {
         tasks = [];
