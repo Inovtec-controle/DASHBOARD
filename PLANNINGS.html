@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>INOVTEC KONTROL – Fiche Agent</title>
+<title>INOVTEC – Planning Simple</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -15,7 +15,6 @@ body{
   background:#f1f5f9;
 }
 
-/* HEADER */
 header{
   background:#16a34a;
   color:white;
@@ -23,65 +22,15 @@ header{
   font-weight:800;
 }
 
-/* LAYOUT */
 .container{
-  display:flex;
-  gap:10px;
   padding:10px;
 }
 
-/* LEFT PANEL */
-.sidebar{
-  width:220px;
-  background:white;
-  padding:10px;
-  border-radius:10px;
-}
-
-.agent{
-  padding:8px;
-  border-bottom:1px solid #eee;
-  cursor:pointer;
-}
-
-.agent.active{
-  background:#dcfce7;
-}
-
-/* MAIN */
-.main{
-  flex:1;
-}
-
-.card{
-  background:white;
-  border-radius:12px;
-  padding:15px;
-  margin-bottom:10px;
-}
-
-/* TABLE */
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-th, td{
-  border:1px solid #ddd;
-  padding:6px;
-  text-align:center;
-}
-
-th{
-  background:#e2e8f0;
-}
-
-/* INPUTS */
-input, select{
-  width:100%;
+input{
   padding:5px;
   border-radius:6px;
   border:1px solid #ccc;
+  width:100%;
 }
 
 button{
@@ -89,71 +38,60 @@ button{
   color:white;
   border:none;
   padding:8px;
-  border-radius:8px;
-  margin-top:5px;
+  border-radius:6px;
   cursor:pointer;
+  margin:5px 0;
 }
 
-/* RIGHT */
-.summary{
-  width:200px;
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
 }
 
+th, td{
+  border:1px solid #ddd;
+  padding:5px;
+  text-align:center;
+}
+
+th{
+  background:#e2e8f0;
+}
+
+.agent-name{
+  font-weight:600;
+}
 </style>
 </head>
 
 <body>
 
-<header>INOVTEC KONTROL – Fiche Agent</header>
+<header>INOVTEC – Planning rapide</header>
 
 <div class="container">
 
-<!-- AGENTS -->
-<div class="sidebar">
-<input id="agentName" placeholder="Nouvel agent">
-<button onclick="addAgent()">Ajouter</button>
-<div id="agentList"></div>
-</div>
+<input id="newAgent" placeholder="Nom agent">
+<button onclick="addAgent()">+ Ajouter agent</button>
 
-<!-- MAIN -->
-<div class="main">
+<button onclick="save()">💾 Sauvegarder</button>
+<button onclick="generatePDF()">📄 PDF</button>
 
-<div class="card">
-<select id="weekType" onchange="render()">
-<option value="pair">Semaine paire</option>
-<option value="impair">Semaine impair</option>
-</select>
-</div>
-
-<div class="card">
-<h3>Planning</h3>
-<div id="planningTable"></div>
-</div>
-
-<div class="card">
-<h3>Ajouter créneau</h3>
-
-<select id="day"></select>
-<input id="chantier" placeholder="Chantier">
-<input id="start" placeholder="Début">
-<input id="end" placeholder="Fin">
-
-<button onclick="addSlot()">Ajouter</button>
-
-<button onclick="copyWeek()">Copier semaine</button>
-<button onclick="generatePDF()">PDF</button>
-
-</div>
-
-</div>
-
-<!-- SUMMARY -->
-<div class="summary">
-<div class="card">
-<h3>Heures</h3>
-<div id="hours"></div>
-</div>
-</div>
+<table id="planningTable">
+<thead>
+<tr>
+<th>Agent</th>
+<th>Lundi</th>
+<th>Mardi</th>
+<th>Mercredi</th>
+<th>Jeudi</th>
+<th>Vendredi</th>
+<th>Samedi</th>
+<th>Dimanche</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 
 </div>
 
@@ -161,114 +99,58 @@ button{
 
 <script>
 
-let data = JSON.parse(localStorage.getItem("planningFiche")) || {agents:[]};
-let current=0;
+let data = JSON.parse(localStorage.getItem("simplePlanning")) || [];
 
-const days=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
-
-function save(){
-  localStorage.setItem("planningFiche", JSON.stringify(data));
-}
+const days = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 
 function addAgent(){
-  const name=document.getElementById("agentName").value;
-  if(!name)return;
+  const name=document.getElementById("newAgent").value;
+  if(!name) return;
 
-  data.agents.push({name,planning:{pair:{},impair:{}}});
-  document.getElementById("agentName").value="";
-  save();
-  renderAgents();
-}
-
-function renderAgents(){
-  const div=document.getElementById("agentList");
-  div.innerHTML="";
-
-  data.agents.forEach((a,i)=>{
-    const el=document.createElement("div");
-    el.innerText=a.name;
-    el.className="agent"+(i===current?" active":"");
-    el.onclick=()=>{current=i; render();}
-    div.appendChild(el);
+  data.push({
+    name,
+    planning:{}
   });
+
+  document.getElementById("newAgent").value="";
+  render();
 }
 
 function render(){
-  if(!data.agents[current]) return;
+  const tbody=document.querySelector("#planningTable tbody");
+  tbody.innerHTML="";
 
-  const week=document.getElementById("weekType").value;
-  const agent=data.agents[current];
+  data.forEach((agent,i)=>{
+    let row=`<tr><td class="agent-name">${agent.name}</td>`;
 
-  let html="<table><tr><th>Jour</th><th>Chantier</th><th>Début</th><th>Fin</th></tr>";
-
-  let total=0;
-
-  days.forEach(day=>{
-    const slots=agent.planning[week][day]||[];
-
-    slots.forEach(s=>{
-      html+=`<tr>
-        <td>${day}</td>
-        <td>${s.chantier}</td>
-        <td>${s.start}</td>
-        <td>${s.end}</td>
-      </tr>`;
-
-      if(s.start && s.end){
-        const h=(parseFloat(s.end)-parseFloat(s.start))||0;
-        total+=h;
-      }
+    days.forEach(day=>{
+      const val=agent.planning[day] || "";
+      row+=`<td>
+        <input value="${val}" 
+        onchange="update(${i},'${day}',this.value)">
+      </td>`;
     });
-  });
 
-  html+="</table>";
-  document.getElementById("planningTable").innerHTML=html;
-  document.getElementById("hours").innerText=total.toFixed(2)+" h";
+    row+="</tr>";
+    tbody.innerHTML+=row;
+  });
 }
 
-function addSlot(){
-  const agent=data.agents[current];
-  const week=document.getElementById("weekType").value;
-  const day=document.getElementById("day").value;
-
-  if(!agent.planning[week][day]) agent.planning[week][day]=[];
-
-  agent.planning[week][day].push({
-    chantier:document.getElementById("chantier").value,
-    start:document.getElementById("start").value,
-    end:document.getElementById("end").value
-  });
-
-  save();
-  render();
+function update(i,day,value){
+  data[i].planning[day]=value;
 }
 
-function copyWeek(){
-  const agent=data.agents[current];
-  const week=document.getElementById("weekType").value;
-
-  if(week==="pair"){
-    agent.planning.impair=JSON.parse(JSON.stringify(agent.planning.pair));
-  }else{
-    agent.planning.pair=JSON.parse(JSON.stringify(agent.planning.impair));
-  }
-
-  save();
-  render();
+function save(){
+  localStorage.setItem("simplePlanning", JSON.stringify(data));
+  alert("Sauvegardé");
 }
 
 function generatePDF(){
   const container=document.getElementById("pdfContent");
-  container.innerHTML=document.getElementById("planningTable").innerHTML;
-  html2pdf().from(container).save("fiche-agent.pdf");
+  container.innerHTML=document.getElementById("planningTable").outerHTML;
+  html2pdf().from(container).save("planning-simple.pdf");
 }
 
-/* INIT */
-days.forEach(d=>{
-  document.getElementById("day").innerHTML+=`<option>${d}</option>`;
-});
-
-renderAgents();
 render();
 
 </script>
