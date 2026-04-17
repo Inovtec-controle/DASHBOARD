@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>INOVTEC – Planning Simple</title>
+<title>INOVTEC – Planning rapide</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -31,16 +31,17 @@ input{
   border-radius:6px;
   border:1px solid #ccc;
   width:100%;
+  margin-bottom:3px;
 }
 
 button{
   background:#16a34a;
   color:white;
   border:none;
-  padding:8px;
+  padding:6px;
   border-radius:6px;
   cursor:pointer;
-  margin:5px 0;
+  margin-top:3px;
 }
 
 table{
@@ -53,14 +54,31 @@ th, td{
   border:1px solid #ddd;
   padding:5px;
   text-align:center;
+  vertical-align:top;
 }
 
 th{
   background:#e2e8f0;
 }
 
-.agent-name{
-  font-weight:600;
+.cell{
+  display:flex;
+  flex-direction:column;
+}
+
+.slot{
+  display:flex;
+  gap:3px;
+  margin-bottom:3px;
+}
+
+.slot input{
+  font-size:12px;
+}
+
+.add-btn{
+  background:#22c55e;
+  font-size:12px;
 }
 </style>
 </head>
@@ -99,7 +117,7 @@ th{
 
 <script>
 
-let data = JSON.parse(localStorage.getItem("simplePlanning")) || [];
+let data = JSON.parse(localStorage.getItem("simplePlanningMulti")) || [];
 
 const days = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 
@@ -107,11 +125,10 @@ function addAgent(){
   const name=document.getElementById("newAgent").value;
   if(!name) return;
 
-  data.push({
-    name,
-    planning:{}
-  });
+  let planning={};
+  days.forEach(d=>planning[d]=[]);
 
+  data.push({name,planning});
   document.getElementById("newAgent").value="";
   render();
 }
@@ -121,14 +138,21 @@ function render(){
   tbody.innerHTML="";
 
   data.forEach((agent,i)=>{
-    let row=`<tr><td class="agent-name">${agent.name}</td>`;
+    let row=`<tr><td><b>${agent.name}</b></td>`;
 
     days.forEach(day=>{
-      const val=agent.planning[day] || "";
-      row+=`<td>
-        <input value="${val}" 
-        onchange="update(${i},'${day}',this.value)">
-      </td>`;
+      row+=`<td><div class="cell">`;
+
+      agent.planning[day].forEach((slot,j)=>{
+        row+=`
+        <div class="slot">
+          <input value="${slot}" 
+          onchange="update(${i},'${day}',${j},this.value)">
+        </div>`;
+      });
+
+      row+=`<button class="add-btn" onclick="addSlot(${i},'${day}')">+</button>`;
+      row+=`</div></td>`;
     });
 
     row+="</tr>";
@@ -136,19 +160,24 @@ function render(){
   });
 }
 
-function update(i,day,value){
-  data[i].planning[day]=value;
+function addSlot(i,day){
+  data[i].planning[day].push("");
+  render();
+}
+
+function update(i,day,j,value){
+  data[i].planning[day][j]=value;
 }
 
 function save(){
-  localStorage.setItem("simplePlanning", JSON.stringify(data));
+  localStorage.setItem("simplePlanningMulti", JSON.stringify(data));
   alert("Sauvegardé");
 }
 
 function generatePDF(){
   const container=document.getElementById("pdfContent");
   container.innerHTML=document.getElementById("planningTable").outerHTML;
-  html2pdf().from(container).save("planning-simple.pdf");
+  html2pdf().from(container).save("planning.pdf");
 }
 
 render();
