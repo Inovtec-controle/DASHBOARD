@@ -1,161 +1,159 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>INOVTEC KONTROL – Planning UI V2</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INOVTEC KONTROL – Fiche Agent</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
-:root{
-  --bg:#f1f5f9;
-  --panel:#ffffff;
-  --text:#0f172a;
-  --muted:#64748b;
-  --brand:#16a34a;
-  --border:#e2e8f0;
-}
-
 body{
   margin:0;
   font-family:Inter;
-  background:var(--bg);
-  display:flex;
+  background:#f1f5f9;
 }
 
-/* SIDEBAR */
-.sidebar{
-  width:250px;
-  background:#0f172a;
-  color:white;
-  height:100vh;
-  padding:15px;
-}
-
-.sidebar h1{
-  font-size:16px;
-  margin-bottom:20px;
-}
-
-.sidebar input{
-  width:100%;
-  margin-bottom:5px;
-  padding:6px;
-  border-radius:6px;
-  border:none;
-}
-
-.sidebar button{
-  width:100%;
-  margin-bottom:10px;
-}
-
-.sidebar-item{
-  padding:8px;
-  cursor:pointer;
-  border-radius:6px;
-}
-
-.sidebar-item.active{
+/* HEADER */
+header{
   background:#16a34a;
+  color:white;
+  padding:15px;
+  font-weight:800;
+}
+
+/* LAYOUT */
+.container{
+  display:flex;
+  gap:10px;
+  padding:10px;
+}
+
+/* LEFT PANEL */
+.sidebar{
+  width:220px;
+  background:white;
+  padding:10px;
+  border-radius:10px;
+}
+
+.agent{
+  padding:8px;
+  border-bottom:1px solid #eee;
+  cursor:pointer;
+}
+
+.agent.active{
+  background:#dcfce7;
 }
 
 /* MAIN */
 .main{
   flex:1;
+}
+
+.card{
+  background:white;
+  border-radius:12px;
   padding:15px;
-  overflow:auto;
+  margin-bottom:10px;
 }
 
-.topbar{
-  display:flex;
-  gap:10px;
-  margin-bottom:15px;
+/* TABLE */
+table{
+  width:100%;
+  border-collapse:collapse;
 }
 
-select, button{
-  padding:8px;
-  border-radius:8px;
-  border:none;
+th, td{
+  border:1px solid #ddd;
+  padding:6px;
+  text-align:center;
+}
+
+th{
+  background:#e2e8f0;
+}
+
+/* INPUTS */
+input, select{
+  width:100%;
+  padding:5px;
+  border-radius:6px;
+  border:1px solid #ccc;
 }
 
 button{
-  background:var(--brand);
+  background:#16a34a;
   color:white;
-}
-
-/* PLANNING GRID */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:10px;
-}
-
-.day{
-  background:var(--panel);
-  padding:10px;
-  border-radius:10px;
-  min-height:200px;
-}
-
-.day h3{
-  margin-top:0;
-  font-size:14px;
-}
-
-/* SLOT */
-.slot{
-  background:#dcfce7;
-  padding:5px;
+  border:none;
+  padding:8px;
   border-radius:8px;
-  margin-bottom:5px;
-  font-size:12px;
+  margin-top:5px;
+  cursor:pointer;
 }
 
-.slot input, .slot select{
-  width:100%;
-  margin-bottom:3px;
-  font-size:11px;
+/* RIGHT */
+.summary{
+  width:200px;
 }
+
 </style>
 </head>
 
 <body>
 
+<header>INOVTEC KONTROL – Fiche Agent</header>
+
+<div class="container">
+
+<!-- AGENTS -->
 <div class="sidebar">
-<h1>INOVTEC</h1>
-
-<input id="agentInput" placeholder="Agent">
-<button onclick="addAgent()">+ Agent</button>
-
+<input id="agentName" placeholder="Nouvel agent">
+<button onclick="addAgent()">Ajouter</button>
 <div id="agentList"></div>
-
-<hr>
-
-<input id="chantierInput" placeholder="Chantier">
-<button onclick="addChantier()">+ Chantier</button>
-
-<div id="chantierList"></div>
-
 </div>
 
+<!-- MAIN -->
 <div class="main">
 
-<div class="topbar">
-<select id="agentSelect" onchange="selectAgent(this.value)"></select>
-
-<select id="weekType" onchange="renderPlanning()">
+<div class="card">
+<select id="weekType" onchange="render()">
 <option value="pair">Semaine paire</option>
 <option value="impair">Semaine impair</option>
 </select>
+</div>
+
+<div class="card">
+<h3>Planning</h3>
+<div id="planningTable"></div>
+</div>
+
+<div class="card">
+<h3>Ajouter créneau</h3>
+
+<select id="day"></select>
+<input id="chantier" placeholder="Chantier">
+<input id="start" placeholder="Début">
+<input id="end" placeholder="Fin">
+
+<button onclick="addSlot()">Ajouter</button>
 
 <button onclick="copyWeek()">Copier semaine</button>
 <button onclick="generatePDF()">PDF</button>
+
 </div>
 
-<div id="planningGrid" class="grid"></div>
+</div>
+
+<!-- SUMMARY -->
+<div class="summary">
+<div class="card">
+<h3>Heures</h3>
+<div id="hours"></div>
+</div>
+</div>
 
 </div>
 
@@ -163,115 +161,90 @@ button{
 
 <script>
 
-let data = JSON.parse(localStorage.getItem("planningUI2")) || {
-  agents:[],
-  chantiers:[]
-};
-
-let currentAgentIndex = 0;
+let data = JSON.parse(localStorage.getItem("planningFiche")) || {agents:[]};
+let current=0;
 
 const days=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 
 function save(){
-  localStorage.setItem("planningUI2", JSON.stringify(data));
+  localStorage.setItem("planningFiche", JSON.stringify(data));
 }
 
-/* AGENTS */
 function addAgent(){
-  const name=document.getElementById("agentInput").value;
-  if(!name) return;
+  const name=document.getElementById("agentName").value;
+  if(!name)return;
 
   data.agents.push({name,planning:{pair:{},impair:{}}});
-  document.getElementById("agentInput").value="";
+  document.getElementById("agentName").value="";
   save();
   renderAgents();
 }
 
 function renderAgents(){
-  const list=document.getElementById("agentList");
-  const select=document.getElementById("agentSelect");
-
-  list.innerHTML="";
-  select.innerHTML="";
+  const div=document.getElementById("agentList");
+  div.innerHTML="";
 
   data.agents.forEach((a,i)=>{
-    list.innerHTML+=`<div class="sidebar-item ${i===currentAgentIndex?"active":""}" onclick="selectAgent(${i})">${a.name}</div>`;
-    select.innerHTML+=`<option value="${i}">${a.name}</option>`;
+    const el=document.createElement("div");
+    el.innerText=a.name;
+    el.className="agent"+(i===current?" active":"");
+    el.onclick=()=>{current=i; render();}
+    div.appendChild(el);
   });
-
-  select.value=currentAgentIndex;
 }
 
-function selectAgent(i){
-  currentAgentIndex=parseInt(i);
-  renderAgents();
-  renderPlanning();
-}
-
-/* CHANTIERS */
-function addChantier(){
-  const name=document.getElementById("chantierInput").value;
-  if(!name)return;
-
-  data.chantiers.push(name);
-  document.getElementById("chantierInput").value="";
-  save();
-  renderChantiers();
-}
-
-function renderChantiers(){
-  document.getElementById("chantierList").innerHTML=data.chantiers.join("<br>");
-}
-
-/* PLANNING */
-function renderPlanning(){
-  const grid=document.getElementById("planningGrid");
-  grid.innerHTML="";
+function render(){
+  if(!data.agents[current]) return;
 
   const week=document.getElementById("weekType").value;
-  const agent=data.agents[currentAgentIndex];
+  const agent=data.agents[current];
 
-  if(!agent) return;
+  let html="<table><tr><th>Jour</th><th>Chantier</th><th>Début</th><th>Fin</th></tr>";
+
+  let total=0;
 
   days.forEach(day=>{
-    if(!agent.planning[week][day]) agent.planning[week][day]=[];
+    const slots=agent.planning[week][day]||[];
 
-    let html=`<div class="day"><h3>${day}</h3>`;
+    slots.forEach(s=>{
+      html+=`<tr>
+        <td>${day}</td>
+        <td>${s.chantier}</td>
+        <td>${s.start}</td>
+        <td>${s.end}</td>
+      </tr>`;
 
-    agent.planning[week][day].forEach((slot,i)=>{
-      html+=`
-      <div class="slot">
-        <select onchange="updateSlot('${day}',${i},'chantier',this.value)">
-          ${data.chantiers.map(c=>`<option ${c===slot.chantier?"selected":""}>${c}</option>`).join("")}
-        </select>
-        <input value="${slot.start}" placeholder="Début" onchange="updateSlot('${day}',${i},'start',this.value)">
-        <input value="${slot.end}" placeholder="Fin" onchange="updateSlot('${day}',${i},'end',this.value)">
-      </div>`;
+      if(s.start && s.end){
+        const h=(parseFloat(s.end)-parseFloat(s.start))||0;
+        total+=h;
+      }
     });
-
-    html+=`<button onclick="addSlot('${day}')">+</button></div>`;
-
-    grid.innerHTML+=html;
   });
+
+  html+="</table>";
+  document.getElementById("planningTable").innerHTML=html;
+  document.getElementById("hours").innerText=total.toFixed(2)+" h";
 }
 
-function addSlot(day){
+function addSlot(){
+  const agent=data.agents[current];
   const week=document.getElementById("weekType").value;
-  const agent=data.agents[currentAgentIndex];
+  const day=document.getElementById("day").value;
 
-  agent.planning[week][day].push({chantier:"",start:"",end:""});
-  renderPlanning();
-}
+  if(!agent.planning[week][day]) agent.planning[week][day]=[];
 
-function updateSlot(day,index,field,value){
-  const week=document.getElementById("weekType").value;
-  data.agents[currentAgentIndex].planning[week][day][index][field]=value;
+  agent.planning[week][day].push({
+    chantier:document.getElementById("chantier").value,
+    start:document.getElementById("start").value,
+    end:document.getElementById("end").value
+  });
+
   save();
+  render();
 }
 
-/* COPY */
 function copyWeek(){
-  const agent=data.agents[currentAgentIndex];
+  const agent=data.agents[current];
   const week=document.getElementById("weekType").value;
 
   if(week==="pair"){
@@ -280,45 +253,23 @@ function copyWeek(){
     agent.planning.pair=JSON.parse(JSON.stringify(agent.planning.impair));
   }
 
-  renderPlanning();
   save();
+  render();
 }
 
-/* PDF */
 function generatePDF(){
   const container=document.getElementById("pdfContent");
-  container.innerHTML="";
-
-  data.agents.forEach(agent=>{
-    let html=`<h2>${agent.name}</h2>`;
-
-    ["pair","impair"].forEach(week=>{
-      html+=`<h3>Semaine ${week}</h3><table border="1" width="100%">`;
-
-      days.forEach(day=>{
-        (agent.planning[week][day]||[]).forEach(slot=>{
-          html+=`<tr>
-            <td>${day}</td>
-            <td>${slot.chantier}</td>
-            <td>${slot.start}</td>
-            <td>${slot.end}</td>
-          </tr>`;
-        });
-      });
-
-      html+=`</table>`;
-    });
-
-    container.innerHTML+=html;
-  });
-
-  html2pdf().from(container).save("planning.pdf");
+  container.innerHTML=document.getElementById("planningTable").innerHTML;
+  html2pdf().from(container).save("fiche-agent.pdf");
 }
 
 /* INIT */
+days.forEach(d=>{
+  document.getElementById("day").innerHTML+=`<option>${d}</option>`;
+});
+
 renderAgents();
-renderChantiers();
-renderPlanning();
+render();
 
 </script>
 
