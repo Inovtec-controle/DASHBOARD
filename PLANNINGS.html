@@ -1,1 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>INOVTEC KONTROL – Planning Pro</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+:root{
+  --bg:#f1f5f9;
+  --panel:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+  --brand:#16a34a;
+  --border:#cbd5e1;
+}
+
+body{
+  margin:0;
+  font-family:Inter,sans-serif;
+  background:var(--bg);
+}
+
+header{
+  background:var(--brand);
+  color:#fff;
+  padding:15px;
+  font-weight:800;
+}
+
+.container{
+  display:flex;
+  flex-wrap:wrap;
+}
+
+.panel{
+  background:var(--panel);
+  border-radius:12px;
+  padding:15px;
+  margin:10px;
+  flex:1;
+  min-width:300px;
+}
+
+h2{margin-top:0;}
+
+input,select{
+  width:100%;
+  padding:8px;
+  margin-bottom:5px;
+  border-radius:8px;
+  border:1px solid var(--border);
+}
+
+button{
+  background:var(--brand);
+  color:white;
+  border:none;
+  padding:8px;
+  border-radius:8px;
+  cursor:pointer;
+  margin:3px 0;
+}
+
+.agent.active{
+  background:#dcfce7;
+}
+
+.slot{
+  border:1px solid var(--border);
+  padding:5px;
+  border-radius:8px;
+  margin-bottom:5px;
+  background:#f8fafc;
+}
+
+.day-block{
+  margin-bottom:10px;
+  padding:10px;
+  border-radius:10px;
+  background:#f1f5f9;
+}
+
+.pdf{
+  font-family:Inter;
+  padding:20px;
+}
+
+.pdf h1{
+  text-align:center;
+}
+
+.pdf-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-bottom:20px;
+}
+
+.pdf-table td, .pdf-table th{
+  border:1px solid #999;
+  padding:6px;
+}
+
+.pdf-header{
+  background:#e2e8f0;
+  font-weight:600;
+}
+</style>
+</head>
+
+<body>
+
+<header>INOVTEC KONTROL – Planning Avancé</header>
+
+<div class="container">
+
+<div class="panel">
+<h2>Agents</h2>
+<input id="agentName" placeholder="Nom agent">
+<button onclick="addAgent()">Ajouter</button>
+<div id="agents"></div>
+</div>
+
+<div class="panel">
+<h2>Chantiers</h2>
+<input id="chantierName" placeholder="Nom chantier">
+<button onclick="addChantier()">Ajouter</button>
+<div id="chantiers"></div>
+</div>
+
+<div class="panel">
+<h2>Planning</h2>
+
+<select id="weekType" onchange="renderPlanning()">
+<option value="pair">Semaine paire</option>
+<option value="impair">Semaine impair</option>
+</select>
+
+<button onclick="copyWeek()">Copier semaine</button>
+
+<div id="planning"></div>
+
+<button onclick="save()">💾 Enregistrer</button>
+<button onclick="generatePDF()">📄 PDF</button>
+
+</div>
+
+</div>
+
+<div id="pdfContent" style="display:none"></div>
+
+<script>
+
+let data = JSON.parse(localStorage.getItem("planningPro")) || {
+  agents:[],
+  chantiers:[]
+};
+
+let selectedAgent=null;
+
+const days=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+
+function saveStorage(){
+  localStorage.setItem("planningPro",JSON.stringify(data));
+}
+
+function addAgent(){
+  const name=document.getElementById("agentName").value;
+  if(!name)return;
+
+  data.agents.push({
+    name,
+    planning:{pair:{},impair:{}}
+  });
+
+  document.getElementById("agentName").value="";
+  saveStorage();
+  renderAgents();
+}
+
+function addChantier(){
+  const name=document.getElementById("chantierName").value;
+  if(!name)return;
+
+  data.chantiers.push(name);
+  document.getElementById("chantierName").value="";
+  saveStorage();
+  renderChantiers();
+}
+
+function renderAgents(){
+  const div=document.getElementById("agents");
+  div.innerHTML="";
+
+  data.agents.forEach((a,i)=>{
+    const el=document.createElement("div");
+    el.innerText=a.name;
+    el.className="agent"+(selectedAgent===i?" active":"");
+    el.onclick=()=>{
+      selectedAgent=i;
+      renderAgents();
+      renderPlanning();
+    };
+    div.appendChild(el);
+  });
+}
+
+function renderChantiers(){
+  const div=document.getElementById("chantiers");
+  div.innerHTML=data.chantiers.join("<br>");
+}
+
+function renderPlanning(){
+  const container=document.getElementById("planning");
+  container.innerHTML="";
+
+  if(selectedAgent===null)return;
+
+  const week=document.getElementById("weekType").value;
+  const agent=data.agents[selectedAgent];
+
+  days.forEach(day=>{
+    if(!agent.planning[week][day]) agent.planning[week][day]=[];
+
+    const block=document.createElement("div");
+    block.className="day-block";
+
+    let html=`<b>${day}</b><br>`;
+
+    agent.planning[week][day].forEach((slot,index)=>{
+      html+=`
+      <div class="slot">
+        <select onchange="updateSlot('${day}',${index},'chantier',this.value)">
+          ${data.chantiers.map(c=>`<option ${c===slot.chantier?"selected":""}>${c}</option>`).join("")}
+        </select>
+        <input value="${slot.start}" placeholder="Début" onchange="updateSlot('${day}',${index},'start',this.value)">
+        <input value="${slot.end}" placeholder="Fin" onchange="updateSlot('${day}',${index},'end',this.value)">
+      </div>`;
+    });
+
+    html+=`<button onclick="addSlot('${day}')">+ Créneau</button>`;
+    block.innerHTML=html;
+    container.appendChild(block);
+  });
+}
+
+function addSlot(day){
+  const week=document.getElementById("weekType").value;
+  const agent=data.agents[selectedAgent];
+
+  agent.planning[week][day].push({chantier:"",start:"",end:""});
+  renderPlanning();
+}
+
+function updateSlot(day,index,field,value){
+  const week=document.getElementById("weekType").value;
+  data.agents[selectedAgent].planning[week][day][index][field]=value;
+  saveStorage();
+}
+
+function save(){
+  saveStorage();
+  alert("Sauvegardé");
+}
+
+function copyWeek(){
+  const agent=data.agents[selectedAgent];
+  if(!agent)return;
+
+  if(document.getElementById("weekType").value==="pair"){
+    agent.planning.impair=JSON.parse(JSON.stringify(agent.planning.pair));
+  }else{
+    agent.planning.pair=JSON.parse(JSON.stringify(agent.planning.impair));
+  }
+
+  renderPlanning();
+  saveStorage();
+}
+
+function generatePDF(){
+  const container=document.getElementById("pdfContent");
+  container.innerHTML="";
+
+  data.agents.forEach(agent=>{
+    let html=`<div class="pdf">
+    <h1>${agent.name}</h1>`;
+
+    ["pair","impair"].forEach(week=>{
+      html+=`<h2>Semaine ${week}</h2>
+      <table class="pdf-table">
+      <tr class="pdf-header">
+        <th>Jour</th><th>Chantier</th><th>Début</th><th>Fin</th>
+      </tr>`;
+
+      days.forEach(day=>{
+        const slots=agent.planning[week][day]||[];
+
+        if(slots.length===0){
+          html+=`<tr><td>${day}</td><td colspan="3"></td></tr>`;
+        }else{
+          slots.forEach((s,i)=>{
+            html+=`
+            <tr>
+              ${i===0?`<td rowspan="${slots.length}">${day}</td>`:""}
+              <td>${s.chantier||""}</td>
+              <td>${s.start||""}</td>
+              <td>${s.end||""}</td>
+            </tr>`;
+          });
+        }
+      });
+
+      html+=`</table>`;
+    });
+
+    html+=`</div>`;
+    container.innerHTML+=html;
+  });
+
+  html2pdf().from(container).save("planning-inovtec.pdf");
+}
+
+renderAgents();
+renderChantiers();
+
+</script>
+
+</body>
+</html>
