@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Planning PRO FINAL</title>
+<title>Planning PRO Stable</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -86,7 +85,6 @@ button{width:100%;margin-top:10px;padding:10px;border:none;border-radius:6px;bac
 
 <script>
 
-/* ===== DATA ===== */
 let agents=JSON.parse(localStorage.getItem("agents"))||[
 {name:"Agent 1",color:"#16a34a",copies:2},
 {name:"Agent 2",color:"#3b82f6",copies:2}
@@ -98,7 +96,6 @@ let weekType=localStorage.getItem("weekType")||"pair";
 const days=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 const grid=document.getElementById("grid");
 
-/* ===== SAVE ===== */
 function saveAgents(){localStorage.setItem("agents",JSON.stringify(agents));}
 function getEvents(){return JSON.parse(localStorage.getItem("events_"+weekType))||[];}
 function saveEvents(e){localStorage.setItem("events_"+weekType,JSON.stringify(e));}
@@ -117,7 +114,6 @@ document.getElementById("weekDisplay").innerText=getWeekDates();
 function renderAgents(){
 const el=document.getElementById("agents");
 el.innerHTML="";
-
 agents.forEach((a,i)=>{
 const div=document.createElement("div");
 div.className="agent"+(i===selectedAgent?" active":"");
@@ -171,7 +167,6 @@ grid.innerHTML+=`<div class="cell" data-day="${d}" data-hour="${h}"></div>`;
 }
 
 const events=getEvents();
-
 events.forEach((e,i)=>{
 if(e.agent!==selectedAgent)return;
 drawEvent(e,i,events);
@@ -181,23 +176,28 @@ drawEvent(e,i,events);
 /* ===== EVENT ===== */
 function drawEvent(e,i,events){
 
-const colWidth = grid.offsetWidth/8;
-
 const div=document.createElement("div");
 div.className="event";
 
 function updatePosition(){
-div.style.left = (colWidth*(e.day+1)+5)+"px";
-div.style.width = (colWidth-10)+"px";
-div.style.top = (e.start*60)+"px";
-div.style.height = ((e.end-e.start)*60)+"px";
+const cell=document.querySelector(`.cell[data-day="${e.day}"][data-hour="0"]`);
+if(!cell)return;
+
+const rect=cell.getBoundingClientRect();
+const gridRect=grid.getBoundingClientRect();
+
+div.style.left=(rect.left-gridRect.left+5)+"px";
+div.style.width=(rect.width-10)+"px";
+div.style.top=(e.start*60)+"px";
+div.style.height=((e.end-e.start)*60)+"px";
 }
 
 updatePosition();
 div.style.background=e.color;
 div.innerHTML=e.title+'<div class="resize"></div>';
 
-div.oncontextmenu=(ev)=>{
+/* DELETE */
+div.oncontextmenu=ev=>{
 ev.preventDefault();
 if(confirm("Supprimer ?")){
 events.splice(i,1);
@@ -206,35 +206,30 @@ renderGrid();
 }
 };
 
-/* DRAG COMPLET */
-div.onmousedown=(ev)=>{
+/* DRAG */
+div.onmousedown=ev=>{
 if(ev.button===2)return;
 
-const startX=ev.clientX;
-const startY=ev.clientY;
-
-const origDay=e.day;
-const origStart=e.start;
-
 document.onmousemove=m=>{
+const gridRect=grid.getBoundingClientRect();
 
-let dx=m.clientX-startX;
-let dy=m.clientY-startY;
+let x=m.clientX-gridRect.left;
+let y=m.clientY-gridRect.top;
 
-/* CHANGE JOUR */
-let newDay = origDay + Math.round(dx/colWidth);
-newDay=Math.max(0,Math.min(6,newDay));
+let colWidth=grid.querySelector(".cell").offsetWidth;
+let day=Math.floor(x/colWidth)-1;
+day=Math.max(0,Math.min(6,day));
 
-/* CHANGE HEURE */
-let newStart = origStart + dy/60;
-newStart = Math.round(newStart*4)/4; // 15 min
+let hour=y/60;
+hour=Math.round(hour*4)/4;
 
-e.day=newDay;
-e.start=newStart;
-e.end=newStart+(e.end-e.start);
+let duration=e.end-e.start;
+
+e.day=day;
+e.start=hour;
+e.end=hour+duration;
 
 updatePosition();
-
 };
 
 document.onmouseup=()=>{
@@ -247,19 +242,20 @@ renderGrid();
 
 /* RESIZE */
 const res=div.querySelector(".resize");
-
-res.onmousedown=(ev)=>{
+res.onmousedown=ev=>{
 ev.stopPropagation();
 
-const startY=ev.clientY;
-const origHeight=e.end-e.start;
-
 document.onmousemove=m=>{
-let dy=m.clientY-startY;
-let newDur = origHeight + dy/60;
-newDur = Math.round(newDur*4)/4;
-e.end=e.start+newDur;
+const gridRect=grid.getBoundingClientRect();
+let y=m.clientY-gridRect.top;
+
+let newEnd=y/60;
+newEnd=Math.round(newEnd*4)/4;
+
+if(newEnd>e.start){
+e.end=newEnd;
 updatePosition();
+}
 };
 
 document.onmouseup=()=>{
@@ -273,7 +269,7 @@ renderGrid();
 grid.appendChild(div);
 }
 
-/* ===== CREATE ===== */
+/* CREATE */
 grid.addEventListener("click",e=>{
 const cell=e.target.closest(".cell");
 if(!cell)return;
@@ -299,7 +295,7 @@ saveEvents(events);
 renderGrid();
 });
 
-/* ===== WEEK TYPE ===== */
+/* WEEK */
 document.getElementById("weekType").value=weekType;
 document.getElementById("weekType").onchange=function(){
 weekType=this.value;
@@ -307,7 +303,7 @@ localStorage.setItem("weekType",weekType);
 renderGrid();
 };
 
-/* ===== PDF ===== */
+/* PDF */
 function generatePDF(){
 const {jsPDF}=window.jspdf;
 const doc=new jsPDF("landscape");
@@ -340,7 +336,7 @@ doc.text(`${e.start}h-${e.end}h ${e.title}`,10+d*40,y);
 doc.save("planning.pdf");
 }
 
-/* ===== INIT ===== */
+/* INIT */
 renderAgents();
 renderDays();
 renderGrid();
