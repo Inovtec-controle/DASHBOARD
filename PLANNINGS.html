@@ -25,13 +25,14 @@ body{display:flex;height:100vh;background:#f3f4f6;}
 }
 .agent.active{background:#dbeafe;}
 
-.copy-badge{
+.copy-input{
+  width:50px;
+  border-radius:20px;
+  border:none;
   background:#16a34a;
   color:#fff;
-  padding:4px 8px;
-  border-radius:20px;
-  font-size:12px;
-  cursor:pointer;
+  text-align:center;
+  padding:4px;
 }
 
 .add{background:#16a34a;color:#fff;padding:8px;text-align:center;border-radius:6px;cursor:pointer;margin-top:10px;}
@@ -49,8 +50,7 @@ button{width:100%;margin-top:10px;padding:10px;border:none;border-radius:6px;bac
 .hour{height:60px;font-size:12px;border-bottom:1px solid #eee;}
 .cell{border:1px solid #eee;height:60px;}
 
-.event{position:absolute;border-radius:6px;color:#fff;font-size:12px;padding:3px;cursor:grab;}
-.resize{height:6px;background:rgba(255,255,255,0.6);position:absolute;bottom:0;left:0;right:0;}
+.event{position:absolute;border-radius:6px;color:#fff;font-size:12px;padding:3px;background:#16a34a;}
 </style>
 </head>
 
@@ -128,26 +128,24 @@ function renderAgents(){
     const name=document.createElement("span");
     name.textContent=a.name;
 
-    const badge=document.createElement("span");
-    badge.className="copy-badge";
-    badge.textContent=a.copies;
+    const input=document.createElement("input");
+    input.type="number";
+    input.value=a.copies;
+    input.min=2;
+    input.className="copy-input";
 
-    /* AUGMENTER COPIES */
-    badge.onclick=(e)=>{
-      e.stopPropagation();
-      a.copies++;
+    input.onchange=()=>{
+      let val=parseInt(input.value);
+      if(!val || val<2){
+        val=2;
+        input.value=2;
+      }
+      a.copies=val;
       saveAgents();
-      renderAgents();
-    };
-
-    /* DIMINUTION BLOQUÉE */
-    badge.oncontextmenu=(e)=>{
-      e.preventDefault();
-      alert("Impossible de diminuer les copies");
     };
 
     div.appendChild(name);
-    div.appendChild(badge);
+    div.appendChild(input);
 
     div.onclick=()=>{
       selectedAgent=i;
@@ -155,7 +153,7 @@ function renderAgents(){
       renderGrid();
     };
 
-    /* RENAME */
+    /* rename */
     div.ondblclick=()=>{
       const n=prompt("Renommer :",a.name);
       if(n){
@@ -165,7 +163,7 @@ function renderAgents(){
       }
     };
 
-    /* DELETE */
+    /* delete */
     div.oncontextmenu=(e)=>{
       e.preventDefault();
       if(confirm("Supprimer agent ?")){
@@ -222,7 +220,7 @@ function drawEvent(e,i,events){
   div.style.height=((e.end-e.start)*60)+"px";
   div.style.background=e.color;
 
-  div.innerHTML=e.title+`<div class="resize"></div>`;
+  div.textContent=e.title;
 
   div.oncontextmenu=(ev)=>{
     ev.preventDefault();
@@ -280,32 +278,17 @@ function generatePDF(){
 
       doc.text(`${agent.name} - ${getWeekDates()}`,10,10);
 
-      let totalWeek=0;
-
       days.forEach((day,d)=>{
-
         let y=20;
-        let dayTotal=0;
-
         doc.text(day,10+d*40,y);
 
         const list=events.filter(e=>e.agent===i && e.day===d);
 
         list.forEach(e=>{
-          const dur=e.end-e.start;
-          dayTotal+=dur;
-          totalWeek+=dur;
-
           y+=6;
-          doc.text(`${e.start}h-${e.end}h`,10+d*40,y);
-          doc.text(e.title,10+d*40,y+4);
+          doc.text(`${e.start}h-${e.end}h ${e.title}`,10+d*40,y);
         });
-
-        doc.text(`Total: ${dayTotal.toFixed(2)}h`,10+d*40,180);
-
       });
-
-      doc.text(`Total semaine: ${totalWeek.toFixed(2)}h`,10,200);
 
     }
 
