@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Tableau de bord – Mes applications</title>
 
-  <!-- iPhone / Android friendly -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#16a34a">
 
-  <!-- Police Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -64,7 +62,6 @@
       overflow:hidden;
     }
 
-    /* Barre de statut style smartphone */
     .status-bar{
       display:flex;
       justify-content:space-between;
@@ -73,40 +70,6 @@
       font-size:11px;
       padding:4px 6px 0;
       opacity:.9;
-    }
-
-    .status-bar-right{
-      display:flex;
-      gap:6px;
-      align-items:center;
-    }
-
-    .pill-signal{
-      width:36px;
-      height:16px;
-      border-radius:999px;
-      border:1px solid rgba(148,163,184,.6);
-      display:flex;
-      align-items:center;
-      justify-content:flex-end;
-      padding:0 4px;
-      gap:2px;
-      font-size:10px;
-    }
-
-    .battery-bar{
-      width:16px;
-      height:8px;
-      border-radius:999px;
-      border:1px solid rgba(148,163,184,.7);
-      position:relative;
-      overflow:hidden;
-    }
-    .battery-bar-fill{
-      position:absolute;
-      inset:1px;
-      border-radius:999px;
-      background:#22c55e;
     }
 
     .screen{
@@ -133,26 +96,6 @@
       letter-spacing:-0.03em;
       color:#020617;
     }
-    .title-block p{
-      margin:4px 0 0;
-      font-size:13px;
-      color:var(--muted);
-    }
-
-    .avatar-badge{
-      width:32px;
-      height:32px;
-      border-radius:999px;
-      background:linear-gradient(135deg,#22c55e,#a3e635);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:17px;
-      color:#022c22;
-      box-shadow:0 8px 18px rgba(34,197,94,.35);
-    }
-
-    /* HOME GRID */
 
     #home-screen{
       flex:1;
@@ -160,8 +103,6 @@
       flex-direction:column;
       gap:12px;
       overflow-y:auto;
-      padding-bottom:4px;
-      -webkit-overflow-scrolling:touch;
     }
 
     .section-label{
@@ -181,170 +122,141 @@
     .app-card{
       background:var(--panel);
       border-radius:var(--radius-xl);
-      padding:10px 10px 11px;
+      padding:10px;
       border:1px solid var(--border);
       display:flex;
       flex-direction:column;
       gap:6px;
       cursor:pointer;
       box-shadow:0 8px 18px rgba(15,23,42,.12);
-      transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
-      touch-action:manipulation;
+      transition:transform .12s ease, box-shadow .12s ease;
     }
 
     .app-card:active{
-      transform:scale(.97) translateY(1px);
-      box-shadow:0 3px 10px rgba(15,23,42,.2);
+      transform:scale(.97);
     }
 
     .app-icon{
-      width:28px;
-      height:28px;
+      width:34px;
+      height:34px;
       border-radius:999px;
       background:var(--brand-soft);
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size:16px;
+    }
+
+    .app-icon img{
+      width:18px;
+      height:18px;
+      object-fit:contain;
+      filter:brightness(0); /* force noir */
     }
 
     .app-title{
       font-size:14px;
       font-weight:600;
-      color:#020617;
     }
+
     .app-sub{
       font-size:11px;
       color:var(--muted);
     }
 
-    /* BOTTOM HOME INDICATOR (style iPhone) */
     .home-indicator{
       height:4px;
       width:82px;
       border-radius:999px;
       background:rgba(15,23,42,.85);
       margin:0 auto 2px;
-      opacity:.9;
-    }
-
-    @media (max-width:600px){
-      .screen{
-        padding:14px 10px 12px;
-      }
-      .app-grid{
-        grid-template-columns:repeat(2,minmax(0,1fr));
-      }
-    }
-
-    @media (max-width:380px){
-      .screen{
-        padding:10px 8px 10px;
-      }
-      .app-grid{
-        grid-template-columns:repeat(1,minmax(0,1fr));
-      }
-    }
-
-    @media (min-width:600px){
-      body{
-        padding:18px;
-      }
-      .screen{
-        padding:18px 16px 16px;
-      }
     }
   </style>
 </head>
+
 <body>
-  <div class="app-shell">
-    <!-- Barre "statut" style smartphone -->
-    <div class="status-bar">
-      <div>Tableau de bord</div>
-      <div class="status-bar-right">
-      </div>
-    </div>
+<div class="app-shell">
 
-    <div class="screen">
-      <header>
-        <div class="title-block">
-          <h1>Tableau de bord</h1>
-          <p></p>
-        </div>
-      </header>
-
-      <!-- ÉCRAN D'ACCUEIL AVEC LES CARTES D'APPS -->
-      <div id="home-screen">
-        <div>
-          <div class="section-label">Mes applications</div>
-          <div class="app-grid">
-            <!-- BOUTON KONTROL : ouvre le fichier KONTROL.html du dépôt -->
-            <div class="app-card" onclick="openFeature('KONTROL.html')">
-              <div class="app-icon">📋</div>
-              <div class="app-title">KONTROL</div>
-              <div class="app-sub">Contrôle qualité – Résidences / Bureaux</div>
-            </div>
-            
-            <div class="app-card" onclick="openFeature('INFOCHANTIERS.html')">
-              <div class="app-icon">📋</div>
-              <div class="app-title">Infos Chantiers</div>
-              <div class="app-sub">Infos sites</div>
-            </div>
-            
-            <div class="app-card" onclick="openFeature('ORGA.html')">
-              <div class="app-icon"></div>
-              <div class="app-title">Orga</div>
-              <div class="app-sub">Heures décimales, totaux, salaires…</div>
-            </div>
-            
-             <div class="app-card" onclick="openFeature('TEMPS.html')">
-              <div class="app-icon">⏱️</div>
-              <div class="app-title">Temps</div>
-              <div class="app-sub">Heures en décimales</div>
-            </div>
-            
- <div class="app-card" onclick="openFeature('PLANNINGS.html')">
-              <div class="app-icon">⏱️</div>
-              <div class="app-title">PLANNING</div>
-              <div class="app-sub">Planning agents</div>
-            </div>
-
-            <div class="app-card" onclick="openFeature('SALAIRE.html')">
-              <div class="app-icon"></div>
-              <div class="app-title">Salaire</div>
-              <div class="app-sub">Calcul d'estimation de salaire</div>
-            </div>
-            
-          </div>
-        </div>
-      </div>
-    </div>
-  
-    <div class="home-indicator"></div>
+  <div class="status-bar">
+    <div>Tableau de bord</div>
   </div>
 
-  <script>
-    // Calcule le "dossier de base" où se trouve index.html
-    function getBasePath(){
-      const path = window.location.pathname; // ex : /CONTROL/index.html ou /CONTROL/
-      if (path.endsWith('index.html')) {
-        return path.slice(0, -'index.html'.length); // /CONTROL/
-      }
-      if (path.endsWith('/')) {
-        return path; // déjà un dossier /CONTROL/
-      }
-      // cas rare : /CONTROL (sans / ni index.html)
-      const lastSlash = path.lastIndexOf('/');
-      return path.substring(0, lastSlash + 1);
-    }
+  <div class="screen">
+    <header>
+      <div class="title-block">
+        <h1>Tableau de bord</h1>
+      </div>
+    </header>
 
-    // Ouvre un fichier HTML du dépôt (même zone de fichiers que index)
-    function openFeature(fileName){
-      const base = getBasePath();
-      const target = base + fileName; // ex : /CONTROL/KONTROL.html
-      window.location.href = target;
-    }
-  </script>
+    <div id="home-screen">
+      <div>
+        <div class="section-label">Mes applications</div>
+
+        <div class="app-grid">
+
+          <div class="app-card" onclick="openFeature('KONTROL.html')">
+            <div class="app-icon">
+              <img src="Kontrol.png">
+            </div>
+            <div class="app-title">KONTROL</div>
+            <div class="app-sub">Contrôle qualité</div>
+          </div>
+
+          <div class="app-card" onclick="openFeature('INFOCHANTIERS.html')">
+            <div class="app-icon">
+              <img src="INFO CHANTIER.png">
+            </div>
+            <div class="app-title">Infos Chantiers</div>
+          </div>
+
+          <div class="app-card" onclick="openFeature('ORGA.html')">
+            <div class="app-icon">
+              <img src="ORGA.png">
+            </div>
+            <div class="app-title">Orga</div>
+          </div>
+
+          <div class="app-card" onclick="openFeature('TEMPS.html')">
+            <div class="app-icon">
+              ⏱
+            </div>
+            <div class="app-title">Temps</div>
+          </div>
+
+          <div class="app-card" onclick="openFeature('PLANNINGS.html')">
+            <div class="app-icon">
+              <img src="PLANNINGS.png">
+            </div>
+            <div class="app-title">Planning</div>
+          </div>
+
+          <div class="app-card" onclick="openFeature('SALAIRE.html')">
+            <div class="app-icon">
+              <img src="SALAIRE.png">
+            </div>
+            <div class="app-title">Salaire</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="home-indicator"></div>
+</div>
+
+<script>
+function getBasePath(){
+  const path = window.location.pathname;
+  if (path.endsWith('index.html')) return path.slice(0, -'index.html'.length);
+  if (path.endsWith('/')) return path;
+  return path.substring(0, path.lastIndexOf('/') + 1);
+}
+
+function openFeature(fileName){
+  const base = getBasePath();
+  window.location.href = base + fileName;
+}
+</script>
+
 </body>
 </html>
-
