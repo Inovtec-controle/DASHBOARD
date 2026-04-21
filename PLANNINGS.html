@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planning PRO Stable</title>
+<title>Planning PRO FINAL</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -85,6 +85,7 @@ button{width:100%;margin-top:10px;padding:10px;border:none;border-radius:6px;bac
 
 <script>
 
+/* ===== DATA ===== */
 let agents=JSON.parse(localStorage.getItem("agents"))||[
 {name:"Agent 1",color:"#16a34a",copies:2},
 {name:"Agent 2",color:"#3b82f6",copies:2}
@@ -96,6 +97,7 @@ let weekType=localStorage.getItem("weekType")||"pair";
 const days=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 const grid=document.getElementById("grid");
 
+/* ===== SAVE ===== */
 function saveAgents(){localStorage.setItem("agents",JSON.stringify(agents));}
 function getEvents(){return JSON.parse(localStorage.getItem("events_"+weekType))||[];}
 function saveEvents(e){localStorage.setItem("events_"+weekType,JSON.stringify(e));}
@@ -110,10 +112,18 @@ return m.toLocaleDateString()+" - "+s.toLocaleDateString();
 }
 document.getElementById("weekDisplay").innerText=getWeekDates();
 
+/* ===== FORMAT HEURE ===== */
+function formatHour(h){
+const hours=Math.floor(h);
+const minutes=Math.round((h-hours)*60);
+return `${String(hours).padStart(2,"0")}h${String(minutes).padStart(2,"0")}`;
+}
+
 /* ===== AGENTS ===== */
 function renderAgents(){
 const el=document.getElementById("agents");
 el.innerHTML="";
+
 agents.forEach((a,i)=>{
 const div=document.createElement("div");
 div.className="agent"+(i===selectedAgent?" active":"");
@@ -196,7 +206,6 @@ updatePosition();
 div.style.background=e.color;
 div.innerHTML=e.title+'<div class="resize"></div>';
 
-/* DELETE */
 div.oncontextmenu=ev=>{
 ev.preventDefault();
 if(confirm("Supprimer ?")){
@@ -295,41 +304,64 @@ saveEvents(events);
 renderGrid();
 });
 
-/* WEEK */
-document.getElementById("weekType").value=weekType;
-document.getElementById("weekType").onchange=function(){
-weekType=this.value;
-localStorage.setItem("weekType",weekType);
-renderGrid();
-};
-
-/* PDF */
+/* ===== PDF PRO ===== */
 function generatePDF(){
+
 const {jsPDF}=window.jspdf;
 const doc=new jsPDF("landscape");
+
 const events=getEvents();
+
+const startX=10;
+const startY=20;
+const colWidth=40;
+const rowHeight=8;
 
 let first=true;
 
 agents.forEach((agent,i)=>{
+
 for(let c=0;c<agent.copies;c++){
 
 if(!first)doc.addPage();
 first=false;
 
+doc.setFontSize(14);
 doc.text(`${agent.name} - ${getWeekDates()}`,10,10);
 
-days.forEach((day,d)=>{
-let y=20;
-doc.text(day,10+d*40,y);
+/* GRILLE */
+for(let d=0;d<=7;d++){
+let x=startX+d*colWidth;
+doc.line(x,startY,x,190);
+}
 
-const list=events.filter(e=>e.agent===i && e.day===d);
+for(let y=startY;y<=190;y+=rowHeight){
+doc.line(startX,y,startX+7*colWidth,y);
+}
+
+/* JOURS */
+doc.setFontSize(10);
+days.forEach((day,d)=>{
+doc.text(day,startX+d*colWidth+2,startY-2);
+});
+
+/* EVENTS */
+days.forEach((day,d)=>{
+
+let yCursor=startY+rowHeight;
+
+const list=events
+.filter(e=>e.agent===i && e.day===d)
+.sort((a,b)=>a.start-b.start);
 
 list.forEach(e=>{
-y+=6;
-doc.text(`${e.start}h-${e.end}h ${e.title}`,10+d*40,y);
+const text=`${formatHour(e.start)} ${e.title} ${formatHour(e.end)}`;
+doc.text(text,startX+d*colWidth+2,yCursor);
+yCursor+=rowHeight;
 });
+
 });
+
 }
 });
 
