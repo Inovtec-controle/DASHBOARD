@@ -3,47 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planning Agents</title>
+<title>Planning Agents PRO</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
 
 body{
-  background:#f3f4f6;
   display:flex;
   height:100vh;
+  background:#f3f4f6;
 }
 
-/* SIDEBAR AGENTS */
+/* SIDEBAR */
 .sidebar{
-  width:220px;
+  width:240px;
   background:#fff;
   border-right:1px solid #ddd;
   padding:15px;
 }
 
-.sidebar h2{
-  font-size:18px;
-  margin-bottom:10px;
-}
-
 .agent{
   padding:8px;
   border-radius:8px;
-  margin-bottom:6px;
-  cursor:pointer;
+  margin-bottom:5px;
   display:flex;
   align-items:center;
   gap:8px;
+  cursor:pointer;
+}
+
+.agent.active{
+  background:#e0f2fe;
 }
 
 .agent span{
   width:12px;
   height:12px;
   border-radius:50%;
-  display:inline-block;
+}
+
+button{
+  margin-top:10px;
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  background:#16a34a;
+  color:#fff;
+  cursor:pointer;
 }
 
 /* MAIN */
@@ -53,25 +64,17 @@ body{
   flex-direction:column;
 }
 
-/* HEADER */
-.header{
-  padding:10px;
-  background:#fff;
-  border-bottom:1px solid #ddd;
-  display:flex;
-  justify-content:space-between;
-}
-
+/* DAYS */
 .days{
   display:grid;
-  grid-template-columns:80px repeat(7,1fr);
+  grid-template-columns:60px repeat(7,1fr);
   background:#fff;
   border-bottom:1px solid #ddd;
 }
 
 .day{
-  padding:10px;
   text-align:center;
+  padding:10px;
   font-weight:600;
 }
 
@@ -79,32 +82,43 @@ body{
 .grid{
   flex:1;
   display:grid;
-  grid-template-columns:80px repeat(7,1fr);
+  grid-template-columns:60px repeat(7,1fr);
   overflow:auto;
+  position:relative;
 }
 
 .hour{
   border-bottom:1px solid #eee;
-  padding:5px;
   font-size:12px;
+  padding:4px;
 }
 
 .cell{
   border:1px solid #eee;
   height:60px;
   position:relative;
-  cursor:pointer;
 }
 
+/* EVENT */
 .event{
   position:absolute;
-  top:5px;
   left:5px;
   right:5px;
-  padding:5px;
-  border-radius:6px;
-  font-size:12px;
+  border-radius:8px;
   color:#fff;
+  padding:5px;
+  font-size:12px;
+  cursor:grab;
+}
+
+.resize{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  height:8px;
+  cursor:n-resize;
+  background:rgba(255,255,255,0.5);
 }
 </style>
 </head>
@@ -112,130 +126,226 @@ body{
 <body>
 
 <div class="sidebar">
-  <h2>Agents</h2>
+  <h3>Agents</h3>
   <div id="agents"></div>
-  <button onclick="addAgent()">+ Ajouter</button>
+
+  <button onclick="generatePDF()">📄 Générer PDF</button>
 </div>
 
 <div class="main">
-
-  <div class="header">
-    <h2>Semaine</h2>
-  </div>
-
   <div class="days" id="days"></div>
   <div class="grid" id="grid"></div>
-
 </div>
 
 <script>
 
-const agents = JSON.parse(localStorage.getItem("agents")) || [
+const agents = [
   {name:"Agent 1", color:"#16a34a"},
   {name:"Agent 2", color:"#3b82f6"}
 ];
 
-const events = JSON.parse(localStorage.getItem("events")) || [];
+let events = [];
+let selectedAgent = null;
 
 const days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+const grid = document.getElementById("grid");
 
-function save(){
-  localStorage.setItem("agents", JSON.stringify(agents));
-  localStorage.setItem("events", JSON.stringify(events));
-}
-
+/* AGENTS */
 function renderAgents(){
-  const container = document.getElementById("agents");
-  container.innerHTML="";
-  
+  const el=document.getElementById("agents");
+  el.innerHTML="";
+
+  const all=document.createElement("div");
+  all.className="agent"+(selectedAgent===null?" active":"");
+  all.innerHTML=`<span style="background:#000"></span> Tous`;
+  all.onclick=()=>{
+    selectedAgent=null;
+    renderAgents();
+    renderGrid();
+  };
+  el.appendChild(all);
+
   agents.forEach((a,i)=>{
-    const div = document.createElement("div");
-    div.className="agent";
-    div.innerHTML=`<span style="background:${a.color}"></span>${a.name}`;
-    container.appendChild(div);
-  });
-}
-
-function renderDays(){
-  const container = document.getElementById("days");
-  container.innerHTML="";
-  
-  container.appendChild(document.createElement("div"));
-  
-  days.forEach(d=>{
     const div=document.createElement("div");
-    div.className="day";
-    div.textContent=d;
-    container.appendChild(div);
+    div.className="agent"+(selectedAgent===i?" active":"");
+    div.innerHTML=`<span style="background:${a.color}"></span>${a.name}`;
+    div.onclick=()=>{
+      selectedAgent=i;
+      renderAgents();
+      renderGrid();
+    };
+    el.appendChild(div);
   });
 }
 
+/* DAYS */
+function renderDays(){
+  const el=document.getElementById("days");
+  el.innerHTML="<div></div>";
+  days.forEach(d=> el.innerHTML+=`<div class="day">${d}</div>`);
+}
+
+/* GRID */
 function renderGrid(){
-  const grid=document.getElementById("grid");
   grid.innerHTML="";
 
   for(let h=0;h<24;h++){
-    const hour=document.createElement("div");
-    hour.className="hour";
-    hour.textContent=h+":00";
-    grid.appendChild(hour);
-
+    grid.innerHTML+=`<div class="hour">${h}:00</div>`;
     for(let d=0;d<7;d++){
-      const cell=document.createElement("div");
-      cell.className="cell";
-      cell.dataset.day=d;
-      cell.dataset.hour=h;
-
-      cell.onclick=()=>createEvent(d,h);
-
-      grid.appendChild(cell);
+      grid.innerHTML+=`<div class="cell" data-day="${d}" data-hour="${h}"></div>`;
     }
   }
 
-  events.forEach(e=>{
-    const index = e.hour*8 + (e.day+1);
-    const cell = grid.children[index];
-    if(cell){
-      const div=document.createElement("div");
-      div.className="event";
-      div.style.background=e.color;
-      div.textContent=e.title;
-      cell.appendChild(div);
-    }
+  events.forEach((e,i)=>{
+    if(selectedAgent!==null && e.agent!==selectedAgent) return;
+    drawEvent(e,i);
   });
 }
 
-function createEvent(day,hour){
-  const agentIndex = prompt("Numéro agent (0,1,2...) ?");
-  const title = prompt("Nom tâche ?");
-  
-  if(agentIndex===null || title===null) return;
+/* DRAW EVENT */
+function drawEvent(e,i){
+  const top = e.hour*60;
+  const height = e.duration*60;
 
-  const agent = agents[agentIndex];
-  if(!agent) return alert("Agent invalide");
+  const div=document.createElement("div");
+  div.className="event";
+  div.style.top=top+"px";
+  div.style.height=height+"px";
+  div.style.background=e.color;
+  div.style.left=`calc(${(e.day+1)*(100/8)}% + 5px)`;
+  div.style.width=`calc((100/8) - 10px)`;
+  div.innerHTML=e.title+`<div class="resize"></div>`;
+
+  /* DRAG */
+  let offsetY=0;
+
+  div.onmousedown=(ev)=>{
+    offsetY=ev.offsetY;
+
+    document.onmousemove=(eMove)=>{
+      const y=eMove.clientY-grid.getBoundingClientRect().top-offsetY;
+      div.style.top=y+"px";
+    };
+
+    document.onmouseup=()=>{
+      document.onmousemove=null;
+      document.onmouseup=null;
+
+      e.hour=Math.max(0,Math.round(parseInt(div.style.top)/60));
+      renderGrid();
+    };
+  };
+
+  /* RESIZE */
+  const resizer=div.querySelector(".resize");
+
+  resizer.onmousedown=(ev)=>{
+    ev.stopPropagation();
+
+    document.onmousemove=(eMove)=>{
+      const newHeight=eMove.clientY-div.getBoundingClientRect().top;
+      div.style.height=newHeight+"px";
+    };
+
+    document.onmouseup=()=>{
+      document.onmousemove=null;
+      document.onmouseup=null;
+
+      e.duration=Math.max(1,Math.round(parseInt(div.style.height)/60));
+      renderGrid();
+    };
+  };
+
+  grid.appendChild(div);
+}
+
+/* CREATE EVENT */
+grid.addEventListener("click",(e)=>{
+  const cell=e.target.closest(".cell");
+  if(!cell) return;
+
+  if(selectedAgent===null){
+    alert("Sélectionne un agent !");
+    return;
+  }
+
+  const day=parseInt(cell.dataset.day);
+  const hour=parseInt(cell.dataset.hour);
+
+  const title=prompt("Nom tâche ?");
+  if(!title) return;
+
+  const agent=agents[selectedAgent];
 
   events.push({
     day,
     hour,
+    duration:1,
     title,
-    color:agent.color
+    color:agent.color,
+    agent:selectedAgent
   });
 
-  save();
   renderGrid();
+});
+
+/* PDF */
+function generatePDF(){
+
+  const copies=parseInt(prompt("Nombre de copies ?", "2"));
+  if(!copies || copies<1) return;
+
+  const { jsPDF } = window.jspdf;
+  const doc=new jsPDF();
+
+  let firstPage=true;
+
+  let pages=[];
+  for(let c=0;c<copies;c++){
+    agents.forEach((a,i)=> pages.push(i));
+  }
+
+  pages.forEach((agentIndex)=>{
+    const agent=agents[agentIndex];
+
+    if(!firstPage) doc.addPage();
+    firstPage=false;
+
+    doc.setFontSize(18);
+    doc.text(`Planning - ${agent.name}`,14,20);
+
+    doc.setFontSize(10);
+    let y=30;
+
+    const agentEvents=events
+      .filter(e=>e.agent===agentIndex)
+      .sort((a,b)=>a.day-b.day||a.hour-b.hour);
+
+    if(agentEvents.length===0){
+      doc.text("Aucune tâche",14,y);
+      return;
+    }
+
+    agentEvents.forEach(e=>{
+      const dayName=days[e.day];
+      const start=`${e.hour}h`;
+      const end=`${e.hour+e.duration}h`;
+
+      doc.text(`${dayName} | ${start}-${end} | ${e.title}`,14,y);
+      y+=6;
+
+      if(y>280){
+        doc.addPage();
+        y=20;
+      }
+    });
+
+  });
+
+  doc.save("planning-agents.pdf");
 }
 
-function addAgent(){
-  const name=prompt("Nom agent ?");
-  if(!name) return;
-
-  const color = "#"+Math.floor(Math.random()*16777215).toString(16);
-
-  agents.push({name,color});
-  save();
-  renderAgents();
-}
-
+/* INIT */
 renderAgents();
 renderDays();
 renderGrid();
