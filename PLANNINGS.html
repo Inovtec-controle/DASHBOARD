@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Planning PRO</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -95,7 +94,7 @@ button{
 <div class="sidebar">
   <h3>Agents</h3>
   <div id="agents"></div>
-  <button onclick="generatePDF()">📄 Générer PDF avancé</button>
+  <button onclick="generatePDF()">📄 Générer PDF</button>
 </div>
 
 <div class="main">
@@ -116,9 +115,6 @@ button{
 
 <script>
 
-/* === IDENTIQUE A TON CODE EXISTANT POUR PLANNING === */
-/* (je ne change pas ton système planning, juste PDF) */
-
 const agents=[
   {name:"Agent 1",color:"#16a34a"},
   {name:"Agent 2",color:"#3b82f6"}
@@ -130,10 +126,7 @@ let weekType=localStorage.getItem("weekType")||"pair";
 const days=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 const grid=document.getElementById("grid");
 
-function getEvents(){
-  return JSON.parse(localStorage.getItem("events_"+weekType))||[];
-}
-
+/* SEMAINE */
 function getWeek(){
   const d=new Date();
   const firstJan=new Date(d.getFullYear(),0,1);
@@ -142,37 +135,202 @@ function getWeek(){
 }
 document.getElementById("weekDisplay").innerText="Semaine "+getWeek();
 
-/* === PDF AVANCÉ === */
+/* STORAGE */
+function getEvents(){
+  return JSON.parse(localStorage.getItem("events_"+weekType))||[];
+}
+function saveEvents(events){
+  localStorage.setItem("events_"+weekType,JSON.stringify(events));
+}
 
+/* AGENTS */
+function renderAgents(){
+  const el=document.getElementById("agents");
+  el.innerHTML="";
+  agents.forEach((a,i)=>{
+    const div=document.createElement("div");
+    div.className="agent"+(selectedAgent===i?" active":"");
+    div.textContent=a.name;
+    div.onclick=()=>{
+      selectedAgent=i;
+      renderAgents();
+      renderGrid();
+    };
+    el.appendChild(div);
+  });
+}
+
+/* DAYS */
+function renderDays(){
+  const el=document.getElementById("days");
+  el.innerHTML="<div></div>";
+  days.forEach(d=>el.innerHTML+=`<div class="day">${d}</div>`);
+}
+
+/* GRID */
+function renderGrid(){
+  grid.innerHTML="";
+
+  for(let h=0;h<24;h++){
+    grid.innerHTML+=`<div class="hour">${h}:00</div>`;
+    for(let d=0;d<7;d++){
+      grid.innerHTML+=`<div class="cell" data-day="${d}" data-hour="${h}"></div>`;
+    }
+  }
+
+  const events=getEvents();
+
+  events.forEach((e,i)=>{
+    if(e.agent!==selectedAgent) return;
+    drawEvent(e,i,events);
+  });
+}
+
+/* DRAW EVENT */
+function drawEvent(e,i,events){
+
+  const cell=document.querySelector(`.cell[data-day="${e.day}"][data-hour="0"]`);
+  if(!cell) return;
+
+  const left=cell.offsetLeft;
+  const width=cell.offsetWidth;
+
+  const div=document.createElement("div");
+  div.className="event";
+
+  div.style.left=left+5+"px";
+  div.style.width=(width-10)+"px";
+  div.style.top=(e.start*60)+"px";
+  div.style.height=((e.end-e.start)*60)+"px";
+
+  div.style.background=e.color;
+  div.innerHTML=e.title+`<div class="resize"></div>`;
+
+  /* SUPPRESSION */
+  div.oncontextmenu=(ev)=>{
+    ev.preventDefault();
+    if(confirm("Supprimer ?")){
+      events.splice(i,1);
+      saveEvents(events);
+      renderGrid();
+    }
+  };
+
+  /* DRAG */
+  div.onmousedown=(ev)=>{
+    if(ev.button===2) return;
+
+    const offsetY=ev.offsetY;
+
+    document.onmousemove=(eMove)=>{
+      let y=eMove.clientY-grid.getBoundingClientRect().top-offsetY;
+      let snap=Math.round(y/15)*15;
+      div.style.top=snap+"px";
+    };
+
+    document.onmouseup=()=>{
+      document.onmousemove=null;
+      document.onmouseup=null;
+
+      e.start=parseInt(div.style.top)/60;
+      e.end=e.start+(e.end-e.start);
+
+      saveEvents(events);
+      renderGrid();
+    };
+  };
+
+  /* RESIZE */
+  const resizer=div.querySelector(".resize");
+
+  resizer.onmousedown=(ev)=>{
+    ev.stopPropagation();
+
+    document.onmousemove=(eMove)=>{
+      let h=eMove.clientY-div.getBoundingClientRect().top;
+      let snap=Math.round(h/15)*15;
+      div.style.height=snap+"px";
+    };
+
+    document.onmouseup=()=>{
+      document.onmousemove=null;
+      document.onmouseup=null;
+
+      e.end=e.start+(parseInt(div.style.height)/60);
+
+      saveEvents(events);
+      renderGrid();
+    };
+  };
+
+  grid.appendChild(div);
+}
+
+/* CREATE */
+grid.addEventListener("click",(e)=>{
+  const cell=e.target.closest(".cell");
+  if(!cell) return;
+
+  const events=getEvents();
+
+  const day=parseInt(cell.dataset.day);
+  const hour=parseInt(cell.dataset.hour);
+
+  const title=prompt("Nom tâche ?");
+  if(!title) return;
+
+  events.push({
+    day,
+    start:hour,
+    end:hour+1,
+    title,
+    color:agents[selectedAgent].color,
+    agent:selectedAgent
+  });
+
+  saveEvents(events);
+  renderGrid();
+});
+
+/* SELECTEUR */
+document.getElementById("weekType").value=weekType;
+document.getElementById("weekType").onchange=function(){
+  weekType=this.value;
+  localStorage.setItem("weekType",weekType);
+  renderGrid();
+};
+
+/* PDF AVANCÉ */
 function generatePDF(){
 
-  let config = [];
+  let config=[];
 
   agents.forEach((a,i)=>{
-    const include = confirm("Inclure "+a.name+" ?");
+    const include=confirm("Inclure "+a.name+" ?");
     if(!include) return;
 
-    const copies = parseInt(prompt("Nombre de copies pour "+a.name+" ?", "1"));
+    const copies=parseInt(prompt("Copies pour "+a.name+" ?", "1"));
     if(!copies || copies<1) return;
 
-    config.push({index:i, copies});
+    config.push({index:i,copies});
   });
 
   if(config.length===0){
-    alert("Aucun agent sélectionné");
+    alert("Aucun agent");
     return;
   }
 
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF();
+
   const events=getEvents();
 
-  let pages = [];
-  let maxCopies = Math.max(...config.map(c=>c.copies));
+  let pages=[];
+  let max=Math.max(...config.map(c=>c.copies));
 
-  for(let c=0;c<maxCopies;c++){
+  for(let c=0;c<max;c++){
     config.forEach(cfg=>{
-      if(c < cfg.copies){
+      if(c<cfg.copies){
         pages.push(cfg.index);
       }
     });
@@ -202,6 +360,11 @@ function generatePDF(){
 
   doc.save("planning.pdf");
 }
+
+/* INIT */
+renderAgents();
+renderDays();
+renderGrid();
 
 </script>
 
