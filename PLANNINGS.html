@@ -131,7 +131,7 @@ const grid=document.getElementById("grid");
 function getWeek(){
   const d=new Date();
   const firstJan=new Date(d.getFullYear(),0,1);
-  const daysDiff=Math.floor((d-firstJan)/(86400000));
+  const daysDiff=Math.floor((d-firstJan)/86400000);
   return Math.ceil((d.getDay()+1+daysDiff)/7);
 }
 document.getElementById("weekDisplay").innerText="Semaine "+getWeek();
@@ -208,8 +208,20 @@ function drawEvent(e,i,events){
   div.style.background=e.color;
   div.innerHTML=e.title+`<div class="resize"></div>`;
 
+  /* SUPPRESSION CLIC DROIT */
+  div.oncontextmenu = (ev)=>{
+    ev.preventDefault();
+    if(confirm("Supprimer cette tâche ?")){
+      events.splice(i,1);
+      saveEvents(events);
+      renderGrid();
+    }
+  };
+
   /* DRAG */
   div.onmousedown=(ev)=>{
+    if(ev.button===2) return; // ignore clic droit
+
     const offsetY=ev.offsetY;
 
     document.onmousemove=(eMove)=>{
