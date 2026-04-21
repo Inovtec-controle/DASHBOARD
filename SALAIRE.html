@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Calcul Salaire Net</title>
+<title>Calcul Salaire Net - Nettoyage</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -85,6 +85,16 @@ input{
   font-size:16px;
 }
 
+.badge{
+  background:#dcfce7;
+  color:#166534;
+  padding:6px 10px;
+  border-radius:8px;
+  font-size:12px;
+  display:inline-block;
+  margin-top:10px;
+}
+
 .footer{
   text-align:center;
   font-size:12px;
@@ -99,7 +109,7 @@ input{
 <div class="app">
 
   <div class="header">
-    <h1>💰 Calcul Salaire Net</h1>
+    <h1>🧹 Calcul Salaire Net</h1>
   </div>
 
   <div class="card">
@@ -109,8 +119,7 @@ input{
     <div class="label">Heures par semaine</div>
     <input type="number" id="heures" placeholder="Ex : 30">
 
-    <div class="label">Taux NET (%)</div>
-    <input type="number" id="ratio" value="78">
+    <div class="badge">Convention nettoyage – estimation net ≈ 78%</div>
   </div>
 
   <div class="card result">
@@ -134,18 +143,18 @@ input{
 <script>
 const tauxInput = document.getElementById("taux");
 const heuresInput = document.getElementById("heures");
-const ratioInput = document.getElementById("ratio");
 
 const brutEl = document.getElementById("brut");
 const netEl = document.getElementById("net");
 
+const RATIO_NET = 0.78; // Nettoyage
+
 function calculer(){
   const taux = parseFloat(tauxInput.value) || 0;
   const heures = parseFloat(heuresInput.value) || 0;
-  const ratio = parseFloat(ratioInput.value) || 0;
 
   const brut = taux * heures * 4.33;
-  const net = brut * (ratio / 100);
+  const net = brut * RATIO_NET;
 
   brutEl.textContent = brut.toFixed(2) + " €";
   netEl.textContent = net.toFixed(2) + " €";
@@ -153,7 +162,6 @@ function calculer(){
 
 tauxInput.addEventListener("input", calculer);
 heuresInput.addEventListener("input", calculer);
-ratioInput.addEventListener("input", calculer);
 </script>
 
 </body>
