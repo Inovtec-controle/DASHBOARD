@@ -6,7 +6,6 @@
 <title>Planning Agents PRO</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
@@ -36,9 +35,7 @@ body{
   cursor:pointer;
 }
 
-.agent.active{
-  background:#e0f2fe;
-}
+.agent.active{background:#e0f2fe;}
 
 .agent span{
   width:12px;
@@ -62,6 +59,24 @@ button{
   flex:1;
   display:flex;
   flex-direction:column;
+}
+
+/* HEADER */
+.header{
+  background:#fff;
+  padding:10px;
+  border-bottom:1px solid #ddd;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:20px;
+}
+
+.selector{
+  padding:6px 10px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  cursor:pointer;
 }
 
 /* DAYS */
@@ -128,13 +143,22 @@ button{
 <div class="sidebar">
   <h3>Agents</h3>
   <div id="agents"></div>
-
   <button onclick="generatePDF()">📄 Générer PDF</button>
 </div>
 
 <div class="main">
+
+  <div class="header">
+    <div id="weekDisplay"></div>
+    <select id="weekType" class="selector">
+      <option value="pair">Semaine paire</option>
+      <option value="impair">Semaine impaire</option>
+    </select>
+  </div>
+
   <div class="days" id="days"></div>
   <div class="grid" id="grid"></div>
+
 </div>
 
 <script>
@@ -144,11 +168,33 @@ const agents = [
   {name:"Agent 2", color:"#3b82f6"}
 ];
 
-let events = [];
 let selectedAgent = null;
+let weekType = localStorage.getItem("weekType") || "pair";
 
 const days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 const grid = document.getElementById("grid");
+
+/* SEMAINE */
+function getWeekNumber(){
+  const d = new Date();
+  const firstJan = new Date(d.getFullYear(),0,1);
+  const days = Math.floor((d - firstJan)/(24*60*60*1000));
+  return Math.ceil((d.getDay()+1+days)/7);
+}
+
+function renderWeek(){
+  const week = getWeekNumber();
+  document.getElementById("weekDisplay").innerText = "Semaine " + week;
+}
+
+/* STORAGE EVENTS */
+function getEvents(){
+  return JSON.parse(localStorage.getItem("events_"+weekType)) || [];
+}
+
+function saveEvents(events){
+  localStorage.setItem("events_"+weekType, JSON.stringify(events));
+}
 
 /* AGENTS */
 function renderAgents(){
@@ -196,31 +242,29 @@ function renderGrid(){
     }
   }
 
+  const events = getEvents();
+
   events.forEach((e,i)=>{
     if(selectedAgent!==null && e.agent!==selectedAgent) return;
-    drawEvent(e,i);
+    drawEvent(e,i,events);
   });
 }
 
 /* DRAW EVENT */
-function drawEvent(e,i){
-  const top = e.hour*60;
-  const height = e.duration*60;
+function drawEvent(e,i,events){
 
   const div=document.createElement("div");
   div.className="event";
-  div.style.top=top+"px";
-  div.style.height=height+"px";
+  div.style.top=(e.hour*60)+"px";
+  div.style.height=(e.duration*60)+"px";
   div.style.background=e.color;
   div.style.left=`calc(${(e.day+1)*(100/8)}% + 5px)`;
   div.style.width=`calc((100/8) - 10px)`;
   div.innerHTML=e.title+`<div class="resize"></div>`;
 
   /* DRAG */
-  let offsetY=0;
-
   div.onmousedown=(ev)=>{
-    offsetY=ev.offsetY;
+    const offsetY=ev.offsetY;
 
     document.onmousemove=(eMove)=>{
       const y=eMove.clientY-grid.getBoundingClientRect().top-offsetY;
@@ -232,6 +276,7 @@ function drawEvent(e,i){
       document.onmouseup=null;
 
       e.hour=Math.max(0,Math.round(parseInt(div.style.top)/60));
+      saveEvents(events);
       renderGrid();
     };
   };
@@ -252,6 +297,7 @@ function drawEvent(e,i){
       document.onmouseup=null;
 
       e.duration=Math.max(1,Math.round(parseInt(div.style.height)/60));
+      saveEvents(events);
       renderGrid();
     };
   };
@@ -269,9 +315,10 @@ grid.addEventListener("click",(e)=>{
     return;
   }
 
+  const events=getEvents();
+
   const day=parseInt(cell.dataset.day);
   const hour=parseInt(cell.dataset.hour);
-
   const title=prompt("Nom tâche ?");
   if(!title) return;
 
@@ -286,8 +333,18 @@ grid.addEventListener("click",(e)=>{
     agent:selectedAgent
   });
 
+  saveEvents(events);
   renderGrid();
 });
+
+/* SELECTEUR SEMAINE */
+document.getElementById("weekType").value = weekType;
+
+document.getElementById("weekType").onchange = function(){
+  weekType = this.value;
+  localStorage.setItem("weekType", weekType);
+  renderGrid();
+};
 
 /* PDF */
 function generatePDF(){
@@ -299,6 +356,7 @@ function generatePDF(){
   const doc=new jsPDF();
 
   let firstPage=true;
+  const events=getEvents();
 
   let pages=[];
   for(let c=0;c<copies;c++){
@@ -311,10 +369,8 @@ function generatePDF(){
     if(!firstPage) doc.addPage();
     firstPage=false;
 
-    doc.setFontSize(18);
-    doc.text(`Planning - ${agent.name}`,14,20);
+    doc.text(`Planning ${agent.name} (${weekType})`,14,20);
 
-    doc.setFontSize(10);
     let y=30;
 
     const agentEvents=events
@@ -327,11 +383,7 @@ function generatePDF(){
     }
 
     agentEvents.forEach(e=>{
-      const dayName=days[e.day];
-      const start=`${e.hour}h`;
-      const end=`${e.hour+e.duration}h`;
-
-      doc.text(`${dayName} | ${start}-${end} | ${e.title}`,14,y);
+      doc.text(`${days[e.day]} ${e.hour}h-${e.hour+e.duration}h : ${e.title}`,14,y);
       y+=6;
 
       if(y>280){
@@ -342,12 +394,13 @@ function generatePDF(){
 
   });
 
-  doc.save("planning-agents.pdf");
+  doc.save("planning.pdf");
 }
 
 /* INIT */
 renderAgents();
 renderDays();
+renderWeek();
 renderGrid();
 
 </script>
