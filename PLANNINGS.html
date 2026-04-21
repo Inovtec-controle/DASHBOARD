@@ -206,6 +206,7 @@ updatePosition();
 div.style.background=e.color;
 div.innerHTML=e.title+'<div class="resize"></div>';
 
+/* DELETE */
 div.oncontextmenu=ev=>{
 ev.preventDefault();
 if(confirm("Supprimer ?")){
@@ -342,22 +343,39 @@ doc.line(startX,y,startX+7*colWidth,y);
 /* JOURS */
 doc.setFontSize(10);
 days.forEach((day,d)=>{
-doc.text(day,startX+d*colWidth+2,startY-2);
+doc.text(day,startX+d*colWidth+colWidth/2,startY-2,{align:"center"});
 });
 
 /* EVENTS */
 days.forEach((day,d)=>{
 
-let yCursor=startY+rowHeight;
+let yCursor=startY;
 
 const list=events
 .filter(e=>e.agent===i && e.day===d)
 .sort((a,b)=>a.start-b.start);
 
 list.forEach(e=>{
+
 const text=`${formatHour(e.start)} ${e.title} ${formatHour(e.end)}`;
-doc.text(text,startX+d*colWidth+2,yCursor);
+const lines=doc.splitTextToSize(text,colWidth-6);
+
+const blockHeight=lines.length*4;
+const cellTop=yCursor+rowHeight/2-blockHeight/2;
+
+/* fond blanc */
+doc.setFillColor(255,255,255);
+doc.rect(startX+d*colWidth+1,cellTop-2,colWidth-2,blockHeight+4,"F");
+
+/* texte centré */
+doc.setTextColor(0,0,0);
+doc.text(lines,startX+d*colWidth+colWidth/2,cellTop,{
+align:"center",
+maxWidth:colWidth-6
+});
+
 yCursor+=rowHeight;
+
 });
 
 });
