@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Planning PRO FINAL</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,7 +14,7 @@
 body{display:flex;height:100vh;background:#f3f4f6;}
 
 .sidebar{width:280px;background:#fff;border-right:1px solid #ddd;padding:10px;}
-.agent{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:6px;margin-bottom:5px;cursor:pointer;}
+.agent{display:flex;justify-content:space-between;padding:8px;border-radius:6px;margin-bottom:5px;cursor:pointer;}
 .agent.active{background:#dbeafe;}
 
 .copy-input{
@@ -24,12 +25,7 @@ body{display:flex;height:100vh;background:#f3f4f6;}
   color:#fff;
   text-align:center;
 }
-
-.copy-input::-webkit-outer-spin-button,
-.copy-input::-webkit-inner-spin-button{
-  -webkit-appearance:none;
-}
-.copy-input{-moz-appearance:textfield;}
+.copy-input::-webkit-inner-spin-button{display:none;}
 
 .add{background:#16a34a;color:#fff;padding:8px;text-align:center;border-radius:6px;cursor:pointer;margin-top:10px;}
 button{width:100%;margin-top:10px;padding:10px;border:none;border-radius:6px;background:#16a34a;color:#fff;}
@@ -132,7 +128,6 @@ name.textContent=a.name;
 const input=document.createElement("input");
 input.value=a.copies;
 input.className="copy-input";
-
 input.onclick=e=>e.stopPropagation();
 input.onchange=e=>{
 let v=parseInt(e.target.value);
@@ -141,27 +136,7 @@ a.copies=v;
 saveAgents();
 };
 
-div.onclick=()=>{
-selectedAgent=i;
-renderAgents();
-renderGrid();
-};
-
-div.ondblclick=()=>{
-const n=prompt("Renommer",a.name);
-if(n){a.name=n;saveAgents();renderAgents();}
-};
-
-div.oncontextmenu=e=>{
-e.preventDefault();
-if(confirm("Supprimer agent ?")){
-agents.splice(i,1);
-saveAgents();
-selectedAgent=0;
-renderAgents();
-renderGrid();
-}
-};
+div.onclick=()=>{selectedAgent=i;renderAgents();renderGrid();};
 
 div.appendChild(name);
 div.appendChild(input);
@@ -206,25 +181,23 @@ drawEvent(e,i,events);
 /* ===== EVENT ===== */
 function drawEvent(e,i,events){
 
-const col=document.querySelector(`.cell[data-day="${e.day}"][data-hour="0"]`);
-if(!col)return;
-
-const left=col.offsetLeft;
-const width=col.offsetWidth;
+const colWidth = grid.offsetWidth/8;
 
 const div=document.createElement("div");
 div.className="event";
 
-div.style.left=left+5+"px";
-div.style.width=(width-10)+"px";
-div.style.top=(e.start*60)+"px";
-div.style.height=((e.end-e.start)*60)+"px";
-div.style.background=e.color;
+function updatePosition(){
+div.style.left = (colWidth*(e.day+1)+5)+"px";
+div.style.width = (colWidth-10)+"px";
+div.style.top = (e.start*60)+"px";
+div.style.height = ((e.end-e.start)*60)+"px";
+}
 
+updatePosition();
+div.style.background=e.color;
 div.innerHTML=e.title+'<div class="resize"></div>';
 
-/* DELETE */
-div.oncontextmenu=ev=>{
+div.oncontextmenu=(ev)=>{
 ev.preventDefault();
 if(confirm("Supprimer ?")){
 events.splice(i,1);
@@ -233,27 +206,40 @@ renderGrid();
 }
 };
 
-/* DRAG */
-div.onmousedown=ev=>{
+/* DRAG COMPLET */
+div.onmousedown=(ev)=>{
 if(ev.button===2)return;
 
+const startX=ev.clientX;
 const startY=ev.clientY;
-const startTop=parseInt(div.style.top);
+
+const origDay=e.day;
+const origStart=e.start;
 
 document.onmousemove=m=>{
+
+let dx=m.clientX-startX;
 let dy=m.clientY-startY;
-let newTop=startTop+dy;
-let snap=Math.round(newTop/15)*15;
-div.style.top=snap+"px";
+
+/* CHANGE JOUR */
+let newDay = origDay + Math.round(dx/colWidth);
+newDay=Math.max(0,Math.min(6,newDay));
+
+/* CHANGE HEURE */
+let newStart = origStart + dy/60;
+newStart = Math.round(newStart*4)/4; // 15 min
+
+e.day=newDay;
+e.start=newStart;
+e.end=newStart+(e.end-e.start);
+
+updatePosition();
+
 };
 
 document.onmouseup=()=>{
 document.onmousemove=null;
 document.onmouseup=null;
-
-e.start=parseInt(div.style.top)/60;
-e.end=e.start+(e.end-e.start);
-
 saveEvents(events);
 renderGrid();
 };
@@ -262,25 +248,23 @@ renderGrid();
 /* RESIZE */
 const res=div.querySelector(".resize");
 
-res.onmousedown=ev=>{
+res.onmousedown=(ev)=>{
 ev.stopPropagation();
 
 const startY=ev.clientY;
-const startH=parseInt(div.style.height);
+const origHeight=e.end-e.start;
 
 document.onmousemove=m=>{
 let dy=m.clientY-startY;
-let newH=startH+dy;
-let snap=Math.round(newH/15)*15;
-div.style.height=snap+"px";
+let newDur = origHeight + dy/60;
+newDur = Math.round(newDur*4)/4;
+e.end=e.start+newDur;
+updatePosition();
 };
 
 document.onmouseup=()=>{
 document.onmousemove=null;
 document.onmouseup=null;
-
-e.end=e.start+(parseInt(div.style.height)/60);
-
 saveEvents(events);
 renderGrid();
 };
