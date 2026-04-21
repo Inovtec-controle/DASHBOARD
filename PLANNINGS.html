@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planning Agents PRO</title>
+<title>Planning PRO</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
@@ -17,44 +16,24 @@ body{
   background:#f3f4f6;
 }
 
-/* SIDEBAR */
 .sidebar{
-  width:240px;
+  width:220px;
   background:#fff;
   border-right:1px solid #ddd;
-  padding:15px;
+  padding:10px;
 }
 
 .agent{
   padding:8px;
-  border-radius:8px;
   margin-bottom:5px;
-  display:flex;
-  align-items:center;
-  gap:8px;
   cursor:pointer;
+  border-radius:6px;
 }
 
-.agent.active{background:#e0f2fe;}
-
-.agent span{
-  width:12px;
-  height:12px;
-  border-radius:50%;
+.agent.active{
+  background:#dbeafe;
 }
 
-button{
-  margin-top:10px;
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  background:#16a34a;
-  color:#fff;
-  cursor:pointer;
-}
-
-/* MAIN */
 .main{
   flex:1;
   display:flex;
@@ -62,24 +41,6 @@ button{
 }
 
 /* HEADER */
-.header{
-  background:#fff;
-  padding:10px;
-  border-bottom:1px solid #ddd;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:20px;
-}
-
-.selector{
-  padding:6px 10px;
-  border-radius:6px;
-  border:1px solid #ccc;
-  cursor:pointer;
-}
-
-/* DAYS */
 .days{
   display:grid;
   grid-template-columns:60px repeat(7,1fr);
@@ -98,14 +59,13 @@ button{
   flex:1;
   display:grid;
   grid-template-columns:60px repeat(7,1fr);
-  overflow:auto;
   position:relative;
 }
 
 .hour{
-  border-bottom:1px solid #eee;
   font-size:12px;
-  padding:4px;
+  border-bottom:1px solid #eee;
+  height:60px;
 }
 
 .cell{
@@ -117,23 +77,23 @@ button{
 /* EVENT */
 .event{
   position:absolute;
+  width:calc(100% - 10px);
   left:5px;
-  right:5px;
-  border-radius:8px;
+  border-radius:6px;
   color:#fff;
-  padding:5px;
   font-size:12px;
+  padding:3px;
   cursor:grab;
 }
 
 .resize{
+  height:6px;
+  background:rgba(255,255,255,0.5);
   position:absolute;
   bottom:0;
   left:0;
   right:0;
-  height:8px;
   cursor:n-resize;
-  background:rgba(255,255,255,0.5);
 }
 </style>
 </head>
@@ -141,24 +101,12 @@ button{
 <body>
 
 <div class="sidebar">
-  <h3>Agents</h3>
   <div id="agents"></div>
-  <button onclick="generatePDF()">📄 Générer PDF</button>
 </div>
 
 <div class="main">
-
-  <div class="header">
-    <div id="weekDisplay"></div>
-    <select id="weekType" class="selector">
-      <option value="pair">Semaine paire</option>
-      <option value="impair">Semaine impaire</option>
-    </select>
-  </div>
-
   <div class="days" id="days"></div>
   <div class="grid" id="grid"></div>
-
 </div>
 
 <script>
@@ -168,53 +116,21 @@ const agents = [
   {name:"Agent 2", color:"#3b82f6"}
 ];
 
-let selectedAgent = null;
-let weekType = localStorage.getItem("weekType") || "pair";
+let selectedAgent = 0;
+let events = [];
 
 const days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+
 const grid = document.getElementById("grid");
-
-/* SEMAINE */
-function getWeekNumber(){
-  const d = new Date();
-  const firstJan = new Date(d.getFullYear(),0,1);
-  const days = Math.floor((d - firstJan)/(24*60*60*1000));
-  return Math.ceil((d.getDay()+1+days)/7);
-}
-
-function renderWeek(){
-  const week = getWeekNumber();
-  document.getElementById("weekDisplay").innerText = "Semaine " + week;
-}
-
-/* STORAGE EVENTS */
-function getEvents(){
-  return JSON.parse(localStorage.getItem("events_"+weekType)) || [];
-}
-
-function saveEvents(events){
-  localStorage.setItem("events_"+weekType, JSON.stringify(events));
-}
 
 /* AGENTS */
 function renderAgents(){
   const el=document.getElementById("agents");
   el.innerHTML="";
-
-  const all=document.createElement("div");
-  all.className="agent"+(selectedAgent===null?" active":"");
-  all.innerHTML=`<span style="background:#000"></span> Tous`;
-  all.onclick=()=>{
-    selectedAgent=null;
-    renderAgents();
-    renderGrid();
-  };
-  el.appendChild(all);
-
   agents.forEach((a,i)=>{
     const div=document.createElement("div");
     div.className="agent"+(selectedAgent===i?" active":"");
-    div.innerHTML=`<span style="background:${a.color}"></span>${a.name}`;
+    div.textContent=a.name;
     div.onclick=()=>{
       selectedAgent=i;
       renderAgents();
@@ -242,62 +158,68 @@ function renderGrid(){
     }
   }
 
-  const events = getEvents();
-
   events.forEach((e,i)=>{
-    if(selectedAgent!==null && e.agent!==selectedAgent) return;
-    drawEvent(e,i,events);
+    if(e.agent!==selectedAgent) return;
+    drawEvent(e,i);
   });
 }
 
 /* DRAW EVENT */
-function drawEvent(e,i,events){
+function drawEvent(e,i){
+
+  const columnWidth = grid.offsetWidth / 8;
+  const left = columnWidth * (e.day+1);
 
   const div=document.createElement("div");
   div.className="event";
-  div.style.top=(e.hour*60)+"px";
-  div.style.height=(e.duration*60)+"px";
-  div.style.background=e.color;
-  div.style.left=`calc(${(e.day+1)*(100/8)}% + 5px)`;
-  div.style.width=`calc((100/8) - 10px)`;
-  div.innerHTML=e.title+`<div class="resize"></div>`;
+  div.style.top = (e.start * 60) + "px";
+  div.style.height = ((e.end - e.start) * 60) + "px";
+  div.style.left = left + "px";
+  div.style.width = columnWidth - 10 + "px";
+  div.style.background = e.color;
+  div.innerHTML = e.title + `<div class="resize"></div>`;
 
   /* DRAG */
-  div.onmousedown=(ev)=>{
-    const offsetY=ev.offsetY;
+  div.onmousedown = (ev)=>{
+    const offsetY = ev.offsetY;
 
-    document.onmousemove=(eMove)=>{
-      const y=eMove.clientY-grid.getBoundingClientRect().top-offsetY;
-      div.style.top=y+"px";
+    document.onmousemove = (eMove)=>{
+      let y = eMove.clientY - grid.getBoundingClientRect().top - offsetY;
+
+      // SNAP 15 MIN
+      let minutes = Math.round(y / 15) * 15;
+      div.style.top = minutes + "px";
     };
 
-    document.onmouseup=()=>{
+    document.onmouseup = ()=>{
       document.onmousemove=null;
       document.onmouseup=null;
 
-      e.hour=Math.max(0,Math.round(parseInt(div.style.top)/60));
-      saveEvents(events);
+      e.start = parseInt(div.style.top) / 60;
+      e.end = e.start + (e.end - e.start);
+
       renderGrid();
     };
   };
 
   /* RESIZE */
-  const resizer=div.querySelector(".resize");
+  const resizer = div.querySelector(".resize");
 
-  resizer.onmousedown=(ev)=>{
+  resizer.onmousedown = (ev)=>{
     ev.stopPropagation();
 
-    document.onmousemove=(eMove)=>{
-      const newHeight=eMove.clientY-div.getBoundingClientRect().top;
-      div.style.height=newHeight+"px";
+    document.onmousemove = (eMove)=>{
+      let height = eMove.clientY - div.getBoundingClientRect().top;
+
+      let snap = Math.round(height / 15) * 15;
+      div.style.height = snap + "px";
     };
 
-    document.onmouseup=()=>{
+    document.onmouseup = ()=>{
       document.onmousemove=null;
       document.onmouseup=null;
 
-      e.duration=Math.max(1,Math.round(parseInt(div.style.height)/60));
-      saveEvents(events);
+      e.end = e.start + (parseInt(div.style.height)/60);
       renderGrid();
     };
   };
@@ -307,100 +229,30 @@ function drawEvent(e,i,events){
 
 /* CREATE EVENT */
 grid.addEventListener("click",(e)=>{
-  const cell=e.target.closest(".cell");
+  const cell = e.target.closest(".cell");
   if(!cell) return;
 
-  if(selectedAgent===null){
-    alert("Sélectionne un agent !");
-    return;
-  }
+  const day = parseInt(cell.dataset.day);
+  const hour = parseInt(cell.dataset.hour);
 
-  const events=getEvents();
-
-  const day=parseInt(cell.dataset.day);
-  const hour=parseInt(cell.dataset.hour);
-  const title=prompt("Nom tâche ?");
+  const title = prompt("Nom tâche ?");
   if(!title) return;
-
-  const agent=agents[selectedAgent];
 
   events.push({
     day,
-    hour,
-    duration:1,
+    start: hour,
+    end: hour + 1,
     title,
-    color:agent.color,
-    agent:selectedAgent
+    color: agents[selectedAgent].color,
+    agent: selectedAgent
   });
 
-  saveEvents(events);
   renderGrid();
 });
-
-/* SELECTEUR SEMAINE */
-document.getElementById("weekType").value = weekType;
-
-document.getElementById("weekType").onchange = function(){
-  weekType = this.value;
-  localStorage.setItem("weekType", weekType);
-  renderGrid();
-};
-
-/* PDF */
-function generatePDF(){
-
-  const copies=parseInt(prompt("Nombre de copies ?", "2"));
-  if(!copies || copies<1) return;
-
-  const { jsPDF } = window.jspdf;
-  const doc=new jsPDF();
-
-  let firstPage=true;
-  const events=getEvents();
-
-  let pages=[];
-  for(let c=0;c<copies;c++){
-    agents.forEach((a,i)=> pages.push(i));
-  }
-
-  pages.forEach((agentIndex)=>{
-    const agent=agents[agentIndex];
-
-    if(!firstPage) doc.addPage();
-    firstPage=false;
-
-    doc.text(`Planning ${agent.name} (${weekType})`,14,20);
-
-    let y=30;
-
-    const agentEvents=events
-      .filter(e=>e.agent===agentIndex)
-      .sort((a,b)=>a.day-b.day||a.hour-b.hour);
-
-    if(agentEvents.length===0){
-      doc.text("Aucune tâche",14,y);
-      return;
-    }
-
-    agentEvents.forEach(e=>{
-      doc.text(`${days[e.day]} ${e.hour}h-${e.hour+e.duration}h : ${e.title}`,14,y);
-      y+=6;
-
-      if(y>280){
-        doc.addPage();
-        y=20;
-      }
-    });
-
-  });
-
-  doc.save("planning.pdf");
-}
 
 /* INIT */
 renderAgents();
 renderDays();
-renderWeek();
 renderGrid();
 
 </script>
