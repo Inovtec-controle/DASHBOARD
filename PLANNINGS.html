@@ -11,18 +11,44 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
 body{display:flex;height:100vh;background:#f3f4f6;}
-.sidebar{width:260px;background:#fff;border-right:1px solid #ddd;padding:10px;}
-.agent{padding:8px;border-radius:6px;cursor:pointer;margin-bottom:5px;}
+
+.sidebar{width:280px;background:#fff;border-right:1px solid #ddd;padding:10px;}
+
+.agent{
+  padding:8px;
+  border-radius:6px;
+  cursor:pointer;
+  margin-bottom:5px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
 .agent.active{background:#dbeafe;}
+
+.copy-badge{
+  background:#16a34a;
+  color:#fff;
+  padding:4px 8px;
+  border-radius:20px;
+  font-size:12px;
+  cursor:pointer;
+}
+
 .add{background:#16a34a;color:#fff;padding:8px;text-align:center;border-radius:6px;cursor:pointer;margin-top:10px;}
 button{width:100%;margin-top:10px;padding:10px;border:none;border-radius:6px;background:#16a34a;color:#fff;}
+
 .main{flex:1;display:flex;flex-direction:column;}
+
 .header{display:flex;justify-content:center;gap:20px;padding:10px;background:#fff;border-bottom:1px solid #ddd;}
+
 .days{display:grid;grid-template-columns:60px repeat(7,1fr);}
 .day{text-align:center;padding:10px;font-weight:600;background:#fff;}
+
 .grid{flex:1;display:grid;grid-template-columns:60px repeat(7,1fr);position:relative;}
+
 .hour{height:60px;font-size:12px;border-bottom:1px solid #eee;}
 .cell{border:1px solid #eee;height:60px;}
+
 .event{position:absolute;border-radius:6px;color:#fff;font-size:12px;padding:3px;cursor:grab;}
 .resize{height:6px;background:rgba(255,255,255,0.6);position:absolute;bottom:0;left:0;right:0;}
 </style>
@@ -34,7 +60,7 @@ button{width:100%;margin-top:10px;padding:10px;border:none;border-radius:6px;bac
   <h3>Agents</h3>
   <div id="agents"></div>
   <div class="add" onclick="addAgent()">+ Ajouter agent</div>
-  <button onclick="generatePDF()">📄 PDF</button>
+  <button onclick="generatePDF()">📄 Générer PDF</button>
 </div>
 
 <div class="main">
@@ -54,8 +80,8 @@ button{width:100%;margin-top:10px;padding:10px;border:none;border-radius:6px;bac
 
 /* ===== AGENTS ===== */
 let agents = JSON.parse(localStorage.getItem("agents")) || [
-  {name:"Agent 1",color:"#16a34a"},
-  {name:"Agent 2",color:"#3b82f6"}
+  {name:"Agent 1",color:"#16a34a",copies:2},
+  {name:"Agent 2",color:"#3b82f6",copies:2}
 ];
 
 let selectedAgent = 0;
@@ -93,10 +119,35 @@ function saveEvents(events){
 function renderAgents(){
   const el=document.getElementById("agents");
   el.innerHTML="";
+
   agents.forEach((a,i)=>{
+
     const div=document.createElement("div");
     div.className="agent"+(selectedAgent===i?" active":"");
-    div.textContent=a.name;
+
+    const name=document.createElement("span");
+    name.textContent=a.name;
+
+    const badge=document.createElement("span");
+    badge.className="copy-badge";
+    badge.textContent=a.copies;
+
+    /* AUGMENTER COPIES */
+    badge.onclick=(e)=>{
+      e.stopPropagation();
+      a.copies++;
+      saveAgents();
+      renderAgents();
+    };
+
+    /* DIMINUTION BLOQUÉE */
+    badge.oncontextmenu=(e)=>{
+      e.preventDefault();
+      alert("Impossible de diminuer les copies");
+    };
+
+    div.appendChild(name);
+    div.appendChild(badge);
 
     div.onclick=()=>{
       selectedAgent=i;
@@ -104,11 +155,17 @@ function renderAgents(){
       renderGrid();
     };
 
+    /* RENAME */
     div.ondblclick=()=>{
       const n=prompt("Renommer :",a.name);
-      if(n){a.name=n;saveAgents();renderAgents();}
+      if(n){
+        a.name=n;
+        saveAgents();
+        renderAgents();
+      }
     };
 
+    /* DELETE */
     div.oncontextmenu=(e)=>{
       e.preventDefault();
       if(confirm("Supprimer agent ?")){
@@ -122,15 +179,6 @@ function renderAgents(){
 
     el.appendChild(div);
   });
-}
-
-function addAgent(){
-  const name=prompt("Nom ?");
-  if(!name) return;
-  const color="#"+Math.floor(Math.random()*16777215).toString(16);
-  agents.push({name,color});
-  saveAgents();
-  renderAgents();
 }
 
 /* ===== GRID ===== */
@@ -151,6 +199,7 @@ function renderGrid(){
   }
 
   const events=getEvents();
+
   events.forEach((e,i)=>{
     if(e.agent!==selectedAgent) return;
     drawEvent(e,i,events);
@@ -160,9 +209,9 @@ function renderGrid(){
 /* ===== EVENT ===== */
 function drawEvent(e,i,events){
 
-  const col = document.querySelector(`.cell[data-day="${e.day}"][data-hour="0"]`);
-  const left = col.offsetLeft;
-  const width = col.offsetWidth;
+  const col=document.querySelector(`.cell[data-day="${e.day}"][data-hour="0"]`);
+  const left=col.offsetLeft;
+  const width=col.offsetWidth;
 
   const div=document.createElement("div");
   div.className="event";
@@ -182,46 +231,6 @@ function drawEvent(e,i,events){
       saveEvents(events);
       renderGrid();
     }
-  };
-
-  div.onmousedown=(ev)=>{
-    if(ev.button===2) return;
-
-    const offsetY=ev.offsetY;
-
-    document.onmousemove=(eMove)=>{
-      let y=eMove.clientY-grid.getBoundingClientRect().top-offsetY;
-      let snap=Math.round(y/15)*15;
-      div.style.top=snap+"px";
-    };
-
-    document.onmouseup=()=>{
-      document.onmousemove=null;
-      document.onmouseup=null;
-
-      e.start=parseInt(div.style.top)/60;
-      e.end=e.start+(e.end-e.start);
-
-      saveEvents(events);
-      renderGrid();
-    };
-  };
-
-  const resizer=div.querySelector(".resize");
-  resizer.onmousedown=(ev)=>{
-    ev.stopPropagation();
-    document.onmousemove=(eMove)=>{
-      let h=eMove.clientY-div.getBoundingClientRect().top;
-      let snap=Math.round(h/15)*15;
-      div.style.height=snap+"px";
-    };
-    document.onmouseup=()=>{
-      document.onmousemove=null;
-      document.onmouseup=null;
-      e.end=e.start+(parseInt(div.style.height)/60);
-      saveEvents(events);
-      renderGrid();
-    };
   };
 
   grid.appendChild(div);
@@ -253,54 +262,52 @@ grid.addEventListener("click",(e)=>{
   renderGrid();
 });
 
-/* ===== SELECT ===== */
-document.getElementById("weekType").value=weekType;
-document.getElementById("weekType").onchange=function(){
-  weekType=this.value;
-  localStorage.setItem("weekType",weekType);
-  renderGrid();
-};
-
 /* ===== PDF ===== */
 function generatePDF(){
 
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF("landscape");
-
   const events=getEvents();
+
+  let first=true;
 
   agents.forEach((agent,i)=>{
 
-    if(i>0) doc.addPage();
+    for(let c=0;c<agent.copies;c++){
 
-    doc.text(`${agent.name} - ${getWeekDates()}`,10,10);
+      if(!first) doc.addPage();
+      first=false;
 
-    let totalWeek=0;
+      doc.text(`${agent.name} - ${getWeekDates()}`,10,10);
 
-    days.forEach((day,d)=>{
+      let totalWeek=0;
 
-      let y=20;
-      let dayTotal=0;
+      days.forEach((day,d)=>{
 
-      doc.text(day,10+d*40,y);
+        let y=20;
+        let dayTotal=0;
 
-      const list=events.filter(e=>e.agent===i && e.day===d);
+        doc.text(day,10+d*40,y);
 
-      list.forEach(e=>{
-        const dur=e.end-e.start;
-        dayTotal+=dur;
-        totalWeek+=dur;
+        const list=events.filter(e=>e.agent===i && e.day===d);
 
-        y+=6;
-        doc.text(`${e.start}h-${e.end}h`,10+d*40,y);
-        doc.text(e.title,10+d*40,y+4);
+        list.forEach(e=>{
+          const dur=e.end-e.start;
+          dayTotal+=dur;
+          totalWeek+=dur;
+
+          y+=6;
+          doc.text(`${e.start}h-${e.end}h`,10+d*40,y);
+          doc.text(e.title,10+d*40,y+4);
+        });
+
+        doc.text(`Total: ${dayTotal.toFixed(2)}h`,10+d*40,180);
+
       });
 
-      doc.text(`Total: ${dayTotal.toFixed(2)}h`,10+d*40,180);
+      doc.text(`Total semaine: ${totalWeek.toFixed(2)}h`,10,200);
 
-    });
-
-    doc.text(`Total semaine: ${totalWeek.toFixed(2)}h`,10,200);
+    }
 
   });
 
