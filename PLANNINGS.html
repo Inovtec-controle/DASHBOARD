@@ -10,11 +10,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
 
-body{
-  display:flex;
-  height:100vh;
-  background:#f3f4f6;
-}
+body{display:flex;height:100vh;background:#f3f4f6;}
 
 .sidebar{
   width:220px;
@@ -26,21 +22,13 @@ body{
 .agent{
   padding:8px;
   margin-bottom:5px;
-  cursor:pointer;
   border-radius:6px;
+  cursor:pointer;
 }
+.agent.active{background:#dbeafe;}
 
-.agent.active{
-  background:#dbeafe;
-}
+.main{flex:1;display:flex;flex-direction:column;}
 
-.main{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
-
-/* HEADER */
 .days{
   display:grid;
   grid-template-columns:60px repeat(7,1fr);
@@ -48,13 +36,8 @@ body{
   border-bottom:1px solid #ddd;
 }
 
-.day{
-  text-align:center;
-  padding:10px;
-  font-weight:600;
-}
+.day{text-align:center;padding:10px;font-weight:600;}
 
-/* GRID */
 .grid{
   flex:1;
   display:grid;
@@ -63,9 +46,9 @@ body{
 }
 
 .hour{
+  height:60px;
   font-size:12px;
   border-bottom:1px solid #eee;
-  height:60px;
 }
 
 .cell{
@@ -77,8 +60,6 @@ body{
 /* EVENT */
 .event{
   position:absolute;
-  width:calc(100% - 10px);
-  left:5px;
   border-radius:6px;
   color:#fff;
   font-size:12px;
@@ -88,7 +69,7 @@ body{
 
 .resize{
   height:6px;
-  background:rgba(255,255,255,0.5);
+  background:rgba(255,255,255,0.6);
   position:absolute;
   bottom:0;
   left:0;
@@ -111,17 +92,16 @@ body{
 
 <script>
 
-const agents = [
-  {name:"Agent 1", color:"#16a34a"},
-  {name:"Agent 2", color:"#3b82f6"}
+const agents=[
+  {name:"Agent 1",color:"#16a34a"},
+  {name:"Agent 2",color:"#3b82f6"}
 ];
 
-let selectedAgent = 0;
-let events = [];
+let selectedAgent=0;
+let events=[];
 
-const days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
-
-const grid = document.getElementById("grid");
+const days=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+const grid=document.getElementById("grid");
 
 /* AGENTS */
 function renderAgents(){
@@ -144,7 +124,7 @@ function renderAgents(){
 function renderDays(){
   const el=document.getElementById("days");
   el.innerHTML="<div></div>";
-  days.forEach(d=> el.innerHTML+=`<div class="day">${d}</div>`);
+  days.forEach(d=>el.innerHTML+=`<div class="day">${d}</div>`);
 }
 
 /* GRID */
@@ -167,59 +147,64 @@ function renderGrid(){
 /* DRAW EVENT */
 function drawEvent(e,i){
 
-  const columnWidth = grid.offsetWidth / 8;
-  const left = columnWidth * (e.day+1);
+  const cell = document.querySelector(`.cell[data-day="${e.day}"][data-hour="0"]`);
+  if(!cell) return;
+
+  const colLeft = cell.offsetLeft;
+  const colWidth = cell.offsetWidth;
 
   const div=document.createElement("div");
   div.className="event";
-  div.style.top = (e.start * 60) + "px";
-  div.style.height = ((e.end - e.start) * 60) + "px";
-  div.style.left = left + "px";
-  div.style.width = columnWidth - 10 + "px";
-  div.style.background = e.color;
-  div.innerHTML = e.title + `<div class="resize"></div>`;
+
+  div.style.left = colLeft + 5 + "px";
+  div.style.width = colWidth - 10 + "px";
+
+  div.style.top = (e.start*60)+"px";
+  div.style.height = ((e.end-e.start)*60)+"px";
+
+  div.style.background=e.color;
+  div.innerHTML=e.title+`<div class="resize"></div>`;
 
   /* DRAG */
-  div.onmousedown = (ev)=>{
-    const offsetY = ev.offsetY;
+  div.onmousedown=(ev)=>{
+    const offsetY=ev.offsetY;
 
-    document.onmousemove = (eMove)=>{
-      let y = eMove.clientY - grid.getBoundingClientRect().top - offsetY;
+    document.onmousemove=(eMove)=>{
+      let y=eMove.clientY-grid.getBoundingClientRect().top-offsetY;
 
-      // SNAP 15 MIN
-      let minutes = Math.round(y / 15) * 15;
-      div.style.top = minutes + "px";
+      let snap=Math.round(y/15)*15;
+      div.style.top=snap+"px";
     };
 
-    document.onmouseup = ()=>{
+    document.onmouseup=()=>{
       document.onmousemove=null;
       document.onmouseup=null;
 
-      e.start = parseInt(div.style.top) / 60;
-      e.end = e.start + (e.end - e.start);
+      e.start=parseInt(div.style.top)/60;
+      e.end=e.start+(e.end-e.start);
 
       renderGrid();
     };
   };
 
   /* RESIZE */
-  const resizer = div.querySelector(".resize");
+  const resizer=div.querySelector(".resize");
 
-  resizer.onmousedown = (ev)=>{
+  resizer.onmousedown=(ev)=>{
     ev.stopPropagation();
 
-    document.onmousemove = (eMove)=>{
-      let height = eMove.clientY - div.getBoundingClientRect().top;
-
-      let snap = Math.round(height / 15) * 15;
-      div.style.height = snap + "px";
+    document.onmousemove=(eMove)=>{
+      let h=eMove.clientY-div.getBoundingClientRect().top;
+      let snap=Math.round(h/15)*15;
+      div.style.height=snap+"px";
     };
 
-    document.onmouseup = ()=>{
+    document.onmouseup=()=>{
       document.onmousemove=null;
       document.onmouseup=null;
 
-      e.end = e.start + (parseInt(div.style.height)/60);
+      e.end=e.start+(parseInt(div.style.height)/60);
+
       renderGrid();
     };
   };
@@ -227,24 +212,24 @@ function drawEvent(e,i){
   grid.appendChild(div);
 }
 
-/* CREATE EVENT */
+/* CREATE */
 grid.addEventListener("click",(e)=>{
-  const cell = e.target.closest(".cell");
+  const cell=e.target.closest(".cell");
   if(!cell) return;
 
-  const day = parseInt(cell.dataset.day);
-  const hour = parseInt(cell.dataset.hour);
+  const day=parseInt(cell.dataset.day);
+  const hour=parseInt(cell.dataset.hour);
 
-  const title = prompt("Nom tâche ?");
+  const title=prompt("Nom tâche ?");
   if(!title) return;
 
   events.push({
     day,
-    start: hour,
-    end: hour + 1,
+    start:hour,
+    end:hour+1,
     title,
-    color: agents[selectedAgent].color,
-    agent: selectedAgent
+    color:agents[selectedAgent].color,
+    agent:selectedAgent
   });
 
   renderGrid();
