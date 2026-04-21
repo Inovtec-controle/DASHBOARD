@@ -1,1 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning Agents</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+
+body{
+  background:#f3f4f6;
+  display:flex;
+  height:100vh;
+}
+
+/* SIDEBAR AGENTS */
+.sidebar{
+  width:220px;
+  background:#fff;
+  border-right:1px solid #ddd;
+  padding:15px;
+}
+
+.sidebar h2{
+  font-size:18px;
+  margin-bottom:10px;
+}
+
+.agent{
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:6px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.agent span{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  display:inline-block;
+}
+
+/* MAIN */
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+/* HEADER */
+.header{
+  padding:10px;
+  background:#fff;
+  border-bottom:1px solid #ddd;
+  display:flex;
+  justify-content:space-between;
+}
+
+.days{
+  display:grid;
+  grid-template-columns:80px repeat(7,1fr);
+  background:#fff;
+  border-bottom:1px solid #ddd;
+}
+
+.day{
+  padding:10px;
+  text-align:center;
+  font-weight:600;
+}
+
+/* GRID */
+.grid{
+  flex:1;
+  display:grid;
+  grid-template-columns:80px repeat(7,1fr);
+  overflow:auto;
+}
+
+.hour{
+  border-bottom:1px solid #eee;
+  padding:5px;
+  font-size:12px;
+}
+
+.cell{
+  border:1px solid #eee;
+  height:60px;
+  position:relative;
+  cursor:pointer;
+}
+
+.event{
+  position:absolute;
+  top:5px;
+  left:5px;
+  right:5px;
+  padding:5px;
+  border-radius:6px;
+  font-size:12px;
+  color:#fff;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>Agents</h2>
+  <div id="agents"></div>
+  <button onclick="addAgent()">+ Ajouter</button>
+</div>
+
+<div class="main">
+
+  <div class="header">
+    <h2>Semaine</h2>
+  </div>
+
+  <div class="days" id="days"></div>
+  <div class="grid" id="grid"></div>
+
+</div>
+
+<script>
+
+const agents = JSON.parse(localStorage.getItem("agents")) || [
+  {name:"Agent 1", color:"#16a34a"},
+  {name:"Agent 2", color:"#3b82f6"}
+];
+
+const events = JSON.parse(localStorage.getItem("events")) || [];
+
+const days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+
+function save(){
+  localStorage.setItem("agents", JSON.stringify(agents));
+  localStorage.setItem("events", JSON.stringify(events));
+}
+
+function renderAgents(){
+  const container = document.getElementById("agents");
+  container.innerHTML="";
+  
+  agents.forEach((a,i)=>{
+    const div = document.createElement("div");
+    div.className="agent";
+    div.innerHTML=`<span style="background:${a.color}"></span>${a.name}`;
+    container.appendChild(div);
+  });
+}
+
+function renderDays(){
+  const container = document.getElementById("days");
+  container.innerHTML="";
+  
+  container.appendChild(document.createElement("div"));
+  
+  days.forEach(d=>{
+    const div=document.createElement("div");
+    div.className="day";
+    div.textContent=d;
+    container.appendChild(div);
+  });
+}
+
+function renderGrid(){
+  const grid=document.getElementById("grid");
+  grid.innerHTML="";
+
+  for(let h=0;h<24;h++){
+    const hour=document.createElement("div");
+    hour.className="hour";
+    hour.textContent=h+":00";
+    grid.appendChild(hour);
+
+    for(let d=0;d<7;d++){
+      const cell=document.createElement("div");
+      cell.className="cell";
+      cell.dataset.day=d;
+      cell.dataset.hour=h;
+
+      cell.onclick=()=>createEvent(d,h);
+
+      grid.appendChild(cell);
+    }
+  }
+
+  events.forEach(e=>{
+    const index = e.hour*8 + (e.day+1);
+    const cell = grid.children[index];
+    if(cell){
+      const div=document.createElement("div");
+      div.className="event";
+      div.style.background=e.color;
+      div.textContent=e.title;
+      cell.appendChild(div);
+    }
+  });
+}
+
+function createEvent(day,hour){
+  const agentIndex = prompt("Numéro agent (0,1,2...) ?");
+  const title = prompt("Nom tâche ?");
+  
+  if(agentIndex===null || title===null) return;
+
+  const agent = agents[agentIndex];
+  if(!agent) return alert("Agent invalide");
+
+  events.push({
+    day,
+    hour,
+    title,
+    color:agent.color
+  });
+
+  save();
+  renderGrid();
+}
+
+function addAgent(){
+  const name=prompt("Nom agent ?");
+  if(!name) return;
+
+  const color = "#"+Math.floor(Math.random()*16777215).toString(16);
+
+  agents.push({name,color});
+  save();
+  renderAgents();
+}
+
+renderAgents();
+renderDays();
+renderGrid();
+
+</script>
+
+</body>
+</html>
