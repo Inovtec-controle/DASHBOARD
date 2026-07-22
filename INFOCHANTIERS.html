@@ -404,7 +404,69 @@ Lien : ${lien}`;
   });
 };
 
-window.genererFiche=()=>{/* inchangé */};
+window.genererFiche = () => {
+
+    const contenu = `
+    <div style="font-family:Arial;padding:25px;">
+
+        <h1 style="color:#22c55e;">
+            Fiche Agent
+        </h1>
+
+        <hr>
+
+        <h2>Informations du chantier</h2>
+
+        <p><b>Résidence :</b> ${nom.value}</p>
+        <p><b>Adresse :</b> ${adresse.value}</p>
+        <p><b>GPS :</b><br>${gps.value.replace(/\n/g,"<br>")}</p>
+
+        <p><b>Clés :</b> ${cles.value}</p>
+        <p><b>Code :</b> ${code.value}</p>
+
+        <h2>Agent</h2>
+
+        <p><b>Nom :</b> ${agentNom.value}</p>
+        <p><b>Téléphone :</b> ${agentTel.value}</p>
+
+        <h3>Planning</h3>
+
+        <p><b>Lundi :</b><br>${lundi.value.replace(/\n/g,"<br>")}</p>
+
+        <p><b>Mardi :</b><br>${mardi.value.replace(/\n/g,"<br>")}</p>
+
+        <p><b>Mercredi :</b><br>${mercredi.value.replace(/\n/g,"<br>")}</p>
+
+        <p><b>Jeudi :</b><br>${jeudi.value.replace(/\n/g,"<br>")}</p>
+
+        <p><b>Vendredi :</b><br>${vendredi.value.replace(/\n/g,"<br>")}</p>
+
+        <p><b>Samedi :</b><br>${samedi.value.replace(/\n/g,"<br>")}</p>
+
+        <p><b>Dimanche :</b><br>${dimanche.value.replace(/\n/g,"<br>")}</p>
+
+        <h2>Consignes</h2>
+
+        <p>${consignesAgents.value.replace(/\n/g,"<br>")}</p>
+
+    </div>
+    `;
+
+    html2pdf()
+        .set({
+            margin:8,
+            filename:`Fiche_${nom.value}.pdf`,
+            html2canvas:{scale:2},
+            jsPDF:{
+                unit:"mm",
+                format:"a4",
+                orientation:"portrait"
+            }
+        })
+        .from(contenu)
+        .save();
+
+};
 
 window.supprimer=async()=>{
 if(!currentId)return;
