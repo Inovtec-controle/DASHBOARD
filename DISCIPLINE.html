@@ -1,108 +1,235 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>INOVTEC - Dossier disciplinaire</title>
-<style>
-body{margin:0;font-family:Arial,sans-serif;background:#eef2f7}
-header{background:#0f172a;color:#fff;padding:18px 24px;font-size:24px;font-weight:bold}
-.container{max-width:1100px;margin:20px auto;padding:20px}
-.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.08);margin-bottom:20px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px}
-input,select,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}
-textarea{min-height:90px}
-button{background:#16a34a;color:#fff;border:none;padding:12px 18px;border-radius:8px;cursor:pointer}
-button:hover{background:#15803d}
-table{width:100%;border-collapse:collapse}
-th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}
-.badge{padding:4px 8px;border-radius:20px;color:#fff;font-size:12px}
-.obs{background:#3b82f6}.av{background:#f59e0b}.md{background:#ef4444}.lic{background:#7f1d1d}
-.actions button{background:#dc2626}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16a34a">
+  <title>Inovtec — Gestion disciplinaire</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="inovtec-common.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <style>
+    .level{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}
+    .level.observation{background:#dbeafe;color:#1d4ed8}
+    .level.avertissement{background:#fef3c7;color:#92400e}
+    .level.mise-en-demeure{background:#fee2e2;color:#b91c1c}
+    .level.licenciement{background:#7f1d1d;color:#fff}
+  </style>
 </head>
 <body>
-<header>INOVTEC - Gestion Disciplinaire</header>
-<div class="container">
-<div class="card">
-<h2>Nouvelle fiche disciplinaire</h2>
-<div class="grid">
-<div><label>Agent</label><input id="agent"></div>
-<div><label>Chantier</label><input id="site"></div>
-<div><label>Date</label><input id="date" type="date"></div>
-<div><label>Niveau</label>
-<select id="niveau">
-<option>Observation</option>
-<option>Avertissement</option>
-<option>Mise en demeure</option>
-<option>Procédure de licenciement</option>
-</select></div>
-</div>
-<p><label>Motif</label><input id="motif"></p>
-<p><label>Description</label><textarea id="desc"></textarea></p>
-<p><label>Témoins</label><input id="tem"></p>
-<p><label>Responsable</label><input id="resp"></p>
-<button onclick="ajouter()">Enregistrer</button>
-</div>
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card">
+      <h1>Connexion Inovtec</h1>
+      <p>L’accès aux dossiers disciplinaires est protégé.</p>
+      <div class="field"><label for="loginEmail">Adresse email</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+      <div class="field" style="margin-top:10px"><label for="loginPassword">Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px" type="submit">Se connecter</button>
+      <div id="loginError" class="muted" role="alert" style="margin-top:10px;color:#b91c1c"></div>
+    </form>
+  </div>
 
-<div class="card">
-<h2>Historique</h2>
-<table>
-<thead><tr><th>Date</th><th>Agent</th><th>Site</th><th>Niveau</th><th>Motif</th><th>Actions</th></tr></thead>
-<tbody id="liste"></tbody>
-</table>
-</div>
-</div>
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div><h1>Gestion disciplinaire</h1><p>Suivi confidentiel des faits et des procédures</p></div>
+      <div class="topbar-actions">
+        <a class="btn btn-secondary" href="index.html">← Accueil</a>
+        <span id="syncStatus" class="status">Connexion…</span>
+        <button id="exportBtn" class="btn btn-secondary" type="button">Exporter JSON</button>
+        <button id="logoutBtn" class="btn btn-secondary" type="button">Déconnexion</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="notice warning">
+        Cet outil constitue un support de suivi. Toute sanction doit respecter la procédure applicable et être validée par la personne responsable des ressources humaines ou la direction.
+      </div>
+
+      <section class="card" style="margin-top:14px">
+        <div class="section-title"><h2 id="formTitle">Nouveau dossier</h2><button id="cancelEditBtn" class="btn btn-secondary hidden" type="button">Annuler</button></div>
+        <form id="recordForm">
+          <div class="grid grid-3">
+            <div class="field"><label for="agent">Agent *</label><input id="agent" required maxlength="150"></div>
+            <div class="field"><label for="site">Chantier / site</label><input id="site" maxlength="150"></div>
+            <div class="field"><label for="date">Date des faits *</label><input id="date" type="date" required></div>
+            <div class="field"><label for="niveau">Niveau</label>
+              <select id="niveau"><option>Observation</option><option>Avertissement</option><option>Mise en demeure</option><option>Procédure de licenciement</option></select>
+            </div>
+            <div class="field"><label for="statut">Statut du dossier</label>
+              <select id="statut"><option>Ouvert</option><option>En cours</option><option>Clos</option></select>
+            </div>
+            <div class="field"><label for="responsable">Responsable du suivi</label><input id="responsable" maxlength="150"></div>
+          </div>
+          <div class="grid grid-2" style="margin-top:10px">
+            <div class="field"><label for="motif">Motif *</label><input id="motif" required maxlength="250"></div>
+            <div class="field"><label for="temoins">Témoins</label><input id="temoins" maxlength="250"></div>
+            <div class="field"><label for="description">Description factuelle *</label><textarea id="description" required maxlength="4000" placeholder="Décrire les faits, les dates, les échanges et les éléments vérifiables."></textarea></div>
+            <div class="field"><label for="suite">Suite donnée / prochaine action</label><textarea id="suite" maxlength="2000" placeholder="Entretien, courrier, délai de réponse, action corrective…"></textarea></div>
+          </div>
+          <button class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Enregistrer</span></button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-title"><h2>Historique</h2><span id="count" class="status">0</span></div>
+        <div class="grid grid-3" style="margin-bottom:12px">
+          <div class="field"><label for="search">Recherche</label><input id="search" placeholder="Agent, site, motif…"></div>
+          <div class="field"><label for="statusFilter">Statut</label><select id="statusFilter"><option value="">Tous</option><option>Ouvert</option><option>En cours</option><option>Clos</option></select></div>
+          <div class="field"><label for="levelFilter">Niveau</label><select id="levelFilter"><option value="">Tous</option><option>Observation</option><option>Avertissement</option><option>Mise en demeure</option><option>Procédure de licenciement</option></select></div>
+        </div>
+        <div id="recordsWrap" class="table-wrap"></div>
+      </section>
+    </main>
+  </div>
+
 <script>
-date.value=new Date().toISOString().split('T')[0];
-let data=JSON.parse(localStorage.getItem('discipline')||'[]');
-function badge(n){
-if(n==='Observation') return '<span class="badge obs">'+n+'</span>';
-if(n==='Avertissement') return '<span class="badge av">'+n+'</span>';
-if(n==='Mise en demeure') return '<span class="badge md">'+n+'</span>';
-return '<span class="badge lic">'+n+'</span>';
-}
-function save(){localStorage.setItem('discipline',JSON.stringify(data));}
-function render(){
-liste.innerHTML='';
-data.forEach((d,i)=>{
-liste.innerHTML+=`<tr>
-<td>${d.date}</td>
-<td>${d.agent}</td>
-<td>${d.site}</td>
-<td>${badge(d.niveau)}</td>
-<td>${d.motif}</td>
-<td class="actions">
-<button onclick="imprimer(${i})">PDF</button>
-<button onclick="suppr(${i})">X</button>
-</td></tr>`;
-});
-}
-function ajouter(){
-data.unshift({
-agent:agent.value,site:site.value,date:date.value,niveau:niveau.value,
-motif:motif.value,desc:desc.value,tem:tem.value,resp:resp.value
-});
-save();render();
-document.querySelectorAll('input:not(#date),textarea').forEach(e=>e.value='');
-niveau.selectedIndex=0;
-}
-function suppr(i){if(confirm('Supprimer ?')){data.splice(i,1);save();render();}}
-function imprimer(i){
-const d=data[i];
-const w=window.open('');
-w.document.write(`<h1>Dossier disciplinaire</h1>
-<p><b>Agent :</b> ${d.agent}</p>
-<p><b>Date :</b> ${d.date}</p>
-<p><b>Site :</b> ${d.site}</p>
-<p><b>Niveau :</b> ${d.niveau}</p>
-<p><b>Motif :</b> ${d.motif}</p>
-<p><b>Description :</b><br>${d.desc}</p>
-<p><b>Témoins :</b> ${d.tem}</p>
-<p><b>Responsable :</b> ${d.resp}</p>`);
-w.print();
-}
-render();
+(() => {
+  "use strict";
+  if (!window.INOVTEC_FIREBASE_CONFIG) {
+    document.getElementById("loginError").textContent = "Configuration Firebase introuvable.";
+    return;
+  }
+  if(!firebase.apps.length) firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+  const auth=firebase.auth();
+  const db=firebase.firestore();
+  const LOCAL_KEY="inovtec_discipline_v2";
+  let records=[];
+  let currentUser=null;
+  let unsubscribe=null;
+  let editingId=null;
+  let syncing=false;
+  const $=id=>document.getElementById(id);
+
+  function uid(){return "disc_"+Date.now()+"_"+Math.random().toString(16).slice(2);}
+  function today(){return new Date().toISOString().slice(0,10);}
+  function setSync(text,type=""){$("syncStatus").textContent=text;$("syncStatus").className="status"+(type?" "+type:"");}
+  function loadLocal(){try{const raw=localStorage.getItem(LOCAL_KEY);records=raw?JSON.parse(raw):[];if(!Array.isArray(records))records=[];}catch{records=[];}}
+  function saveLocal(){localStorage.setItem(LOCAL_KEY,JSON.stringify(records));}
+  async function saveCloud(){
+    saveLocal();render();
+    if(!currentUser||syncing)return;
+    setSync("Enregistrement…");
+    try{
+      await db.collection("discipline").doc(currentUser.uid).set({records,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      setSync("Synchronisé","ok");
+    }catch(error){
+      console.error(error);setSync("Sauvegarde locale seulement","warning");
+    }
+  }
+  function startRealtime(){
+    if(unsubscribe){unsubscribe();unsubscribe=null;}
+    setSync("Synchronisation…");
+    unsubscribe=db.collection("discipline").doc(currentUser.uid).onSnapshot(snap=>{
+      syncing=true;
+      if(snap.exists&&Array.isArray(snap.data().records)){records=snap.data().records;saveLocal();}
+      else{loadLocal();if(records.length)saveCloud();}
+      render();setSync("Synchronisé","ok");setTimeout(()=>syncing=false,0);
+    },error=>{console.error(error);loadLocal();render();setSync("Mode local","warning");});
+  }
+  function slugLevel(level){
+    if(level==="Observation")return"observation";
+    if(level==="Avertissement")return"avertissement";
+    if(level==="Mise en demeure")return"mise-en-demeure";
+    return"licenciement";
+  }
+  function resetForm(){
+    editingId=null;$("recordForm").reset();$("date").value=today();$("niveau").value="Observation";$("statut").value="Ouvert";
+    $("formTitle").textContent="Nouveau dossier";$("submitLabel").textContent="Enregistrer";$("cancelEditBtn").classList.add("hidden");
+  }
+  function editRecord(id){
+    const r=records.find(x=>x.id===id);if(!r)return;
+    editingId=id;
+    ["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(field=>$(field).value=r[field]||"");
+    $("formTitle").textContent="Modifier le dossier";$("submitLabel").textContent="Enregistrer les modifications";$("cancelEditBtn").classList.remove("hidden");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  function deleteRecord(id){
+    const r=records.find(x=>x.id===id);if(!r||!confirm(`Supprimer définitivement le dossier de ${r.agent} ?`))return;
+    records=records.filter(x=>x.id!==id);if(editingId===id)resetForm();saveCloud();
+  }
+  function printRecord(id){
+    const r=records.find(x=>x.id===id);if(!r)return;
+    const w=window.open("","_blank","noopener,noreferrer");if(!w){alert("Autorise les fenêtres surgissantes pour imprimer.");return;}
+    const doc=w.document;
+    doc.title="Dossier disciplinaire";
+    const style=doc.createElement("style");style.textContent="body{font-family:Arial,sans-serif;padding:28px;color:#111827}h1{color:#166534}p{line-height:1.45}.block{white-space:pre-wrap;border:1px solid #d1d5db;padding:12px;border-radius:8px}";doc.head.appendChild(style);
+    const h1=doc.createElement("h1");h1.textContent="Dossier disciplinaire";doc.body.appendChild(h1);
+    [["Agent",r.agent],["Date des faits",r.date],["Site",r.site],["Niveau",r.niveau],["Statut",r.statut],["Motif",r.motif],["Témoins",r.temoins],["Responsable",r.responsable]].forEach(([label,value])=>{
+      const p=doc.createElement("p");const b=doc.createElement("b");b.textContent=label+" : ";p.append(b,doc.createTextNode(value||"—"));doc.body.appendChild(p);
+    });
+    [["Description factuelle",r.description],["Suite donnée / prochaine action",r.suite]].forEach(([label,value])=>{
+      const h=doc.createElement("h2");h.textContent=label;const block=doc.createElement("div");block.className="block";block.textContent=value||"—";doc.body.append(h,block);
+    });
+    w.focus();setTimeout(()=>w.print(),200);
+  }
+  function filtered(){
+    const q=$("search").value.trim().toLowerCase(),status=$("statusFilter").value,level=$("levelFilter").value;
+    return [...records].filter(r=>{
+      const hay=[r.agent,r.site,r.motif,r.description,r.responsable].join(" ").toLowerCase();
+      return(!q||hay.includes(q))&&(!status||r.statut===status)&&(!level||r.niveau===level);
+    }).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));
+  }
+  function button(label,handler,className=""){
+    const b=document.createElement("button");b.type="button";b.textContent=label;b.className="btn btn-secondary"+(className?" "+className:"");b.style.padding="6px 8px";b.style.fontSize="11px";b.addEventListener("click",handler);return b;
+  }
+  function render(){
+    const list=filtered();$("count").textContent=String(list.length);
+    const wrap=$("recordsWrap");wrap.innerHTML="";
+    if(!list.length){const empty=document.createElement("div");empty.className="empty";empty.textContent="Aucun dossier.";wrap.appendChild(empty);return;}
+    const table=document.createElement("table");
+    const thead=document.createElement("thead"),trh=document.createElement("tr");
+    ["Date","Agent","Site","Niveau","Statut","Motif","Actions"].forEach(text=>{const th=document.createElement("th");th.textContent=text;trh.appendChild(th);});
+    thead.appendChild(trh);table.appendChild(thead);
+    const tbody=document.createElement("tbody");
+    list.forEach(r=>{
+      const tr=document.createElement("tr");
+      [r.date||"—",r.agent||"—",r.site||"—"].forEach(text=>{const td=document.createElement("td");td.textContent=text;tr.appendChild(td);});
+      const levelTd=document.createElement("td"),level=document.createElement("span");level.className="level "+slugLevel(r.niveau);level.textContent=r.niveau||"—";levelTd.appendChild(level);tr.appendChild(levelTd);
+      const statusTd=document.createElement("td");statusTd.textContent=r.statut||"—";tr.appendChild(statusTd);
+      const motifTd=document.createElement("td");motifTd.textContent=r.motif||"—";tr.appendChild(motifTd);
+      const actionTd=document.createElement("td"),actions=document.createElement("div");actions.className="actions";
+      actions.append(button("Imprimer",()=>printRecord(r.id)),button("Modifier",()=>editRecord(r.id)),button("Supprimer",()=>deleteRecord(r.id),"btn-danger"));
+      actionTd.appendChild(actions);tr.appendChild(actionTd);tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);wrap.appendChild(table);
+  }
+  function exportJSON(){
+    const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),records},null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`discipline_${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  }
+
+  $("recordForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const data={};
+    ["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(field=>data[field]=$(field).value.trim());
+    if(!data.agent||!data.date||!data.motif||!data.description){alert("Agent, date, motif et description sont obligatoires.");return;}
+    if(editingId){
+      const r=records.find(x=>x.id===editingId);if(r)Object.assign(r,data,{updatedAt:new Date().toISOString(),updatedBy:currentUser?.uid||""});
+    }else records.push({id:uid(),...data,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdBy:currentUser?.uid||""});
+    resetForm();saveCloud();
+  });
+  $("cancelEditBtn").addEventListener("click",resetForm);
+  ["search","statusFilter","levelFilter"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",render));
+  $("exportBtn").addEventListener("click",exportJSON);
+  $("logoutBtn").addEventListener("click",()=>auth.signOut());
+  $("loginForm").addEventListener("submit",async e=>{
+    e.preventDefault();$("loginError").textContent="";
+    try{await auth.signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value);}
+    catch(error){$("loginError").textContent="Connexion impossible : "+(error.message||"vérifie les identifiants.");}
+  });
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      currentUser=user;$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");loadLocal();render();startRealtime();
+    }else{
+      currentUser=null;if(unsubscribe){unsubscribe();unsubscribe=null;}$("app").classList.add("hidden");$("loginScreen").classList.remove("hidden");
+    }
+  });
+  resetForm();
+})();
 </script>
 </body>
 </html>
