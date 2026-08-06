@@ -1,168 +1,62 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Calcul Salaire Net - Nettoyage</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<style>
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  font-family:'Inter',sans-serif;
-}
-
-body{
-  background:#f1f5f9;
-  color:#0f172a;
-  display:flex;
-  justify-content:center;
-  padding:20px;
-}
-
-.app{
-  width:100%;
-  max-width:420px;
-}
-
-.header{
-  background:#16a34a;
-  color:white;
-  padding:20px;
-  border-radius:16px;
-  margin-bottom:20px;
-  box-shadow:0 10px 20px rgba(0,0,0,0.1);
-}
-
-.header h1{
-  font-size:20px;
-  font-weight:600;
-}
-
-.card{
-  background:white;
-  padding:20px;
-  border-radius:16px;
-  margin-bottom:15px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.05);
-}
-
-.label{
-  font-size:13px;
-  color:#64748b;
-  margin-bottom:5px;
-}
-
-input{
-  width:100%;
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #cbd5e1;
-  font-size:15px;
-  margin-bottom:15px;
-}
-
-.result{
-  background:#ecfdf5;
-  border:1px solid #bbf7d0;
-}
-
-.result-line{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:10px;
-}
-
-.result-line span{
-  font-size:15px;
-}
-
-.result-line strong{
-  font-size:16px;
-}
-
-.badge{
-  background:#dcfce7;
-  color:#166534;
-  padding:6px 10px;
-  border-radius:8px;
-  font-size:12px;
-  display:inline-block;
-  margin-top:10px;
-}
-
-.footer{
-  text-align:center;
-  font-size:12px;
-  color:#94a3b8;
-  margin-top:10px;
-}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16a34a">
+  <title>Inovtec — Estimation salaire</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="inovtec-common.css">
+  <style>
+    body{display:flex;align-items:flex-start;justify-content:center;padding:16px}
+    .tool{width:min(660px,100%)}
+    .amount{font-size:28px;font-weight:800;color:#166534}
+  </style>
 </head>
-
 <body>
-
-<div class="app">
-
-  <div class="header">
-    <h1>🧹 Calcul Salaire Net</h1>
-  </div>
-
-  <div class="card">
-    <div class="label">Taux horaire BRUT (€)</div>
-    <input type="number" id="taux" placeholder="Ex : 11.65">
-
-    <div class="label">Heures par semaine</div>
-    <input type="number" id="heures" placeholder="Ex : 30">
-
-    <div class="badge">Convention nettoyage – estimation net ≈ 78%</div>
-  </div>
-
-  <div class="card result">
-    <div class="result-line">
-      <span>Brut mensuel</span>
-      <strong id="brut">0 €</strong>
+  <main class="tool">
+    <div class="actions" style="margin-bottom:12px"><a class="btn btn-secondary" href="index.html">← Accueil</a></div>
+    <section class="card">
+      <div class="section-title"><h1 style="font-size:20px;margin:0">Estimation de salaire</h1><span class="status warning">Indicatif</span></div>
+      <div class="grid grid-2">
+        <div class="field"><label for="rate">Taux horaire brut (€)</label><input id="rate" type="number" min="0" step="0.01" placeholder="Ex. 12,50"></div>
+        <div class="field"><label for="hours">Heures par semaine</label><input id="hours" type="number" min="0" step="0.25" placeholder="Ex. 35"></div>
+        <div class="field"><label for="ratio">Ratio net estimé (%)</label><input id="ratio" type="number" min="50" max="100" step="0.1" value="78"></div>
+        <div class="field"><label for="bonus">Primes brutes mensuelles (€)</label><input id="bonus" type="number" min="0" step="0.01" value="0"></div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="grid grid-3">
+        <div><div class="muted">Brut mensuel estimé</div><div id="gross" class="amount">0,00 €</div></div>
+        <div><div class="muted">Net mensuel avant impôt</div><div id="net" class="amount">0,00 €</div></div>
+        <div><div class="muted">Brut annuel estimé</div><div id="annual" class="amount">0,00 €</div></div>
+      </div>
+    </section>
+    <div class="notice warning">
+      Cette page fournit une estimation. Elle ne calcule pas les majorations, indemnités, mutuelle, absences, cotisations particulières ni le prélèvement à la source. Pour une paie réelle, utilise le bulletin ou le logiciel de paie.
     </div>
-
-    <div class="result-line">
-      <span>Net estimé</span>
-      <strong id="net">0 €</strong>
-    </div>
-  </div>
-
-  <div class="footer">
-    Estimation basée sur 4.33 semaines/mois
-  </div>
-
-</div>
-
+  </main>
 <script>
-const tauxInput = document.getElementById("taux");
-const heuresInput = document.getElementById("heures");
-
-const brutEl = document.getElementById("brut");
-const netEl = document.getElementById("net");
-
-const RATIO_NET = 0.78; // Nettoyage
-
-function calculer(){
-  const taux = parseFloat(tauxInput.value) || 0;
-  const heures = parseFloat(heuresInput.value) || 0;
-
-  const brut = taux * heures * 4.33;
-  const net = brut * RATIO_NET;
-
-  brutEl.textContent = brut.toFixed(2) + " €";
-  netEl.textContent = net.toFixed(2) + " €";
-}
-
-tauxInput.addEventListener("input", calculer);
-heuresInput.addEventListener("input", calculer);
+(() => {
+  "use strict";
+  const $=id=>document.getElementById(id);
+  const euro=new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"});
+  function calculate(){
+    const rate=Math.max(0,Number($("rate").value)||0);
+    const hours=Math.max(0,Number($("hours").value)||0);
+    const ratio=Math.min(100,Math.max(50,Number($("ratio").value)||78))/100;
+    const bonus=Math.max(0,Number($("bonus").value)||0);
+    const gross=rate*hours*(52/12)+bonus;
+    const net=gross*ratio;
+    $("gross").textContent=euro.format(gross);
+    $("net").textContent=euro.format(net);
+    $("annual").textContent=euro.format(gross*12);
+  }
+  ["rate","hours","ratio","bonus"].forEach(id=>$(id).addEventListener("input",calculate));
+  calculate();
+})();
 </script>
-
 </body>
 </html>
