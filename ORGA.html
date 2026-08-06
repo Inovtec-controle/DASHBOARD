@@ -1,1616 +1,470 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Planning des tâches – Kanban</title>
-
-  <!-- Police simple et moderne -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16a34a">
+  <title>Inovtec — Organisation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="inovtec-common.css">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --bg: #f3f4f6;
-      --bg-card: #ffffff;
-      --green: #16a34a;
-      --green-dark: #15803d;
-      --green-soft: #dcfce7;
-      --border: #e5e7eb;
-      --text-main: #111827;
-      --text-muted: #6b7280;
-      --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.12);
-      --radius-lg: 18px;
-      --radius-xl: 24px;
-    }
-
-    body {
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top left, #e5f9ed 0, #f9fafb 40%, #eef2ff 100%);
-      min-height: 100vh;
-      padding: 20px;
-      color: var(--text-main);
-      display: flex;
-      justify-content: center;
-      align-items: stretch;
-    }
-
-    .app-shell {
-      max-width: 1200px;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.88);
-      backdrop-filter: blur(16px);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-soft);
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      display: flex;
-      flex-direction: column;
-      padding: 18px 18px 22px;
-    }
-
-    header {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-    }
-
-    .app-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .app-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--green), var(--green-dark));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 18px;
-      box-shadow: 0 6px 15px rgba(22, 163, 74, 0.45);
-    }
-
-    .app-title h1 {
-      font-size: 19px;
-      font-weight: 700;
-      letter-spacing: 0.01em;
-    }
-
-    .app-title span {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .controls-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .pill {
-      padding: 6px 12px;
-      border-radius: 999px;
-      background: var(--green-soft);
-      color: var(--green-dark);
-      font-size: 12px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .pill-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: var(--green);
-    }
-
-    .overdue-badge {
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      background: #f3f4f6;
-      color: #6b7280;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-
-    .overdue-badge--alert {
-      background: #fef2f2;
-      color: #b91c1c;
-      border-color: #fecaca;
-    }
-
-    .btn-reset-data {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      padding: 5px 10px;
-      background: white;
-      font-size: 11px;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s ease-in-out;
-    }
-
-    .btn-reset-data:hover {
-      background: #fee2e2;
-      border-color: #fecaca;
-      color: #b91c1c;
-    }
-
-    main {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      flex: 1;
-      min-height: 0;
-    }
-
-    /* Formulaire ajout tâche */
-    .add-task-card {
-      background: linear-gradient(135deg, #ecfdf5, #f9fafb);
-      border-radius: var(--radius-lg);
-      padding: 12px 14px 10px;
-      border: 1px solid rgba(22, 163, 74, 0.35);
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .add-task-card h2 {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--green-dark);
-      margin-bottom: 2px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .add-task-card h2 span {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
-    }
-
-    .field-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      margin-top: 2px;
-    }
-
-    .field-group {
-      display: flex;
-      flex: 2;
-      min-width: 200px;
-      gap: 6px;
-    }
-
-    .field-group input[type="text"] {
-      flex: 2;
-      min-width: 0;
-    }
-
-    .field-group select,
-    .field-group input[type="date"] {
-      flex: 1;
-      min-width: 130px;
-    }
-
-    .add-task-card input[type="text"],
-    .add-task-card input[type="date"],
-    .add-task-card select {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.9);
-      padding: 7px 11px;
-      font-size: 12px;
-      outline: none;
-      background: rgba(255, 255, 255, 0.9);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s;
-    }
-
-    .add-task-card input[type="text"]:focus,
-    .add-task-card input[type="date"]:focus,
-    .add-task-card select:focus {
-      border-color: var(--green);
-      box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.4);
-      background: #ffffff;
-    }
-
-    .btn-primary {
-      border: none;
-      border-radius: 999px;
-      background: linear-gradient(135deg, var(--green), var(--green-dark));
-      color: white;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 8px 14px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 8px 18px rgba(22, 163, 74, 0.5);
-      white-space: nowrap;
-      transition: transform 0.1s ease, box-shadow 0.15s ease;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-0.5px);
-      box-shadow: 0 11px 22px rgba(22, 163, 74, 0.6);
-    }
-
-    .btn-primary:active {
-      transform: translateY(1px) scale(0.99);
-      box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4);
-    }
-
-    .btn-primary span.icon {
-      font-size: 15px;
-    }
-
-    /* Zone des colonnes */
-    .board {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      flex: 1;
-      min-height: 260px;
-    }
-
-    @media (max-width: 980px) {
-      .board {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 640px) {
-      body {
-        padding: 12px;
-      }
-      .app-shell {
-        padding: 12px;
-        border-radius: 18px;
-      }
-      .board {
-        grid-template-columns: 1fr;
-      }
-      .field-group {
-        flex-basis: 100%;
-      }
-      .btn-primary {
-        width: 100%;
-        justify-content: center;
-      }
-    }
-
-    .column {
-      background: rgba(249, 250, 251, 0.92);
-      border-radius: var(--radius-lg);
-      border: 1px solid rgba(209, 213, 219, 0.9);
-      display: flex;
-      flex-direction: column;
-      min-height: 180px;
-    }
-
-    .column-header {
-      padding: 9px 11px 8px;
-      border-bottom: 1px solid rgba(209, 213, 219, 0.9);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: linear-gradient(90deg, rgba(22, 163, 74, 0.1), rgba(255, 255, 255, 0));
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    }
-
-    .column-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .status-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 999px;
-      background: var(--green);
-      box-shadow: 0 0 0 2px rgba(187, 247, 208, 0.9);
-    }
-
-    .column-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .column-count {
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: rgba(229, 231, 235, 0.9);
-      color: #4b5563;
-    }
-
-    .tasks-list {
-      padding: 8px 8px 10px;
-      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-      scroll-behavior: smooth;
-    }
-
-    .tasks-list.empty::before {
-      content: "Glisser une tâche ici ou utiliser le bouton +";
-      display: block;
-      font-size: 11px;
-      color: var(--text-muted);
-      padding: 6px 6px;
-      border-radius: 10px;
-      text-align: left;
-    }
-
-    .tasks-list.drag-over {
-      outline: 2px dashed var(--green);
-      outline-offset: -4px;
-      background: rgba(220, 252, 231, 0.35);
-    }
-
-    .task-card {
-      background: var(--bg-card);
-      border-radius: 14px;
-      padding: 7px 9px 7px;
-      margin-bottom: 7px;
-      border: 1px solid rgba(209, 213, 219, 0.95);
-      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
-      cursor: grab;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      transition: box-shadow 0.12s ease, transform 0.08s ease, border-color 0.12s ease;
-    }
-
-    .task-card:last-child {
-      margin-bottom: 0;
-    }
-
-    .task-card.dragging {
-      opacity: 0.8;
-      transform: rotate(1deg);
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.15);
-      border-color: rgba(22, 163, 74, 0.7);
-    }
-
-    .task-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-    }
-
-    .task-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
-      margin-top: 1px;
-      flex-wrap: wrap;
-    }
-
-    .task-meta-right {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .task-created {
-      font-size: 10px;
-      color: var(--text-muted);
-    }
-
-    .task-actions {
-      display: inline-flex;
-      gap: 3px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .task-btn {
-      border: none;
-      border-radius: 999px;
-      padding: 3px 6px;
-      font-size: 10px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #f3f4f6;
-      color: #4b5563;
-      transition: background 0.12s ease, transform 0.08s ease;
-    }
-
-    .task-btn:hover {
-      background: #e5e7eb;
-      transform: translateY(-0.5px);
-    }
-
-    .task-btn--delete {
-      background: #fef2f2;
-      color: #b91c1c;
-    }
-
-    .task-btn--delete:hover {
-      background: #fee2e2;
-    }
-
-    .task-status-tag {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      background: rgba(16, 185, 129, 0.08);
-      color: #047857;
-      border: 1px solid rgba(34, 197, 94, 0.5);
-    }
-
-    .task-desc {
-      font-size: 11px;
-      color: #4b5563;
-      margin-top: 1px;
-      white-space: pre-wrap;
-    }
-
-    .task-due {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      background: #eff6ff;
-      color: #1d4ed8;
-      border: 1px solid #bfdbfe;
-    }
-
-    .task-due.task-due--overdue {
-      background: #fee2e2;
-      color: #b91c1c;
-      border-color: #fecaca;
-    }
-
-    .priority-tag {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      border: 1px solid transparent;
-    }
-
-    .priority-high {
-      background: #fee2e2;
-      color: #b91c1c;
-      border-color: #fecaca;
-    }
-
-    .priority-normal {
-      background: #ecfdf5;
-      color: #15803d;
-      border-color: #bbf7d0;
-    }
-
-    .priority-low {
-      background: #f3f4f6;
-      color: #4b5563;
-      border-color: #e5e7eb;
-    }
-
-    /* Section archives */
-    .archive {
-      margin-top: 12px;
-      padding: 10px 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(209, 213, 219, 0.9);
-      background: #f9fafb;
-      display: none;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .archive-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .archive-header h2 {
-      font-size: 13px;
-      font-weight: 600;
-      color: #111827;
-    }
-
-    .archive-count {
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: #e5e7eb;
-      color: #4b5563;
-    }
-
-    .archive-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .archive-list {
-      margin-top: 4px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .archive-card {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 6px 8px;
-      border: 1px solid rgba(209, 213, 219, 0.8);
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      cursor: default;
-    }
-
-    .archive-title-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .archive-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
-      font-size: 10px;
-      color: var(--text-muted);
-      flex-wrap: wrap;
-    }
-
-    .archive-badge {
-      padding: 2px 7px;
-      border-radius: 999px;
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
-      color: #3730a3;
-      font-size: 10px;
-    }
-
-    .archive-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 4px;
-      margin-top: 4px;
-    }
-
-    footer {
-      margin-top: 8px;
-      font-size: 10px;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      align-items: center;
-      opacity: 0.85;
-      flex-wrap: wrap;
-    }
-
-    footer span {
-      white-space: nowrap;
-    }
-
-    @media (max-width: 640px) {
-      footer span {
-        white-space: normal;
-      }
-    }
-    /* ===== LOGIN DESIGN ===== */
-
-.login-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-
-  background: radial-gradient(circle at top left, #e5f9ed 0, #f9fafb 40%, #eef2ff 100%);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  z-index: 99999; /* TRÈS IMPORTANT */
-}
-
-.login-card {
-  width: 90%;
-  max-width: 380px;
-
-  background: rgba(255,255,255,0.9);
-  backdrop-filter: blur(20px);
-
-  border-radius: 24px;
-  padding: 30px 25px;
-
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.login-header {
-  text-align: center;
-}
-
-.login-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 10px;
-  font-size: 22px;
-  box-shadow: 0 10px 20px rgba(22,163,74,0.5);
-}
-
-.login-header h2 {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.login-header p {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.login-form input {
-  border-radius: 999px;
-  border: 1px solid rgba(148,163,184,0.7);
-  padding: 10px 14px;
-  font-size: 13px;
-  outline: none;
-}
-
-.login-form input:focus {
-  border-color: #16a34a;
-  box-shadow: 0 0 0 1px rgba(22,163,74,0.4);
-}
-
-.login-btn {
-  border: none;
-  border-radius: 999px;
-  padding: 10px;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  cursor: pointer;
-  box-shadow: 0 10px 20px rgba(22,163,74,0.5);
-  transition: 0.2s;
-}
-
-.login-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 25px rgba(22,163,74,0.6);
-}
+    .board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:12px;overflow-x:auto;padding-bottom:5px}
+    .column{background:#f8fafc;border:1px solid var(--border);border-radius:16px;min-height:260px;display:flex;flex-direction:column}
+    .column-header{padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px}
+    .column-title{font-weight:800;font-size:13px}
+    .column-help{font-size:10px;color:var(--muted);margin-top:2px}
+    .count{font-size:11px;font-weight:800;background:#e2e8f0;border-radius:999px;padding:4px 8px;height:max-content}
+    .task-list{padding:8px;flex:1}
+    .task-list.drag-over{outline:2px dashed var(--brand);outline-offset:-5px;background:#ecfdf5}
+    .task{background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:8px;box-shadow:0 4px 12px rgba(15,23,42,.06)}
+    .task.dragging{opacity:.5}
+    .task-title{font-weight:800;font-size:13px;word-break:break-word}
+    .task-desc{font-size:12px;color:#475569;white-space:pre-wrap;margin-top:5px}
+    .task-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+    .tag{font-size:10px;border-radius:999px;padding:4px 7px;border:1px solid var(--border);background:#f8fafc}
+    .tag.high{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+    .tag.normal{background:#dcfce7;color:#166534;border-color:#86efac}
+    .tag.low{background:#e2e8f0;color:#475569}
+    .tag.overdue{background:#fee2e2;color:#991b1b;border-color:#fecaca;font-weight:800}
+    .task-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+    .task-actions button{border:1px solid var(--border);background:#fff;border-radius:9px;padding:6px 8px;font-size:11px}
+    .task-actions button.danger{color:#b91c1c;background:#fff1f2;border-color:#fecdd3}
+    .archive-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid var(--border)}
+    .archive-item:last-child{border-bottom:0}
+    @media(max-width:900px){.board{grid-template-columns:repeat(4,280px)}}
   </style>
- <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
-  authDomain: "inovtec-chantiers.firebaseapp.com",
-  projectId: "inovtec-chantiers",
-  storageBucket: "inovtec-chantiers.firebasestorage.app",
-  messagingSenderId: "313162345276",
-  appId: "1:313162345276:web:1a270f797dd736a4060c39"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
-  
-window.firebaseDB = db;
-window.firebaseDoc = (db, col, docId) => db.collection(col).doc(docId);
-window.firebaseSetDoc = (ref, data) => ref.set(data);
-window.firebaseOnSnapshot = (ref, cb) => ref.onSnapshot(cb);
-</script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 <body>
-<div id="loginScreen" style="
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:#f3f4f6;
-display:flex;
-align-items:center;
-justify-content:center;
-z-index:99999;
-">
-
-  <div style="
-    width:320px;
-    background:white;
-    padding:20px;
-    border-radius:15px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.2);
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  ">
-
-    <h2 style="text-align:center;">Connexion</h2>
-
-    <input id="email" type="email" placeholder="Email"
-    style="padding:10px; border:1px solid #ccc; border-radius:8px;">
-
-    <input id="password" type="password" placeholder="Mot de passe"
-    style="padding:10px; border:1px solid #ccc; border-radius:8px;">
-
-    <button id="loginBtn"
-    style="padding:10px; background:#16a34a; color:white; border:none; border-radius:8px;">
-      Se connecter
-    </button>
-
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card">
+      <h1>Connexion Inovtec</h1>
+      <p>Connecte-toi pour accéder aux tâches synchronisées.</p>
+      <div class="field"><label for="loginEmail">Adresse email</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+      <div class="field" style="margin-top:10px"><label for="loginPassword">Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px" type="submit">Se connecter</button>
+      <div id="loginError" class="muted" role="alert" style="margin-top:10px;color:#b91c1c"></div>
+    </form>
   </div>
-</div>
-  <div class="app-shell" style="display:none;">
-    <header>
-      <div class="app-title">
-        <div class="app-icon">✔</div>
-        <div>
-          <h1>Planning des tâches</h1>
-          <span>Vue Kanban · Clair & vert</span>
-        </div>
-      </div>
 
-      <div class="controls-row">
-        <div class="pill">
-          <div class="pill-dot"></div>
-          <span>Glisser / déposer pour changer d'état</span>
-        </div>
-        <div class="overdue-badge" id="overdueBadge">
-          Aucune tâche en retard
-        </div>
-        <button id="logoutBtn" class="btn-reset-data">⎋ Déconnexion</button>
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div><h1>Organisation</h1><p>Tâches, priorités, échéances et archives</p></div>
+      <div class="topbar-actions">
+        <a class="btn btn-secondary" href="index.html">← Accueil</a>
+        <span id="syncStatus" class="status">Connexion…</span>
+        <button id="logoutBtn" class="btn btn-secondary" type="button">Déconnexion</button>
       </div>
     </header>
 
-    <main>
-      <!-- Formulaire d'ajout -->
-      <section class="add-task-card">
-        <h2>
-          Nouvelle tâche
-          <span>(titre obligatoire, description / date / priorité facultatives)</span>
-        </h2>
-
-        <!-- Ligne 1 : titre + statut + bouton -->
-        <div class="field-row">
-          <div class="field-group">
-            <input type="text" id="taskTitleInput" placeholder="Ex. : Relancer l’EHPAD pour les plannings" />
-            <select id="taskStatusSelect">
-              <option value="todo">À faire</option>
-              <option value="inprogress">En cours</option>
-              <option value="blocked">Bloqué</option>
-              <option value="done">Fait</option>
-            </select>
-          </div>
-          <button class="btn-primary" id="addTaskBtn">
-            <span class="icon">＋</span>
-            <span>Ajouter</span>
-          </button>
+    <main class="page">
+      <section class="card">
+        <div class="section-title">
+          <h2 id="formTitle">Nouvelle tâche</h2>
+          <button id="cancelEditBtn" class="btn btn-secondary hidden" type="button">Annuler la modification</button>
         </div>
-
-        <!-- Ligne 2 : date limite + priorité -->
-        <div class="field-row">
-          <div class="field-group">
-            <input type="date" id="taskDueInput" />
-            <select id="taskPrioritySelect">
-              <option value="normal">Priorité normale</option>
-              <option value="high">Haute priorité</option>
-              <option value="low">Priorité basse</option>
-            </select>
+        <form id="taskForm">
+          <div class="grid grid-3">
+            <div class="field"><label for="title">Titre *</label><input id="title" maxlength="140" required placeholder="Ex. Relancer le syndic"></div>
+            <div class="field"><label for="status">Statut</label>
+              <select id="status"><option value="todo">À faire</option><option value="inprogress">En cours</option><option value="blocked">Bloqué</option><option value="done">Fait</option></select>
+            </div>
+            <div class="field"><label for="priority">Priorité</label>
+              <select id="priority"><option value="normal">Normale</option><option value="high">Haute</option><option value="low">Basse</option></select>
+            </div>
           </div>
-        </div>
-
-        <textarea id="taskDescInput" rows="1" placeholder="Détail (facultatif)..."
-          style="width:100%; border-radius:12px; border:1px solid rgba(148,163,184,0.9); margin-top:4px; padding:6px 8px; font-size:11px; resize: vertical; min-height:40px; max-height:100px; outline:none; background:rgba(255,255,255,0.85);"></textarea>
+          <div class="grid grid-2" style="margin-top:10px">
+            <div class="field"><label for="dueDate">Date limite</label><input id="dueDate" type="date"></div>
+            <div class="field"><label for="description">Description</label><textarea id="description" maxlength="1000" placeholder="Informations utiles, personne à contacter…"></textarea></div>
+          </div>
+          <button class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Ajouter la tâche</span></button>
+        </form>
       </section>
 
-      <!-- Board -->
-      <section class="board" id="board">
-        <!-- Colonne À faire -->
-        <div class="column" data-status="todo">
-          <div class="column-header">
-            <div class="column-title">
-              <div class="status-dot"></div>
-              <div>
-                À faire
-                <div class="column-sub">À planifier / lancer</div>
-              </div>
-            </div>
-            <div class="column-count" data-count-for="todo">0</div>
-          </div>
-          <div class="tasks-list empty" data-list-for="todo"></div>
-        </div>
-
-        <!-- Colonne En cours -->
-        <div class="column" data-status="inprogress">
-          <div class="column-header">
-            <div class="column-title">
-              <div class="status-dot"></div>
-              <div>
-                En cours
-                <div class="column-sub">En train d’être traité</div>
-              </div>
-            </div>
-            <div class="column-count" data-count-for="inprogress">0</div>
-          </div>
-          <div class="tasks-list empty" data-list-for="inprogress"></div>
-        </div>
-
-        <!-- Colonne Bloqué -->
-        <div class="column" data-status="blocked">
-          <div class="column-header">
-            <div class="column-title">
-              <div class="status-dot"></div>
-              <div>
-                Bloqué
-                <div class="column-sub">En attente d’info / retour</div>
-              </div>
-            </div>
-            <div class="column-count" data-count-for="blocked">0</div>
-          </div>
-          <div class="tasks-list empty" data-list-for="blocked"></div>
-        </div>
-
-        <!-- Colonne Fait -->
-        <div class="column" data-status="done">
-          <div class="column-header">
-            <div class="column-title">
-              <div class="status-dot"></div>
-              <div>
-                Fait
-                <div class="column-sub">Tâches terminées</div>
-              </div>
-            </div>
-            <div class="column-count" data-count-for="done">0</div>
-          </div>
-          <div class="tasks-list empty" data-list-for="done"></div>
-        </div>
+      <section class="card">
+        <div class="section-title"><h2>Tableau des tâches</h2><span id="overdueStatus" class="status">Aucun retard</span></div>
+        <div id="board" class="board"></div>
       </section>
 
-      <!-- Archives -->
-      <section class="archive" id="archiveSection">
-        <div class="archive-header">
-          <h2>Archives</h2>
-          <span class="archive-count" id="archiveCount">0</span>
-        </div>
-        <p class="archive-sub">Tâches terminées, classées par date d’archivage.</p>
-        <div class="archive-list" id="archiveList"></div>
+      <section id="archiveCard" class="card hidden">
+        <div class="section-title"><h2>Archives</h2><span id="archiveCount" class="status">0</span></div>
+        <div id="archiveList" class="table-wrap"></div>
       </section>
     </main>
-
-    <footer>
-      <span>Astuce : mets une date limite + priorité, puis fais glisser ou utilise les flèches.</span>
-      <span>Local seulement · Données stockées dans ce navigateur</span>
-    </footer>
   </div>
 
-  <script>
-    (function () {
-      const STORAGE_KEY = "orga_task_board_v1";
-      const STATUS_FLOW = ["todo", "inprogress", "blocked", "done"];
+<script>
+(() => {
+  "use strict";
+  if (!window.INOVTEC_FIREBASE_CONFIG) {
+    document.getElementById("loginError").textContent = "Configuration Firebase introuvable.";
+    return;
+  }
+  if (!firebase.apps.length) firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-      let tasks = [];
-      let draggedTaskId = null;
-      let currentUser = null;
+  const FLOW = ["todo","inprogress","blocked","done"];
+  const STATUS = {
+    todo:{label:"À faire",help:"À planifier ou lancer"},
+    inprogress:{label:"En cours",help:"Traitement en cours"},
+    blocked:{label:"Bloqué",help:"En attente d’une information"},
+    done:{label:"Fait",help:"Terminé, prêt à archiver"}
+  };
+  const LOCAL_KEY = "orga_task_board_v2";
+  let tasks = [];
+  let currentUser = null;
+  let unsubscribe = null;
+  let editingId = null;
+  let syncingFromCloud = false;
+  let draggedId = null;
 
-      const titleInput = document.getElementById("taskTitleInput");
-      const descInput = document.getElementById("taskDescInput");
-      const statusSelect = document.getElementById("taskStatusSelect");
-      const dueInput = document.getElementById("taskDueInput");
-      const prioritySelect = document.getElementById("taskPrioritySelect");
-      const addTaskBtn = document.getElementById("addTaskBtn");
-      const overdueBadge = document.getElementById("overdueBadge");
+  const $ = id => document.getElementById(id);
+  const loginScreen = $("loginScreen");
+  const app = $("app");
+  const syncStatus = $("syncStatus");
 
-      const archiveSection = document.getElementById("archiveSection");
-      const archiveList = document.getElementById("archiveList");
-      const archiveCountEl = document.getElementById("archiveCount");
-
-      function loadTasksRealtime() {
-        if (!currentUser) return;
-        
-  try {
-    const db = window.firebaseDB;
-
-    if (!db) {
-      console.error("Firebase non chargé");
-      return;
+  function setSync(text, type=""){
+    syncStatus.textContent = text;
+    syncStatus.className = "status" + (type ? " " + type : "");
+  }
+  function safeDate(value){
+    if (!value) return "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+  }
+  function shortDate(value){
+    const valid = safeDate(value);
+    if(!valid) return "";
+    const [y,m,d] = valid.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  function isOverdue(task){
+    if(!task.dueDate || task.status === "done" || task.archived) return false;
+    const end = new Date(task.dueDate + "T23:59:59");
+    return Number.isFinite(end.getTime()) && end.getTime() < Date.now();
+  }
+  function priorityWeight(p){ return p === "high" ? 0 : p === "normal" ? 1 : 2; }
+  function sorted(items){
+    return [...items].sort((a,b)=>{
+      const overdue = Number(isOverdue(b)) - Number(isOverdue(a));
+      if(overdue) return overdue;
+      const ad = a.dueDate || "9999-12-31";
+      const bd = b.dueDate || "9999-12-31";
+      if(ad !== bd) return ad.localeCompare(bd);
+      const p = priorityWeight(a.priority) - priorityWeight(b.priority);
+      if(p) return p;
+      return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+    });
+  }
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(LOCAL_KEY);
+      tasks = raw ? JSON.parse(raw) : [];
+      if(!Array.isArray(tasks)) tasks = [];
+    }catch{ tasks = []; }
+  }
+  function saveLocal(){
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(tasks));
+  }
+  async function saveCloud(){
+    saveLocal();
+    render();
+    if(!currentUser || syncingFromCloud) return;
+    setSync("Enregistrement…");
+    try{
+      await db.collection("kanban").doc(currentUser.uid).set({
+        tasks,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge:true});
+      setSync("Synchronisé","ok");
+    }catch(error){
+      console.error(error);
+      setSync("Sauvegarde locale seulement","warning");
     }
-
-    const ref = window.firebaseDoc(db, "kanban", currentUser.uid);
-
-    window.firebaseOnSnapshot(ref, (snap) => {
-      isSyncingFromFirebase = true;
-
-      if (snap && snap.data()) {
-        tasks = snap.data().tasks || [];
-      } else {
-        tasks = [];
+  }
+  function startRealtime(){
+    if(unsubscribe){ unsubscribe(); unsubscribe = null; }
+    setSync("Synchronisation…");
+    unsubscribe = db.collection("kanban").doc(currentUser.uid).onSnapshot(snap=>{
+      syncingFromCloud = true;
+      if(snap.exists && Array.isArray(snap.data().tasks)){
+        tasks = snap.data().tasks;
+        saveLocal();
+      }else{
+        loadLocal();
+        if(tasks.length) saveCloud();
       }
-
-      renderTasks();
-
-      setTimeout(() => {
-        isSyncingFromFirebase = false;
-      }, 100);
+      render();
+      setSync("Synchronisé","ok");
+      setTimeout(()=>{ syncingFromCloud = false; },0);
+    }, error=>{
+      console.error(error);
+      loadLocal();
+      render();
+      setSync("Mode local","warning");
+    });
+  }
+  function makeButton(label, handler, className=""){
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    if(className) button.className = className;
+    button.addEventListener("click", handler);
+    return button;
+  }
+  function moveTask(id, direction){
+    const task = tasks.find(t=>t.id === id);
+    if(!task || task.archived) return;
+    const i = FLOW.indexOf(task.status);
+    const next = direction === "next" ? i + 1 : i - 1;
+    if(next < 0 || next >= FLOW.length) return;
+    task.status = FLOW[next];
+    saveCloud();
+  }
+  function archiveTask(id){
+    const task = tasks.find(t=>t.id === id);
+    if(!task || task.status !== "done") return;
+    if(!confirm(`Archiver « ${task.title} » ?`)) return;
+    task.archived = true;
+    task.archivedAt = new Date().toISOString();
+    saveCloud();
+  }
+  function restoreTask(id){
+    const task = tasks.find(t=>t.id === id);
+    if(!task) return;
+    task.archived = false;
+    task.archivedAt = "";
+    task.status = "done";
+    saveCloud();
+  }
+  function deleteTask(id){
+    const task = tasks.find(t=>t.id === id);
+    if(!task || !confirm(`Supprimer définitivement « ${task.title} » ?`)) return;
+    tasks = tasks.filter(t=>t.id !== id);
+    if(editingId === id) resetForm();
+    saveCloud();
+  }
+  function editTask(id){
+    const task = tasks.find(t=>t.id === id);
+    if(!task) return;
+    editingId = id;
+    $("title").value = task.title || "";
+    $("description").value = task.description || "";
+    $("status").value = FLOW.includes(task.status) ? task.status : "todo";
+    $("priority").value = ["high","normal","low"].includes(task.priority) ? task.priority : "normal";
+    $("dueDate").value = safeDate(task.dueDate);
+    $("formTitle").textContent = "Modifier la tâche";
+    $("submitLabel").textContent = "Enregistrer les modifications";
+    $("cancelEditBtn").classList.remove("hidden");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  function resetForm(){
+    editingId = null;
+    $("taskForm").reset();
+    $("status").value = "todo";
+    $("priority").value = "normal";
+    $("formTitle").textContent = "Nouvelle tâche";
+    $("submitLabel").textContent = "Ajouter la tâche";
+    $("cancelEditBtn").classList.add("hidden");
+  }
+  function createTaskCard(task){
+    const card = document.createElement("article");
+    card.className = "task";
+    card.draggable = true;
+    card.dataset.id = task.id;
+    card.addEventListener("dragstart", e=>{
+      draggedId = task.id;
+      card.classList.add("dragging");
+      e.dataTransfer?.setData("text/plain", task.id);
+    });
+    card.addEventListener("dragend", ()=>{
+      draggedId = null;
+      card.classList.remove("dragging");
     });
 
-  } catch (e) {
-    console.error("Erreur Firebase realtime", e);
-  }
-}
+    const title = document.createElement("div");
+    title.className = "task-title";
+    title.textContent = task.title || "(Sans titre)";
+    card.appendChild(title);
 
-async function saveTasks() {
-  if (!currentUser) return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-
-    // 🚫 évite boucle infinie Firebase
-    if (isSyncingFromFirebase) return;
-
-    if (window.firebaseDB) {
-      const db = window.firebaseDB;
-      const ref = window.firebaseDoc(db, "kanban", currentUser.uid);
-      await window.firebaseSetDoc(ref, { tasks });
+    if(task.description){
+      const desc = document.createElement("div");
+      desc.className = "task-desc";
+      desc.textContent = task.description;
+      card.appendChild(desc);
     }
 
-  } catch (e) {
-    console.error("Firebase erreur MAIS app continue", e);
-  }
-}
-
-      function formatDate(dateStr) {
-        if (!dateStr) return "";
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return "";
-        const day = String(d.getDate()).padStart(2, "0");
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const hours = String(d.getHours()).padStart(2, "0");
-        const mins = String(d.getMinutes()).padStart(2, "0");
-        return `${day}/${month} · ${hours}h${mins}`;
-      }
-
-      function formatShortDate(dateStr) {
-        if (!dateStr) return "";
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) {
-          const parts = dateStr.split("-");
-          if (parts.length === 3) {
-            const day = parts[2];
-            const month = parts[1];
-            return `${day}/${month}`;
-          }
-          return "";
-        }
-        const day = String(d.getDate()).padStart(2, "0");
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        return `${day}/${month}`;
-      }
-
-      function getStatusLabel(status) {
-        switch (status) {
-          case "todo": return "À faire";
-          case "inprogress": return "En cours";
-          case "blocked": return "Bloqué";
-          case "done": return "Fait";
-          default: return status;
-        }
-      }
-
-      function getPriorityLabel(priority) {
-        switch (priority) {
-          case "high": return "Priorité haute";
-          case "low": return "Priorité basse";
-          case "normal":
-          default:
-            return "Priorité normale";
-        }
-      }
-
-      function getPriorityClass(priority) {
-        switch (priority) {
-          case "high": return "priority-high";
-          case "low": return "priority-low";
-          case "normal":
-          default:
-            return "priority-normal";
-        }
-      }
-
-      function priorityWeight(priority) {
-        switch (priority) {
-          case "high": return 0;
-          case "normal": return 1;
-          case "low": return 2;
-          default: return 1;
-        }
-      }
-
-      function isOverdue(task) {
-        if (!task.dueDate || task.status === "done" || task.archived) return false;
-        const due = new Date(task.dueDate + "T23:59:59");
-        if (isNaN(due.getTime())) return false;
-        const now = new Date();
-        return due.getTime() < now.getTime();
-      }
-
-      // Tri : date limite + priorité, dans chaque colonne
-      function compareTasks(a, b) {
-        const aOver = isOverdue(a) ? 0 : 1;
-        const bOver = isOverdue(b) ? 0 : 1;
-        if (aOver !== bOver) return aOver - bOver;
-
-        const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-        const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-        if (aDue !== bDue) return aDue - bDue;
-
-        const aPrio = priorityWeight(a.priority);
-        const bPrio = priorityWeight(b.priority);
-        if (aPrio !== bPrio) return aPrio - bPrio;
-
-        const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return aCreated - bCreated;
-      }
-
-      function updateCounts() {
-        const statuses = ["todo", "inprogress", "blocked", "done"];
-        statuses.forEach(st => {
-          const count = tasks.filter(t => t.status === st && !t.archived).length;
-          const el = document.querySelector(`.column-count[data-count-for="${st}"]`);
-          if (el) el.textContent = count;
-          const list = document.querySelector(`.tasks-list[data-list-for="${st}"]`);
-          if (list) {
-            if (count === 0) list.classList.add("empty");
-            else list.classList.remove("empty");
-          }
-        });
-      }
-
-      function updateOverdueCounter() {
-        const overdueCount = tasks.filter(t => !t.archived && isOverdue(t)).length;
-        if (!overdueBadge) return;
-        if (overdueCount === 0) {
-          overdueBadge.textContent = "Aucune tâche en retard";
-          overdueBadge.classList.remove("overdue-badge--alert");
-        } else {
-          overdueBadge.textContent = `⚠ ${overdueCount} tâche${overdueCount > 1 ? "s" : ""} en retard`;
-          overdueBadge.classList.add("overdue-badge--alert");
-        }
-      }
-
-      function moveTask(id, direction) {
-        const task = tasks.find(t => t.id === id);
-        if (!task || task.archived) return;
-        const currentIndex = STATUS_FLOW.indexOf(task.status);
-        if (currentIndex === -1) return;
-        const offset = direction === "next" ? 1 : -1;
-        const newIndex = currentIndex + offset;
-        if (newIndex < 0 || newIndex >= STATUS_FLOW.length) return;
-        task.status = STATUS_FLOW[newIndex];
-        saveTasks();
-        renderTasks();
-      }
-
-      function handleRestoreTask(id) {
-        const task = tasks.find(t => t.id === id);
-        if (!task) return;
-        task.archived = false;
-        task.archivedAt = "";
-        if (!task.status) {
-          task.status = "done";
-        }
-        saveTasks();
-        renderTasks();
-      }
-
-      function renderArchive() {
-        if (!archiveSection || !archiveList || !archiveCountEl) return;
-        const archivedTasks = tasks.filter(t => t.archived);
-        if (archivedTasks.length === 0) {
-          archiveSection.style.display = "none";
-          archiveList.innerHTML = "";
-          archiveCountEl.textContent = "0";
-          return;
-        }
-
-        archiveSection.style.display = "flex";
-        archiveCountEl.textContent = archivedTasks.length.toString();
-        archiveList.innerHTML = "";
-
-        const sorted = archivedTasks.slice().sort((a, b) => {
-          const aTime = a.archivedAt ? new Date(a.archivedAt).getTime() : 0;
-          const bTime = b.archivedAt ? new Date(b.archivedAt).getTime() : 0;
-          return bTime - aTime; // plus récent en premier
-        });
-
-        sorted.forEach(task => {
-          const card = document.createElement("article");
-          card.className = "archive-card";
-
-          const titleRow = document.createElement("div");
-          titleRow.className = "archive-title-row";
-          const titleSpan = document.createElement("span");
-          titleSpan.textContent = task.title || "(Sans titre)";
-
-          const prio = document.createElement("span");
-          prio.className = "priority-tag " + getPriorityClass(task.priority);
-          prio.textContent = getPriorityLabel(task.priority);
-
-          titleRow.appendChild(titleSpan);
-          titleRow.appendChild(prio);
-          card.appendChild(titleRow);
-
-          if (task.description && task.description.trim().length > 0) {
-            const desc = document.createElement("div");
-            desc.className = "task-desc";
-            desc.textContent = task.description;
-            card.appendChild(desc);
-          }
-
-          const meta = document.createElement("div");
-          meta.className = "archive-meta";
-
-          const left = document.createElement("span");
-          const archivedLabel = task.archivedAt ? formatDate(task.archivedAt) : "";
-          left.textContent = archivedLabel ? "Archivée le " + archivedLabel : "Archivée";
-
-          const rightBox = document.createElement("div");
-          rightBox.style.display = "flex";
-          rightBox.style.gap = "4px";
-          rightBox.style.flexWrap = "wrap";
-
-          if (task.dueDate) {
-            const dueBadge = document.createElement("span");
-            dueBadge.className = "archive-badge";
-            dueBadge.textContent = "Échéance " + formatShortDate(task.dueDate);
-            rightBox.appendChild(dueBadge);
-          }
-
-          const statusBadge = document.createElement("span");
-          statusBadge.className = "archive-badge";
-          statusBadge.textContent = "Statut : " + getStatusLabel(task.status);
-          rightBox.appendChild(statusBadge);
-
-          meta.appendChild(left);
-          meta.appendChild(rightBox);
-          card.appendChild(meta);
-
-          const actions = document.createElement("div");
-          actions.className = "archive-actions";
-
-          const restoreBtn = document.createElement("button");
-          restoreBtn.className = "task-btn";
-          restoreBtn.type = "button";
-          restoreBtn.innerHTML = "↩️<span>Restaurer</span>";
-          restoreBtn.addEventListener("click", () => handleRestoreTask(task.id));
-
-          actions.appendChild(restoreBtn);
-          card.appendChild(actions);
-
-          archiveList.appendChild(card);
-        });
-      }
-function loadLocalTasks() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-      tasks = JSON.parse(data);
+    const meta = document.createElement("div");
+    meta.className = "task-meta";
+    const priority = document.createElement("span");
+    priority.className = "tag " + (task.priority || "normal");
+    priority.textContent = task.priority === "high" ? "Priorité haute" : task.priority === "low" ? "Priorité basse" : "Priorité normale";
+    meta.appendChild(priority);
+    if(task.dueDate){
+      const due = document.createElement("span");
+      due.className = "tag" + (isOverdue(task) ? " overdue" : "");
+      due.textContent = "Échéance " + shortDate(task.dueDate);
+      meta.appendChild(due);
     }
-  } catch (e) {
-    console.warn("Erreur lecture localStorage", e);
-    tasks = [];
+    card.appendChild(meta);
+
+    const actions = document.createElement("div");
+    actions.className = "task-actions";
+    const index = FLOW.indexOf(task.status);
+    if(index > 0) actions.appendChild(makeButton("←",()=>moveTask(task.id,"prev")));
+    if(index < FLOW.length-1) actions.appendChild(makeButton("→",()=>moveTask(task.id,"next")));
+    actions.appendChild(makeButton("Modifier",()=>editTask(task.id)));
+    if(task.status === "done") actions.appendChild(makeButton("Archiver",()=>archiveTask(task.id)));
+    actions.appendChild(makeButton("Supprimer",()=>deleteTask(task.id),"danger"));
+    card.appendChild(actions);
+    return card;
   }
-}
-      function renderTasks() {
-        const lists = document.querySelectorAll(".tasks-list");
-        lists.forEach(list => list.innerHTML = "");
+  function renderBoard(){
+    const board = $("board");
+    board.innerHTML = "";
+    FLOW.forEach(status=>{
+      const column = document.createElement("section");
+      column.className = "column";
+      const header = document.createElement("div");
+      header.className = "column-header";
+      const left = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "column-title";
+      title.textContent = STATUS[status].label;
+      const help = document.createElement("div");
+      help.className = "column-help";
+      help.textContent = STATUS[status].help;
+      left.append(title,help);
+      const count = document.createElement("span");
+      count.className = "count";
+      const listTasks = sorted(tasks.filter(t=>!t.archived && t.status === status));
+      count.textContent = String(listTasks.length);
+      header.append(left,count);
 
-        const activeTasks = tasks.filter(t => !t.archived);
-        const sortedActive = activeTasks.slice().sort(compareTasks);
-
-        sortedActive.forEach(task => {
-          const list = document.querySelector(`.tasks-list[data-list-for="${task.status}"]`);
-          if (!list) return;
-
-          const card = document.createElement("article");
-          card.className = "task-card";
-          card.setAttribute("draggable", "true");
-          card.dataset.id = task.id;
-
-          const titleRow = document.createElement("div");
-          titleRow.className = "task-title";
-          const titleSpan = document.createElement("span");
-          titleSpan.textContent = task.title || "(Sans titre)";
-          const actions = document.createElement("div");
-          actions.className = "task-actions";
-
-          const statusTag = document.createElement("span");
-          statusTag.className = "task-status-tag";
-          statusTag.textContent = getStatusLabel(task.status);
-          actions.appendChild(statusTag);
-
-          const currentIndex = STATUS_FLOW.indexOf(task.status);
-          if (currentIndex > 0) {
-            const prevBtn = document.createElement("button");
-            prevBtn.className = "task-btn";
-            prevBtn.type = "button";
-            prevBtn.innerHTML = "⬅";
-            prevBtn.title = "Déplacer vers la colonne précédente";
-            prevBtn.addEventListener("click", () => moveTask(task.id, "prev"));
-            actions.appendChild(prevBtn);
-          }
-          if (currentIndex < STATUS_FLOW.length - 1) {
-            const nextBtn = document.createElement("button");
-            nextBtn.className = "task-btn";
-            nextBtn.type = "button";
-            nextBtn.innerHTML = "➜";
-            nextBtn.title = "Déplacer vers la colonne suivante";
-            nextBtn.addEventListener("click", () => moveTask(task.id, "next"));
-            actions.appendChild(nextBtn);
-          }
-
-          if (task.status === "done") {
-            const archiveBtn = document.createElement("button");
-            archiveBtn.className = "task-btn";
-            archiveBtn.type = "button";
-            archiveBtn.innerHTML = "📦<span>Archiver</span>";
-            archiveBtn.addEventListener("click", () => handleArchiveTask(task.id));
-            actions.appendChild(archiveBtn);
-          }
-
-          const editBtn = document.createElement("button");
-          editBtn.className = "task-btn";
-          editBtn.type = "button";
-          editBtn.innerHTML = "✏️<span>Éditer</span>";
-          editBtn.addEventListener("click", () => handleEditTask(task.id));
-
-          const delBtn = document.createElement("button");
-          delBtn.className = "task-btn task-btn--delete";
-          delBtn.type = "button";
-          delBtn.innerHTML = "🗑<span>Suppr.</span>";
-          delBtn.addEventListener("click", () => handleDeleteTask(task.id));
-
-          actions.appendChild(editBtn);
-          actions.appendChild(delBtn);
-
-          titleRow.appendChild(titleSpan);
-          titleRow.appendChild(actions);
-          card.appendChild(titleRow);
-
-          if (task.description && task.description.trim().length > 0) {
-            const desc = document.createElement("div");
-            desc.className = "task-desc";
-            desc.textContent = task.description;
-            card.appendChild(desc);
-          }
-
-          const metaRow = document.createElement("div");
-          metaRow.className = "task-meta";
-          const created = document.createElement("span");
-          created.className = "task-created";
-          created.textContent = "Créé le " + formatDate(task.createdAt);
-
-          const metaRight = document.createElement("div");
-          metaRight.className = "task-meta-right";
-
-          if (task.dueDate) {
-            const due = document.createElement("span");
-            due.className = "task-due";
-            if (isOverdue(task)) {
-              due.classList.add("task-due--overdue");
-            }
-            due.textContent = "Échéance " + formatShortDate(task.dueDate);
-            metaRight.appendChild(due);
-          }
-
-          const prioTag = document.createElement("span");
-          prioTag.className = "priority-tag " + getPriorityClass(task.priority);
-          prioTag.textContent = getPriorityLabel(task.priority);
-          metaRight.appendChild(prioTag);
-
-          metaRow.appendChild(created);
-          metaRow.appendChild(metaRight);
-          card.appendChild(metaRow);
-
-          card.addEventListener("dragstart", handleDragStart);
-          card.addEventListener("dragend", handleDragEnd);
-
-          list.appendChild(card);
-        });
-
-        updateCounts();
-        updateOverdueCounter();
-        renderArchive();
-      }
-
-      function handleAddTask() {
-        const title = titleInput.value.trim();
-        const description = descInput.value.trim();
-        const status = statusSelect.value;
-        const dueDate = dueInput.value;
-        const priority = prioritySelect.value || "normal";
-
-        if (!title) {
-          alert("Merci de saisir un titre de tâche.");
-          titleInput.focus();
-          return;
-        }
-
-        const newTask = {
-          id: "t_" + Date.now() + "_" + Math.random().toString(16).slice(2),
-          title,
-          description,
-          status,
-          createdAt: new Date().toISOString(),
-          dueDate,
-          priority,
-          archived: false,
-          archivedAt: ""
-        };
-
-        tasks.push(newTask);
-        saveTasks();
-        renderTasks();
-
-        titleInput.value = "";
-        descInput.value = "";
-        statusSelect.value = "todo";
-        dueInput.value = "";
-        prioritySelect.value = "normal";
-        titleInput.focus();
-      }
-
-      function handleEditTask(id) {
-        const task = tasks.find(t => t.id === id);
-        if (!task) return;
-
-        const newTitle = prompt("Modifier le titre de la tâche :", task.title);
-        if (newTitle === null) return;
-        const trimmedTitle = newTitle.trim();
-        if (!trimmedTitle) {
-          alert("Le titre ne peut pas être vide.");
-          return;
-        }
-
-        const newDesc = prompt("Modifier la description (facultatif) :", task.description || "");
-        task.title = trimmedTitle;
-        task.description = (newDesc !== null) ? newDesc : task.description;
-
-        const currentDue = task.dueDate || "";
-        const newDue = prompt("Modifier la date limite (format AAAA-MM-JJ, laisser vide pour aucune) :", currentDue);
-        if (newDue !== null) {
-          task.dueDate = newDue.trim();
-        }
-
-        const currentPrioLabel = getPriorityLabel(task.priority);
-        const newPrio = prompt(
-          'Modifier la priorité : saisir "haute", "normale" ou "basse" (actuelle : ' + currentPrioLabel + ")",
-          currentPrioLabel.toLowerCase().includes("haute")
-            ? "haute"
-            : currentPrioLabel.toLowerCase().includes("basse")
-              ? "basse"
-              : "normale"
-        );
-        if (newDue !== null) {
-  const val = newDue.trim();
-  if (!val || /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-    task.dueDate = val;
-  } else {
-    alert("Format invalide. Utilise AAAA-MM-JJ");
-  }
-}
-
-        saveTasks();
-        renderTasks();
-      }
-
-      function handleDeleteTask(id) {
-        const task = tasks.find(t => t.id === id);
-        const label = task ? `"${task.title}"` : "cette tâche";
-        if (!confirm("Supprimer " + label + " ?")) return;
-
-        tasks = tasks.filter(t => t.id !== id);
-        saveTasks();
-        renderTasks();
-      }
-
-      function handleArchiveTask(id) {
-        const task = tasks.find(t => t.id === id);
-        if (!task) return;
-        if (task.status !== "done") {
-          alert('Seules les tâches dans la colonne "Fait" peuvent être archivées.');
-          return;
-        }
-        if (!confirm('Archiver la tâche "' + task.title + '" ? Elle sera déplacée dans les archives.')) return;
-        task.archived = true;
-        task.archivedAt = new Date().toISOString();
-        saveTasks();
-        renderTasks();
-      }
-
-      function handleDragStart(e) {
-        const card = e.currentTarget;
-        card.classList.add("dragging");
-        draggedTaskId = card.dataset.id;
-        if (e.dataTransfer) {
-          e.dataTransfer.effectAllowed = "move";
-          try {
-            e.dataTransfer.setData("text/plain", draggedTaskId);
-          } catch (err) {
-            // Certains navigateurs peuvent refuser, on ignore
-          }
-        }
-      }
-
-      function handleDragEnd(e) {
-        const card = e.currentTarget;
-        card.classList.remove("dragging");
-        draggedTaskId = null;
-      }
-
-      function handleDragOverList(e) {
+      const list = document.createElement("div");
+      list.className = "task-list";
+      list.dataset.status = status;
+      list.addEventListener("dragover",e=>{e.preventDefault();list.classList.add("drag-over");});
+      list.addEventListener("dragleave",()=>list.classList.remove("drag-over"));
+      list.addEventListener("drop",e=>{
         e.preventDefault();
-        if (e.dataTransfer) {
-          e.dataTransfer.dropEffect = "move";
-        }
-        e.currentTarget.classList.add("drag-over");
-      }
-
-      function handleDragLeaveList(e) {
-        e.currentTarget.classList.remove("drag-over");
-      }
-
-      function handleDropOnList(e) {
-        e.preventDefault();
-        e.currentTarget.classList.remove("drag-over");
-        const list = e.currentTarget;
-        const status = list.dataset.listFor;
-        if (!draggedTaskId || !status) return;
-
-        const id = draggedTaskId || e.dataTransfer?.getData("text/plain");
-        const task = tasks.find(t => t.id === id);
-        if (!task || task.archived) return;
-
-        task.status = status;
-        saveTasks();
-        renderTasks();
-      }
-
-      function attachListDnD() {
-        const lists = document.querySelectorAll(".tasks-list");
-        lists.forEach(list => {
-          list.addEventListener("dragover", handleDragOverList);
-          list.addEventListener("dragleave", handleDragLeaveList);
-          list.addEventListener("drop", handleDropOnList);
-        });
-      }
-
-      // Listeners
-      addTaskBtn.addEventListener("click", handleAddTask);
-      document.getElementById("logoutBtn").addEventListener("click", async () => {
-  await auth.signOut();
-});
-      titleInput.addEventListener("keydown", e => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          handleAddTask();
-        }
+        list.classList.remove("drag-over");
+        const id = draggedId || e.dataTransfer?.getData("text/plain");
+        const task = tasks.find(t=>t.id === id);
+        if(task && !task.archived){ task.status = status; saveCloud(); }
       });
-
-      document.getElementById("loginBtn").addEventListener("click", async () => {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  try {
-    await auth.signInWithEmailAndPassword(email, password);
-  } catch (e) {
-    alert("Erreur : " + e.message);
+      if(!listTasks.length){
+        const empty = document.createElement("div");
+        empty.className = "muted";
+        empty.style.padding = "8px";
+        empty.textContent = "Aucune tâche";
+        list.appendChild(empty);
+      }else listTasks.forEach(t=>list.appendChild(createTaskCard(t)));
+      column.append(header,list);
+      board.appendChild(column);
+    });
   }
-});
-      
-auth.onAuthStateChanged(user => {
-
-  if (user) {
-    currentUser = user;
-
-    // cacher login
-    document.getElementById("loginScreen").style.display = "none";
-
-    // afficher app
-    document.querySelector(".app-shell").style.display = "flex";
-
-    loadLocalTasks();
-    renderTasks();
-    loadTasksRealtime();
-
-  } else {
-
-    currentUser = null;
-
-    // afficher login
-    document.getElementById("loginScreen").style.display = "flex";
-
-    // cacher app COMPLET
-    document.querySelector(".app-shell").style.display = "none";
-
+  function renderArchive(){
+    const archived = [...tasks].filter(t=>t.archived).sort((a,b)=>String(b.archivedAt||"").localeCompare(String(a.archivedAt||"")));
+    $("archiveCount").textContent = String(archived.length);
+    $("archiveCard").classList.toggle("hidden", archived.length === 0);
+    const list = $("archiveList");
+    list.innerHTML = "";
+    archived.forEach(task=>{
+      const row = document.createElement("div");
+      row.className = "archive-item";
+      const info = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = task.title || "(Sans titre)";
+      const date = document.createElement("div");
+      date.className = "muted";
+      date.textContent = task.archivedAt ? "Archivée le " + new Date(task.archivedAt).toLocaleString("fr-FR") : "Archivée";
+      info.append(title,date);
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      actions.append(makeButton("Restaurer",()=>restoreTask(task.id)),makeButton("Supprimer",()=>deleteTask(task.id),"danger"));
+      row.append(info,actions);
+      list.appendChild(row);
+    });
+  }
+  function render(){
+    renderBoard();
+    renderArchive();
+    const overdue = tasks.filter(t=>!t.archived && isOverdue(t)).length;
+    $("overdueStatus").textContent = overdue ? `${overdue} tâche${overdue>1?"s":""} en retard` : "Aucun retard";
+    $("overdueStatus").className = "status " + (overdue ? "error" : "ok");
   }
 
-});
-  
-      // Init
-window.addEventListener("load", () => {
-  console.log("App chargée");
+  $("taskForm").addEventListener("submit", e=>{
+    e.preventDefault();
+    const title = $("title").value.trim();
+    if(!title) return;
+    const dueDate = safeDate($("dueDate").value);
+    if($("dueDate").value && !dueDate){
+      alert("La date limite est invalide.");
+      return;
+    }
+    if(editingId){
+      const task = tasks.find(t=>t.id === editingId);
+      if(task){
+        task.title = title;
+        task.description = $("description").value.trim();
+        task.status = FLOW.includes($("status").value) ? $("status").value : "todo";
+        task.priority = ["high","normal","low"].includes($("priority").value) ? $("priority").value : "normal";
+        task.dueDate = dueDate;
+        task.updatedAt = new Date().toISOString();
+      }
+    }else{
+      tasks.push({
+        id:"t_"+Date.now()+"_"+Math.random().toString(16).slice(2),
+        title,
+        description:$("description").value.trim(),
+        status:FLOW.includes($("status").value) ? $("status").value : "todo",
+        priority:["high","normal","low"].includes($("priority").value) ? $("priority").value : "normal",
+        dueDate,
+        createdAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString(),
+        archived:false,
+        archivedAt:""
+      });
+    }
+    resetForm();
+    saveCloud();
+  });
+  $("cancelEditBtn").addEventListener("click",resetForm);
+  $("logoutBtn").addEventListener("click",()=>auth.signOut());
+  $("loginForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    $("loginError").textContent = "";
+    try{
+      await auth.signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value);
+    }catch(error){
+      $("loginError").textContent = "Connexion impossible : " + (error.message || "vérifie les identifiants.");
+    }
+  });
 
-  loadLocalTasks();
-  renderTasks();
-
-  if (window.firebaseDB) 
-
-  attachListDnD();
-});
-      
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      currentUser = user;
+      loginScreen.classList.add("hidden");
+      app.classList.remove("hidden");
+      loadLocal();
+      render();
+      startRealtime();
+    }else{
+      currentUser = null;
+      if(unsubscribe){unsubscribe();unsubscribe=null;}
+      app.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+      setSync("Déconnecté");
+    }
+  });
 })();
-    
 </script>
 </body>
 </html>
