@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /kanban/{userId} {
+      allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /discipline/{userId} {
+      allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /chantiers/{chantierId} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
