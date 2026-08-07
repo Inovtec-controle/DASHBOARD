@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pages: read
 
 concurrency:
   group: dashboard-health-${{ github.ref }}
@@ -108,6 +109,30 @@ jobs:
                       failed = True
           if failed:
               raise SystemExit(1)
+          PY
+
+  diagnose-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lire la configuration GitHub Pages
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" \
+            -o /tmp/pages.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/pages.json', encoding='utf-8'))
+          print('html_url =', data.get('html_url'))
+          print('status =', data.get('status'))
+          print('build_type =', data.get('build_type'))
+          print('source =', data.get('source'))
           PY
 
   smoke-live-site:
