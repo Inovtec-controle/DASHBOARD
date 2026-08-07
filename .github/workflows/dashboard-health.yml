@@ -114,25 +114,27 @@ jobs:
   diagnose-pages:
     runs-on: ubuntu-latest
     steps:
-      - name: Lire la configuration GitHub Pages
+      - name: Lire la configuration et le dernier build GitHub Pages
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          curl -fsSL \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" \
-            -o /tmp/pages.json
+          headers=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
+          curl -fsSL "${headers[@]}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" -o /tmp/pages.json
+          curl -fsSL "${headers[@]}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds/latest" -o /tmp/build.json
           python3 - <<'PY'
           import json
-          data=json.load(open('/tmp/pages.json', encoding='utf-8'))
-          print('html_url =', data.get('html_url'))
-          print('status =', data.get('status'))
-          print('build_type =', data.get('build_type'))
-          print('source =', data.get('source'))
+          pages=json.load(open('/tmp/pages.json', encoding='utf-8'))
+          build=json.load(open('/tmp/build.json', encoding='utf-8'))
+          print('html_url =', pages.get('html_url'))
+          print('status =', pages.get('status'))
+          print('build_type =', pages.get('build_type'))
+          print('source =', pages.get('source'))
+          print('latest_build_status =', build.get('status'))
+          print('latest_build_commit =', build.get('commit'))
+          print('latest_build_error =', build.get('error'))
+          print('latest_build_message =', build.get('message'))
           PY
 
   smoke-live-site:
