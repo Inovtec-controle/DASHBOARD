@@ -1,0 +1,129 @@
+name: Dashboard health check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-health-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Vérifier les fichiers indispensables
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            index.html
+            INFOCHANTIERS.html
+            ORGA.html
+            DISCIPLINE.html
+            PLANNINGS.html
+            KONTROL.html
+            HEURE-SUP.html
+            TEMPS.html
+            SALAIRE.html
+            AGENTS.html
+            firebase-config.js
+            inovtec-common.css
+          )
+          for file in "${files[@]}"; do
+            if [[ ! -s "$file" ]]; then
+              echo "::error file=$file::Fichier absent ou vide"
+              exit 1
+            fi
+          done
+          grep -qi '<!DOCTYPE html>' index.html
+          grep -q 'Classeur agents' index.html
+
+      - name: Vérifier la syntaxe JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check firebase-config.js
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import subprocess, tempfile
+
+          pages = [
+              'index.html','INFOCHANTIERS.html','ORGA.html','DISCIPLINE.html',
+              'PLANNINGS.html','KONTROL.html','HEURE-SUP.html','TEMPS.html',
+              'SALAIRE.html','AGENTS.html'
+          ]
+
+          class ScriptParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.current = None
+                  self.scripts = []
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() != 'script':
+                      return
+                  attrs = dict(attrs)
+                  if attrs.get('src'):
+                      self.current = None
+                      return
+                  script_type = (attrs.get('type') or '').lower()
+                  if script_type and script_type not in ('text/javascript', 'module'):
+                      self.current = None
+                      return
+                  self.current = {'type': script_type, 'parts': []}
+              def handle_data(self, data):
+                  if self.current is not None:
+                      self.current['parts'].append(data)
+              def handle_endtag(self, tag):
+                  if tag.lower() == 'script' and self.current is not None:
+                      self.scripts.append(self.current)
+                      self.current = None
+
+          failed = False
+          for page in pages:
+              parser = ScriptParser()
+              parser.feed(Path(page).read_text(encoding='utf-8'))
+              for index, script in enumerate(parser.scripts, 1):
+                  code = ''.join(script['parts']).strip()
+                  if not code:
+                      continue
+                  suffix = '.mjs' if script['type'] == 'module' or '\nimport ' in '\n'+code or code.startswith('import ') else '.js'
+                  with tempfile.NamedTemporaryFile('w', suffix=suffix, delete=False, encoding='utf-8') as tmp:
+                      tmp.write(code)
+                      path = tmp.name
+                  result = subprocess.run(['node', '--check', path], text=True, capture_output=True)
+                  if result.returncode:
+                      print(f'::error file={page}::Erreur JavaScript dans le script inline #{index}')
+                      print(result.stderr)
+                      failed = True
+          if failed:
+              raise SystemExit(1)
+          PY
+
+  smoke-live-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier le site GitHub Pages public
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://inovtec-controle.github.io/DASHBOARD'
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors "$base/" -o /tmp/index.html
+          grep -q 'Classeur agents' /tmp/index.html || {
+            echo '::error::Le site public répond mais ne contient pas encore la nouvelle version du dashboard.'
+            exit 1
+          }
+          for page in INFOCHANTIERS.html ORGA.html DISCIPLINE.html PLANNINGS.html TEMPS.html SALAIRE.html; do
+            curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null
+          done
+          echo 'Site public accessible et version attendue détectée.'
