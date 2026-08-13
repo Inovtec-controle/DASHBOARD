@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="inovtec-common.css?v=20260813-7">
 <link rel="stylesheet" href="dashboard-index.css?v=20260813-1">
 <style>
-.main{position:relative}.appbar{position:absolute;top:99px;right:52px;height:auto;background:transparent;border:0;padding:0;gap:8px;z-index:40}.appbar .bell,.appbar .notif-panel{display:none!important}.appbar .status-dot{flex:0 0 8px}.appbar .account{border:0;background:transparent;padding:0;gap:8px;color:#fff}.appbar .account-copy strong{color:#fff;font-size:12px}.appbar .account-copy span{color:#b7f7d8;font-size:9px}.hero-date{min-width:200px;min-height:116px;padding:11px 14px 58px}@media(max-width:760px){.appbar{top:185px;right:24px}.hero-date{min-width:180px;min-height:106px;padding-bottom:52px}.account-copy{display:block!important}.avatar{width:30px;height:30px;font-size:11px}}
+.main{position:relative}.content{padding-top:18px}.hero-date{min-width:205px;padding:11px 14px 12px}.hero-time-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:3px}.hero-time-row #timeLabel{margin-left:auto;text-align:right;color:#d1fae5;font-size:12px}.weather-icon{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;font-size:19px;line-height:1;filter:drop-shadow(0 2px 5px rgba(0,0,0,.18))}.hero-account{display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.13)}.hero-account .status-dot{flex:0 0 8px}.hero-account .account{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:0;color:#fff}.hero-account .avatar{width:30px;height:30px;font-size:11px;background:#0a6a4e}.hero-account .account-copy{line-height:1.12}.hero-account .account-copy strong{display:block;color:#fff;font-size:11px}.hero-account .account-copy span{display:block;color:#a7f3d0;font-size:9px;margin-top:2px}@media(max-width:760px){.content{padding-top:10px}.hero-date{right:12px;bottom:12px;top:auto;min-width:185px;padding:9px 11px 10px}.hero-account .account-copy{display:block!important}.weather-icon{font-size:17px;min-width:23px;height:23px}}
 </style>
 </head>
 <body>
@@ -29,16 +29,14 @@
   <div class="side-bottom"><div class="side-note"><strong>Inovtec Construction</strong><br>Accès centralisé aux outils de suivi terrain.</div></div>
 </aside>
 <div class="main">
-<header class="appbar">
-  <span id="cloudDot" class="status-dot" title="État Firebase"></span>
-  <button id="bellBtn" class="bell" type="button" aria-label="Notifications">♢<span id="bellBadge" class="bell-badge">0</span></button>
-  <div id="notifPanel" class="notif-panel" role="dialog" aria-label="Notifications"><h3>Notifications</h3><div id="notifList"></div></div>
-  <div class="account"><div id="avatar" class="avatar">IN</div><div class="account-copy"><strong id="accountName">Inovtec</strong><span id="accountStatus">Dashboard</span></div></div>
-</header>
 <main class="content">
   <section class="hero">
     <div class="hero-copy"><div class="eyebrow">BONJOUR ET BIENVENUE</div><h1>Bienvenue sur<br><em>Inovtec</em> Dashboard</h1><p>Votre plateforme centralisée pour piloter vos opérations, vos chantiers et vos outils en toute simplicité.</p></div>
-    <div class="hero-date"><strong id="dateLabel">—</strong><span id="timeLabel">—</span></div>
+    <div class="hero-date">
+      <strong id="dateLabel">—</strong>
+      <div class="hero-time-row"><span id="weatherIcon" class="weather-icon" title="Météo locale">◌</span><span id="timeLabel">—</span></div>
+      <div class="hero-account"><span id="cloudDot" class="status-dot" title="État Firebase"></span><div class="account"><div id="avatar" class="avatar">IN</div><div class="account-copy"><strong id="accountName">Inovtec</strong><span id="accountStatus">Dashboard</span></div></div></div>
+    </div>
     <div class="geom" aria-hidden="true"><div class="g-dots"></div><div class="g-circle c1"></div><div class="g-circle c2"></div><div class="g-rect r1"></div><div class="g-rect r2"></div><div class="g-line l1"></div><div class="g-line l2"></div><div class="g-line l3"></div><div class="g-glow a"></div><div class="g-glow b"></div></div>
   </section>
   <section class="kpis" aria-label="Indicateurs">
@@ -75,6 +73,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="firebase-config.js?v=20260813-7"></script>
-<script src="dashboard-index.js?v=20260813-1"></script>
+<script src="dashboard-index.js?v=20260814-3"></script>
 </body>
 </html>
