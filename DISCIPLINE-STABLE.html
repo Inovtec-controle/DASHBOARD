@@ -8,13 +8,13 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Inovtec — Gestion disciplinaire</title>
-  <link rel="stylesheet" href="inovtec-common.css?v=20260813-4">
+  <link rel="stylesheet" href="inovtec-common.css?v=20260813-5">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="firebase-config.js?v=20260813-4"></script>
+  <script src="firebase-config.js?v=20260813-5"></script>
   <style>
     .hidden{display:none!important}
     .level{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}
@@ -25,6 +25,7 @@
     .photo-item{position:relative;border:1px solid #d1d5db;border-radius:10px;padding:6px;background:#fff;overflow:hidden}
     .photo-item img{display:block;width:100%;height:115px;object-fit:cover;border-radius:7px;background:#f3f4f6}
     .photo-name{margin-top:6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#4b5563}
+    .photo-meta{font-size:10px;color:#64748b;margin-top:3px}
     .photo-remove{position:absolute;top:10px;right:10px;border:0;border-radius:999px;width:28px;height:28px;background:rgba(127,29,29,.92);color:#fff;font-weight:800;cursor:pointer}
     .photo-count{display:inline-flex;min-width:24px;justify-content:center;padding:3px 7px;border-radius:999px;background:#ecfdf5;color:#166534;font-size:11px;font-weight:800}
     .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}.sync-note{font-size:11px;color:#64748b;margin-top:7px}
@@ -78,12 +79,12 @@
           </div>
           <div class="field photo-field">
             <label for="photos">Photos / éléments visuels</label>
-            <div class="photo-picker"><input id="photos" type="file" accept="image/*" multiple><span id="photoHelp" class="muted">Jusqu’à 10 photos, 12 Mo maximum par photo.</span></div>
+            <div class="photo-picker"><input id="photos" type="file" accept="image/*" multiple><span id="photoHelp" class="muted">Jusqu’à 10 photos. Les grandes photos sont réduites automatiquement.</span></div>
             <div id="photoPreview" class="photo-grid"></div>
           </div>
           <button id="saveBtn" class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Enregistrer</span></button>
           <div id="saveNotice" class="hidden"></div>
-          <div class="sync-note">Les dossiers sont liés au compte connecté et sont synchronisés entre ordinateur et téléphone.</div>
+          <div class="sync-note">Le dossier est enregistré en premier. Les photos sont ensuite envoyées sans pouvoir bloquer l’enregistrement.</div>
         </form>
       </section>
 
@@ -103,7 +104,7 @@
 (function(){
   "use strict";
   var $=function(id){return document.getElementById(id);};
-  var VERSION=7,MAX_PHOTOS=10,MAX_PHOTO_SIZE=12*1024*1024;
+  var VERSION=8,MAX_PHOTOS=10,MAX_PHOTO_SIZE=20*1024*1024,PHOTO_MAX_DIM=1600,PHOTO_QUALITY=.72,PHOTO_UPLOAD_TIMEOUT=25000,FIREBASE_WRITE_TIMEOUT=9000;
   var auth=null,db=null,storage=null,currentUser=null,unsubscribe=null,activeBackend=null;
   var records=[],editingId=null,existingPhotos=[],pendingPhotos=[],removedPhotoPaths=[];
   var LEGACY_KEYS=["inovtec_discipline_cloud_cache_v5","inovtec_discipline_v2","discipline"];
@@ -113,8 +114,10 @@
   function text(v){return v==null?"":String(v);}
   function newId(){return "disc_"+Date.now()+"_"+Math.random().toString(16).slice(2);}
   function safeFileName(name){return text(name||"photo").replace(/[\\/:*?"<>|]+/g,"_").replace(/\s+/g,"_").slice(-120)||"photo";}
+  function formatSize(bytes){var n=Number(bytes)||0;if(n<1024)return n+" o";if(n<1024*1024)return Math.round(n/1024)+" Ko";return (n/1024/1024).toFixed(1)+" Mo";}
   function setStatus(label,type){var el=$("syncStatus");el.textContent=label;el.className="status"+(type?" "+type:"");}
   function showNotice(message,type){var el=$("saveNotice");if(!message){el.className="hidden";el.textContent="";return;}el.className="notice "+(type||"warning");el.textContent=message;}
+  function withTimeout(promise,ms,message){return new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(done)return;done=true;reject(new Error(message||"Délai dépassé"));},ms);Promise.resolve(promise).then(function(v){if(done)return;done=true;clearTimeout(t);resolve(v);},function(e){if(done)return;done=true;clearTimeout(t);reject(e);});});}
 
   function normalizePhoto(p){if(!p||typeof p!=="object")return null;return{name:text(p.name||"Photo"),type:text(p.type||""),size:Number(p.size)||0,path:text(p.path||""),url:text(p.url||""),uploadedAt:text(p.uploadedAt||"")};}
   function normalizeRecord(item,index){
@@ -124,123 +127,107 @@
     if(!r.agent&&!r.motif&&!r.description)return null;return r;
   }
   function normalizeList(list){return Array.isArray(list)?list.map(normalizeRecord).filter(Boolean):[];}
-  function legacyPrimary(data){
-    var out=[];data=data||{};
-    if(data.recordsById&&typeof data.recordsById==="object")Object.keys(data.recordsById).forEach(function(k){var r=normalizeRecord(data.recordsById[k],out.length);if(r){if(!r.id)r.id=k;out.push(r);}});
-    if(Array.isArray(data.records))data.records.forEach(function(item,i){var r=normalizeRecord(item,i);if(r&&!out.some(function(x){return x.id===r.id;}))out.push(r);});
-    return out;
-  }
-  function primaryRecords(data){if(Array.isArray(data&&data.recordsV7))return normalizeList(data.recordsV7);if(Array.isArray(data&&data.recordsV6))return normalizeList(data.recordsV6);return legacyPrimary(data);}
-  function fallbackRecords(data){if(Array.isArray(data&&data.disciplineRecordsV7))return normalizeList(data.disciplineRecordsV7);if(Array.isArray(data&&data.disciplineRecordsV6))return normalizeList(data.disciplineRecordsV6);if(Array.isArray(data&&data.disciplineRecords))return normalizeList(data.disciplineRecords);return [];}
-  function stampOf(data,isoKey,serverKey){
-    if(data&&data[isoKey]){var t=Date.parse(data[isoKey]);if(Number.isFinite(t))return t;}
-    var v=data&&data[serverKey];if(v&&typeof v.toMillis==="function")return v.toMillis();
-    return 0;
-  }
-  function pendingKey(){return currentUser?"inovtec_discipline_pending_v7_"+currentUser.uid:"inovtec_discipline_pending_v7";}
-  function cacheKey(){return currentUser?"inovtec_discipline_cache_v7_"+currentUser.uid:"inovtec_discipline_cache_v7";}
+  function legacyPrimary(data){var out=[];data=data||{};if(data.recordsById&&typeof data.recordsById==="object")Object.keys(data.recordsById).forEach(function(k){var r=normalizeRecord(data.recordsById[k],out.length);if(r){if(!r.id)r.id=k;out.push(r);}});if(Array.isArray(data.records))data.records.forEach(function(item,i){var r=normalizeRecord(item,i);if(r&&!out.some(function(x){return x.id===r.id;}))out.push(r);});return out;}
+  function primaryRecords(data){if(Array.isArray(data&&data.recordsV8))return normalizeList(data.recordsV8);if(Array.isArray(data&&data.recordsV7))return normalizeList(data.recordsV7);if(Array.isArray(data&&data.recordsV6))return normalizeList(data.recordsV6);return legacyPrimary(data);}
+  function fallbackRecords(data){if(Array.isArray(data&&data.disciplineRecordsV8))return normalizeList(data.disciplineRecordsV8);if(Array.isArray(data&&data.disciplineRecordsV7))return normalizeList(data.disciplineRecordsV7);if(Array.isArray(data&&data.disciplineRecordsV6))return normalizeList(data.disciplineRecordsV6);if(Array.isArray(data&&data.disciplineRecords))return normalizeList(data.disciplineRecords);return [];}
+  function stampOf(data,isoKey,serverKey){if(data&&data[isoKey]){var t=Date.parse(data[isoKey]);if(Number.isFinite(t))return t;}var v=data&&data[serverKey];if(v&&typeof v.toMillis==="function")return v.toMillis();return 0;}
+  function pendingKey(){return currentUser?"inovtec_discipline_pending_v8_"+currentUser.uid:"inovtec_discipline_pending_v8";}
+  function cacheKey(){return currentUser?"inovtec_discipline_cache_v8_"+currentUser.uid:"inovtec_discipline_cache_v8";}
   function saveCache(list){try{localStorage.setItem(cacheKey(),JSON.stringify({records:list,updatedAtIso:nowIso()}));}catch(e){console.warn(e);}}
   function savePending(list){try{localStorage.setItem(pendingKey(),JSON.stringify({records:list,updatedAtIso:nowIso()}));}catch(e){console.warn(e);}}
   function readPending(){try{var x=JSON.parse(localStorage.getItem(pendingKey())||"null");return x&&Array.isArray(x.records)?{records:normalizeList(x.records),stamp:Date.parse(x.updatedAtIso)||0}:null;}catch(e){return null;}}
   function clearPending(){try{localStorage.removeItem(pendingKey());}catch(e){}}
-  function loadLocalBest(){
-    var best={records:[],stamp:0};
-    try{var c=JSON.parse(localStorage.getItem(cacheKey())||"null");if(c&&Array.isArray(c.records)){best={records:normalizeList(c.records),stamp:Date.parse(c.updatedAtIso)||0};}}catch(e){}
-    LEGACY_KEYS.forEach(function(key){try{var raw=JSON.parse(localStorage.getItem(key)||"null"),list=[];if(Array.isArray(raw))list=normalizeList(raw);else if(raw&&Array.isArray(raw.records))list=normalizeList(raw.records);if(list.length>best.records.length)best={records:list,stamp:best.stamp};}catch(e){}});
-    return best;
-  }
+  function loadLocalBest(){var best={records:[],stamp:0};try{var c=JSON.parse(localStorage.getItem(cacheKey())||"null");if(c&&Array.isArray(c.records))best={records:normalizeList(c.records),stamp:Date.parse(c.updatedAtIso)||0};}catch(e){}LEGACY_KEYS.forEach(function(key){try{var raw=JSON.parse(localStorage.getItem(key)||"null"),list=[];if(Array.isArray(raw))list=normalizeList(raw);else if(raw&&Array.isArray(raw.records))list=normalizeList(raw.records);if(list.length>best.records.length)best={records:list,stamp:best.stamp};}catch(e){}});return best;}
 
   function primaryRef(){return db.collection("discipline").doc(currentUser.uid);}
   function fallbackRef(){return db.collection("kanban").doc(currentUser.uid);}
-  async function safeGet(ref){try{return{ok:true,snap:await ref.get()};}catch(error){console.warn("Lecture Firebase",error);return{ok:false,error:error};}}
-  function chooseCloud(primary,fallback){
-    var pData=primary.ok&&primary.snap.exists?(primary.snap.data()||{}):{},fData=fallback.ok&&fallback.snap.exists?(fallback.snap.data()||{}):{};
-    var p={name:"primary",ref:primaryRef(),records:primaryRecords(pData),stamp:stampOf(pData,"disciplineUpdatedAtIso","updatedAt"),readable:primary.ok};
-    var f={name:"fallback",ref:fallbackRef(),records:fallbackRecords(fData),stamp:stampOf(fData,"disciplineUpdatedAtIso","disciplineUpdatedAt"),readable:fallback.ok};
-    if(f.records.length&&(!p.records.length||f.stamp>p.stamp))return f;
-    if(p.readable)return p;if(f.readable)return f;return null;
-  }
+  async function safeGet(ref){try{return{ok:true,snap:await withTimeout(ref.get(),8000,"Lecture Firebase trop longue")};}catch(error){console.warn("Lecture Firebase",error);return{ok:false,error:error};}}
+  function chooseCloud(primary,fallback){var pData=primary.ok&&primary.snap.exists?(primary.snap.data()||{}):{},fData=fallback.ok&&fallback.snap.exists?(fallback.snap.data()||{}):{};var p={name:"primary",ref:primaryRef(),records:primaryRecords(pData),stamp:stampOf(pData,"disciplineUpdatedAtIso","updatedAt"),readable:primary.ok};var f={name:"fallback",ref:fallbackRef(),records:fallbackRecords(fData),stamp:stampOf(fData,"disciplineUpdatedAtIso","disciplineUpdatedAt"),readable:fallback.ok};if(f.records.length&&(!p.records.length||f.stamp>p.stamp))return f;if(p.readable)return p;if(f.readable)return f;return null;}
 
-  async function refreshCloud(){
-    if(!currentUser)return;
-    setStatus("Synchronisation…");
-    var results=await Promise.all([safeGet(primaryRef()),safeGet(fallbackRef())]);
-    var chosen=chooseCloud(results[0],results[1]),local=loadLocalBest(),pending=readPending();
-    if(chosen){activeBackend=chosen;records=chosen.records;var cloudStamp=chosen.stamp||0;if(local.records.length&&!records.length)records=local.records;if(pending&&pending.stamp>=cloudStamp){records=pending.records;saveCache(records);render();setStatus("Synchronisation en attente","warning");await flushPending();return;}saveCache(records);render();startListener(chosen);setStatus("Synchronisé • "+records.length+" dossier"+(records.length>1?"s":""),"ok");}
-    else{activeBackend=null;records=(pending&&pending.records)||local.records;saveCache(records);render();setStatus("Mode local • synchronisation en attente","warning");}
-  }
+  async function refreshCloud(){if(!currentUser)return;setStatus("Synchronisation…");var results=await Promise.all([safeGet(primaryRef()),safeGet(fallbackRef())]);var chosen=chooseCloud(results[0],results[1]),local=loadLocalBest(),pending=readPending();if(chosen){activeBackend=chosen;records=chosen.records;var cloudStamp=chosen.stamp||0;if(local.records.length&&!records.length)records=local.records;if(pending&&pending.stamp>=cloudStamp){records=pending.records;saveCache(records);render();setStatus("Synchronisation en attente","warning");await flushPending();return;}saveCache(records);render();startListener(chosen);setStatus("Synchronisé • "+records.length+" dossier"+(records.length>1?"s":""),"ok");}else{activeBackend=null;records=(pending&&pending.records)||local.records;saveCache(records);render();setStatus("Mode local • synchronisation en attente","warning");}}
+  function startListener(backend){if(unsubscribe){unsubscribe();unsubscribe=null;}if(!backend||!backend.ref)return;unsubscribe=backend.ref.onSnapshot(function(snap){var data=snap.exists?(snap.data()||{}):{},incoming=backend.name==="primary"?primaryRecords(data):fallbackRecords(data),cloudStamp=backend.name==="primary"?stampOf(data,"disciplineUpdatedAtIso","updatedAt"):stampOf(data,"disciplineUpdatedAtIso","disciplineUpdatedAt"),pending=readPending();if(pending&&pending.stamp>cloudStamp){records=pending.records;saveCache(records);render();setStatus("Synchronisation en attente","warning");flushPending();return;}records=incoming;saveCache(records);render();setStatus("Synchronisé • "+records.length+" dossier"+(records.length>1?"s":""),"ok");},function(error){console.warn("Ecoute Firebase",error);setStatus("Connexion interrompue • données conservées","warning");});}
 
-  function startListener(backend){
-    if(unsubscribe){unsubscribe();unsubscribe=null;}
-    if(!backend||!backend.ref)return;
-    unsubscribe=backend.ref.onSnapshot(function(snap){
-      var data=snap.exists?(snap.data()||{}):{},incoming=backend.name==="primary"?primaryRecords(data):fallbackRecords(data),cloudStamp=backend.name==="primary"?stampOf(data,"disciplineUpdatedAtIso","updatedAt"):stampOf(data,"disciplineUpdatedAtIso","disciplineUpdatedAt"),pending=readPending();
-      if(pending&&pending.stamp>cloudStamp){records=pending.records;saveCache(records);render();setStatus("Synchronisation en attente","warning");flushPending();return;}
-      records=incoming;saveCache(records);render();setStatus("Synchronisé • "+records.length+" dossier"+(records.length>1?"s":""),"ok");
-    },function(error){console.warn("Ecoute Firebase",error);setStatus("Connexion interrompue • données conservées","warning");});
-  }
-
-  async function writePrimary(list,stamp){
-    await primaryRef().set({recordsV7:list,disciplineUpdatedAtIso:stamp,storageVersion:VERSION,ownerUid:currentUser.uid,ownerEmail:currentUser.email||"",updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-    return{name:"primary",ref:primaryRef()};
-  }
-  async function writeFallback(list,stamp){
-    await fallbackRef().set({disciplineRecordsV7:list,disciplineUpdatedAtIso:stamp,disciplineStorageVersion:VERSION,disciplineUpdatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-    return{name:"fallback",ref:fallbackRef()};
-  }
-  async function saveAll(list){
-    var stamp=nowIso(),firstError=null;
-    try{var b=await writePrimary(list,stamp);records=list;saveCache(records);clearPending();activeBackend=b;startListener(b);return{synced:true,backend:"primary"};}
-    catch(error){firstError=error;console.warn("Ecriture Discipline principale",error);}
-    try{var f=await writeFallback(list,stamp);records=list;saveCache(records);clearPending();activeBackend=f;startListener(f);return{synced:true,backend:"fallback",recovered:true};}
-    catch(error2){console.error("Ecriture Firebase de secours",error2);savePending(list);records=list;saveCache(records);return{synced:false,error:firstError||error2};}
-  }
-  async function flushPending(){var pending=readPending();if(!pending||!currentUser)return true;var result=await saveAll(pending.records);if(result.synced){setStatus("Synchronisé • "+records.length+" dossier"+(records.length>1?"s":""),"ok");showNotice("Les données en attente ont été synchronisées.","success");setTimeout(function(){showNotice("");},3000);return true;}setStatus("Enregistré sur cet appareil • synchronisation en attente","warning");return false;}
+  async function writePrimary(list,stamp){await withTimeout(primaryRef().set({recordsV8:list,disciplineUpdatedAtIso:stamp,storageVersion:VERSION,ownerUid:currentUser.uid,ownerEmail:currentUser.email||"",updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}),FIREBASE_WRITE_TIMEOUT,"Firebase principal trop lent");return{name:"primary",ref:primaryRef()};}
+  async function writeFallback(list,stamp){await withTimeout(fallbackRef().set({disciplineRecordsV8:list,disciplineUpdatedAtIso:stamp,disciplineStorageVersion:VERSION,disciplineUpdatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}),FIREBASE_WRITE_TIMEOUT,"Firebase de secours trop lent");return{name:"fallback",ref:fallbackRef()};}
+  async function saveAll(list){var stamp=nowIso(),firstError=null;records=list;saveCache(records);savePending(list);render();try{var b=await writePrimary(list,stamp);clearPending();activeBackend=b;startListener(b);return{synced:true,backend:"primary"};}catch(error){firstError=error;console.warn("Ecriture Discipline principale",error);}try{var f=await writeFallback(list,stamp);clearPending();activeBackend=f;startListener(f);return{synced:true,backend:"fallback",recovered:true};}catch(error2){console.warn("Ecriture Firebase de secours",error2);return{synced:false,error:firstError||error2};}}
+  async function flushPending(){var pending=readPending();if(!pending||!currentUser)return true;var result=await saveAll(pending.records);if(result.synced){setStatus("Synchronisé • "+records.length+" dossier"+(records.length>1?"s":""),"ok");return true;}setStatus("Enregistré sur cet appareil • synchronisation en attente","warning");return false;}
 
   function slugLevel(level){if(level==="Observation")return"observation";if(level==="Avertissement")return"avertissement";if(level==="Mise en demeure")return"mise-en-demeure";return"licenciement";}
   function clearPhotos(){pendingPhotos.forEach(function(p){if(p.previewUrl)URL.revokeObjectURL(p.previewUrl);});existingPhotos=[];pendingPhotos=[];removedPhotoPaths=[];if($("photos"))$("photos").value="";renderPhotoPreview();}
-  function renderPhotoPreview(){
-    var wrap=$("photoPreview");wrap.innerHTML="";var total=existingPhotos.length+pendingPhotos.length;$("photoHelp").textContent=total+"/"+MAX_PHOTOS+" photo"+(total>1?"s":"")+" — 12 Mo maximum par photo.";
-    existingPhotos.forEach(function(photo,index){var card=document.createElement("div");card.className="photo-item";var img=document.createElement("img");img.src=photo.url||"";img.alt=photo.name||("Photo "+(index+1));img.loading="lazy";var name=document.createElement("div");name.className="photo-name";name.textContent=photo.name||("Photo "+(index+1));var remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.textContent="×";remove.addEventListener("click",function(){var old=existingPhotos.splice(index,1)[0];if(old&&old.path)removedPhotoPaths.push(old.path);renderPhotoPreview();});card.appendChild(img);card.appendChild(remove);card.appendChild(name);wrap.appendChild(card);});
-    pendingPhotos.forEach(function(photo,index){var card=document.createElement("div");card.className="photo-item";var img=document.createElement("img");img.src=photo.previewUrl;img.alt=photo.file.name||("Nouvelle photo "+(index+1));var name=document.createElement("div");name.className="photo-name";name.textContent=photo.file.name||("Nouvelle photo "+(index+1));var remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.textContent="×";remove.addEventListener("click",function(){var old=pendingPhotos.splice(index,1)[0];if(old&&old.previewUrl)URL.revokeObjectURL(old.previewUrl);renderPhotoPreview();});card.appendChild(img);card.appendChild(remove);card.appendChild(name);wrap.appendChild(card);});
-  }
+  function renderPhotoPreview(){var wrap=$("photoPreview");wrap.innerHTML="";var total=existingPhotos.length+pendingPhotos.length;$("photoHelp").textContent=total+"/"+MAX_PHOTOS+" photo"+(total>1?"s":"")+" — réduction automatique des grandes images.";existingPhotos.forEach(function(photo,index){var card=document.createElement("div");card.className="photo-item";var img=document.createElement("img");img.src=photo.url||"";img.alt=photo.name||("Photo "+(index+1));img.loading="lazy";var name=document.createElement("div");name.className="photo-name";name.textContent=photo.name||("Photo "+(index+1));var meta=document.createElement("div");meta.className="photo-meta";meta.textContent=photo.size?formatSize(photo.size):"Photo enregistrée";var remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.textContent="×";remove.addEventListener("click",function(){var old=existingPhotos.splice(index,1)[0];if(old&&old.path)removedPhotoPaths.push(old.path);renderPhotoPreview();});card.appendChild(img);card.appendChild(remove);card.appendChild(name);card.appendChild(meta);wrap.appendChild(card);});pendingPhotos.forEach(function(photo,index){var card=document.createElement("div");card.className="photo-item";var img=document.createElement("img");img.src=photo.previewUrl;img.alt=photo.file.name||("Nouvelle photo "+(index+1));var name=document.createElement("div");name.className="photo-name";name.textContent=photo.file.name||("Nouvelle photo "+(index+1));var meta=document.createElement("div");meta.className="photo-meta";meta.textContent=photo.file.size>900*1024?"Préparation automatique…":formatSize(photo.file.size);var remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.textContent="×";remove.addEventListener("click",function(){var old=pendingPhotos.splice(index,1)[0];if(old&&old.previewUrl)URL.revokeObjectURL(old.previewUrl);renderPhotoPreview();});card.appendChild(img);card.appendChild(remove);card.appendChild(name);card.appendChild(meta);wrap.appendChild(card);});}
   function resetForm(){editingId=null;$("recordForm").reset();clearPhotos();$("date").value=today();$("niveau").value="Observation";$("statut").value="Ouvert";$("formTitle").textContent="Nouveau dossier";$("submitLabel").textContent="Enregistrer";$("cancelEditBtn").classList.add("hidden");$("saveBtn").disabled=false;}
   function editRecord(id){var r=records.find(function(x){return x.id===id;});if(!r)return;clearPhotos();editingId=id;["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(function(field){$(field).value=r[field]||"";});existingPhotos=(r.photos||[]).map(function(p){return Object.assign({},p);});renderPhotoPreview();$("formTitle").textContent="Modifier le dossier";$("submitLabel").textContent="Enregistrer les modifications";$("cancelEditBtn").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"});}
 
-  async function uploadPhotos(recordId){
-    if(!pendingPhotos.length)return[];if(!storage)throw new Error("Stockage photo indisponible");var uploaded=[];
-    for(var i=0;i<pendingPhotos.length;i++){var file=pendingPhotos[i].file;setStatus("Envoi photo "+(i+1)+"/"+pendingPhotos.length+"…");var path="discipline/"+currentUser.uid+"/"+recordId+"/"+Date.now()+"_"+Math.random().toString(16).slice(2)+"_"+safeFileName(file.name);var storageRef=storage.ref().child(path),snap=await storageRef.put(file,{contentType:file.type||"image/jpeg"}),url=await snap.ref.getDownloadURL();uploaded.push({name:file.name||"Photo",type:file.type||"",size:file.size||0,path:path,url:url,uploadedAt:nowIso()});}
-    return uploaded;
+  function canvasBlob(canvas,type,quality){return new Promise(function(resolve){canvas.toBlob(function(blob){resolve(blob);},type,quality);});}
+  async function preparePhoto(file){
+    if(!file||file.size<=900*1024)return file;
+    try{
+      var bitmap=await withTimeout(createImageBitmap(file),7000,"Préparation photo trop longue");
+      var scale=Math.min(1,PHOTO_MAX_DIM/Math.max(bitmap.width||1,bitmap.height||1));
+      var canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+      var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);if(bitmap.close)bitmap.close();
+      var blob=await withTimeout(canvasBlob(canvas,"image/jpeg",PHOTO_QUALITY),7000,"Compression photo trop longue");
+      if(blob&&blob.size&&blob.size<file.size){var base=safeFileName(file.name||"photo").replace(/\.[^.]+$/,""),name=base+".jpg";return new File([blob],name,{type:"image/jpeg",lastModified:Date.now()});}
+    }catch(error){console.warn("Compression ignorée",error);}
+    return file;
   }
-  function deletePhotoFiles(paths){if(!storage)return;Array.from(new Set((paths||[]).filter(Boolean))).forEach(function(path){storage.ref().child(path).delete().catch(function(e){console.warn(e);});});}
 
+  function uploadOnePhoto(recordId,file,index,total){
+    return new Promise(function(resolve,reject){
+      if(!storage){reject(new Error("Stockage photo indisponible"));return;}
+      var cleanName=safeFileName(file.name||("photo_"+(index+1))),path="discipline/"+currentUser.uid+"/"+recordId+"/"+Date.now()+"_"+Math.random().toString(16).slice(2)+"_"+cleanName;
+      var storageRef=storage.ref().child(path),task=storageRef.put(file,{contentType:file.type||"image/jpeg"}),settled=false;
+      var timer=setTimeout(function(){if(settled)return;settled=true;try{task.cancel();}catch(e){}reject(new Error("Envoi photo trop long"));},PHOTO_UPLOAD_TIMEOUT);
+      task.on("state_changed",function(snapshot){if(total===1&&snapshot.totalBytes){var pct=Math.round(snapshot.bytesTransferred/snapshot.totalBytes*100);setStatus("Envoi de la photo… "+pct+"%");}else setStatus("Envoi des photos… "+(index+1)+"/"+total);},function(error){if(settled)return;settled=true;clearTimeout(timer);reject(error);},async function(){if(settled)return;try{var url=await withTimeout(task.snapshot.ref.getDownloadURL(),8000,"Adresse de la photo trop longue");settled=true;clearTimeout(timer);resolve({name:file.name||"Photo",type:file.type||"",size:file.size||0,path:path,url:url,uploadedAt:nowIso()});}catch(error){settled=true;clearTimeout(timer);reject(error);}});
+    });
+  }
+
+  async function uploadPhotosFast(recordId,items){
+    if(!items.length)return{uploaded:[],failed:0};
+    if(!storage)return{uploaded:[],failed:items.length};
+    setStatus("Préparation de "+items.length+" photo"+(items.length>1?"s":"")+"…");
+    var prepared=await Promise.all(items.map(function(item){return withTimeout(preparePhoto(item.file),9000,"Préparation trop longue").catch(function(){return item.file;});}));
+    var results=await Promise.all(prepared.map(function(file,index){return uploadOnePhoto(recordId,file,index,prepared.length).then(function(photo){return{ok:true,photo:photo};}).catch(function(error){console.warn("Photo non envoyée",error);return{ok:false,error:error};});}));
+    return{uploaded:results.filter(function(r){return r.ok;}).map(function(r){return r.photo;}),failed:results.filter(function(r){return!r.ok;}).length};
+  }
+
+  function deletePhotoFiles(paths){if(!storage)return;Array.from(new Set((paths||[]).filter(Boolean))).forEach(function(path){storage.ref().child(path).delete().catch(function(e){console.warn(e);});});}
   function filtered(){var q=$("search").value.trim().toLowerCase(),status=$("statusFilter").value,level=$("levelFilter").value;return records.slice().filter(function(r){var hay=[r.agent,r.site,r.motif,r.description,r.responsable].join(" ").toLowerCase();return(!q||hay.indexOf(q)!==-1)&&(!status||r.statut===status)&&(!level||r.niveau===level);}).sort(function(a,b){return text(b.date).localeCompare(text(a.date))||text(b.updatedAt).localeCompare(text(a.updatedAt));});}
   function button(label,fn,className){var b=document.createElement("button");b.type="button";b.textContent=label;b.className="btn btn-secondary"+(className?" "+className:"");b.style.padding="6px 8px";b.style.fontSize="11px";b.addEventListener("click",fn);return b;}
-  function render(){
-    var list=filtered();$("count").textContent=String(list.length);var wrap=$("recordsWrap");wrap.innerHTML="";if(!list.length){var empty=document.createElement("div");empty.className="empty";empty.textContent="Aucun dossier.";wrap.appendChild(empty);return;}
-    var table=document.createElement("table"),thead=document.createElement("thead"),trh=document.createElement("tr");["Date","Agent","Site","Niveau","Statut","Motif","Photos","Actions"].forEach(function(label){var th=document.createElement("th");th.textContent=label;trh.appendChild(th);});thead.appendChild(trh);table.appendChild(thead);var tbody=document.createElement("tbody");
-    list.forEach(function(r){var tr=document.createElement("tr");[r.date||"—",r.agent||"—",r.site||"—"].forEach(function(v){var td=document.createElement("td");td.textContent=v;tr.appendChild(td);});var tdLevel=document.createElement("td"),badge=document.createElement("span");badge.className="level "+slugLevel(r.niveau);badge.textContent=r.niveau||"—";tdLevel.appendChild(badge);tr.appendChild(tdLevel);var tdStatus=document.createElement("td");tdStatus.textContent=r.statut||"—";tr.appendChild(tdStatus);var tdMotif=document.createElement("td");tdMotif.textContent=r.motif||"—";tr.appendChild(tdMotif);var tdPhotos=document.createElement("td"),count=document.createElement("span");count.className="photo-count";count.textContent=String((r.photos||[]).length);tdPhotos.appendChild(count);tr.appendChild(tdPhotos);var tdActions=document.createElement("td"),actions=document.createElement("div");actions.className="actions";actions.appendChild(button("Générer PDF",function(){generatePdf(r.id);}));actions.appendChild(button("Modifier",function(){editRecord(r.id);}));actions.appendChild(button("Supprimer",function(){deleteRecord(r.id);},"btn-danger"));tdActions.appendChild(actions);tr.appendChild(tdActions);tbody.appendChild(tr);});table.appendChild(tbody);wrap.appendChild(table);
-  }
+  function render(){var list=filtered();$("count").textContent=String(list.length);var wrap=$("recordsWrap");wrap.innerHTML="";if(!list.length){var empty=document.createElement("div");empty.className="empty";empty.textContent="Aucun dossier.";wrap.appendChild(empty);return;}var table=document.createElement("table"),thead=document.createElement("thead"),trh=document.createElement("tr");["Date","Agent","Site","Niveau","Statut","Motif","Photos","Actions"].forEach(function(label){var th=document.createElement("th");th.textContent=label;trh.appendChild(th);});thead.appendChild(trh);table.appendChild(thead);var tbody=document.createElement("tbody");list.forEach(function(r){var tr=document.createElement("tr");[r.date||"—",r.agent||"—",r.site||"—"].forEach(function(v){var td=document.createElement("td");td.textContent=v;tr.appendChild(td);});var tdLevel=document.createElement("td"),badge=document.createElement("span");badge.className="level "+slugLevel(r.niveau);badge.textContent=r.niveau||"—";tdLevel.appendChild(badge);tr.appendChild(tdLevel);var tdStatus=document.createElement("td");tdStatus.textContent=r.statut||"—";tr.appendChild(tdStatus);var tdMotif=document.createElement("td");tdMotif.textContent=r.motif||"—";tr.appendChild(tdMotif);var tdPhotos=document.createElement("td"),count=document.createElement("span");count.className="photo-count";count.textContent=String((r.photos||[]).length);tdPhotos.appendChild(count);tr.appendChild(tdPhotos);var tdActions=document.createElement("td"),actions=document.createElement("div");actions.className="actions";actions.appendChild(button("Générer PDF",function(){generatePdf(r.id);}));actions.appendChild(button("Modifier",function(){editRecord(r.id);}));actions.appendChild(button("Supprimer",function(){deleteRecord(r.id);},"btn-danger"));tdActions.appendChild(actions);tr.appendChild(tdActions);tbody.appendChild(tr);});table.appendChild(tbody);wrap.appendChild(table);}
 
-  async function deleteRecord(id){var r=records.find(function(x){return x.id===id;});if(!r||!confirm("Supprimer définitivement le dossier de "+r.agent+" ?"))return;setStatus("Suppression…");var next=records.filter(function(x){return x.id!==id;});var result=await saveAll(next);if(result.synced){deletePhotoFiles((r.photos||[]).map(function(p){return p.path;}));showNotice("Dossier supprimé.","success");}else{showNotice("Suppression conservée sur cet appareil. La synchronisation se fera automatiquement dès que Firebase répondra.","warning");}if(editingId===id)resetForm();render();}
+  async function deleteRecord(id){var r=records.find(function(x){return x.id===id;});if(!r||!confirm("Supprimer définitivement le dossier de "+r.agent+" ?"))return;setStatus("Suppression…");var next=records.filter(function(x){return x.id!==id;});var result=await saveAll(next);if(result.synced){deletePhotoFiles((r.photos||[]).map(function(p){return p.path;}));showNotice("Dossier supprimé.","success");}else showNotice("Suppression conservée sur cet appareil. La synchronisation se fera automatiquement.","warning");if(editingId===id)resetForm();render();}
 
   function loadImage(src){return new Promise(function(resolve,reject){var img=new Image();img.onload=function(){resolve(img);};img.onerror=function(){reject(new Error("Image inaccessible"));};img.src=src;});}
-  async function imageForPdf(photo){var response=await fetch(photo.url);if(!response.ok)throw new Error("Image indisponible");var blob=await response.blob(),objectUrl=URL.createObjectURL(blob);try{var img=await loadImage(objectUrl),ratio=Math.min(1,1600/Math.max(img.naturalWidth||1,img.naturalHeight||1)),canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round((img.naturalWidth||1)*ratio));canvas.height=Math.max(1,Math.round((img.naturalHeight||1)*ratio));var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);return{data:canvas.toDataURL("image/jpeg",.86),width:canvas.width,height:canvas.height};}finally{URL.revokeObjectURL(objectUrl);}}
-  async function generatePdf(id){
-    var r=records.find(function(x){return x.id===id;});if(!r)return;if(!window.jspdf||!window.jspdf.jsPDF){alert("Le générateur PDF n’est pas disponible. Recharge la page puis réessaie.");return;}setStatus("Génération du PDF…");
-    try{var pdf=new window.jspdf.jsPDF({orientation:"portrait",unit:"mm",format:"a4"}),m=15,y=18,w=180,pageH=297;function space(h){if(y+h>pageH-m){pdf.addPage();y=18;}}function line(label,value){pdf.setFontSize(10);pdf.setFont("helvetica","bold");pdf.text(label+" :",m,y);pdf.setFont("helvetica","normal");var lines=pdf.splitTextToSize(text(value)||"—",130);pdf.text(lines,60,y);y+=Math.max(6,lines.length*5);}function block(title,value){space(18);pdf.setFont("helvetica","bold");pdf.setFontSize(13);pdf.text(title,m,y);y+=7;pdf.setFont("helvetica","normal");pdf.setFontSize(10);var lines=pdf.splitTextToSize(text(value)||"—",w);lines.forEach(function(l){space(7);pdf.text(l,m,y);y+=5;});y+=4;}pdf.setFont("helvetica","bold");pdf.setFontSize(20);pdf.text("Dossier disciplinaire",m,y);y+=10;[["Agent",r.agent],["Date des faits",r.date],["Site",r.site],["Niveau",r.niveau],["Statut",r.statut],["Motif",r.motif],["Témoins",r.temoins],["Responsable",r.responsable]].forEach(function(v){line(v[0],v[1]);});block("Description factuelle",r.description);block("Suite donnée / prochaine action",r.suite);var photos=(r.photos||[]).filter(function(p){return p&&p.url;});if(photos.length){space(12);pdf.setFont("helvetica","bold");pdf.setFontSize(13);pdf.text("Photos / éléments visuels",m,y);y+=7;for(var i=0;i<photos.length;i++){space(65);try{var image=await imageForPdf(photos[i]),ratio=Math.min(w/image.width,55/image.height),iw=image.width*ratio,ih=image.height*ratio;pdf.addImage(image.data,"JPEG",m+(w-iw)/2,y,iw,ih,undefined,"FAST");y+=ih+5;}catch(e){pdf.setFontSize(9);pdf.text("Photo "+(i+1)+" indisponible",m,y);y+=7;}}}pdf.save("dossier_disciplinaire_"+safeFileName(r.agent||"agent")+"_"+(r.date||today())+".pdf");setStatus("PDF généré","ok");}catch(error){console.error(error);setStatus("Erreur PDF","warning");alert("Impossible de générer le PDF.");}
-  }
+  async function imageForPdf(photo){var response=await fetch(photo.url);if(!response.ok)throw new Error("Image indisponible");var blob=await response.blob(),objectUrl=URL.createObjectURL(blob);try{var img=await loadImage(objectUrl),ratio=Math.min(1,1600/Math.max(img.naturalWidth||1,img.naturalHeight||1)),canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round((img.naturalWidth||1)*ratio));canvas.height=Math.max(1,Math.round((img.naturalHeight||1)*ratio));var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);return{data:canvas.toDataURL("image/jpeg",.82),width:canvas.width,height:canvas.height};}finally{URL.revokeObjectURL(objectUrl);}}
+  async function generatePdf(id){var r=records.find(function(x){return x.id===id;});if(!r)return;if(!window.jspdf||!window.jspdf.jsPDF){alert("Le générateur PDF n’est pas disponible. Recharge la page puis réessaie.");return;}setStatus("Génération du PDF…");try{var pdf=new window.jspdf.jsPDF({orientation:"portrait",unit:"mm",format:"a4"}),m=15,y=18,w=180,pageH=297;function space(h){if(y+h>pageH-m){pdf.addPage();y=18;}}function line(label,value){pdf.setFontSize(10);pdf.setFont("helvetica","bold");pdf.text(label+" :",m,y);pdf.setFont("helvetica","normal");var lines=pdf.splitTextToSize(text(value)||"—",130);pdf.text(lines,60,y);y+=Math.max(6,lines.length*5);}function block(title,value){space(18);pdf.setFont("helvetica","bold");pdf.setFontSize(13);pdf.text(title,m,y);y+=7;pdf.setFont("helvetica","normal");pdf.setFontSize(10);var lines=pdf.splitTextToSize(text(value)||"—",w);lines.forEach(function(l){space(7);pdf.text(l,m,y);y+=5;});y+=4;}pdf.setFont("helvetica","bold");pdf.setFontSize(20);pdf.text("Dossier disciplinaire",m,y);y+=10;[["Agent",r.agent],["Date des faits",r.date],["Site",r.site],["Niveau",r.niveau],["Statut",r.statut],["Motif",r.motif],["Témoins",r.temoins],["Responsable",r.responsable]].forEach(function(v){line(v[0],v[1]);});block("Description factuelle",r.description);block("Suite donnée / prochaine action",r.suite);var photos=(r.photos||[]).filter(function(p){return p&&p.url;});if(photos.length){space(12);pdf.setFont("helvetica","bold");pdf.setFontSize(13);pdf.text("Photos / éléments visuels",m,y);y+=7;for(var i=0;i<photos.length;i++){space(65);try{var image=await imageForPdf(photos[i]),ratio=Math.min(w/image.width,55/image.height),iw=image.width*ratio,ih=image.height*ratio;pdf.addImage(image.data,"JPEG",m+(w-iw)/2,y,iw,ih,undefined,"FAST");y+=ih+5;}catch(e){pdf.setFontSize(9);pdf.text("Photo "+(i+1)+" indisponible",m,y);y+=7;}}}pdf.save("dossier_disciplinaire_"+safeFileName(r.agent||"agent")+"_"+(r.date||today())+".pdf");setStatus("PDF généré","ok");}catch(error){console.error(error);setStatus("Erreur PDF","warning");alert("Impossible de générer le PDF.");}}
   function exportJSON(){var blob=new Blob([JSON.stringify({exportedAt:nowIso(),records:records},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="discipline_"+today()+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}
 
-  $("photos").addEventListener("change",function(event){var files=Array.from(event.target.files||[]),available=MAX_PHOTOS-existingPhotos.length-pendingPhotos.length;if(available<=0){alert("Maximum "+MAX_PHOTOS+" photos par dossier.");event.target.value="";return;}files.slice(0,available).forEach(function(file){if(text(file.type).indexOf("image/")!==0){alert(file.name+" n’est pas une image.");return;}if(file.size>MAX_PHOTO_SIZE){alert(file.name+" dépasse 12 Mo.");return;}pendingPhotos.push({file:file,previewUrl:URL.createObjectURL(file)});});event.target.value="";renderPhotoPreview();});
+  $("photos").addEventListener("change",function(event){var files=Array.from(event.target.files||[]),available=MAX_PHOTOS-existingPhotos.length-pendingPhotos.length;if(available<=0){alert("Maximum "+MAX_PHOTOS+" photos par dossier.");event.target.value="";return;}files.slice(0,available).forEach(function(file){if(text(file.type).indexOf("image/")!==0){alert(file.name+" n’est pas une image.");return;}if(file.size>MAX_PHOTO_SIZE){alert(file.name+" dépasse 20 Mo.");return;}pendingPhotos.push({file:file,previewUrl:URL.createObjectURL(file)});});event.target.value="";renderPhotoPreview();});
 
   $("recordForm").addEventListener("submit",async function(event){
-    event.preventDefault();showNotice("");if(!currentUser){alert("La session a expiré. Reconnecte-toi.");return;}var data={};["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(function(field){data[field]=$(field).value.trim();});if(!data.agent||!data.date||!data.motif||!data.description){alert("Agent, date, motif et description sont obligatoires.");return;}
-    var id=editingId||newId(),old=records.find(function(r){return r.id===id;}),removed=removedPhotoPaths.slice();$("saveBtn").disabled=true;$("submitLabel").textContent="Enregistrement…";setStatus("Enregistrement…");var uploaded=[];
-    if(pendingPhotos.length){try{uploaded=await uploadPhotos(id);}catch(photoError){console.warn(photoError);showNotice("Les nouvelles photos n’ont pas pu être envoyées, mais le dossier sera quand même enregistré.","warning");uploaded=[];}}
-    var record=Object.assign({},old||{},data,{id:id,photos:existingPhotos.concat(uploaded),createdAt:(old&&old.createdAt)||nowIso(),createdBy:(old&&old.createdBy)||currentUser.uid,updatedAt:nowIso(),updatedBy:currentUser.uid}),next=records.filter(function(r){return r.id!==id;});next.push(record);
-    try{var result=await saveAll(next);if(result.synced){deletePhotoFiles(removed);setStatus("Dossier enregistré et synchronisé","ok");showNotice("Dossier enregistré.","success");}else{setStatus("Dossier enregistré • synchronisation en attente","warning");showNotice("Dossier enregistré sur cet appareil. La synchronisation Firebase se fera automatiquement dès que possible.","warning");}resetForm();render();}
-    catch(error){console.error(error);records=next;savePending(next);saveCache(next);setStatus("Dossier enregistré • synchronisation en attente","warning");showNotice("Dossier enregistré sur cet appareil. La synchronisation Firebase se fera automatiquement.","warning");resetForm();render();}
+    event.preventDefault();showNotice("");if(!currentUser){alert("La session a expiré. Reconnecte-toi.");return;}
+    var data={};["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(function(field){data[field]=$(field).value.trim();});if(!data.agent||!data.date||!data.motif||!data.description){alert("Agent, date, motif et description sont obligatoires.");return;}
+    var id=editingId||newId(),old=records.find(function(r){return r.id===id;}),removed=removedPhotoPaths.slice(),photoItems=pendingPhotos.slice(),basePhotos=existingPhotos.slice();
+    $("saveBtn").disabled=true;$("submitLabel").textContent="Enregistrement du dossier…";setStatus("Enregistrement du dossier…");
+    var record=Object.assign({},old||{},data,{id:id,photos:basePhotos,createdAt:(old&&old.createdAt)||nowIso(),createdBy:(old&&old.createdBy)||currentUser.uid,updatedAt:nowIso(),updatedBy:currentUser.uid}),baseNext=records.filter(function(r){return r.id!==id;});baseNext.push(record);
+    var baseResult;
+    try{baseResult=await saveAll(baseNext);}catch(error){console.warn(error);baseResult={synced:false};}
+    if(baseResult.synced){setStatus("Dossier enregistré • préparation des photos","ok");showNotice(photoItems.length?"Dossier enregistré. Envoi des photos en cours…":"Dossier enregistré.","success");}
+    else{setStatus("Dossier enregistré sur cet appareil","warning");showNotice(photoItems.length?"Dossier enregistré sur cet appareil. Envoi des photos en cours…":"Dossier enregistré sur cet appareil. Synchronisation en attente.","warning");}
+
+    if(photoItems.length){
+      $("submitLabel").textContent="Envoi des photos…";
+      var photoResult=await uploadPhotosFast(id,photoItems);
+      if(photoResult.uploaded.length){
+        var finalRecord=Object.assign({},record,{photos:basePhotos.concat(photoResult.uploaded),updatedAt:nowIso(),updatedBy:currentUser.uid}),finalNext=records.filter(function(r){return r.id!==id;});finalNext.push(finalRecord);
+        var finalResult=await saveAll(finalNext);
+        if(finalResult.synced&&photoResult.failed===0){setStatus("Dossier et photos synchronisés","ok");showNotice("Dossier enregistré avec "+photoResult.uploaded.length+" photo"+(photoResult.uploaded.length>1?"s":"")+".","success");}
+        else if(photoResult.failed){setStatus("Dossier enregistré • certaines photos non envoyées","warning");showNotice(photoResult.uploaded.length+" photo"+(photoResult.uploaded.length>1?"s":"")+" enregistrée"+(photoResult.uploaded.length>1?"s":"")+". "+photoResult.failed+" photo"+(photoResult.failed>1?"s":"")+" n’a pas pu être envoyée. Tu peux la rajouter en modifiant le dossier.","warning");}
+        else{setStatus("Dossier enregistré • synchronisation en attente","warning");showNotice("Les photos sont prêtes. La synchronisation Firebase se terminera automatiquement.","warning");}
+      }else{setStatus("Dossier enregistré • photo non envoyée","warning");showNotice("Le dossier est bien enregistré, mais la photo n’a pas pu être envoyée dans le délai prévu. Modifie le dossier et réessaie d’ajouter la photo.","warning");}
+    }
+    deletePhotoFiles(removed);resetForm();render();
   });
 
   $("cancelEditBtn").addEventListener("click",resetForm);["search","statusFilter","levelFilter"].forEach(function(id){$(id).addEventListener(id==="search"?"input":"change",render);});$("exportBtn").addEventListener("click",exportJSON);$("syncBtn").addEventListener("click",refreshCloud);$("logoutBtn").addEventListener("click",function(){auth.signOut();});
