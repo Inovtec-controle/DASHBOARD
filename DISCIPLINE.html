@@ -12,6 +12,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script src="firebase-config.js"></script>
   <style>
     .level{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}
@@ -19,6 +20,15 @@
     .level.avertissement{background:#fef3c7;color:#92400e}
     .level.mise-en-demeure{background:#fee2e2;color:#b91c1c}
     .level.licenciement{background:#7f1d1d;color:#fff}
+    .photo-field{margin-top:12px}
+    .photo-picker{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .photo-picker input[type="file"]{max-width:100%}
+    .photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+    .photo-item{position:relative;border:1px solid #d1d5db;border-radius:10px;padding:6px;background:#fff;overflow:hidden}
+    .photo-item img{display:block;width:100%;height:120px;object-fit:cover;border-radius:7px;background:#f3f4f6}
+    .photo-name{margin-top:6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#4b5563}
+    .photo-remove{position:absolute;top:10px;right:10px;border:0;border-radius:999px;width:28px;height:28px;background:rgba(127,29,29,.92);color:#fff;font-weight:800;cursor:pointer}
+    .photo-count{display:inline-flex;min-width:24px;justify-content:center;padding:3px 7px;border-radius:999px;background:#ecfdf5;color:#166534;font-size:11px;font-weight:800}
   </style>
 </head>
 <body>
@@ -70,7 +80,15 @@
             <div class="field"><label for="description">Description factuelle *</label><textarea id="description" required maxlength="4000" placeholder="Décrire les faits, les dates, les échanges et les éléments vérifiables."></textarea></div>
             <div class="field"><label for="suite">Suite donnée / prochaine action</label><textarea id="suite" maxlength="2000" placeholder="Entretien, courrier, délai de réponse, action corrective…"></textarea></div>
           </div>
-          <button class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Enregistrer</span></button>
+          <div class="field photo-field">
+            <label for="photos">Photos / éléments visuels</label>
+            <div class="photo-picker">
+              <input id="photos" type="file" accept="image/*" multiple>
+              <span id="photoHelp" class="muted">Jusqu’à 10 photos, 12 Mo maximum par photo.</span>
+            </div>
+            <div id="photoPreview" class="photo-grid"></div>
+          </div>
+          <button id="saveBtn" class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Enregistrer</span></button>
         </form>
       </section>
 
@@ -96,12 +114,18 @@
   if(!firebase.apps.length) firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
   const auth=firebase.auth();
   const db=firebase.firestore();
+  const storage=firebase.storage();
   const LOCAL_KEY="inovtec_discipline_v2";
+  const MAX_PHOTOS=10;
+  const MAX_PHOTO_SIZE=12*1024*1024;
   let records=[];
   let currentUser=null;
   let unsubscribe=null;
   let editingId=null;
   let syncing=false;
+  let existingPhotos=[];
+  let pendingPhotos=[];
+  let removedPhotoPaths=[];
   const $=id=>document.getElementById(id);
 
   function uid(){return "disc_"+Date.now()+"_"+Math.random().toString(16).slice(2);}
@@ -111,13 +135,15 @@
   function saveLocal(){localStorage.setItem(LOCAL_KEY,JSON.stringify(records));}
   async function saveCloud(){
     saveLocal();render();
-    if(!currentUser||syncing)return;
+    if(!currentUser||syncing)return false;
     setSync("Enregistrement…");
     try{
       await db.collection("discipline").doc(currentUser.uid).set({records,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
       setSync("Synchronisé","ok");
+      return true;
     }catch(error){
       console.error(error);setSync("Sauvegarde locale seulement","warning");
+      return false;
     }
   }
   function startRealtime(){
@@ -136,27 +162,79 @@
     if(level==="Mise en demeure")return"mise-en-demeure";
     return"licenciement";
   }
+  function safeFileName(name){
+    const clean=String(name||"photo").replace(/[\\/:*?"<>|]+/g,"_").replace(/\s+/g,"_");
+    return clean.slice(-120)||"photo";
+  }
+  function clearPhotoState(){
+    pendingPhotos.forEach(p=>{if(p.previewUrl)URL.revokeObjectURL(p.previewUrl);});
+    existingPhotos=[];pendingPhotos=[];removedPhotoPaths=[];
+    if($("photos"))$("photos").value="";
+    renderPhotoPreview();
+  }
+  function renderPhotoPreview(){
+    const wrap=$("photoPreview");if(!wrap)return;wrap.innerHTML="";
+    const total=existingPhotos.length+pendingPhotos.length;
+    $("photoHelp").textContent=`${total}/${MAX_PHOTOS} photo${total>1?"s":""} — 12 Mo maximum par photo.`;
+    existingPhotos.forEach((photo,index)=>{
+      const card=document.createElement("div");card.className="photo-item";
+      const img=document.createElement("img");img.src=photo.url||"";img.alt=photo.name||`Photo ${index+1}`;img.loading="lazy";
+      const name=document.createElement("div");name.className="photo-name";name.textContent=photo.name||`Photo ${index+1}`;
+      const remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.title="Retirer cette photo";remove.setAttribute("aria-label","Retirer cette photo");remove.textContent="×";
+      remove.addEventListener("click",()=>{const [removed]=existingPhotos.splice(index,1);if(removed?.path)removedPhotoPaths.push(removed.path);renderPhotoPreview();});
+      card.append(img,remove,name);wrap.appendChild(card);
+    });
+    pendingPhotos.forEach((photo,index)=>{
+      const card=document.createElement("div");card.className="photo-item";
+      const img=document.createElement("img");img.src=photo.previewUrl;img.alt=photo.file.name||`Nouvelle photo ${index+1}`;
+      const name=document.createElement("div");name.className="photo-name";name.textContent=photo.file.name||`Nouvelle photo ${index+1}`;
+      const remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.title="Retirer cette photo";remove.setAttribute("aria-label","Retirer cette photo");remove.textContent="×";
+      remove.addEventListener("click",()=>{const [removed]=pendingPhotos.splice(index,1);if(removed?.previewUrl)URL.revokeObjectURL(removed.previewUrl);renderPhotoPreview();});
+      card.append(img,remove,name);wrap.appendChild(card);
+    });
+  }
   function resetForm(){
-    editingId=null;$("recordForm").reset();$("date").value=today();$("niveau").value="Observation";$("statut").value="Ouvert";
-    $("formTitle").textContent="Nouveau dossier";$("submitLabel").textContent="Enregistrer";$("cancelEditBtn").classList.add("hidden");
+    editingId=null;$("recordForm").reset();clearPhotoState();$("date").value=today();$("niveau").value="Observation";$("statut").value="Ouvert";
+    $("formTitle").textContent="Nouveau dossier";$("submitLabel").textContent="Enregistrer";$("cancelEditBtn").classList.add("hidden");$("saveBtn").disabled=false;
   }
   function editRecord(id){
     const r=records.find(x=>x.id===id);if(!r)return;
-    editingId=id;
+    clearPhotoState();editingId=id;
     ["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(field=>$(field).value=r[field]||"");
+    existingPhotos=Array.isArray(r.photos)?r.photos.map(p=>({...p})):[];renderPhotoPreview();
     $("formTitle").textContent="Modifier le dossier";$("submitLabel").textContent="Enregistrer les modifications";$("cancelEditBtn").classList.remove("hidden");
     window.scrollTo({top:0,behavior:"smooth"});
   }
-  function deleteRecord(id){
-    const r=records.find(x=>x.id===id);if(!r||!confirm(`Supprimer définitivement le dossier de ${r.agent} ?`))return;
-    records=records.filter(x=>x.id!==id);if(editingId===id)resetForm();saveCloud();
+  async function deleteStoredPhotos(paths){
+    const unique=[...new Set((paths||[]).filter(Boolean))];
+    if(!unique.length)return;
+    await Promise.allSettled(unique.map(path=>storage.ref().child(path).delete()));
   }
-  function printRecord(id){
+  async function deleteRecord(id){
+    const r=records.find(x=>x.id===id);if(!r||!confirm(`Supprimer définitivement le dossier de ${r.agent} ?`))return;
+    const paths=(Array.isArray(r.photos)?r.photos:[]).map(p=>p.path).filter(Boolean);
+    records=records.filter(x=>x.id!==id);if(editingId===id)resetForm();
+    const saved=await saveCloud();if(saved)await deleteStoredPhotos(paths);
+  }
+  async function uploadPendingPhotos(recordId){
+    const uploaded=[];
+    for(let i=0;i<pendingPhotos.length;i++){
+      const file=pendingPhotos[i].file;
+      setSync(`Envoi des photos ${i+1}/${pendingPhotos.length}…`);
+      const path=`discipline/${currentUser.uid}/${recordId}/${Date.now()}_${Math.random().toString(16).slice(2)}_${safeFileName(file.name)}`;
+      const ref=storage.ref().child(path);
+      const snap=await ref.put(file,{contentType:file.type||"application/octet-stream",customMetadata:{recordId}});
+      const url=await snap.ref.getDownloadURL();
+      uploaded.push({name:file.name||"Photo",type:file.type||"",size:file.size||0,path,url,uploadedAt:new Date().toISOString()});
+    }
+    return uploaded;
+  }
+  async function printRecord(id){
     const r=records.find(x=>x.id===id);if(!r)return;
     const w=window.open("","_blank","noopener,noreferrer");if(!w){alert("Autorise les fenêtres surgissantes pour imprimer.");return;}
     const doc=w.document;
     doc.title="Dossier disciplinaire";
-    const style=doc.createElement("style");style.textContent="body{font-family:Arial,sans-serif;padding:28px;color:#111827}h1{color:#166534}p{line-height:1.45}.block{white-space:pre-wrap;border:1px solid #d1d5db;padding:12px;border-radius:8px}";doc.head.appendChild(style);
+    const style=doc.createElement("style");style.textContent="body{font-family:Arial,sans-serif;padding:28px;color:#111827}h1{color:#166534}h2{margin-top:24px}p{line-height:1.45}.block{white-space:pre-wrap;border:1px solid #d1d5db;padding:12px;border-radius:8px}.photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.photo-card{border:1px solid #d1d5db;border-radius:8px;padding:8px;break-inside:avoid}.photo-card img{display:block;width:100%;max-height:430px;object-fit:contain}.caption{font-size:11px;color:#4b5563;margin-top:6px;word-break:break-word}@media(max-width:700px){.photos{grid-template-columns:1fr}}@media print{body{padding:0}.photo-card{page-break-inside:avoid;break-inside:avoid}}";doc.head.appendChild(style);
     const h1=doc.createElement("h1");h1.textContent="Dossier disciplinaire";doc.body.appendChild(h1);
     [["Agent",r.agent],["Date des faits",r.date],["Site",r.site],["Niveau",r.niveau],["Statut",r.statut],["Motif",r.motif],["Témoins",r.temoins],["Responsable",r.responsable]].forEach(([label,value])=>{
       const p=doc.createElement("p");const b=doc.createElement("b");b.textContent=label+" : ";p.append(b,doc.createTextNode(value||"—"));doc.body.appendChild(p);
@@ -164,7 +242,23 @@
     [["Description factuelle",r.description],["Suite donnée / prochaine action",r.suite]].forEach(([label,value])=>{
       const h=doc.createElement("h2");h.textContent=label;const block=doc.createElement("div");block.className="block";block.textContent=value||"—";doc.body.append(h,block);
     });
-    w.focus();setTimeout(()=>w.print(),200);
+    const photos=Array.isArray(r.photos)?r.photos.filter(p=>p&&p.url):[];
+    const waits=[];
+    if(photos.length){
+      const h=doc.createElement("h2");h.textContent=`Photos / éléments visuels (${photos.length})`;doc.body.appendChild(h);
+      const grid=doc.createElement("div");grid.className="photos";
+      photos.forEach((photo,index)=>{
+        const card=doc.createElement("div");card.className="photo-card";
+        const img=doc.createElement("img");img.src=photo.url;img.alt=photo.name||`Photo ${index+1}`;
+        waits.push(new Promise(resolve=>{img.addEventListener("load",resolve,{once:true});img.addEventListener("error",resolve,{once:true});}));
+        const caption=doc.createElement("div");caption.className="caption";caption.textContent=photo.name||`Photo ${index+1}`;
+        card.append(img,caption);grid.appendChild(card);
+      });
+      doc.body.appendChild(grid);
+    }
+    w.focus();
+    await Promise.race([Promise.all(waits),new Promise(resolve=>setTimeout(resolve,5000))]);
+    setTimeout(()=>w.print(),150);
   }
   function filtered(){
     const q=$("search").value.trim().toLowerCase(),status=$("statusFilter").value,level=$("levelFilter").value;
@@ -182,7 +276,7 @@
     if(!list.length){const empty=document.createElement("div");empty.className="empty";empty.textContent="Aucun dossier.";wrap.appendChild(empty);return;}
     const table=document.createElement("table");
     const thead=document.createElement("thead"),trh=document.createElement("tr");
-    ["Date","Agent","Site","Niveau","Statut","Motif","Actions"].forEach(text=>{const th=document.createElement("th");th.textContent=text;trh.appendChild(th);});
+    ["Date","Agent","Site","Niveau","Statut","Motif","Photos","Actions"].forEach(text=>{const th=document.createElement("th");th.textContent=text;trh.appendChild(th);});
     thead.appendChild(trh);table.appendChild(thead);
     const tbody=document.createElement("tbody");
     list.forEach(r=>{
@@ -191,6 +285,7 @@
       const levelTd=document.createElement("td"),level=document.createElement("span");level.className="level "+slugLevel(r.niveau);level.textContent=r.niveau||"—";levelTd.appendChild(level);tr.appendChild(levelTd);
       const statusTd=document.createElement("td");statusTd.textContent=r.statut||"—";tr.appendChild(statusTd);
       const motifTd=document.createElement("td");motifTd.textContent=r.motif||"—";tr.appendChild(motifTd);
+      const photosTd=document.createElement("td"),photoCount=document.createElement("span");photoCount.className="photo-count";photoCount.textContent=String(Array.isArray(r.photos)?r.photos.length:0);photosTd.appendChild(photoCount);tr.appendChild(photosTd);
       const actionTd=document.createElement("td"),actions=document.createElement("div");actions.className="actions";
       actions.append(button("Imprimer",()=>printRecord(r.id)),button("Modifier",()=>editRecord(r.id)),button("Supprimer",()=>deleteRecord(r.id),"btn-danger"));
       actionTd.appendChild(actions);tr.appendChild(actionTd);tbody.appendChild(tr);
@@ -202,15 +297,39 @@
     const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`discipline_${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
   }
 
-  $("recordForm").addEventListener("submit",e=>{
+  $("photos").addEventListener("change",e=>{
+    const files=Array.from(e.target.files||[]);
+    const available=MAX_PHOTOS-existingPhotos.length-pendingPhotos.length;
+    if(available<=0){alert(`Maximum ${MAX_PHOTOS} photos par dossier.`);e.target.value="";return;}
+    let added=0;
+    files.slice(0,available).forEach(file=>{
+      if(!String(file.type||"").startsWith("image/")){alert(`${file.name} n’est pas une image.`);return;}
+      if(file.size>MAX_PHOTO_SIZE){alert(`${file.name} dépasse 12 Mo.`);return;}
+      pendingPhotos.push({file,previewUrl:URL.createObjectURL(file)});added++;
+    });
+    if(files.length>available)alert(`Seules ${available} photo${available>1?"s":""} peuvent encore être ajoutées.`);
+    e.target.value="";if(added)renderPhotoPreview();
+  });
+  $("recordForm").addEventListener("submit",async e=>{
     e.preventDefault();
     const data={};
     ["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(field=>data[field]=$(field).value.trim());
     if(!data.agent||!data.date||!data.motif||!data.description){alert("Agent, date, motif et description sont obligatoires.");return;}
-    if(editingId){
-      const r=records.find(x=>x.id===editingId);if(r)Object.assign(r,data,{updatedAt:new Date().toISOString(),updatedBy:currentUser?.uid||""});
-    }else records.push({id:uid(),...data,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdBy:currentUser?.uid||""});
-    resetForm();saveCloud();
+    const recordId=editingId||uid();
+    const removedPaths=[...removedPhotoPaths];
+    $("saveBtn").disabled=true;$("submitLabel").textContent=pendingPhotos.length?"Envoi des photos…":"Enregistrement…";
+    try{
+      const uploaded=await uploadPendingPhotos(recordId);
+      data.photos=[...existingPhotos,...uploaded];
+      if(editingId){
+        const r=records.find(x=>x.id===editingId);if(r)Object.assign(r,data,{updatedAt:new Date().toISOString(),updatedBy:currentUser?.uid||""});
+      }else records.push({id:recordId,...data,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdBy:currentUser?.uid||""});
+      const saved=await saveCloud();
+      if(saved&&removedPaths.length)await deleteStoredPhotos(removedPaths);
+      resetForm();
+    }catch(error){
+      console.error(error);setSync("Erreur d’envoi des photos","warning");alert("Impossible d’enregistrer les photos. Vérifie l’accès Firebase Storage puis réessaie.");$("saveBtn").disabled=false;$("submitLabel").textContent=editingId?"Enregistrer les modifications":"Enregistrer";
+    }
   });
   $("cancelEditBtn").addEventListener("click",resetForm);
   ["search","statusFilter","levelFilter"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",render));
