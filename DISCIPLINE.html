@@ -13,6 +13,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="firebase-config.js"></script>
   <style>
     .level{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}
@@ -122,7 +123,6 @@
   let currentUser=null;
   let unsubscribe=null;
   let editingId=null;
-  let syncing=false;
   let existingPhotos=[];
   let pendingPhotos=[];
   let removedPhotoPaths=[];
@@ -131,30 +131,68 @@
   function uid(){return "disc_"+Date.now()+"_"+Math.random().toString(16).slice(2);}
   function today(){return new Date().toISOString().slice(0,10);}
   function setSync(text,type=""){$("syncStatus").textContent=text;$("syncStatus").className="status"+(type?" "+type:"");}
-  function loadLocal(){try{const raw=localStorage.getItem(LOCAL_KEY);records=raw?JSON.parse(raw):[];if(!Array.isArray(records))records=[];}catch{records=[];}}
+  function readLocalRecords(){
+    try{
+      const raw=localStorage.getItem(LOCAL_KEY),parsed=raw?JSON.parse(raw):[];
+      return Array.isArray(parsed)?parsed:[];
+    }catch{return [];}
+  }
+  function loadLocal(){records=readLocalRecords();}
   function saveLocal(){localStorage.setItem(LOCAL_KEY,JSON.stringify(records));}
+  function recordStamp(record){return String(record?.updatedAt||record?.createdAt||record?.date||"");}
+  function mergeRecords(...lists){
+    const merged=new Map();
+    lists.flat().filter(Boolean).forEach(record=>{
+      if(!record||!record.id)return;
+      const current=merged.get(record.id);
+      if(!current||recordStamp(record)>=recordStamp(current))merged.set(record.id,{...record});
+    });
+    return [...merged.values()];
+  }
+  function sameRecords(a,b){
+    const clean=list=>[...list].sort((x,y)=>String(x.id).localeCompare(String(y.id))).map(item=>JSON.stringify(item));
+    return JSON.stringify(clean(a))===JSON.stringify(clean(b));
+  }
+  function disciplineRef(){return db.collection("discipline").doc(currentUser.uid);}
   async function saveCloud(){
     saveLocal();render();
-    if(!currentUser||syncing)return false;
+    if(!currentUser)return false;
     setSync("Enregistrement…");
     try{
-      await db.collection("discipline").doc(currentUser.uid).set({records,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      await disciplineRef().set({records,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
       setSync("Synchronisé","ok");
       return true;
     }catch(error){
-      console.error(error);setSync("Sauvegarde locale seulement","warning");
+      console.error(error);setSync("Sauvegarde locale — synchronisation en attente","warning");
       return false;
     }
   }
-  function startRealtime(){
+  async function startRealtime(){
     if(unsubscribe){unsubscribe();unsubscribe=null;}
-    setSync("Synchronisation…");
-    unsubscribe=db.collection("discipline").doc(currentUser.uid).onSnapshot(snap=>{
-      syncing=true;
-      if(snap.exists&&Array.isArray(snap.data().records)){records=snap.data().records;saveLocal();}
-      else{loadLocal();if(records.length)saveCloud();}
-      render();setSync("Synchronisé","ok");setTimeout(()=>syncing=false,0);
-    },error=>{console.error(error);loadLocal();render();setSync("Mode local","warning");});
+    setSync("Récupération des dossiers…");
+    try{
+      const local=mergeRecords(records,readLocalRecords());
+      const snap=await disciplineRef().get();
+      const cloud=snap.exists&&Array.isArray(snap.data().records)?snap.data().records:[];
+      const merged=mergeRecords(cloud,local);
+      records=merged;saveLocal();render();
+      if(!sameRecords(cloud,merged)){
+        setSync("Import des anciens dossiers…");
+        await disciplineRef().set({records:merged,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      }
+      setSync("Synchronisé","ok");
+    }catch(error){
+      console.error(error);loadLocal();render();setSync("Mode local — connexion Firebase indisponible","warning");
+    }
+    unsubscribe=disciplineRef().onSnapshot(snap=>{
+      if(!snap.exists||!Array.isArray(snap.data().records))return;
+      const cloud=snap.data().records;
+      if(!sameRecords(records,cloud)){
+        records=cloud;saveLocal();render();
+        if(editingId&&!records.some(r=>r.id===editingId))resetForm();
+      }
+      setSync("Synchronisé","ok");
+    },error=>{console.error(error);setSync("Mode local — synchronisation interrompue","warning");});
   }
   function slugLevel(level){
     if(level==="Observation")return"observation";
@@ -229,36 +267,82 @@
     }
     return uploaded;
   }
-  async function printRecord(id){
+  function loadImage(src){
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>resolve(img);img.onerror=()=>reject(new Error("Image inaccessible"));img.src=src;
+    });
+  }
+  async function photoForPdf(photo){
+    const response=await fetch(photo.url);
+    if(!response.ok)throw new Error("Téléchargement de la photo impossible");
+    const blob=await response.blob();
+    const objectUrl=URL.createObjectURL(blob);
+    try{
+      const img=await loadImage(objectUrl);
+      const max=1600,ratio=Math.min(1,max/Math.max(img.naturalWidth||1,img.naturalHeight||1));
+      const canvas=document.createElement("canvas");
+      canvas.width=Math.max(1,Math.round((img.naturalWidth||1)*ratio));canvas.height=Math.max(1,Math.round((img.naturalHeight||1)*ratio));
+      const ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      return {data:canvas.toDataURL("image/jpeg",0.86),width:canvas.width,height:canvas.height};
+    }finally{URL.revokeObjectURL(objectUrl);}
+  }
+  async function generatePdf(id){
     const r=records.find(x=>x.id===id);if(!r)return;
-    const w=window.open("","_blank","noopener,noreferrer");if(!w){alert("Autorise les fenêtres surgissantes pour imprimer.");return;}
-    const doc=w.document;
-    doc.title="Dossier disciplinaire";
-    const style=doc.createElement("style");style.textContent="body{font-family:Arial,sans-serif;padding:28px;color:#111827}h1{color:#166534}h2{margin-top:24px}p{line-height:1.45}.block{white-space:pre-wrap;border:1px solid #d1d5db;padding:12px;border-radius:8px}.photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.photo-card{border:1px solid #d1d5db;border-radius:8px;padding:8px;break-inside:avoid}.photo-card img{display:block;width:100%;max-height:430px;object-fit:contain}.caption{font-size:11px;color:#4b5563;margin-top:6px;word-break:break-word}@media(max-width:700px){.photos{grid-template-columns:1fr}}@media print{body{padding:0}.photo-card{page-break-inside:avoid;break-inside:avoid}}";doc.head.appendChild(style);
-    const h1=doc.createElement("h1");h1.textContent="Dossier disciplinaire";doc.body.appendChild(h1);
-    [["Agent",r.agent],["Date des faits",r.date],["Site",r.site],["Niveau",r.niveau],["Statut",r.statut],["Motif",r.motif],["Témoins",r.temoins],["Responsable",r.responsable]].forEach(([label,value])=>{
-      const p=doc.createElement("p");const b=doc.createElement("b");b.textContent=label+" : ";p.append(b,doc.createTextNode(value||"—"));doc.body.appendChild(p);
-    });
-    [["Description factuelle",r.description],["Suite donnée / prochaine action",r.suite]].forEach(([label,value])=>{
-      const h=doc.createElement("h2");h.textContent=label;const block=doc.createElement("div");block.className="block";block.textContent=value||"—";doc.body.append(h,block);
-    });
-    const photos=Array.isArray(r.photos)?r.photos.filter(p=>p&&p.url):[];
-    const waits=[];
-    if(photos.length){
-      const h=doc.createElement("h2");h.textContent=`Photos / éléments visuels (${photos.length})`;doc.body.appendChild(h);
-      const grid=doc.createElement("div");grid.className="photos";
-      photos.forEach((photo,index)=>{
-        const card=doc.createElement("div");card.className="photo-card";
-        const img=doc.createElement("img");img.src=photo.url;img.alt=photo.name||`Photo ${index+1}`;
-        waits.push(new Promise(resolve=>{img.addEventListener("load",resolve,{once:true});img.addEventListener("error",resolve,{once:true});}));
-        const caption=doc.createElement("div");caption.className="caption";caption.textContent=photo.name||`Photo ${index+1}`;
-        card.append(img,caption);grid.appendChild(card);
-      });
-      doc.body.appendChild(grid);
+    if(!window.jspdf?.jsPDF){alert("Le générateur PDF n’est pas disponible. Recharge la page puis réessaie.");return;}
+    setSync("Génération du PDF…");
+    try{
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+      const margin=15,pageWidth=210,pageHeight=297,contentWidth=pageWidth-margin*2;
+      let y=18;
+      const ensureSpace=needed=>{if(y+needed>pageHeight-margin){pdf.addPage();y=18;}};
+      const addTitle=text=>{ensureSpace(12);pdf.setFont("helvetica","bold");pdf.setFontSize(13);pdf.setTextColor(22,101,52);pdf.text(text,margin,y);pdf.setTextColor(17,24,39);y+=7;};
+      const addField=(label,value)=>{
+        const safe=String(value||"—");
+        pdf.setFontSize(10);pdf.setFont("helvetica","bold");
+        const labelWidth=pdf.getTextWidth(label+" : ")+2;
+        const lines=pdf.splitTextToSize(safe,Math.max(30,contentWidth-labelWidth));
+        ensureSpace(Math.max(6,lines.length*5));
+        pdf.text(label+" :",margin,y);pdf.setFont("helvetica","normal");pdf.text(lines,margin+labelWidth,y);y+=Math.max(6,lines.length*5);
+      };
+      const addBlock=(title,value)=>{
+        addTitle(title);
+        pdf.setFont("helvetica","normal");pdf.setFontSize(10);
+        const lines=pdf.splitTextToSize(String(value||"—"),contentWidth-6);
+        const height=Math.max(14,lines.length*5+7);ensureSpace(height+2);
+        pdf.setDrawColor(209,213,219);pdf.roundedRect(margin,y-2,contentWidth,height,2,2);
+        pdf.text(lines,margin+3,y+3);y+=height+5;
+      };
+
+      pdf.setFont("helvetica","bold");pdf.setFontSize(20);pdf.setTextColor(22,101,52);pdf.text("Dossier disciplinaire",margin,y);y+=10;pdf.setTextColor(17,24,39);
+      [["Agent",r.agent],["Date des faits",r.date],["Site",r.site],["Niveau",r.niveau],["Statut",r.statut],["Motif",r.motif],["Témoins",r.temoins],["Responsable",r.responsable]].forEach(([label,value])=>addField(label,value));
+      y+=2;addBlock("Description factuelle",r.description);addBlock("Suite donnée / prochaine action",r.suite);
+
+      const photos=Array.isArray(r.photos)?r.photos.filter(p=>p&&p.url):[];
+      if(photos.length){
+        addTitle(`Photos / éléments visuels (${photos.length})`);
+        for(let index=0;index<photos.length;index++){
+          const photo=photos[index];ensureSpace(68);
+          try{
+            const image=await photoForPdf(photo);
+            const maxW=contentWidth,maxH=58,ratio=Math.min(maxW/image.width,maxH/image.height);
+            const w=image.width*ratio,h=image.height*ratio,x=margin+(contentWidth-w)/2;
+            pdf.addImage(image.data,"JPEG",x,y,w,h,undefined,"FAST");y+=h+4;
+            pdf.setFontSize(8);pdf.setFont("helvetica","normal");pdf.setTextColor(75,85,99);
+            const caption=pdf.splitTextToSize(photo.name||`Photo ${index+1}`,contentWidth);
+            pdf.text(caption,margin,y);pdf.setTextColor(17,24,39);y+=Math.max(6,caption.length*4+3);
+          }catch(error){
+            console.error(error);pdf.setFontSize(9);pdf.setTextColor(185,28,28);pdf.text(`Photo ${index+1} non disponible dans le PDF`,margin,y);pdf.setTextColor(17,24,39);y+=7;
+          }
+        }
+      }
+      const name=safeFileName(r.agent||"agent").replace(/\.[^.]+$/g,"");
+      pdf.save(`dossier_disciplinaire_${name}_${r.date||today()}.pdf`);
+      setSync("PDF généré — synchronisé","ok");
+    }catch(error){
+      console.error(error);setSync("Erreur de génération PDF","warning");alert("Impossible de générer le PDF. Recharge la page puis réessaie.");
     }
-    w.focus();
-    await Promise.race([Promise.all(waits),new Promise(resolve=>setTimeout(resolve,5000))]);
-    setTimeout(()=>w.print(),150);
   }
   function filtered(){
     const q=$("search").value.trim().toLowerCase(),status=$("statusFilter").value,level=$("levelFilter").value;
@@ -287,7 +371,7 @@
       const motifTd=document.createElement("td");motifTd.textContent=r.motif||"—";tr.appendChild(motifTd);
       const photosTd=document.createElement("td"),photoCount=document.createElement("span");photoCount.className="photo-count";photoCount.textContent=String(Array.isArray(r.photos)?r.photos.length:0);photosTd.appendChild(photoCount);tr.appendChild(photosTd);
       const actionTd=document.createElement("td"),actions=document.createElement("div");actions.className="actions";
-      actions.append(button("Imprimer",()=>printRecord(r.id)),button("Modifier",()=>editRecord(r.id)),button("Supprimer",()=>deleteRecord(r.id),"btn-danger"));
+      actions.append(button("Générer PDF",()=>generatePdf(r.id)),button("Modifier",()=>editRecord(r.id)),button("Supprimer",()=>deleteRecord(r.id),"btn-danger"));
       actionTd.appendChild(actions);tr.appendChild(actionTd);tbody.appendChild(tr);
     });
     table.appendChild(tbody);wrap.appendChild(table);
@@ -340,9 +424,9 @@
     try{await auth.signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value);}
     catch(error){$("loginError").textContent="Connexion impossible : "+(error.message||"vérifie les identifiants.");}
   });
-  auth.onAuthStateChanged(user=>{
+  auth.onAuthStateChanged(async user=>{
     if(user){
-      currentUser=user;$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");loadLocal();render();startRealtime();
+      currentUser=user;$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");loadLocal();render();await startRealtime();
     }else{
       currentUser=null;if(unsubscribe){unsubscribe();unsubscribe=null;}$("app").classList.add("hidden");$("loginScreen").classList.remove("hidden");
     }
