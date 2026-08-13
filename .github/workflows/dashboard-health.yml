@@ -39,6 +39,10 @@ jobs:
             AGENTS.html
             firebase-config.js
             inovtec-common.css
+            inovtec-shell.js
+            inovtec-referential.js
+            inovtec-visual-runtime.js
+            inovtec-page-shell.html
           )
           for file in "${files[@]}"; do
             if [[ ! -s "$file" ]]; then
@@ -54,6 +58,9 @@ jobs:
         run: |
           set -euo pipefail
           node --check firebase-config.js
+          node --check inovtec-shell.js
+          node --check inovtec-referential.js
+          node --check inovtec-visual-runtime.js
           python3 - <<'PY'
           from html.parser import HTMLParser
           from pathlib import Path
@@ -62,7 +69,7 @@ jobs:
           pages = [
               'index.html','INFOCHANTIERS.html','ORGA.html','DISCIPLINE.html',
               'PLANNINGS.html','KONTROL.html','HEURE-SUP.html','TEMPS.html',
-              'SALAIRE.html','AGENTS.html'
+              'SALAIRE.html','AGENTS.html','inovtec-page-shell.html'
           ]
 
           class ScriptParser(HTMLParser):
@@ -150,7 +157,7 @@ jobs:
             echo '::error::Le site public répond mais ne contient pas encore la nouvelle version du dashboard.'
             exit 1
           }
-          for page in INFOCHANTIERS.html ORGA.html DISCIPLINE.html PLANNINGS.html TEMPS.html SALAIRE.html; do
+          for page in INFOCHANTIERS.html ORGA.html DISCIPLINE.html PLANNINGS.html KONTROL-CLOUD.html AGENTS.html HEURE-SUP.html TEMPS.html SALAIRE.html; do
             curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null
           done
           echo 'Site public accessible et version attendue détectée.'
