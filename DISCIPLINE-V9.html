@@ -8,13 +8,14 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Inovtec — Gestion disciplinaire</title>
-  <link rel="stylesheet" href="inovtec-common.css?v=20260813-6">
+  <link rel="stylesheet" href="inovtec-common.css?v=20260813-7">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="firebase-config.js?v=20260813-6"></script>
+  <script src="discipline-pdf-fullpage.js?v=20260813-7"></script>
+  <script src="firebase-config.js?v=20260813-7"></script>
   <style>
     .hidden{display:none!important}.level{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}
     .level.observation{background:#dbeafe;color:#1d4ed8}.level.avertissement{background:#fef3c7;color:#92400e}.level.mise-en-demeure{background:#fee2e2;color:#b91c1c}.level.licenciement{background:#7f1d1d;color:#fff}
@@ -55,6 +56,6 @@
       <section class="card"><div class="section-title"><h2>Historique</h2><span id="count" class="status">0</span></div><div class="grid grid-3" style="margin-bottom:12px"><div class="field"><label for="search">Recherche</label><input id="search" placeholder="Agent, site, motif…"></div><div class="field"><label for="statusFilter">Statut</label><select id="statusFilter"><option value="">Tous</option><option>Ouvert</option><option>En cours</option><option>Clos</option></select></div><div class="field"><label for="levelFilter">Niveau</label><select id="levelFilter"><option value="">Tous</option><option>Observation</option><option>Avertissement</option><option>Mise en demeure</option><option>Procédure de licenciement</option></select></div></div><div id="recordsWrap" class="table-wrap"></div></section>
     </main>
   </div>
-  <script src="discipline-v9.js?v=20260813-6"></script>
+  <script src="discipline-v9.js?v=20260813-7"></script>
 </body>
 </html>
