@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#16a34a">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Inovtec — Gestion disciplinaire</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,6 +53,7 @@
       <div class="topbar-actions">
         <a class="btn btn-secondary" href="index.html">← Accueil</a>
         <span id="syncStatus" class="status">Connexion…</span>
+        <button id="syncBtn" class="btn btn-secondary" type="button">Resynchroniser</button>
         <button id="exportBtn" class="btn btn-secondary" type="button">Exporter JSON</button>
         <button id="logoutBtn" class="btn btn-secondary" type="button">Déconnexion</button>
       </div>
@@ -117,6 +121,8 @@
   const db=firebase.firestore();
   const storage=firebase.storage();
   const LOCAL_KEY="inovtec_discipline_v2";
+  const LEGACY_LOCAL_KEY="discipline";
+  const STORAGE_VERSION=3;
   const MAX_PHOTOS=10;
   const MAX_PHOTO_SIZE=12*1024*1024;
   let records=[];
@@ -130,70 +136,183 @@
 
   function uid(){return "disc_"+Date.now()+"_"+Math.random().toString(16).slice(2);}
   function today(){return new Date().toISOString().slice(0,10);}
+  function nowIso(){return new Date().toISOString();}
   function setSync(text,type=""){$("syncStatus").textContent=text;$("syncStatus").className="status"+(type?" "+type:"");}
-  function readLocalRecords(){
+  function hashString(value){
+    let hash=2166136261;
+    const text=String(value||"");
+    for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
+    return (hash>>>0).toString(16);
+  }
+  function fingerprint(item){
+    return [
+      item?.agent||"",item?.site||"",item?.date||"",item?.motif||item?.reason||"",
+      item?.description||item?.desc||"",item?.responsable||item?.resp||""
+    ].join("|").toLowerCase().trim();
+  }
+  function normalizeRecord(item,index=0){
+    if(!item||typeof item!=="object")return null;
+    const createdAt=item.createdAt||item.updatedAt||nowIso();
+    const normalized={
+      id:item.id||("disc_legacy_"+hashString(fingerprint(item)||JSON.stringify(item)||String(index))),
+      agent:String(item.agent||"").trim(),
+      site:String(item.site||"").trim(),
+      date:String(item.date||"").trim(),
+      niveau:String(item.niveau||item.level||"Observation").trim()||"Observation",
+      statut:String(item.statut||"Ouvert").trim()||"Ouvert",
+      responsable:String(item.responsable||item.resp||"").trim(),
+      motif:String(item.motif||item.reason||"").trim(),
+      temoins:String(item.temoins||item.tem||"").trim(),
+      description:String(item.description||item.desc||"").trim(),
+      suite:String(item.suite||"").trim(),
+      photos:Array.isArray(item.photos)?item.photos.filter(Boolean):[],
+      createdAt,
+      updatedAt:item.updatedAt||createdAt,
+      createdBy:item.createdBy||"",
+      updatedBy:item.updatedBy||""
+    };
+    if(!normalized.agent&&!normalized.motif&&!normalized.description)return null;
+    return normalized;
+  }
+  function parseLocalKey(key){
     try{
-      const raw=localStorage.getItem(LOCAL_KEY),parsed=raw?JSON.parse(raw):[];
-      return Array.isArray(parsed)?parsed:[];
-    }catch{return [];}
+      const raw=localStorage.getItem(key),parsed=raw?JSON.parse(raw):[];
+      if(!Array.isArray(parsed))return [];
+      return parsed.map((item,index)=>normalizeRecord(item,index)).filter(Boolean);
+    }catch(error){console.warn("Lecture locale ignorée",key,error);return [];}
   }
-  function loadLocal(){records=readLocalRecords();}
-  function saveLocal(){localStorage.setItem(LOCAL_KEY,JSON.stringify(records));}
+  function readAllLocalRecords(){return mergeRecords(parseLocalKey(LOCAL_KEY),parseLocalKey(LEGACY_LOCAL_KEY));}
+  function loadLocal(){records=readAllLocalRecords();}
+  function saveLocal(){
+    try{localStorage.setItem(LOCAL_KEY,JSON.stringify(records));}
+    catch(error){console.warn("Sauvegarde locale impossible",error);}
+  }
   function recordStamp(record){return String(record?.updatedAt||record?.createdAt||record?.date||"");}
+  function sameRecord(a,b){return JSON.stringify(a||{})===JSON.stringify(b||{});}
   function mergeRecords(...lists){
-    const merged=new Map();
-    lists.flat().filter(Boolean).forEach(record=>{
-      if(!record||!record.id)return;
-      const current=merged.get(record.id);
-      if(!current||recordStamp(record)>=recordStamp(current))merged.set(record.id,{...record});
+    const mergedById=new Map();
+    const idByFingerprint=new Map();
+    lists.flat().filter(Boolean).forEach((raw,index)=>{
+      const record=normalizeRecord(raw,index);if(!record)return;
+      const fp=fingerprint(record);
+      const equivalentId=fp?idByFingerprint.get(fp):null;
+      const key=equivalentId||record.id;
+      const current=mergedById.get(key);
+      if(!current||recordStamp(record)>=recordStamp(current)){
+        const next={...record,id:key};
+        mergedById.set(key,next);
+        if(fp)idByFingerprint.set(fp,key);
+      }
     });
-    return [...merged.values()];
+    return [...mergedById.values()];
   }
-  function sameRecords(a,b){
-    const clean=list=>[...list].sort((x,y)=>String(x.id).localeCompare(String(y.id))).map(item=>JSON.stringify(item));
-    return JSON.stringify(clean(a))===JSON.stringify(clean(b));
+  function recordsToMap(list){
+    const result={};
+    list.forEach(record=>{if(record?.id)result[record.id]={...record};});
+    return result;
+  }
+  function recordsFromCloudData(data){
+    if(data&&data.storageVersion>=STORAGE_VERSION&&data.recordsById&&typeof data.recordsById==="object"){
+      return Object.values(data.recordsById).map((item,index)=>normalizeRecord(item,index)).filter(Boolean);
+    }
+    const modern=data?.recordsById&&typeof data.recordsById==="object"?Object.values(data.recordsById):[];
+    const legacy=Array.isArray(data?.records)?data.records:[];
+    return mergeRecords(modern,legacy);
   }
   function disciplineRef(){return db.collection("discipline").doc(currentUser.uid);}
-  async function saveCloud(){
-    saveLocal();render();
+  function recordFieldPath(id){return new firebase.firestore.FieldPath("recordsById",id);}
+  async function migrateCloudAndLocal(){
+    setSync("Récupération et fusion des dossiers…");
+    const ref=disciplineRef();
+    const local=readAllLocalRecords();
+    const snap=await ref.get();
+    const data=snap.exists?snap.data():{};
+    const cloud=recordsFromCloudData(data);
+    const merged=mergeRecords(cloud,local);
+    records=merged;saveLocal();render();
+
+    if(!snap.exists){
+      await ref.set({
+        recordsById:recordsToMap(merged),
+        storageVersion:STORAGE_VERSION,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }else if(data.storageVersion<STORAGE_VERSION||!data.recordsById){
+      await ref.set({
+        recordsById:recordsToMap(merged),
+        records:firebase.firestore.FieldValue.delete(),
+        storageVersion:STORAGE_VERSION,
+        legacyMigratedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:true});
+    }else{
+      // En v3, chaque dossier est réinjecté séparément : aucun appareil n'écrase tout l'historique.
+      const cloudById=new Map(cloud.map(r=>[r.id,r]));
+      for(const record of merged){
+        const remote=cloudById.get(record.id);
+        if(!remote||!sameRecord(remote,record)){
+          await ref.update(recordFieldPath(record.id),record,"updatedAt",firebase.firestore.FieldValue.serverTimestamp());
+        }
+      }
+    }
+    try{localStorage.removeItem(LEGACY_LOCAL_KEY);}catch{}
+    setSync(`Synchronisé sur Firebase • ${records.length} dossier${records.length>1?"s":""}`,"ok");
+  }
+  async function saveRecordCloud(record){
     if(!currentUser)return false;
-    setSync("Enregistrement…");
+    const ref=disciplineRef();
+    setSync("Enregistrement Firebase…");
     try{
-      await disciplineRef().set({records,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-      setSync("Synchronisé","ok");
+      try{
+        await ref.update(
+          recordFieldPath(record.id),record,
+          "storageVersion",STORAGE_VERSION,
+          "updatedAt",firebase.firestore.FieldValue.serverTimestamp()
+        );
+      }catch(error){
+        const snap=await ref.get();
+        if(snap.exists)throw error;
+        await ref.set({
+          recordsById:{[record.id]:record},
+          storageVersion:STORAGE_VERSION,
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      setSync(`Synchronisé sur Firebase • ${records.length} dossier${records.length>1?"s":""}`,"ok");
       return true;
     }catch(error){
-      console.error(error);setSync("Sauvegarde locale — synchronisation en attente","warning");
-      return false;
+      console.error(error);setSync("Sauvegarde locale — synchronisation en attente","warning");return false;
+    }
+  }
+  async function deleteRecordCloud(id){
+    if(!currentUser)return false;
+    try{
+      await disciplineRef().update(
+        recordFieldPath(id),firebase.firestore.FieldValue.delete(),
+        "storageVersion",STORAGE_VERSION,
+        "updatedAt",firebase.firestore.FieldValue.serverTimestamp()
+      );
+      setSync(`Synchronisé sur Firebase • ${records.length} dossier${records.length>1?"s":""}`,"ok");
+      return true;
+    }catch(error){
+      console.error(error);setSync("Suppression locale — synchronisation en attente","warning");return false;
     }
   }
   async function startRealtime(){
     if(unsubscribe){unsubscribe();unsubscribe=null;}
-    setSync("Récupération des dossiers…");
-    try{
-      const local=mergeRecords(records,readLocalRecords());
-      const snap=await disciplineRef().get();
-      const cloud=snap.exists&&Array.isArray(snap.data().records)?snap.data().records:[];
-      const merged=mergeRecords(cloud,local);
-      records=merged;saveLocal();render();
-      if(!sameRecords(cloud,merged)){
-        setSync("Import des anciens dossiers…");
-        await disciplineRef().set({records:merged,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-      }
-      setSync("Synchronisé","ok");
-    }catch(error){
-      console.error(error);loadLocal();render();setSync("Mode local — connexion Firebase indisponible","warning");
-    }
+    try{await migrateCloudAndLocal();}
+    catch(error){console.error(error);loadLocal();render();setSync("Mode local — connexion Firebase indisponible","warning");}
     unsubscribe=disciplineRef().onSnapshot(snap=>{
-      if(!snap.exists||!Array.isArray(snap.data().records))return;
-      const cloud=snap.data().records;
-      if(!sameRecords(records,cloud)){
+      if(!snap.exists)return;
+      const cloud=recordsFromCloudData(snap.data());
+      if(snap.data().storageVersion>=STORAGE_VERSION){
         records=cloud;saveLocal();render();
         if(editingId&&!records.some(r=>r.id===editingId))resetForm();
       }
-      setSync("Synchronisé","ok");
+      setSync(`Synchronisé sur Firebase • ${records.length} dossier${records.length>1?"s":""}`,"ok");
     },error=>{console.error(error);setSync("Mode local — synchronisation interrompue","warning");});
   }
+
   function slugLevel(level){
     if(level==="Observation")return"observation";
     if(level==="Avertissement")return"avertissement";
@@ -251,8 +370,11 @@
   async function deleteRecord(id){
     const r=records.find(x=>x.id===id);if(!r||!confirm(`Supprimer définitivement le dossier de ${r.agent} ?`))return;
     const paths=(Array.isArray(r.photos)?r.photos:[]).map(p=>p.path).filter(Boolean);
-    records=records.filter(x=>x.id!==id);if(editingId===id)resetForm();
-    const saved=await saveCloud();if(saved)await deleteStoredPhotos(paths);
+    const previous=[...records];
+    records=records.filter(x=>x.id!==id);saveLocal();render();if(editingId===id)resetForm();
+    const saved=await deleteRecordCloud(id);
+    if(saved)await deleteStoredPhotos(paths);
+    else{records=previous;saveLocal();render();alert("La suppression n’a pas pu être synchronisée. Le dossier a été restauré.");}
   }
   async function uploadPendingPhotos(recordId){
     const uploaded=[];
@@ -263,10 +385,11 @@
       const ref=storage.ref().child(path);
       const snap=await ref.put(file,{contentType:file.type||"application/octet-stream",customMetadata:{recordId}});
       const url=await snap.ref.getDownloadURL();
-      uploaded.push({name:file.name||"Photo",type:file.type||"",size:file.size||0,path,url,uploadedAt:new Date().toISOString()});
+      uploaded.push({name:file.name||"Photo",type:file.type||"",size:file.size||0,path,url,uploadedAt:nowIso()});
     }
     return uploaded;
   }
+
   function loadImage(src){
     return new Promise((resolve,reject)=>{
       const img=new Image();
@@ -310,9 +433,16 @@
         addTitle(title);
         pdf.setFont("helvetica","normal");pdf.setFontSize(10);
         const lines=pdf.splitTextToSize(String(value||"—"),contentWidth-6);
-        const height=Math.max(14,lines.length*5+7);ensureSpace(height+2);
-        pdf.setDrawColor(209,213,219);pdf.roundedRect(margin,y-2,contentWidth,height,2,2);
-        pdf.text(lines,margin+3,y+3);y+=height+5;
+        let cursor=0;
+        while(cursor<lines.length){
+          ensureSpace(22);
+          const available=Math.max(1,Math.floor((pageHeight-margin-y-8)/5));
+          const slice=lines.slice(cursor,cursor+available);
+          const height=Math.max(14,slice.length*5+7);
+          pdf.setDrawColor(209,213,219);pdf.roundedRect(margin,y-2,contentWidth,height,2,2);
+          pdf.text(slice,margin+3,y+3);y+=height+5;cursor+=slice.length;
+          if(cursor<lines.length){pdf.addPage();y=18;}
+        }
       };
 
       pdf.setFont("helvetica","bold");pdf.setFontSize(20);pdf.setTextColor(22,101,52);pdf.text("Dossier disciplinaire",margin,y);y+=10;pdf.setTextColor(17,24,39);
@@ -339,11 +469,12 @@
       }
       const name=safeFileName(r.agent||"agent").replace(/\.[^.]+$/g,"");
       pdf.save(`dossier_disciplinaire_${name}_${r.date||today()}.pdf`);
-      setSync("PDF généré — synchronisé","ok");
+      setSync("PDF généré — synchronisé sur Firebase","ok");
     }catch(error){
       console.error(error);setSync("Erreur de génération PDF","warning");alert("Impossible de générer le PDF. Recharge la page puis réessaie.");
     }
   }
+
   function filtered(){
     const q=$("search").value.trim().toLowerCase(),status=$("statusFilter").value,level=$("levelFilter").value;
     return [...records].filter(r=>{
@@ -377,8 +508,8 @@
     table.appendChild(tbody);wrap.appendChild(table);
   }
   function exportJSON(){
-    const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),records},null,2)],{type:"application/json"});
-    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`discipline_${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    const blob=new Blob([JSON.stringify({exportedAt:nowIso(),storageVersion:STORAGE_VERSION,records},null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`discipline_${today()}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
   }
 
   $("photos").addEventListener("change",e=>{
@@ -404,19 +535,33 @@
     $("saveBtn").disabled=true;$("submitLabel").textContent=pendingPhotos.length?"Envoi des photos…":"Enregistrement…";
     try{
       const uploaded=await uploadPendingPhotos(recordId);
-      data.photos=[...existingPhotos,...uploaded];
-      if(editingId){
-        const r=records.find(x=>x.id===editingId);if(r)Object.assign(r,data,{updatedAt:new Date().toISOString(),updatedBy:currentUser?.uid||""});
-      }else records.push({id:recordId,...data,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdBy:currentUser?.uid||""});
-      const saved=await saveCloud();
-      if(saved&&removedPaths.length)await deleteStoredPhotos(removedPaths);
+      const existing=records.find(x=>x.id===recordId);
+      const record={
+        ...(existing||{}),
+        id:recordId,
+        ...data,
+        photos:[...existingPhotos,...uploaded],
+        createdAt:existing?.createdAt||nowIso(),
+        createdBy:existing?.createdBy||currentUser?.uid||"",
+        updatedAt:nowIso(),
+        updatedBy:currentUser?.uid||""
+      };
+      const previous=[...records];
+      records=mergeRecords(records.filter(x=>x.id!==recordId),[record]);saveLocal();render();
+      const saved=await saveRecordCloud(record);
+      if(!saved){
+        records=previous;saveLocal();render();
+        throw new Error("Synchronisation Firebase impossible");
+      }
+      if(removedPaths.length)await deleteStoredPhotos(removedPaths);
       resetForm();
     }catch(error){
-      console.error(error);setSync("Erreur d’envoi des photos","warning");alert("Impossible d’enregistrer les photos. Vérifie l’accès Firebase Storage puis réessaie.");$("saveBtn").disabled=false;$("submitLabel").textContent=editingId?"Enregistrer les modifications":"Enregistrer";
+      console.error(error);setSync("Erreur d’enregistrement","warning");alert("Impossible d’enregistrer le dossier dans Firebase. Réessaie après avoir vérifié la connexion.");$("saveBtn").disabled=false;$("submitLabel").textContent=editingId?"Enregistrer les modifications":"Enregistrer";
     }
   });
   $("cancelEditBtn").addEventListener("click",resetForm);
   ["search","statusFilter","levelFilter"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",render));
+  $("syncBtn").addEventListener("click",async()=>{try{await migrateCloudAndLocal();}catch(error){console.error(error);setSync("Synchronisation impossible","warning");alert("Impossible de resynchroniser avec Firebase. Vérifie la connexion puis réessaie.");}});
   $("exportBtn").addEventListener("click",exportJSON);
   $("logoutBtn").addEventListener("click",()=>auth.signOut());
   $("loginForm").addEventListener("submit",async e=>{
