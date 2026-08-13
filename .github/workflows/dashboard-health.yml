@@ -40,6 +40,7 @@ jobs:
             firebase-config.js
             inovtec-common.css
             inovtec-shell.js
+            inovtec-cloud-sync.js
             inovtec-referential.js
             inovtec-visual-runtime.js
             inovtec-page-shell.html
@@ -59,6 +60,7 @@ jobs:
           set -euo pipefail
           node --check firebase-config.js
           node --check inovtec-shell.js
+          node --check inovtec-cloud-sync.js
           node --check inovtec-referential.js
           node --check inovtec-visual-runtime.js
           python3 - <<'PY'
