@@ -27,24 +27,23 @@
 </aside>
 <div class="main">
 <header class="appbar">
-  <span class="status-dot online" title="Dashboard opérationnel"></span>
-  <details class="notify-details"><summary class="bell" aria-label="Notifications">♢<span class="bell-badge">1</span></summary><div class="notif-panel static open"><h3>Notifications</h3><div class="notif-item ok"><strong>Dashboard opérationnel</strong><span>Les accès aux modules existants sont conservés.</span></div></div></details>
-  <div class="account"><div class="avatar">IN</div><div class="account-copy"><strong>Inovtec</strong><span>Dashboard</span></div></div>
+  <span id="cloudDot" class="status-dot" title="État Firebase"></span>
+  <button id="bellBtn" class="bell" type="button" aria-label="Notifications">♢<span id="bellBadge" class="bell-badge">0</span></button>
+  <div id="notifPanel" class="notif-panel" role="dialog" aria-label="Notifications"><h3>Notifications</h3><div id="notifList"></div></div>
+  <div class="account"><div id="avatar" class="avatar">IN</div><div class="account-copy"><strong id="accountName">Inovtec</strong><span id="accountStatus">Dashboard</span></div></div>
 </header>
 <main class="content">
   <section class="hero">
     <div class="hero-copy"><div class="eyebrow">BONJOUR ET BIENVENUE</div><h1>Bienvenue sur<br><em>Inovtec</em> Dashboard</h1><p>Votre plateforme centralisée pour piloter vos opérations, vos chantiers et vos outils en toute simplicité.</p></div>
-    <div class="hero-date"><strong>Jeudi 13 août 2026</strong><span>Accueil centralisé</span></div>
+    <div class="hero-date"><strong id="dateLabel">—</strong><span id="timeLabel">—</span></div>
     <div class="geom" aria-hidden="true"><div class="g-dots"></div><div class="g-circle c1"></div><div class="g-circle c2"></div><div class="g-rect r1"></div><div class="g-rect r2"></div><div class="g-line l1"></div><div class="g-line l2"></div><div class="g-line l3"></div><div class="g-glow a"></div><div class="g-glow b"></div></div>
   </section>
-
   <section class="kpis" aria-label="Indicateurs">
-    <div class="kpi"><div class="kpi-icon">▣</div><div><small>Chantiers enregistrés</small><b>LIVE</b><div class="sub">Infos chantier synchronisées</div></div></div>
-    <div class="kpi"><div class="kpi-icon">♙</div><div><small>Agents référencés</small><b>OK</b><div class="sub">Classeur agents accessible</div></div></div>
-    <div class="kpi"><div class="kpi-icon">✓</div><div><small>Contrôles KONTROL archivés</small><b>PDF</b><div class="sub">Archives KONTROL en ligne</div></div></div>
-    <div class="kpi"><div class="kpi-icon">!</div><div><small>Dossiers Discipline ouverts</small><b>SYNC</b><div class="sub">Discipline multi-appareils</div></div></div>
+    <div class="kpi"><div class="kpi-icon">▣</div><div><small>Chantiers enregistrés</small><b id="kpiSites">—</b><div class="sub" id="kpiSitesSub">Firebase</div></div></div>
+    <div class="kpi"><div class="kpi-icon">♙</div><div><small>Agents référencés</small><b id="kpiAgents">—</b><div class="sub" id="kpiAgentsSub">Infos chantier</div></div></div>
+    <div class="kpi"><div class="kpi-icon">✓</div><div><small>Contrôles KONTROL archivés</small><b id="kpiKontrol">—</b><div class="sub" id="kpiKontrolSub">PDF en ligne</div></div></div>
+    <div class="kpi"><div class="kpi-icon">!</div><div><small>Dossiers Discipline ouverts</small><b id="kpiDiscipline">—</b><div class="sub alert" id="kpiDisciplineSub">Suivi en cours</div></div></div>
   </section>
-
   <div class="section-head"><h2>Modules</h2><span>Tous vos outils, au même endroit</span></div>
   <section class="modules">
     <a class="module" href="PLANNINGS.html"><div class="module-top"><div class="module-ico">▦</div><h3>Planning</h3></div><p>Consultez et gérez les plannings de vos équipes et de vos chantiers.</p><span class="go">Accéder →</span><div class="module-art"></div></a>
@@ -54,21 +53,25 @@
     <a class="module" href="AGENTS.html"><div class="module-top"><div class="module-ico">♙</div><h3>Classeur agents</h3></div><p>Consultez les informations et documents liés à vos agents.</p><span class="go">Accéder →</span><div class="module-art"></div></a>
     <a class="module" href="ORGA.html"><div class="module-top"><div class="module-ico">◎</div><h3>Organisation</h3></div><p>Centralisez les tâches et l’organisation opérationnelle de votre activité.</p><span class="go">Accéder →</span><div class="module-art"></div></a>
   </section>
-
   <div class="section-head"><h2>Actions rapides</h2><span>Accès direct aux opérations courantes</span></div>
   <section class="quick">
     <a href="INFOCHANTIERS-V2.html?v=20260813-6"><span class="plus">＋</span>Créer / modifier un chantier</a>
     <a href="ORGA.html"><span class="plus">＋</span>Planifier une tâche</a>
     <a href="KONTROL-CLOUD.html?v=20260813-1"><span class="plus">＋</span>Nouveau contrôle KONTROL</a>
     <a href="DISCIPLINE-V9.html?v=20260813-8"><span class="plus">＋</span>Nouveau dossier Discipline</a>
-    <a href="DEPLOYMENT_CHECK.md"><span class="plus">▤</span>Voir le rapport de déploiement</a>
+    <button id="printBtn" type="button"><span class="plus">▤</span>Générer le rapport du dashboard</button>
   </section>
-
   <div class="section-head"><h2>Autres outils</h2><span>Fonctions existantes conservées</span></div>
   <section class="tools"><a class="tool-link" href="HEURE-SUP.html">Heures supplémentaires</a><a class="tool-link" href="TEMPS.html">Conversion temps</a><a class="tool-link" href="SALAIRE.html">Salaire</a><a class="tool-link" href="AGENTS.html">Classeur agents</a></section>
   <div class="foot">Inovtec Dashboard • Interface d’accueil modernisée • Les pages métiers existantes restent inchangées.</div>
 </main>
 </div>
 </div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="firebase-config.js?v=20260813-7"></script>
+<script src="dashboard-index.js?v=20260813-1"></script>
 </body>
 </html>
