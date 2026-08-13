@@ -1,82 +1,16 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#16a34a">
-  <title>Inovtec — Tableau de bord</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="inovtec-common.css">
-  <style>
-    body{display:flex;align-items:flex-start;justify-content:center;padding:18px}
-    .shell{width:min(720px,100%);background:linear-gradient(145deg,#22c55e,#15803d 45%,#052e16);padding:10px;border-radius:28px;box-shadow:0 24px 60px rgba(15,23,42,.28)}
-    .screen{background:#f8fafc;border-radius:21px;padding:18px}
-    .hero{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
-    .hero h1{margin:0;font-size:22px}.hero p{margin:4px 0 0;color:var(--muted);font-size:13px}
-    .logo{width:48px;height:48px;border-radius:17px;background:linear-gradient(135deg,#16a34a,#052e16);display:grid;place-items:center;color:#fff;font-weight:800;box-shadow:0 10px 25px rgba(22,163,74,.35)}
-    .group-title{font-size:11px;letter-spacing:.14em;color:var(--muted);font-weight:800;margin:18px 0 9px}
-    .apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
-    .app-card{display:flex;flex-direction:column;gap:7px;text-decoration:none;background:#fff;border:1px solid var(--border);border-radius:17px;padding:13px;box-shadow:0 6px 16px rgba(15,23,42,.06);transition:.15s transform,.15s box-shadow}
-    .app-card:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(15,23,42,.10)}
-    .app-card:focus-visible{outline:3px solid rgba(22,163,74,.35);outline-offset:2px}
-    .app-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .app-icon{width:38px;height:38px;border-radius:14px;background:#e2e8f0;display:grid;place-items:center;font-size:20px}
-    .app-icon img{width:22px;height:22px;object-fit:contain}
-    .app-name{font-weight:800;font-size:14px}.app-desc{font-size:11px;color:var(--muted);line-height:1.35}
-    .badge{font-size:10px;font-weight:800;border-radius:999px;padding:4px 7px;background:var(--brand-soft);color:#166534}.badge.local{background:var(--warning-soft);color:#92400e}
-    @media(max-width:520px){body{padding:8px}.apps{grid-template-columns:1fr}.shell{border-radius:21px}.screen{padding:14px}}
-  </style>
-</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#16a34a"><title>Inovtec Dashboard</title><link rel="stylesheet" href="inovtec-common.css"></head>
 <body>
-  <main class="shell"><section class="screen">
-    <div class="hero"><div><h1>Inovtec Dashboard</h1><p>Accès central aux outils de gestion et de suivi.</p></div><div class="logo" aria-hidden="true">I.</div></div>
-    <div class="group-title">OUTILS CONNECTÉS</div>
-    <div class="apps">
-      <a class="app-card" href="INFOCHANTIERS.html"><div class="app-head"><div class="app-icon"><img src="info-chantiers.png" alt=""></div><span class="badge">Firebase</span></div><div class="app-name">Infos chantiers</div><div class="app-desc">Résidences, contacts, accès, planning agent et consignes.</div></a>
-      <a class="app-card" href="ORGA.html"><div class="app-head"><div class="app-icon"><img src="orga.png" alt=""></div><span class="badge">Firebase</span></div><div class="app-name">Organisation</div><div class="app-desc">Tâches, priorités, échéances, suivi et archives.</div></a>
-      <a class="app-card" href="DISCIPLINE-STABLE.html?v=20260813-5"><div class="app-head"><div class="app-icon" aria-hidden="true">⚖️</div><span class="badge">Firebase</span></div><div class="app-name">Discipline</div><div class="app-desc">Dossiers disciplinaires protégés par connexion.</div></a>
-    </div>
-    <div class="group-title">OUTILS SUR CET APPAREIL</div>
-    <div class="apps">
-      <a class="app-card" href="KONTROL.html"><div class="app-head"><div class="app-icon"><img src="kontrol.png" alt=""></div><span class="badge local">Local</span></div><div class="app-name">KONTROL</div><div class="app-desc">Contrôle qualité, photos, note et génération PDF.</div></a>
-      <a class="app-card" href="PLANNINGS.html"><div class="app-head"><div class="app-icon"><img src="plannings.png" alt=""></div><span class="badge local">Local</span></div><div class="app-name">Plannings</div><div class="app-desc">Planning hebdomadaire des agents et export.</div></a>
-      <a class="app-card" href="HEURE-SUP.html"><div class="app-head"><div class="app-icon" aria-hidden="true">🕒</div><span class="badge local">Local</span></div><div class="app-name">Heures supplémentaires</div><div class="app-desc">Saisie, totalisation, export et récapitulatif.</div></a>
-      <a class="app-card" href="TEMPS.html"><div class="app-head"><div class="app-icon" aria-hidden="true">⏱️</div><span class="badge local">Local</span></div><div class="app-name">Conversion temps</div><div class="app-desc">Heures/minutes vers décimal et conversion inverse.</div></a>
-      <a class="app-card" href="SALAIRE.html"><div class="app-head"><div class="app-icon"><img src="salaire.png" alt=""></div><span class="badge local">Estimation</span></div><div class="app-name">Salaire</div><div class="app-desc">Estimation brute et nette avec ratio réglable.</div></a>
-      <a class="app-card" href="AGENTS.html"><div class="app-head"><div class="app-icon" aria-hidden="true">👥</div><span class="badge local">Données locales</span></div><div class="app-name">Classeur agents</div><div class="app-desc">Fiches et incidents. Éviter les données très sensibles.</div></a>
-    </div>
-    <div class="notice warning" style="margin-top:16px">Les cartes marquées « Local » enregistrent leurs données dans ce navigateur. Pense à utiliser régulièrement leurs fonctions d’export.</div>
-  </section></main>
-<script>
-(() => {
-  try {
-    if (localStorage.getItem("inovtec_plannings_v2")) return;
-    const oldAgents = JSON.parse(localStorage.getItem("agents") || "[]");
-    if (!Array.isArray(oldAgents) || !oldAgents.length) return;
-    const agents = oldAgents.map((agent, index) => ({id:`legacy_agent_${index}`,name:agent.name || `Agent ${index + 1}`,copies:Number(agent.copies) || 1}));
-    function isoWeekKey(date){
-      const d=new Date(date);d.setHours(0,0,0,0);d.setDate(d.getDate()+3-(d.getDay()+6)%7);
-      const w1=new Date(d.getFullYear(),0,4);const week=1+Math.round(((d-w1)/86400000-3+(w1.getDay()+6)%7)/7);
-      return `${d.getFullYear()}-W${String(week).padStart(2,"0")}`;
-    }
-    function toTime(value){
-      const n=Number(value);if(!Number.isFinite(n)) return typeof value === "string" ? value : "00:00";
-      const h=Math.floor(n),m=Math.round((n-h)*60);return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
-    }
-    function migrateEvents(raw,prefix){
-      const list=JSON.parse(raw || "[]");
-      return Array.isArray(list) ? list.map((event,index)=>({id:`legacy_${prefix}_${index}`,agentId:agents[event.agent]?.id || agents[0].id,day:Number(event.day)||0,start:toTime(event.start),end:toTime(event.end),task:event.title || "Intervention",site:"",note:"Importé de l’ancien planning"})) : [];
-    }
-    const current=new Date(),next=new Date();next.setDate(current.getDate()+7);
-    const currentKey=isoWeekKey(current),nextKey=isoWeekKey(next),currentNumber=Number(currentKey.slice(-2));
-    const pairKey=currentNumber%2===0?currentKey:nextKey,oddKey=currentNumber%2===1?currentKey:nextKey;
-    const state={agents,selected:agents[0].id,weeks:{}};
-    state.weeks[pairKey]=migrateEvents(localStorage.getItem("events_pair"),"pair");
-    state.weeks[oddKey]=migrateEvents(localStorage.getItem("events_impair"),"impair");
-    localStorage.setItem("inovtec_plannings_v2",JSON.stringify(state));
-  } catch (error) { console.warn("Migration planning ignorée",error); }
-})();
-</script>
+<main class="page" style="max-width:760px;margin:auto">
+<section class="card"><h1>Inovtec Dashboard</h1><p>Accès central aux outils de gestion et de suivi.</p></section>
+<section class="card"><h2>Outils connectés</h2><div class="grid grid-2">
+<a class="btn btn-primary" href="INFOCHANTIERS-V2.html?v=20260813-6">Infos chantiers</a>
+<a class="btn btn-primary" href="ORGA.html">Organisation</a>
+<a class="btn btn-primary" href="DISCIPLINE-V9.html?v=20260813-6">Discipline</a>
+</div></section>
+<section class="card"><h2>Autres outils</h2><div class="grid grid-2">
+<a class="btn btn-secondary" href="KONTROL.html">KONTROL</a><a class="btn btn-secondary" href="PLANNINGS.html">Plannings</a><a class="btn btn-secondary" href="HEURE-SUP.html">Heures supplémentaires</a><a class="btn btn-secondary" href="TEMPS.html">Conversion temps</a><a class="btn btn-secondary" href="SALAIRE.html">Salaire</a><a class="btn btn-secondary" href="AGENTS.html">Classeur agents</a>
+</div></section>
+</main>
 </body></html>
