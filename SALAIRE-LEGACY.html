@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16a34a">
+  <title>Inovtec — Estimation salaire</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="inovtec-common.css">
+  <style>
+    body{display:flex;align-items:flex-start;justify-content:center;padding:16px}
+    .tool{width:min(660px,100%)}
+    .amount{font-size:28px;font-weight:800;color:#166534}
+  </style>
+</head>
+<body>
+  <main class="tool">
+    <div class="actions" style="margin-bottom:12px"><a class="btn btn-secondary" href="index.html">← Accueil</a></div>
+    <section class="card">
+      <div class="section-title"><h1 style="font-size:20px;margin:0">Estimation de salaire</h1><span class="status warning">Indicatif</span></div>
+      <div class="grid grid-2">
+        <div class="field"><label for="rate">Taux horaire brut (€)</label><input id="rate" type="number" min="0" step="0.01" placeholder="Ex. 12,50"></div>
+        <div class="field"><label for="hours">Heures par semaine</label><input id="hours" type="number" min="0" step="0.25" placeholder="Ex. 35"></div>
+        <div class="field"><label for="ratio">Ratio net estimé (%)</label><input id="ratio" type="number" min="50" max="100" step="0.1" value="78"></div>
+        <div class="field"><label for="bonus">Primes brutes mensuelles (€)</label><input id="bonus" type="number" min="0" step="0.01" value="0"></div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="grid grid-3">
+        <div><div class="muted">Brut mensuel estimé</div><div id="gross" class="amount">0,00 €</div></div>
+        <div><div class="muted">Net mensuel avant impôt</div><div id="net" class="amount">0,00 €</div></div>
+        <div><div class="muted">Brut annuel estimé</div><div id="annual" class="amount">0,00 €</div></div>
+      </div>
+    </section>
+    <div class="notice warning">
+      Cette page fournit une estimation. Elle ne calcule pas les majorations, indemnités, mutuelle, absences, cotisations particulières ni le prélèvement à la source. Pour une paie réelle, utilise le bulletin ou le logiciel de paie.
+    </div>
+  </main>
+<script>
+(() => {
+  "use strict";
+  const $=id=>document.getElementById(id);
+  const euro=new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"});
+  function calculate(){
+    const rate=Math.max(0,Number($("rate").value)||0);
+    const hours=Math.max(0,Number($("hours").value)||0);
+    const ratio=Math.min(100,Math.max(50,Number($("ratio").value)||78))/100;
+    const bonus=Math.max(0,Number($("bonus").value)||0);
+    const gross=rate*hours*(52/12)+bonus;
+    const net=gross*ratio;
+    $("gross").textContent=euro.format(gross);
+    $("net").textContent=euro.format(net);
+    $("annual").textContent=euro.format(gross*12);
+  }
+  ["rate","hours","ratio","bonus"].forEach(id=>$(id).addEventListener("input",calculate));
+  calculate();
+})();
+</script>
+</body>
+</html>

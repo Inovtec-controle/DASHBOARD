@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16a34a">
+  <title>Inovtec — Conversion du temps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="inovtec-common.css">
+  <style>
+    body{display:flex;align-items:center;justify-content:center;padding:16px}
+    .tool{width:min(620px,100%)}
+    .result{font-size:32px;font-weight:800;color:#166534}
+  </style>
+</head>
+<body>
+  <main class="tool">
+    <div class="actions" style="margin-bottom:12px"><a class="btn btn-secondary" href="index.html">← Accueil</a></div>
+    <section class="card">
+      <div class="section-title"><h1 style="font-size:20px;margin:0">Conversion du temps</h1><span class="status ok">Bidirectionnel</span></div>
+      <div class="grid grid-2">
+        <div class="field"><label for="timeInput">Heures et minutes</label><input id="timeInput" placeholder="Ex. 7:30 ou 7h30" autocomplete="off"></div>
+        <div class="field"><label for="decimalInput">Heures décimales</label><input id="decimalInput" inputmode="decimal" placeholder="Ex. 7,50" autocomplete="off"></div>
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <button id="toDecimalBtn" class="btn btn-primary" type="button">Temps → décimal</button>
+        <button id="toTimeBtn" class="btn btn-primary" type="button">Décimal → temps</button>
+        <button id="clearBtn" class="btn btn-secondary" type="button">Effacer</button>
+      </div>
+      <div id="error" class="muted" role="alert" style="color:#b91c1c;margin-top:10px"></div>
+    </section>
+    <section id="resultCard" class="card hidden">
+      <div class="muted">Résultat</div>
+      <div id="result" class="result">—</div>
+      <div id="detail" class="muted"></div>
+    </section>
+    <div class="notice" style="margin-top:14px">30 minutes = 0,50 h · 15 minutes = 0,25 h · 45 minutes = 0,75 h.</div>
+  </main>
+<script>
+(() => {
+  "use strict";
+  const $=id=>document.getElementById(id);
+  function show(result,detail){
+    $("error").textContent="";$("result").textContent=result;$("detail").textContent=detail;$("resultCard").classList.remove("hidden");
+  }
+  function fail(message){$("error").textContent=message;$("resultCard").classList.add("hidden");}
+  function parseTime(raw){
+    const value=String(raw||"").trim().replace(/\s+/g,"");
+    const match=value.match(/^(\d+)(?:[:hH](\d{1,2}))?$/);
+    if(!match)return null;
+    const hours=Number(match[1]),minutes=Number(match[2]||0);
+    if(!Number.isFinite(hours)||hours<0||minutes<0||minutes>59)return null;
+    return {hours,minutes,decimal:hours+minutes/60};
+  }
+  function parseDecimal(raw){
+    const value=String(raw||"").trim().replace(",",".");
+    if(!/^\d+(?:\.\d+)?$/.test(value))return null;
+    const decimal=Number(value);
+    if(!Number.isFinite(decimal)||decimal<0)return null;
+    let totalMinutes=Math.round(decimal*60);
+    return {decimal,hours:Math.floor(totalMinutes/60),minutes:totalMinutes%60};
+  }
+  function formatDecimal(value){return value.toFixed(2).replace(".",",");}
+  function formatTime(h,m){return `${h} h ${String(m).padStart(2,"0")}`;}
+  $("toDecimalBtn").addEventListener("click",()=>{
+    const parsed=parseTime($("timeInput").value);
+    if(!parsed){fail("Format invalide. Utilise par exemple 7:30 ou 7h30.");return;}
+    $("decimalInput").value=formatDecimal(parsed.decimal);
+    show(`${formatDecimal(parsed.decimal)} h`,`${formatTime(parsed.hours,parsed.minutes)} correspond à ${formatDecimal(parsed.decimal)} heure(s) décimale(s).`);
+  });
+  $("toTimeBtn").addEventListener("click",()=>{
+    const parsed=parseDecimal($("decimalInput").value);
+    if(!parsed){fail("Valeur décimale invalide. Utilise par exemple 7,50.");return;}
+    $("timeInput").value=`${parsed.hours}:${String(parsed.minutes).padStart(2,"0")}`;
+    show(formatTime(parsed.hours,parsed.minutes),`${formatDecimal(parsed.decimal)} heure(s) décimale(s) correspond à ${formatTime(parsed.hours,parsed.minutes)}.`);
+  });
+  $("clearBtn").addEventListener("click",()=>{$("timeInput").value="";$("decimalInput").value="";$("error").textContent="";$("resultCard").classList.add("hidden");$("timeInput").focus();});
+  ["timeInput","decimalInput"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$(id==="timeInput"?"toDecimalBtn":"toTimeBtn").click();}}));
+})();
+</script>
+</body>
+</html>

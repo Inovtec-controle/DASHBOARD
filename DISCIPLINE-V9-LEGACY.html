@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16a34a">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Inovtec — Gestion disciplinaire</title>
+  <link rel="stylesheet" href="inovtec-common.css?v=20260813-10">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="firebase-config.js?v=20260813-10"></script>
+  <script src="discipline-firestore-bridge.js?v=20260813-10"></script>
+  <style>
+    .hidden{display:none!important}.level{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}
+    .level.observation{background:#dbeafe;color:#1d4ed8}.level.avertissement{background:#fef3c7;color:#92400e}.level.mise-en-demeure{background:#fee2e2;color:#b91c1c}.level.licenciement{background:#7f1d1d;color:#fff}
+    .photo-field{margin-top:12px}.photo-picker{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin-top:10px}
+    .photo-item{position:relative;border:1px solid #d1d5db;border-radius:10px;padding:6px;background:#fff;overflow:hidden;min-height:150px}.photo-item img{display:block;width:100%;height:115px;object-fit:cover;border-radius:7px;background:#f3f4f6}
+    .photo-name{margin-top:6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#334155;font-weight:700}.photo-meta{margin-top:2px;font-size:10px;color:#64748b}
+    .photo-remove{position:absolute;top:10px;right:10px;border:0;border-radius:999px;width:30px;height:30px;background:rgba(127,29,29,.94);color:#fff;font-weight:800;cursor:pointer}.photo-count{display:inline-flex;min-width:24px;justify-content:center;padding:3px 7px;border-radius:999px;background:#ecfdf5;color:#166534;font-size:11px;font-weight:800}
+    .photo-loading{display:grid;place-items:center;height:115px;border-radius:7px;background:#f1f5f9;color:#64748b;font-size:11px;text-align:center;padding:8px}.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}.sync-note{font-size:11px;color:#64748b;margin-top:7px}#saveNotice{margin-top:10px}
+    button,input,select,textarea{font-size:16px}@media(min-width:700px){button,input,select,textarea{font-size:inherit}}@media(max-width:680px){.topbar{align-items:flex-start}.topbar-actions{width:100%;display:flex;flex-wrap:wrap}.topbar-actions .btn{flex:1 1 auto;min-height:42px}.grid.grid-2,.grid.grid-3{grid-template-columns:1fr}.page{padding-left:10px;padding-right:10px}table{min-width:850px}}
+  </style>
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card">
+      <h1>Connexion Inovtec</h1><p>Connecte-toi avec ton compte Inovtec.</p>
+      <div class="field"><label for="loginEmail">Adresse email</label><input id="loginEmail" type="email" value="a.labarthe@inovtec.eu" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+      <div class="field" style="margin-top:10px"><label for="loginPassword">Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button id="loginBtn" class="btn btn-primary" style="width:100%;margin-top:16px" type="submit">Se connecter</button>
+      <div id="loginError" class="muted" role="alert" style="margin-top:10px;color:#b91c1c"></div>
+    </form>
+  </div>
+  <div id="app" class="hidden">
+    <header class="topbar"><div><h1>Gestion disciplinaire</h1><p>Suivi confidentiel des faits et des procédures</p></div><div class="topbar-actions"><a class="btn btn-secondary" href="index.html">← Accueil</a><span id="syncStatus" class="status">Connexion…</span><button id="syncBtn" class="btn btn-secondary" type="button">Actualiser</button><button id="exportBtn" class="btn btn-secondary" type="button">Exporter JSON</button><button id="logoutBtn" class="btn btn-secondary" type="button">Déconnexion</button></div></header>
+    <main class="page">
+      <div class="notice warning">Cet outil constitue un support de suivi. Toute sanction doit respecter la procédure applicable et être validée par la personne responsable des ressources humaines ou la direction.</div>
+      <section class="card" style="margin-top:14px">
+        <div class="section-title"><h2 id="formTitle">Nouveau dossier</h2><button id="cancelEditBtn" class="btn btn-secondary hidden" type="button">Annuler</button></div>
+        <form id="recordForm">
+          <div class="grid grid-3">
+            <div class="field"><label for="agent">Agent *</label><input id="agent" required maxlength="150"></div><div class="field"><label for="site">Chantier / site</label><input id="site" maxlength="150"></div><div class="field"><label for="date">Date des faits *</label><input id="date" type="date" required></div>
+            <div class="field"><label for="niveau">Niveau</label><select id="niveau"><option>Observation</option><option>Avertissement</option><option>Mise en demeure</option><option>Procédure de licenciement</option></select></div><div class="field"><label for="statut">Statut du dossier</label><select id="statut"><option>Ouvert</option><option>En cours</option><option>Clos</option></select></div><div class="field"><label for="responsable">Responsable du suivi</label><input id="responsable" maxlength="150"></div>
+          </div>
+          <div class="grid grid-2" style="margin-top:10px"><div class="field"><label for="motif">Motif *</label><input id="motif" required maxlength="250"></div><div class="field"><label for="temoins">Témoins</label><input id="temoins" maxlength="250"></div><div class="field"><label for="description">Description factuelle *</label><textarea id="description" required maxlength="4000" placeholder="Décrire les faits, les dates, les échanges et les éléments vérifiables."></textarea></div><div class="field"><label for="suite">Suite donnée / prochaine action</label><textarea id="suite" maxlength="2000" placeholder="Entretien, courrier, délai de réponse, action corrective…"></textarea></div></div>
+          <div class="field photo-field"><label for="photos">Photos / éléments visuels</label><div class="photo-picker"><input id="photos" type="file" accept="image/*" multiple><span id="photoHelp" class="muted">Jusqu’à 10 photos. Elles sont enregistrées avec le dossier.</span></div><div id="photoPreview" class="photo-grid"></div></div>
+          <button id="saveBtn" class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Enregistrer</span></button><div id="saveNotice" class="hidden"></div><div class="sync-note">Les dossiers et leurs photos sont liés au compte connecté et accessibles depuis ordinateur et téléphone.</div>
+        </form>
+      </section>
+      <section class="card"><div class="section-title"><h2>Historique</h2><span id="count" class="status">0</span></div><div class="grid grid-3" style="margin-bottom:12px"><div class="field"><label for="search">Recherche</label><input id="search" placeholder="Agent, site, motif…"></div><div class="field"><label for="statusFilter">Statut</label><select id="statusFilter"><option value="">Tous</option><option>Ouvert</option><option>En cours</option><option>Clos</option></select></div><div class="field"><label for="levelFilter">Niveau</label><select id="levelFilter"><option value="">Tous</option><option>Observation</option><option>Avertissement</option><option>Mise en demeure</option><option>Procédure de licenciement</option></select></div></div><div id="recordsWrap" class="table-wrap"></div></section>
+    </main>
+  </div>
+  <script src="discipline-v9.js?v=20260813-10"></script>
+  <script src="discipline-pdf-fullpage.js?v=20260813-10"></script>
+</body>
+</html>

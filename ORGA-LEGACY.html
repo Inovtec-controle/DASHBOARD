@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16a34a">
+  <title>Inovtec — Organisation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="inovtec-common.css">
+  <style>
+    .board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:12px;overflow-x:auto;padding-bottom:5px}
+    .column{background:#f8fafc;border:1px solid var(--border);border-radius:16px;min-height:260px;display:flex;flex-direction:column}
+    .column-header{padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px}
+    .column-title{font-weight:800;font-size:13px}
+    .column-help{font-size:10px;color:var(--muted);margin-top:2px}
+    .count{font-size:11px;font-weight:800;background:#e2e8f0;border-radius:999px;padding:4px 8px;height:max-content}
+    .task-list{padding:8px;flex:1}
+    .task-list.drag-over{outline:2px dashed var(--brand);outline-offset:-5px;background:#ecfdf5}
+    .task{background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:8px;box-shadow:0 4px 12px rgba(15,23,42,.06)}
+    .task.dragging{opacity:.5}
+    .task-title{font-weight:800;font-size:13px;word-break:break-word}
+    .task-desc{font-size:12px;color:#475569;white-space:pre-wrap;margin-top:5px}
+    .task-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+    .tag{font-size:10px;border-radius:999px;padding:4px 7px;border:1px solid var(--border);background:#f8fafc}
+    .tag.high{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+    .tag.normal{background:#dcfce7;color:#166534;border-color:#86efac}
+    .tag.low{background:#e2e8f0;color:#475569}
+    .tag.overdue{background:#fee2e2;color:#991b1b;border-color:#fecaca;font-weight:800}
+    .task-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+    .task-actions button{border:1px solid var(--border);background:#fff;border-radius:9px;padding:6px 8px;font-size:11px}
+    .task-actions button.danger{color:#b91c1c;background:#fff1f2;border-color:#fecdd3}
+    .archive-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid var(--border)}
+    .archive-item:last-child{border-bottom:0}
+    @media(max-width:900px){.board{grid-template-columns:repeat(4,280px)}}
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card">
+      <h1>Connexion Inovtec</h1>
+      <p>Connecte-toi pour accéder aux tâches synchronisées.</p>
+      <div class="field"><label for="loginEmail">Adresse email</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+      <div class="field" style="margin-top:10px"><label for="loginPassword">Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px" type="submit">Se connecter</button>
+      <div id="loginError" class="muted" role="alert" style="margin-top:10px;color:#b91c1c"></div>
+    </form>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div><h1>Organisation</h1><p>Tâches, priorités, échéances et archives</p></div>
+      <div class="topbar-actions">
+        <a class="btn btn-secondary" href="index.html">← Accueil</a>
+        <span id="syncStatus" class="status">Connexion…</span>
+        <button id="logoutBtn" class="btn btn-secondary" type="button">Déconnexion</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="card">
+        <div class="section-title">
+          <h2 id="formTitle">Nouvelle tâche</h2>
+          <button id="cancelEditBtn" class="btn btn-secondary hidden" type="button">Annuler la modification</button>
+        </div>
+        <form id="taskForm">
+          <div class="grid grid-3">
+            <div class="field"><label for="title">Titre *</label><input id="title" maxlength="140" required placeholder="Ex. Relancer le syndic"></div>
+            <div class="field"><label for="status">Statut</label>
+              <select id="status"><option value="todo">À faire</option><option value="inprogress">En cours</option><option value="blocked">Bloqué</option><option value="done">Fait</option></select>
+            </div>
+            <div class="field"><label for="priority">Priorité</label>
+              <select id="priority"><option value="normal">Normale</option><option value="high">Haute</option><option value="low">Basse</option></select>
+            </div>
+          </div>
+          <div class="grid grid-2" style="margin-top:10px">
+            <div class="field"><label for="dueDate">Date limite</label><input id="dueDate" type="date"></div>
+            <div class="field"><label for="description">Description</label><textarea id="description" maxlength="1000" placeholder="Informations utiles, personne à contacter…"></textarea></div>
+          </div>
+          <button class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Ajouter la tâche</span></button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-title"><h2>Tableau des tâches</h2><span id="overdueStatus" class="status">Aucun retard</span></div>
+        <div id="board" class="board"></div>
+      </section>
+
+      <section id="archiveCard" class="card hidden">
+        <div class="section-title"><h2>Archives</h2><span id="archiveCount" class="status">0</span></div>
+        <div id="archiveList" class="table-wrap"></div>
+      </section>
+    </main>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+  if (!window.INOVTEC_FIREBASE_CONFIG) {
+    document.getElementById("loginError").textContent = "Configuration Firebase introuvable.";
+    return;
+  }
+  if (!firebase.apps.length) firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const FLOW = ["todo","inprogress","blocked","done"];
+  const STATUS = {
+    todo:{label:"À faire",help:"À planifier ou lancer"},
+    inprogress:{label:"En cours",help:"Traitement en cours"},
+    blocked:{label:"Bloqué",help:"En attente d’une information"},
+    done:{label:"Fait",help:"Terminé, prêt à archiver"}
+  };
+  const LOCAL_KEY = "orga_task_board_v2";
+  let tasks = [];
+  let currentUser = null;
+  let unsubscribe = null;
+  let editingId = null;
+  let syncingFromCloud = false;
+  let draggedId = null;
+
+  const $ = id => document.getElementById(id);
+  const loginScreen = $("loginScreen");
+  const app = $("app");
+  const syncStatus = $("syncStatus");
+
+  function setSync(text, type=""){
+    syncStatus.textContent = text;
+    syncStatus.className = "status" + (type ? " " + type : "");
+  }
+  function safeDate(value){
+    if (!value) return "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+  }
+  function shortDate(value){
+    const valid = safeDate(value);
+    if(!valid) return "";
+    const [y,m,d] = valid.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  function isOverdue(task){
+    if(!task.dueDate || task.status === "done" || task.archived) return false;
+    const end = new Date(task.dueDate + "T23:59:59");
+    return Number.isFinite(end.getTime()) && end.getTime() < Date.now();
+  }
+  function priorityWeight(p){ return p === "high" ? 0 : p === "normal" ? 1 : 2; }
+  function sorted(items){
+    return [...items].sort((a,b)=>{
+      const overdue = Number(isOverdue(b)) - Number(isOverdue(a));
+      if(overdue) return overdue;
+      const ad = a.dueDate || "9999-12-31";
+      const bd = b.dueDate || "9999-12-31";
+      if(ad !== bd) return ad.localeCompare(bd);
+      const p = priorityWeight(a.priority) - priorityWeight(b.priority);
+      if(p) return p;
+      return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+    });
+  }
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(LOCAL_KEY);
+      tasks = raw ? JSON.parse(raw) : [];
+      if(!Array.isArray(tasks)) tasks = [];
+    }catch{ tasks = []; }
+  }
+  function saveLocal(){
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(tasks));
+  }
+  async function saveCloud(){
+    saveLocal();
+    render();
+    if(!currentUser || syncingFromCloud) return;
+    setSync("Enregistrement…");
+    try{
+      await db.collection("kanban").doc(currentUser.uid).set({
+        tasks,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge:true});
+      setSync("Synchronisé","ok");
+    }catch(error){
+      console.error(error);
+      setSync("Sauvegarde locale seulement","warning");
+    }
+  }
+  function startRealtime(){
+    if(unsubscribe){ unsubscribe(); unsubscribe = null; }
+    setSync("Synchronisation…");
+    unsubscribe = db.collection("kanban").doc(currentUser.uid).onSnapshot(snap=>{
+      syncingFromCloud = true;
+      if(snap.exists && Array.isArray(snap.data().tasks)){
+        tasks = snap.data().tasks;
+        saveLocal();
+      }else{
+        loadLocal();
+        if(tasks.length) saveCloud();
+      }
+      render();
+      setSync("Synchronisé","ok");
+      setTimeout(()=>{ syncingFromCloud = false; },0);
+    }, error=>{
+      console.error(error);
+      loadLocal();
+      render();
+      setSync("Mode local","warning");
+    });
+  }
+  function makeButton(label, handler, className=""){
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    if(className) button.className = className;
+    button.addEventListener("click", handler);
+    return button;
+  }
+  function moveTask(id, direction){
+    const task = tasks.find(t=>t.id === id);
+    if(!task || task.archived) return;
+    const i = FLOW.indexOf(task.status);
+    const next = direction === "next" ? i + 1 : i - 1;
+    if(next < 0 || next >= FLOW.length) return;
+    task.status = FLOW[next];
+    saveCloud();
+  }
+  function archiveTask(id){
+    const task = tasks.find(t=>t.id === id);
+    if(!task || task.status !== "done") return;
+    if(!confirm(`Archiver « ${task.title} » ?`)) return;
+    task.archived = true;
+    task.archivedAt = new Date().toISOString();
+    saveCloud();
+  }
+  function restoreTask(id){
+    const task = tasks.find(t=>t.id === id);
+    if(!task) return;
+    task.archived = false;
+    task.archivedAt = "";
+    task.status = "done";
+    saveCloud();
+  }
+  function deleteTask(id){
+    const task = tasks.find(t=>t.id === id);
+    if(!task || !confirm(`Supprimer définitivement « ${task.title} » ?`)) return;
+    tasks = tasks.filter(t=>t.id !== id);
+    if(editingId === id) resetForm();
+    saveCloud();
+  }
+  function editTask(id){
+    const task = tasks.find(t=>t.id === id);
+    if(!task) return;
+    editingId = id;
+    $("title").value = task.title || "";
+    $("description").value = task.description || "";
+    $("status").value = FLOW.includes(task.status) ? task.status : "todo";
+    $("priority").value = ["high","normal","low"].includes(task.priority) ? task.priority : "normal";
+    $("dueDate").value = safeDate(task.dueDate);
+    $("formTitle").textContent = "Modifier la tâche";
+    $("submitLabel").textContent = "Enregistrer les modifications";
+    $("cancelEditBtn").classList.remove("hidden");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  function resetForm(){
+    editingId = null;
+    $("taskForm").reset();
+    $("status").value = "todo";
+    $("priority").value = "normal";
+    $("formTitle").textContent = "Nouvelle tâche";
+    $("submitLabel").textContent = "Ajouter la tâche";
+    $("cancelEditBtn").classList.add("hidden");
+  }
+  function createTaskCard(task){
+    const card = document.createElement("article");
+    card.className = "task";
+    card.draggable = true;
+    card.dataset.id = task.id;
+    card.addEventListener("dragstart", e=>{
+      draggedId = task.id;
+      card.classList.add("dragging");
+      e.dataTransfer?.setData("text/plain", task.id);
+    });
+    card.addEventListener("dragend", ()=>{
+      draggedId = null;
+      card.classList.remove("dragging");
+    });
+
+    const title = document.createElement("div");
+    title.className = "task-title";
+    title.textContent = task.title || "(Sans titre)";
+    card.appendChild(title);
+
+    if(task.description){
+      const desc = document.createElement("div");
+      desc.className = "task-desc";
+      desc.textContent = task.description;
+      card.appendChild(desc);
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "task-meta";
+    const priority = document.createElement("span");
+    priority.className = "tag " + (task.priority || "normal");
+    priority.textContent = task.priority === "high" ? "Priorité haute" : task.priority === "low" ? "Priorité basse" : "Priorité normale";
+    meta.appendChild(priority);
+    if(task.dueDate){
+      const due = document.createElement("span");
+      due.className = "tag" + (isOverdue(task) ? " overdue" : "");
+      due.textContent = "Échéance " + shortDate(task.dueDate);
+      meta.appendChild(due);
+    }
+    card.appendChild(meta);
+
+    const actions = document.createElement("div");
+    actions.className = "task-actions";
+    const index = FLOW.indexOf(task.status);
+    if(index > 0) actions.appendChild(makeButton("←",()=>moveTask(task.id,"prev")));
+    if(index < FLOW.length-1) actions.appendChild(makeButton("→",()=>moveTask(task.id,"next")));
+    actions.appendChild(makeButton("Modifier",()=>editTask(task.id)));
+    if(task.status === "done") actions.appendChild(makeButton("Archiver",()=>archiveTask(task.id)));
+    actions.appendChild(makeButton("Supprimer",()=>deleteTask(task.id),"danger"));
+    card.appendChild(actions);
+    return card;
+  }
+  function renderBoard(){
+    const board = $("board");
+    board.innerHTML = "";
+    FLOW.forEach(status=>{
+      const column = document.createElement("section");
+      column.className = "column";
+      const header = document.createElement("div");
+      header.className = "column-header";
+      const left = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "column-title";
+      title.textContent = STATUS[status].label;
+      const help = document.createElement("div");
+      help.className = "column-help";
+      help.textContent = STATUS[status].help;
+      left.append(title,help);
+      const count = document.createElement("span");
+      count.className = "count";
+      const listTasks = sorted(tasks.filter(t=>!t.archived && t.status === status));
+      count.textContent = String(listTasks.length);
+      header.append(left,count);
+
+      const list = document.createElement("div");
+      list.className = "task-list";
+      list.dataset.status = status;
+      list.addEventListener("dragover",e=>{e.preventDefault();list.classList.add("drag-over");});
+      list.addEventListener("dragleave",()=>list.classList.remove("drag-over"));
+      list.addEventListener("drop",e=>{
+        e.preventDefault();
+        list.classList.remove("drag-over");
+        const id = draggedId || e.dataTransfer?.getData("text/plain");
+        const task = tasks.find(t=>t.id === id);
+        if(task && !task.archived){ task.status = status; saveCloud(); }
+      });
+      if(!listTasks.length){
+        const empty = document.createElement("div");
+        empty.className = "muted";
+        empty.style.padding = "8px";
+        empty.textContent = "Aucune tâche";
+        list.appendChild(empty);
+      }else listTasks.forEach(t=>list.appendChild(createTaskCard(t)));
+      column.append(header,list);
+      board.appendChild(column);
+    });
+  }
+  function renderArchive(){
+    const archived = [...tasks].filter(t=>t.archived).sort((a,b)=>String(b.archivedAt||"").localeCompare(String(a.archivedAt||"")));
+    $("archiveCount").textContent = String(archived.length);
+    $("archiveCard").classList.toggle("hidden", archived.length === 0);
+    const list = $("archiveList");
+    list.innerHTML = "";
+    archived.forEach(task=>{
+      const row = document.createElement("div");
+      row.className = "archive-item";
+      const info = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = task.title || "(Sans titre)";
+      const date = document.createElement("div");
+      date.className = "muted";
+      date.textContent = task.archivedAt ? "Archivée le " + new Date(task.archivedAt).toLocaleString("fr-FR") : "Archivée";
+      info.append(title,date);
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      actions.append(makeButton("Restaurer",()=>restoreTask(task.id)),makeButton("Supprimer",()=>deleteTask(task.id),"danger"));
+      row.append(info,actions);
+      list.appendChild(row);
+    });
+  }
+  function render(){
+    renderBoard();
+    renderArchive();
+    const overdue = tasks.filter(t=>!t.archived && isOverdue(t)).length;
+    $("overdueStatus").textContent = overdue ? `${overdue} tâche${overdue>1?"s":""} en retard` : "Aucun retard";
+    $("overdueStatus").className = "status " + (overdue ? "error" : "ok");
+  }
+
+  $("taskForm").addEventListener("submit", e=>{
+    e.preventDefault();
+    const title = $("title").value.trim();
+    if(!title) return;
+    const dueDate = safeDate($("dueDate").value);
+    if($("dueDate").value && !dueDate){
+      alert("La date limite est invalide.");
+      return;
+    }
+    if(editingId){
+      const task = tasks.find(t=>t.id === editingId);
+      if(task){
+        task.title = title;
+        task.description = $("description").value.trim();
+        task.status = FLOW.includes($("status").value) ? $("status").value : "todo";
+        task.priority = ["high","normal","low"].includes($("priority").value) ? $("priority").value : "normal";
+        task.dueDate = dueDate;
+        task.updatedAt = new Date().toISOString();
+      }
+    }else{
+      tasks.push({
+        id:"t_"+Date.now()+"_"+Math.random().toString(16).slice(2),
+        title,
+        description:$("description").value.trim(),
+        status:FLOW.includes($("status").value) ? $("status").value : "todo",
+        priority:["high","normal","low"].includes($("priority").value) ? $("priority").value : "normal",
+        dueDate,
+        createdAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString(),
+        archived:false,
+        archivedAt:""
+      });
+    }
+    resetForm();
+    saveCloud();
+  });
+  $("cancelEditBtn").addEventListener("click",resetForm);
+  $("logoutBtn").addEventListener("click",()=>auth.signOut());
+  $("loginForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    $("loginError").textContent = "";
+    try{
+      await auth.signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value);
+    }catch(error){
+      $("loginError").textContent = "Connexion impossible : " + (error.message || "vérifie les identifiants.");
+    }
+  });
+
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      currentUser = user;
+      loginScreen.classList.add("hidden");
+      app.classList.remove("hidden");
+      loadLocal();
+      render();
+      startRealtime();
+    }else{
+      currentUser = null;
+      if(unsubscribe){unsubscribe();unsubscribe=null;}
+      app.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+      setSync("Déconnecté");
+    }
+  });
+})();
+</script>
+</body>
+</html>
