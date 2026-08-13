@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#064e3b">
+<title>Inovtec Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="inovtec-shell.css?v=20260814-1">
+</head>
+<body>
+<div class="iv-shell">
+  <aside class="iv-sidebar">
+    <a class="iv-brand" href="index.html"><span class="iv-brand-mark"></span><span class="iv-brand-copy"><strong>INOVTEC</strong><span>DASHBOARD</span></span></a>
+    <nav id="desktopNav" class="iv-nav" aria-label="Navigation principale"></nav>
+    <div class="iv-sidebar-note"><strong>Inovtec Construction</strong><br>Interface unifiée. Les outils métiers restent inchangés.</div>
+  </aside>
+  <section class="iv-main">
+    <header class="iv-topbar">
+      <div class="iv-top-left"><span class="iv-status-dot"></span><strong id="topTitle">Inovtec</strong><span id="syncMirror">Interface opérationnelle</span></div>
+      <div class="iv-top-actions"><button id="refreshPage" class="iv-small-btn" type="button">↻ <span class="iv-hide-mobile">Actualiser</span></button><button id="openOriginal" class="iv-small-btn" type="button">↗ <span class="iv-hide-mobile">Vue originale</span></button><span class="iv-avatar">IN</span></div>
+    </header>
+    <section class="iv-hero">
+      <div class="iv-hero-copy"><div id="eyebrow" class="iv-eyebrow">INOVTEC</div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Outil Inovtec</p></div>
+      <div class="iv-date"><strong id="dateLabel">—</strong><span id="timeLabel">—</span></div>
+      <div class="iv-geometry" aria-hidden="true"><span class="iv-dots"></span><span class="iv-circle a"></span><span class="iv-circle b"></span><span class="iv-rect a"></span><span class="iv-rect b"></span><span class="iv-diag one"></span><span class="iv-diag two"></span><span class="iv-diag three"></span></div>
+    </section>
+    <div id="quickTools" class="iv-toolbar"><span class="iv-live">Chargement des outils…</span></div>
+    <section class="iv-stage"><div id="loading" class="iv-loading">Ouverture de la page…</div><iframe id="legacyFrame" class="iv-frame" title="Outil Inovtec" allow="camera; geolocation"></iframe></section>
+  </section>
+</div>
+<nav id="mobileNav" class="iv-mobile-nav" aria-label="Navigation mobile"></nav>
+<script src="inovtec-shell.js?v=20260814-1"></script>
+</body>
+</html>
