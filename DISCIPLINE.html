@@ -11,14 +11,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="inovtec-common.css">
+  <link rel="stylesheet" href="inovtec-common.css?v=20260813-2">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="firebase-config.js"></script>
+  <script src="firebase-config.js?v=20260813-2"></script>
   <style>
+    .hidden{display:none!important}
     .level{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}
     .level.observation{background:#dbeafe;color:#1d4ed8}
     .level.avertissement{background:#fef3c7;color:#92400e}
@@ -33,6 +34,18 @@
     .photo-name{margin-top:6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#4b5563}
     .photo-remove{position:absolute;top:10px;right:10px;border:0;border-radius:999px;width:28px;height:28px;background:rgba(127,29,29,.92);color:#fff;font-weight:800;cursor:pointer}
     .photo-count{display:inline-flex;min-width:24px;justify-content:center;padding:3px 7px;border-radius:999px;background:#ecfdf5;color:#166534;font-size:11px;font-weight:800}
+    .sync-note{font-size:11px;color:#64748b;margin-top:6px}
+    .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    button,input,select,textarea{font-size:16px}
+    @media(min-width:700px){button,input,select,textarea{font-size:inherit}}
+    @media(max-width:680px){
+      .topbar{align-items:flex-start}
+      .topbar-actions{width:100%;display:flex;flex-wrap:wrap}
+      .topbar-actions .btn{flex:1 1 auto;min-height:42px}
+      .page{padding-left:10px;padding-right:10px}
+      .grid.grid-2,.grid.grid-3{grid-template-columns:1fr}
+      table{min-width:850px}
+    }
   </style>
 </head>
 <body>
@@ -40,16 +53,25 @@
     <form id="loginForm" class="login-card">
       <h1>Connexion Inovtec</h1>
       <p>L’accès aux dossiers disciplinaires est protégé.</p>
-      <div class="field"><label for="loginEmail">Adresse email</label><input id="loginEmail" type="email" autocomplete="username" required></div>
-      <div class="field" style="margin-top:10px"><label for="loginPassword">Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
-      <button class="btn btn-primary" style="width:100%;margin-top:16px" type="submit">Se connecter</button>
+      <div class="field">
+        <label for="loginEmail">Adresse email</label>
+        <input id="loginEmail" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label for="loginPassword">Mot de passe</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+      </div>
+      <button id="loginBtn" class="btn btn-primary" style="width:100%;margin-top:16px" type="submit">Se connecter</button>
       <div id="loginError" class="muted" role="alert" style="margin-top:10px;color:#b91c1c"></div>
     </form>
   </div>
 
   <div id="app" class="hidden">
     <header class="topbar">
-      <div><h1>Gestion disciplinaire</h1><p>Suivi confidentiel des faits et des procédures</p></div>
+      <div>
+        <h1>Gestion disciplinaire</h1>
+        <p>Suivi confidentiel des faits et des procédures</p>
+      </div>
       <div class="topbar-actions">
         <a class="btn btn-secondary" href="index.html">← Accueil</a>
         <span id="syncStatus" class="status">Connexion…</span>
@@ -65,26 +87,38 @@
       </div>
 
       <section class="card" style="margin-top:14px">
-        <div class="section-title"><h2 id="formTitle">Nouveau dossier</h2><button id="cancelEditBtn" class="btn btn-secondary hidden" type="button">Annuler</button></div>
+        <div class="section-title">
+          <h2 id="formTitle">Nouveau dossier</h2>
+          <button id="cancelEditBtn" class="btn btn-secondary hidden" type="button">Annuler</button>
+        </div>
         <form id="recordForm">
           <div class="grid grid-3">
             <div class="field"><label for="agent">Agent *</label><input id="agent" required maxlength="150"></div>
             <div class="field"><label for="site">Chantier / site</label><input id="site" maxlength="150"></div>
             <div class="field"><label for="date">Date des faits *</label><input id="date" type="date" required></div>
-            <div class="field"><label for="niveau">Niveau</label>
-              <select id="niveau"><option>Observation</option><option>Avertissement</option><option>Mise en demeure</option><option>Procédure de licenciement</option></select>
+            <div class="field">
+              <label for="niveau">Niveau</label>
+              <select id="niveau">
+                <option>Observation</option>
+                <option>Avertissement</option>
+                <option>Mise en demeure</option>
+                <option>Procédure de licenciement</option>
+              </select>
             </div>
-            <div class="field"><label for="statut">Statut du dossier</label>
+            <div class="field">
+              <label for="statut">Statut du dossier</label>
               <select id="statut"><option>Ouvert</option><option>En cours</option><option>Clos</option></select>
             </div>
             <div class="field"><label for="responsable">Responsable du suivi</label><input id="responsable" maxlength="150"></div>
           </div>
+
           <div class="grid grid-2" style="margin-top:10px">
             <div class="field"><label for="motif">Motif *</label><input id="motif" required maxlength="250"></div>
             <div class="field"><label for="temoins">Témoins</label><input id="temoins" maxlength="250"></div>
             <div class="field"><label for="description">Description factuelle *</label><textarea id="description" required maxlength="4000" placeholder="Décrire les faits, les dates, les échanges et les éléments vérifiables."></textarea></div>
             <div class="field"><label for="suite">Suite donnée / prochaine action</label><textarea id="suite" maxlength="2000" placeholder="Entretien, courrier, délai de réponse, action corrective…"></textarea></div>
           </div>
+
           <div class="field photo-field">
             <label for="photos">Photos / éléments visuels</label>
             <div class="photo-picker">
@@ -93,7 +127,11 @@
             </div>
             <div id="photoPreview" class="photo-grid"></div>
           </div>
-          <button id="saveBtn" class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Enregistrer</span></button>
+
+          <button id="saveBtn" class="btn btn-primary" type="submit" style="margin-top:12px">
+            <span id="submitLabel">Enregistrer</span>
+          </button>
+          <div class="sync-note">Firebase est la source principale. Le navigateur conserve seulement une copie de secours locale.</div>
         </form>
       </section>
 
@@ -110,207 +148,292 @@
   </div>
 
 <script>
-(() => {
+(function(){
   "use strict";
-  if (!window.INOVTEC_FIREBASE_CONFIG) {
-    document.getElementById("loginError").textContent = "Configuration Firebase introuvable.";
+
+  var loginError=document.getElementById("loginError");
+  function fatal(message){
+    if(loginError)loginError.textContent=message;
+    console.error(message);
+  }
+
+  if(!window.INOVTEC_FIREBASE_CONFIG){
+    fatal("Configuration Firebase introuvable.");
     return;
   }
-  if(!firebase.apps.length) firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
-  const auth=firebase.auth();
-  const db=firebase.firestore();
-  const storage=firebase.storage();
-  const LOCAL_KEY="inovtec_discipline_v2";
-  const LEGACY_LOCAL_KEY="discipline";
-  const STORAGE_VERSION=3;
-  const MAX_PHOTOS=10;
-  const MAX_PHOTO_SIZE=12*1024*1024;
-  let records=[];
-  let currentUser=null;
-  let unsubscribe=null;
-  let editingId=null;
-  let existingPhotos=[];
-  let pendingPhotos=[];
-  let removedPhotoPaths=[];
-  const $=id=>document.getElementById(id);
+  if(!window.firebase || !firebase.initializeApp || !firebase.auth || !firebase.firestore){
+    fatal("Firebase n’a pas pu se charger. Vérifie la connexion Internet puis recharge la page.");
+    return;
+  }
 
-  function uid(){return "disc_"+Date.now()+"_"+Math.random().toString(16).slice(2);}
-  function today(){return new Date().toISOString().slice(0,10);}
+  try{
+    if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+  }catch(error){
+    fatal("Impossible d’initialiser Firebase : "+(error.message||error));
+    return;
+  }
+
+  var auth=firebase.auth();
+  var db=firebase.firestore();
+  var storage=null;
+  try{
+    if(typeof firebase.storage==="function")storage=firebase.storage();
+  }catch(error){
+    console.warn("Firebase Storage indisponible",error);
+  }
+
+  var LOCAL_KEY="inovtec_discipline_v2";
+  var LEGACY_LOCAL_KEY="discipline";
+  var BACKUP_KEY="inovtec_discipline_backup_20260813";
+  var STORAGE_VERSION=4;
+  var MAX_PHOTOS=10;
+  var MAX_PHOTO_SIZE=12*1024*1024;
+
+  var records=[];
+  var currentUser=null;
+  var unsubscribe=null;
+  var editingId=null;
+  var existingPhotos=[];
+  var pendingPhotos=[];
+  var removedPhotoPaths=[];
+  var bootstrapping=false;
+
+  function $(id){return document.getElementById(id);}
   function nowIso(){return new Date().toISOString();}
-  function setSync(text,type=""){$("syncStatus").textContent=text;$("syncStatus").className="status"+(type?" "+type:"");}
+  function today(){return nowIso().slice(0,10);}
+  function uid(){return "disc_"+Date.now()+"_"+Math.random().toString(16).slice(2);}
+  function setSync(text,type){
+    var el=$("syncStatus");
+    if(!el)return;
+    el.textContent=text;
+    el.className="status"+(type?" "+type:"");
+  }
+  function setLoginBusy(busy){
+    var btn=$("loginBtn");
+    if(!btn)return;
+    btn.disabled=busy;
+    btn.textContent=busy?"Connexion…":"Se connecter";
+  }
+  function safeText(value){return value==null?"":String(value);}
   function hashString(value){
-    let hash=2166136261;
-    const text=String(value||"");
-    for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
+    var hash=2166136261;
+    var text=safeText(value);
+    for(var i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
     return (hash>>>0).toString(16);
   }
   function fingerprint(item){
+    item=item||{};
     return [
-      item?.agent||"",item?.site||"",item?.date||"",item?.motif||item?.reason||"",
-      item?.description||item?.desc||"",item?.responsable||item?.resp||""
+      item.agent||"",item.site||"",item.date||"",item.motif||item.reason||"",
+      item.description||item.desc||"",item.responsable||item.resp||""
     ].join("|").toLowerCase().trim();
   }
-  function normalizeRecord(item,index=0){
-    if(!item||typeof item!=="object")return null;
-    const createdAt=item.createdAt||item.updatedAt||nowIso();
-    const normalized={
-      id:item.id||("disc_legacy_"+hashString(fingerprint(item)||JSON.stringify(item)||String(index))),
-      agent:String(item.agent||"").trim(),
-      site:String(item.site||"").trim(),
-      date:String(item.date||"").trim(),
-      niveau:String(item.niveau||item.level||"Observation").trim()||"Observation",
-      statut:String(item.statut||"Ouvert").trim()||"Ouvert",
-      responsable:String(item.responsable||item.resp||"").trim(),
-      motif:String(item.motif||item.reason||"").trim(),
-      temoins:String(item.temoins||item.tem||"").trim(),
-      description:String(item.description||item.desc||"").trim(),
-      suite:String(item.suite||"").trim(),
-      photos:Array.isArray(item.photos)?item.photos.filter(Boolean):[],
-      createdAt,
-      updatedAt:item.updatedAt||createdAt,
-      createdBy:item.createdBy||"",
-      updatedBy:item.updatedBy||""
+  function normalizePhoto(photo){
+    if(!photo || typeof photo!=="object")return null;
+    return {
+      name:safeText(photo.name||"Photo"),
+      type:safeText(photo.type||""),
+      size:Number(photo.size)||0,
+      path:safeText(photo.path||""),
+      url:safeText(photo.url||""),
+      uploadedAt:safeText(photo.uploadedAt||"")
     };
-    if(!normalized.agent&&!normalized.motif&&!normalized.description)return null;
-    return normalized;
   }
-  function parseLocalKey(key){
-    try{
-      const raw=localStorage.getItem(key),parsed=raw?JSON.parse(raw):[];
-      if(!Array.isArray(parsed))return [];
-      return parsed.map((item,index)=>normalizeRecord(item,index)).filter(Boolean);
-    }catch(error){console.warn("Lecture locale ignorée",key,error);return [];}
+  function normalizeRecord(item,index){
+    if(!item || typeof item!=="object")return null;
+    var createdAt=safeText(item.createdAt||item.updatedAt||nowIso());
+    var photos=Array.isArray(item.photos)?item.photos.map(normalizePhoto).filter(Boolean):[];
+    var record={
+      id:safeText(item.id||("disc_legacy_"+hashString(fingerprint(item)||JSON.stringify(item)||String(index||0)))),
+      agent:safeText(item.agent||"").trim(),
+      site:safeText(item.site||"").trim(),
+      date:safeText(item.date||"").trim(),
+      niveau:safeText(item.niveau||item.level||"Observation").trim()||"Observation",
+      statut:safeText(item.statut||"Ouvert").trim()||"Ouvert",
+      responsable:safeText(item.responsable||item.resp||"").trim(),
+      motif:safeText(item.motif||item.reason||"").trim(),
+      temoins:safeText(item.temoins||item.tem||"").trim(),
+      description:safeText(item.description||item.desc||"").trim(),
+      suite:safeText(item.suite||"").trim(),
+      photos:photos,
+      createdAt:createdAt,
+      updatedAt:safeText(item.updatedAt||createdAt),
+      createdBy:safeText(item.createdBy||""),
+      updatedBy:safeText(item.updatedBy||"")
+    };
+    if(!record.agent && !record.motif && !record.description)return null;
+    return record;
   }
-  function readAllLocalRecords(){return mergeRecords(parseLocalKey(LOCAL_KEY),parseLocalKey(LEGACY_LOCAL_KEY));}
-  function loadLocal(){records=readAllLocalRecords();}
-  function saveLocal(){
-    try{localStorage.setItem(LOCAL_KEY,JSON.stringify(records));}
-    catch(error){console.warn("Sauvegarde locale impossible",error);}
-  }
-  function recordStamp(record){return String(record?.updatedAt||record?.createdAt||record?.date||"");}
-  function sameRecord(a,b){return JSON.stringify(a||{})===JSON.stringify(b||{});}
-  function mergeRecords(...lists){
-    const mergedById=new Map();
-    const idByFingerprint=new Map();
-    lists.flat().filter(Boolean).forEach((raw,index)=>{
-      const record=normalizeRecord(raw,index);if(!record)return;
-      const fp=fingerprint(record);
-      const equivalentId=fp?idByFingerprint.get(fp):null;
-      const key=equivalentId||record.id;
-      const current=mergedById.get(key);
-      if(!current||recordStamp(record)>=recordStamp(current)){
-        const next={...record,id:key};
-        mergedById.set(key,next);
-        if(fp)idByFingerprint.set(fp,key);
-      }
+  function stamp(record){return safeText((record&&record.updatedAt)||(record&&record.createdAt)||(record&&record.date)||"");}
+  function mergeRecords(){
+    var merged={};
+    var fpToId={};
+    var lists=Array.prototype.slice.call(arguments);
+    lists.forEach(function(list){
+      (Array.isArray(list)?list:[]).forEach(function(raw,index){
+        var record=normalizeRecord(raw,index);
+        if(!record)return;
+        var fp=fingerprint(record);
+        var key=(fp&&fpToId[fp])||record.id;
+        var current=merged[key];
+        if(!current || stamp(record)>=stamp(current)){
+          record.id=key;
+          merged[key]=record;
+          if(fp)fpToId[fp]=key;
+        }
+      });
     });
-    return [...mergedById.values()];
+    return Object.keys(merged).map(function(key){return merged[key];});
   }
   function recordsToMap(list){
-    const result={};
-    list.forEach(record=>{if(record?.id)result[record.id]={...record};});
-    return result;
+    var map={};
+    (list||[]).forEach(function(record){if(record&&record.id)map[record.id]=record;});
+    return map;
   }
   function recordsFromCloudData(data){
-    if(data&&data.storageVersion>=STORAGE_VERSION&&data.recordsById&&typeof data.recordsById==="object"){
-      return Object.values(data.recordsById).map((item,index)=>normalizeRecord(item,index)).filter(Boolean);
+    data=data||{};
+    var modern=[];
+    if(data.recordsById && typeof data.recordsById==="object"){
+      modern=Object.keys(data.recordsById).map(function(key){return data.recordsById[key];});
     }
-    const modern=data?.recordsById&&typeof data.recordsById==="object"?Object.values(data.recordsById):[];
-    const legacy=Array.isArray(data?.records)?data.records:[];
+    if(Number(data.storageVersion)>=STORAGE_VERSION && data.recordsById && typeof data.recordsById==="object"){
+      return mergeRecords(modern);
+    }
+    var legacy=Array.isArray(data.records)?data.records:[];
     return mergeRecords(modern,legacy);
   }
-  function disciplineRef(){return db.collection("discipline").doc(currentUser.uid);}
-  function recordFieldPath(id){return new firebase.firestore.FieldPath("recordsById",id);}
-  async function migrateCloudAndLocal(){
-    setSync("Récupération et fusion des dossiers…");
-    const ref=disciplineRef();
-    const local=readAllLocalRecords();
-    const snap=await ref.get();
-    const data=snap.exists?snap.data():{};
-    const cloud=recordsFromCloudData(data);
-    const merged=mergeRecords(cloud,local);
-    records=merged;saveLocal();render();
+  function parseLocal(key){
+    try{
+      var raw=localStorage.getItem(key);
+      if(!raw)return [];
+      var parsed=JSON.parse(raw);
+      return Array.isArray(parsed)?parsed.map(normalizeRecord).filter(Boolean):[];
+    }catch(error){
+      console.warn("Lecture locale ignorée",key,error);
+      return [];
+    }
+  }
+  function readLocalRecords(){return mergeRecords(parseLocal(LOCAL_KEY),parseLocal(LEGACY_LOCAL_KEY));}
+  function backupLocalOnce(){
+    try{
+      if(localStorage.getItem(BACKUP_KEY))return;
+      var backup={
+        createdAt:nowIso(),
+        modernRaw:localStorage.getItem(LOCAL_KEY)||"",
+        legacyRaw:localStorage.getItem(LEGACY_LOCAL_KEY)||""
+      };
+      localStorage.setItem(BACKUP_KEY,JSON.stringify(backup));
+    }catch(error){console.warn("Sauvegarde de sécurité locale impossible",error);}
+  }
+  function saveLocalCache(){
+    try{localStorage.setItem(LOCAL_KEY,JSON.stringify(records));}
+    catch(error){console.warn("Copie locale impossible",error);}
+  }
+  function loadLocalCache(){
+    records=readLocalRecords();
+    render();
+  }
+  function disciplineRef(){
+    if(!currentUser)throw new Error("Utilisateur non connecté");
+    return db.collection("discipline").doc(currentUser.uid);
+  }
 
-    if(!snap.exists){
-      await ref.set({
-        recordsById:recordsToMap(merged),
-        storageVersion:STORAGE_VERSION,
-        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  async function bootstrapCloud(){
+    if(!currentUser || bootstrapping)return;
+    bootstrapping=true;
+    backupLocalOnce();
+    setSync("Connexion à Firebase…");
+    try{
+      var ref=disciplineRef();
+      var local=readLocalRecords();
+      var chosen=await db.runTransaction(async function(tx){
+        var snap=await tx.get(ref);
+        var data=snap.exists?snap.data():{};
+        var cloud=recordsFromCloudData(data);
+        var useCloud=cloud.length>0 || (snap.exists && Number(data.storageVersion)>=STORAGE_VERSION);
+        var selected=useCloud?cloud:local;
+        var needsMigration=!snap.exists || Number(data.storageVersion)<STORAGE_VERSION || !data.recordsById;
+        if(needsMigration){
+          tx.set(ref,{
+            recordsById:recordsToMap(selected),
+            storageVersion:STORAGE_VERSION,
+            migratedAt:firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+          },{merge:true});
+        }
+        return selected;
       });
-    }else if(data.storageVersion<STORAGE_VERSION||!data.recordsById){
-      await ref.set({
-        recordsById:recordsToMap(merged),
-        records:firebase.firestore.FieldValue.delete(),
+      records=mergeRecords(chosen);
+      saveLocalCache();
+      render();
+      startRealtimeListener();
+      setSync("Synchronisé sur Firebase • "+records.length+" dossier"+(records.length>1?"s":""),"ok");
+    }catch(error){
+      console.error("Initialisation Discipline",error);
+      loadLocalCache();
+      setSync("Firebase indisponible — copie locale affichée","warning");
+    }finally{
+      bootstrapping=false;
+    }
+  }
+
+  function startRealtimeListener(){
+    if(!currentUser)return;
+    if(unsubscribe){unsubscribe();unsubscribe=null;}
+    unsubscribe=disciplineRef().onSnapshot(function(snap){
+      if(!snap.exists){
+        records=[];
+        saveLocalCache();
+        render();
+        setSync("Synchronisé sur Firebase • 0 dossier","ok");
+        return;
+      }
+      var cloud=recordsFromCloudData(snap.data());
+      records=mergeRecords(cloud);
+      saveLocalCache();
+      render();
+      if(editingId && !records.some(function(r){return r.id===editingId;}))resetForm();
+      setSync("Synchronisé sur Firebase • "+records.length+" dossier"+(records.length>1?"s":""),"ok");
+    },function(error){
+      console.error("Synchronisation temps réel",error);
+      setSync("Synchronisation interrompue — copie locale conservée","warning");
+    });
+  }
+
+  async function saveRecordCloud(record){
+    if(!currentUser)throw new Error("Session expirée");
+    var ref=disciplineRef();
+    await db.runTransaction(async function(tx){
+      var snap=await tx.get(ref);
+      var data=snap.exists?snap.data():{};
+      var cloud=recordsFromCloudData(data);
+      var byId={};
+      cloud.forEach(function(r){byId[r.id]=r;});
+      byId[record.id]=record;
+      tx.set(ref,{
+        recordsById:byId,
         storageVersion:STORAGE_VERSION,
-        legacyMigratedAt:firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
       },{merge:true});
-    }else{
-      // En v3, chaque dossier est réinjecté séparément : aucun appareil n'écrase tout l'historique.
-      const cloudById=new Map(cloud.map(r=>[r.id,r]));
-      for(const record of merged){
-        const remote=cloudById.get(record.id);
-        if(!remote||!sameRecord(remote,record)){
-          await ref.update(recordFieldPath(record.id),record,"updatedAt",firebase.firestore.FieldValue.serverTimestamp());
-        }
-      }
-    }
-    try{localStorage.removeItem(LEGACY_LOCAL_KEY);}catch{}
-    setSync(`Synchronisé sur Firebase • ${records.length} dossier${records.length>1?"s":""}`,"ok");
+    });
   }
-  async function saveRecordCloud(record){
-    if(!currentUser)return false;
-    const ref=disciplineRef();
-    setSync("Enregistrement Firebase…");
-    try{
-      try{
-        await ref.update(
-          recordFieldPath(record.id),record,
-          "storageVersion",STORAGE_VERSION,
-          "updatedAt",firebase.firestore.FieldValue.serverTimestamp()
-        );
-      }catch(error){
-        const snap=await ref.get();
-        if(snap.exists)throw error;
-        await ref.set({
-          recordsById:{[record.id]:record},
-          storageVersion:STORAGE_VERSION,
-          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-      setSync(`Synchronisé sur Firebase • ${records.length} dossier${records.length>1?"s":""}`,"ok");
-      return true;
-    }catch(error){
-      console.error(error);setSync("Sauvegarde locale — synchronisation en attente","warning");return false;
-    }
-  }
+
   async function deleteRecordCloud(id){
-    if(!currentUser)return false;
-    try{
-      await disciplineRef().update(
-        recordFieldPath(id),firebase.firestore.FieldValue.delete(),
-        "storageVersion",STORAGE_VERSION,
-        "updatedAt",firebase.firestore.FieldValue.serverTimestamp()
-      );
-      setSync(`Synchronisé sur Firebase • ${records.length} dossier${records.length>1?"s":""}`,"ok");
-      return true;
-    }catch(error){
-      console.error(error);setSync("Suppression locale — synchronisation en attente","warning");return false;
-    }
-  }
-  async function startRealtime(){
-    if(unsubscribe){unsubscribe();unsubscribe=null;}
-    try{await migrateCloudAndLocal();}
-    catch(error){console.error(error);loadLocal();render();setSync("Mode local — connexion Firebase indisponible","warning");}
-    unsubscribe=disciplineRef().onSnapshot(snap=>{
+    if(!currentUser)throw new Error("Session expirée");
+    var ref=disciplineRef();
+    await db.runTransaction(async function(tx){
+      var snap=await tx.get(ref);
       if(!snap.exists)return;
-      const cloud=recordsFromCloudData(snap.data());
-      if(snap.data().storageVersion>=STORAGE_VERSION){
-        records=cloud;saveLocal();render();
-        if(editingId&&!records.some(r=>r.id===editingId))resetForm();
-      }
-      setSync(`Synchronisé sur Firebase • ${records.length} dossier${records.length>1?"s":""}`,"ok");
-    },error=>{console.error(error);setSync("Mode local — synchronisation interrompue","warning");});
+      var data=snap.data()||{};
+      var cloud=recordsFromCloudData(data);
+      var byId={};
+      cloud.forEach(function(r){if(r.id!==id)byId[r.id]=r;});
+      tx.set(ref,{
+        recordsById:byId,
+        storageVersion:STORAGE_VERSION,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:true});
+    });
   }
 
   function slugLevel(level){
@@ -320,262 +443,377 @@
     return"licenciement";
   }
   function safeFileName(name){
-    const clean=String(name||"photo").replace(/[\\/:*?"<>|]+/g,"_").replace(/\s+/g,"_");
+    var clean=safeText(name||"photo").replace(/[\\/:*?"<>|]+/g,"_").replace(/\s+/g,"_");
     return clean.slice(-120)||"photo";
   }
   function clearPhotoState(){
-    pendingPhotos.forEach(p=>{if(p.previewUrl)URL.revokeObjectURL(p.previewUrl);});
-    existingPhotos=[];pendingPhotos=[];removedPhotoPaths=[];
+    pendingPhotos.forEach(function(p){if(p.previewUrl)URL.revokeObjectURL(p.previewUrl);});
+    existingPhotos=[];
+    pendingPhotos=[];
+    removedPhotoPaths=[];
     if($("photos"))$("photos").value="";
     renderPhotoPreview();
   }
   function renderPhotoPreview(){
-    const wrap=$("photoPreview");if(!wrap)return;wrap.innerHTML="";
-    const total=existingPhotos.length+pendingPhotos.length;
-    $("photoHelp").textContent=`${total}/${MAX_PHOTOS} photo${total>1?"s":""} — 12 Mo maximum par photo.`;
-    existingPhotos.forEach((photo,index)=>{
-      const card=document.createElement("div");card.className="photo-item";
-      const img=document.createElement("img");img.src=photo.url||"";img.alt=photo.name||`Photo ${index+1}`;img.loading="lazy";
-      const name=document.createElement("div");name.className="photo-name";name.textContent=photo.name||`Photo ${index+1}`;
-      const remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.title="Retirer cette photo";remove.setAttribute("aria-label","Retirer cette photo");remove.textContent="×";
-      remove.addEventListener("click",()=>{const [removed]=existingPhotos.splice(index,1);if(removed?.path)removedPhotoPaths.push(removed.path);renderPhotoPreview();});
-      card.append(img,remove,name);wrap.appendChild(card);
+    var wrap=$("photoPreview");
+    if(!wrap)return;
+    wrap.innerHTML="";
+    var total=existingPhotos.length+pendingPhotos.length;
+    var help=$("photoHelp");
+    if(help){
+      if(!storage){
+        help.textContent="Photos indisponibles sur cet appareil. Les dossiers texte restent utilisables.";
+      }else{
+        help.textContent=total+"/"+MAX_PHOTOS+" photo"+(total>1?"s":"")+" — 12 Mo maximum par photo.";
+      }
+    }
+    existingPhotos.forEach(function(photo,index){
+      var card=document.createElement("div");card.className="photo-item";
+      var img=document.createElement("img");img.src=photo.url||"";img.alt=photo.name||("Photo "+(index+1));img.loading="lazy";
+      var name=document.createElement("div");name.className="photo-name";name.textContent=photo.name||("Photo "+(index+1));
+      var remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.textContent="×";remove.setAttribute("aria-label","Retirer cette photo");
+      remove.addEventListener("click",function(){
+        var removed=existingPhotos.splice(index,1)[0];
+        if(removed&&removed.path)removedPhotoPaths.push(removed.path);
+        renderPhotoPreview();
+      });
+      card.appendChild(img);card.appendChild(remove);card.appendChild(name);wrap.appendChild(card);
     });
-    pendingPhotos.forEach((photo,index)=>{
-      const card=document.createElement("div");card.className="photo-item";
-      const img=document.createElement("img");img.src=photo.previewUrl;img.alt=photo.file.name||`Nouvelle photo ${index+1}`;
-      const name=document.createElement("div");name.className="photo-name";name.textContent=photo.file.name||`Nouvelle photo ${index+1}`;
-      const remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.title="Retirer cette photo";remove.setAttribute("aria-label","Retirer cette photo");remove.textContent="×";
-      remove.addEventListener("click",()=>{const [removed]=pendingPhotos.splice(index,1);if(removed?.previewUrl)URL.revokeObjectURL(removed.previewUrl);renderPhotoPreview();});
-      card.append(img,remove,name);wrap.appendChild(card);
+    pendingPhotos.forEach(function(photo,index){
+      var card=document.createElement("div");card.className="photo-item";
+      var img=document.createElement("img");img.src=photo.previewUrl;img.alt=photo.file.name||("Nouvelle photo "+(index+1));
+      var name=document.createElement("div");name.className="photo-name";name.textContent=photo.file.name||("Nouvelle photo "+(index+1));
+      var remove=document.createElement("button");remove.type="button";remove.className="photo-remove";remove.textContent="×";remove.setAttribute("aria-label","Retirer cette photo");
+      remove.addEventListener("click",function(){
+        var removed=pendingPhotos.splice(index,1)[0];
+        if(removed&&removed.previewUrl)URL.revokeObjectURL(removed.previewUrl);
+        renderPhotoPreview();
+      });
+      card.appendChild(img);card.appendChild(remove);card.appendChild(name);wrap.appendChild(card);
     });
   }
+
   function resetForm(){
-    editingId=null;$("recordForm").reset();clearPhotoState();$("date").value=today();$("niveau").value="Observation";$("statut").value="Ouvert";
-    $("formTitle").textContent="Nouveau dossier";$("submitLabel").textContent="Enregistrer";$("cancelEditBtn").classList.add("hidden");$("saveBtn").disabled=false;
+    editingId=null;
+    $("recordForm").reset();
+    clearPhotoState();
+    $("date").value=today();
+    $("niveau").value="Observation";
+    $("statut").value="Ouvert";
+    $("formTitle").textContent="Nouveau dossier";
+    $("submitLabel").textContent="Enregistrer";
+    $("cancelEditBtn").classList.add("hidden");
+    $("saveBtn").disabled=false;
   }
   function editRecord(id){
-    const r=records.find(x=>x.id===id);if(!r)return;
-    clearPhotoState();editingId=id;
-    ["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(field=>$(field).value=r[field]||"");
-    existingPhotos=Array.isArray(r.photos)?r.photos.map(p=>({...p})):[];renderPhotoPreview();
-    $("formTitle").textContent="Modifier le dossier";$("submitLabel").textContent="Enregistrer les modifications";$("cancelEditBtn").classList.remove("hidden");
+    var r=records.find(function(x){return x.id===id;});
+    if(!r)return;
+    clearPhotoState();
+    editingId=id;
+    ["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(function(field){
+      $(field).value=r[field]||"";
+    });
+    existingPhotos=Array.isArray(r.photos)?r.photos.map(function(p){return Object.assign({},p);}):[];
+    renderPhotoPreview();
+    $("formTitle").textContent="Modifier le dossier";
+    $("submitLabel").textContent="Enregistrer les modifications";
+    $("cancelEditBtn").classList.remove("hidden");
     window.scrollTo({top:0,behavior:"smooth"});
   }
+
   async function deleteStoredPhotos(paths){
-    const unique=[...new Set((paths||[]).filter(Boolean))];
+    if(!storage)return;
+    var unique=Array.from(new Set((paths||[]).filter(Boolean)));
     if(!unique.length)return;
-    await Promise.allSettled(unique.map(path=>storage.ref().child(path).delete()));
+    await Promise.allSettled(unique.map(function(path){return storage.ref().child(path).delete();}));
   }
   async function deleteRecord(id){
-    const r=records.find(x=>x.id===id);if(!r||!confirm(`Supprimer définitivement le dossier de ${r.agent} ?`))return;
-    const paths=(Array.isArray(r.photos)?r.photos:[]).map(p=>p.path).filter(Boolean);
-    const previous=[...records];
-    records=records.filter(x=>x.id!==id);saveLocal();render();if(editingId===id)resetForm();
-    const saved=await deleteRecordCloud(id);
-    if(saved)await deleteStoredPhotos(paths);
-    else{records=previous;saveLocal();render();alert("La suppression n’a pas pu être synchronisée. Le dossier a été restauré.");}
+    var r=records.find(function(x){return x.id===id;});
+    if(!r || !confirm("Supprimer définitivement le dossier de "+r.agent+" ?"))return;
+    var paths=(Array.isArray(r.photos)?r.photos:[]).map(function(p){return p.path;}).filter(Boolean);
+    setSync("Suppression sur Firebase…");
+    try{
+      await deleteRecordCloud(id);
+      records=records.filter(function(x){return x.id!==id;});
+      saveLocalCache();
+      render();
+      if(editingId===id)resetForm();
+      deleteStoredPhotos(paths).catch(function(error){console.warn("Suppression photo",error);});
+      setSync("Synchronisé sur Firebase • "+records.length+" dossier"+(records.length>1?"s":""),"ok");
+    }catch(error){
+      console.error(error);
+      setSync("Suppression impossible","warning");
+      alert("La suppression n’a pas pu être enregistrée dans Firebase.");
+    }
   }
+
   async function uploadPendingPhotos(recordId){
-    const uploaded=[];
-    for(let i=0;i<pendingPhotos.length;i++){
-      const file=pendingPhotos[i].file;
-      setSync(`Envoi des photos ${i+1}/${pendingPhotos.length}…`);
-      const path=`discipline/${currentUser.uid}/${recordId}/${Date.now()}_${Math.random().toString(16).slice(2)}_${safeFileName(file.name)}`;
-      const ref=storage.ref().child(path);
-      const snap=await ref.put(file,{contentType:file.type||"application/octet-stream",customMetadata:{recordId}});
-      const url=await snap.ref.getDownloadURL();
-      uploaded.push({name:file.name||"Photo",type:file.type||"",size:file.size||0,path,url,uploadedAt:nowIso()});
+    if(!pendingPhotos.length)return [];
+    if(!storage)throw new Error("Firebase Storage n’est pas disponible sur cet appareil.");
+    var uploaded=[];
+    for(var i=0;i<pendingPhotos.length;i++){
+      var file=pendingPhotos[i].file;
+      setSync("Envoi des photos "+(i+1)+"/"+pendingPhotos.length+"…");
+      var path="discipline/"+currentUser.uid+"/"+recordId+"/"+Date.now()+"_"+Math.random().toString(16).slice(2)+"_"+safeFileName(file.name);
+      var ref=storage.ref().child(path);
+      var snap=await ref.put(file,{contentType:file.type||"application/octet-stream",customMetadata:{recordId:recordId}});
+      var url=await snap.ref.getDownloadURL();
+      uploaded.push({name:file.name||"Photo",type:file.type||"",size:file.size||0,path:path,url:url,uploadedAt:nowIso()});
     }
     return uploaded;
   }
 
   function loadImage(src){
-    return new Promise((resolve,reject)=>{
-      const img=new Image();
-      img.onload=()=>resolve(img);img.onerror=()=>reject(new Error("Image inaccessible"));img.src=src;
+    return new Promise(function(resolve,reject){
+      var img=new Image();
+      img.onload=function(){resolve(img);};
+      img.onerror=function(){reject(new Error("Image inaccessible"));};
+      img.src=src;
     });
   }
   async function photoForPdf(photo){
-    const response=await fetch(photo.url);
+    var response=await fetch(photo.url);
     if(!response.ok)throw new Error("Téléchargement de la photo impossible");
-    const blob=await response.blob();
-    const objectUrl=URL.createObjectURL(blob);
+    var blob=await response.blob();
+    var objectUrl=URL.createObjectURL(blob);
     try{
-      const img=await loadImage(objectUrl);
-      const max=1600,ratio=Math.min(1,max/Math.max(img.naturalWidth||1,img.naturalHeight||1));
-      const canvas=document.createElement("canvas");
-      canvas.width=Math.max(1,Math.round((img.naturalWidth||1)*ratio));canvas.height=Math.max(1,Math.round((img.naturalHeight||1)*ratio));
-      const ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      var img=await loadImage(objectUrl);
+      var max=1600;
+      var ratio=Math.min(1,max/Math.max(img.naturalWidth||1,img.naturalHeight||1));
+      var canvas=document.createElement("canvas");
+      canvas.width=Math.max(1,Math.round((img.naturalWidth||1)*ratio));
+      canvas.height=Math.max(1,Math.round((img.naturalHeight||1)*ratio));
+      var ctx=canvas.getContext("2d");
+      ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
       return {data:canvas.toDataURL("image/jpeg",0.86),width:canvas.width,height:canvas.height};
-    }finally{URL.revokeObjectURL(objectUrl);}
+    }finally{
+      URL.revokeObjectURL(objectUrl);
+    }
   }
+
   async function generatePdf(id){
-    const r=records.find(x=>x.id===id);if(!r)return;
-    if(!window.jspdf?.jsPDF){alert("Le générateur PDF n’est pas disponible. Recharge la page puis réessaie.");return;}
+    var r=records.find(function(x){return x.id===id;});
+    if(!r)return;
+    if(!window.jspdf || !window.jspdf.jsPDF){
+      alert("Le générateur PDF n’est pas disponible. Recharge la page puis réessaie.");
+      return;
+    }
     setSync("Génération du PDF…");
     try{
-      const {jsPDF}=window.jspdf;
-      const pdf=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
-      const margin=15,pageWidth=210,pageHeight=297,contentWidth=pageWidth-margin*2;
-      let y=18;
-      const ensureSpace=needed=>{if(y+needed>pageHeight-margin){pdf.addPage();y=18;}};
-      const addTitle=text=>{ensureSpace(12);pdf.setFont("helvetica","bold");pdf.setFontSize(13);pdf.setTextColor(22,101,52);pdf.text(text,margin,y);pdf.setTextColor(17,24,39);y+=7;};
-      const addField=(label,value)=>{
-        const safe=String(value||"—");
+      var jsPDF=window.jspdf.jsPDF;
+      var pdf=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+      var margin=15,pageWidth=210,pageHeight=297,contentWidth=pageWidth-margin*2,y=18;
+      function ensureSpace(needed){if(y+needed>pageHeight-margin){pdf.addPage();y=18;}}
+      function addTitle(text){
+        ensureSpace(12);pdf.setFont("helvetica","bold");pdf.setFontSize(13);pdf.setTextColor(22,101,52);pdf.text(text,margin,y);pdf.setTextColor(17,24,39);y+=7;
+      }
+      function addField(label,value){
+        var safe=safeText(value)||"—";
         pdf.setFontSize(10);pdf.setFont("helvetica","bold");
-        const labelWidth=pdf.getTextWidth(label+" : ")+2;
-        const lines=pdf.splitTextToSize(safe,Math.max(30,contentWidth-labelWidth));
+        var labelWidth=pdf.getTextWidth(label+" : ")+2;
+        var lines=pdf.splitTextToSize(safe,Math.max(30,contentWidth-labelWidth));
         ensureSpace(Math.max(6,lines.length*5));
         pdf.text(label+" :",margin,y);pdf.setFont("helvetica","normal");pdf.text(lines,margin+labelWidth,y);y+=Math.max(6,lines.length*5);
-      };
-      const addBlock=(title,value)=>{
-        addTitle(title);
-        pdf.setFont("helvetica","normal");pdf.setFontSize(10);
-        const lines=pdf.splitTextToSize(String(value||"—"),contentWidth-6);
-        let cursor=0;
+      }
+      function addBlock(title,value){
+        addTitle(title);pdf.setFont("helvetica","normal");pdf.setFontSize(10);
+        var lines=pdf.splitTextToSize(safeText(value)||"—",contentWidth-6),cursor=0;
         while(cursor<lines.length){
           ensureSpace(22);
-          const available=Math.max(1,Math.floor((pageHeight-margin-y-8)/5));
-          const slice=lines.slice(cursor,cursor+available);
-          const height=Math.max(14,slice.length*5+7);
+          var available=Math.max(1,Math.floor((pageHeight-margin-y-8)/5));
+          var slice=lines.slice(cursor,cursor+available);
+          var height=Math.max(14,slice.length*5+7);
           pdf.setDrawColor(209,213,219);pdf.roundedRect(margin,y-2,contentWidth,height,2,2);
           pdf.text(slice,margin+3,y+3);y+=height+5;cursor+=slice.length;
           if(cursor<lines.length){pdf.addPage();y=18;}
         }
-      };
+      }
 
       pdf.setFont("helvetica","bold");pdf.setFontSize(20);pdf.setTextColor(22,101,52);pdf.text("Dossier disciplinaire",margin,y);y+=10;pdf.setTextColor(17,24,39);
-      [["Agent",r.agent],["Date des faits",r.date],["Site",r.site],["Niveau",r.niveau],["Statut",r.statut],["Motif",r.motif],["Témoins",r.temoins],["Responsable",r.responsable]].forEach(([label,value])=>addField(label,value));
+      [["Agent",r.agent],["Date des faits",r.date],["Site",r.site],["Niveau",r.niveau],["Statut",r.statut],["Motif",r.motif],["Témoins",r.temoins],["Responsable",r.responsable]].forEach(function(pair){addField(pair[0],pair[1]);});
       y+=2;addBlock("Description factuelle",r.description);addBlock("Suite donnée / prochaine action",r.suite);
 
-      const photos=Array.isArray(r.photos)?r.photos.filter(p=>p&&p.url):[];
+      var photos=Array.isArray(r.photos)?r.photos.filter(function(p){return p&&p.url;}):[];
       if(photos.length){
-        addTitle(`Photos / éléments visuels (${photos.length})`);
-        for(let index=0;index<photos.length;index++){
-          const photo=photos[index];ensureSpace(68);
+        addTitle("Photos / éléments visuels ("+photos.length+")");
+        for(var index=0;index<photos.length;index++){
+          var photo=photos[index];ensureSpace(68);
           try{
-            const image=await photoForPdf(photo);
-            const maxW=contentWidth,maxH=58,ratio=Math.min(maxW/image.width,maxH/image.height);
-            const w=image.width*ratio,h=image.height*ratio,x=margin+(contentWidth-w)/2;
+            var image=await photoForPdf(photo);
+            var maxW=contentWidth,maxH=58,ratio=Math.min(maxW/image.width,maxH/image.height);
+            var w=image.width*ratio,h=image.height*ratio,x=margin+(contentWidth-w)/2;
             pdf.addImage(image.data,"JPEG",x,y,w,h,undefined,"FAST");y+=h+4;
             pdf.setFontSize(8);pdf.setFont("helvetica","normal");pdf.setTextColor(75,85,99);
-            const caption=pdf.splitTextToSize(photo.name||`Photo ${index+1}`,contentWidth);
+            var caption=pdf.splitTextToSize(photo.name||("Photo "+(index+1)),contentWidth);
             pdf.text(caption,margin,y);pdf.setTextColor(17,24,39);y+=Math.max(6,caption.length*4+3);
           }catch(error){
-            console.error(error);pdf.setFontSize(9);pdf.setTextColor(185,28,28);pdf.text(`Photo ${index+1} non disponible dans le PDF`,margin,y);pdf.setTextColor(17,24,39);y+=7;
+            console.warn("Photo PDF",error);
+            pdf.setFontSize(9);pdf.setTextColor(185,28,28);pdf.text("Photo "+(index+1)+" non disponible dans le PDF",margin,y);pdf.setTextColor(17,24,39);y+=7;
           }
         }
       }
-      const name=safeFileName(r.agent||"agent").replace(/\.[^.]+$/g,"");
-      pdf.save(`dossier_disciplinaire_${name}_${r.date||today()}.pdf`);
-      setSync("PDF généré — synchronisé sur Firebase","ok");
+      var name=safeFileName(r.agent||"agent").replace(/\.[^.]+$/g,"");
+      pdf.save("dossier_disciplinaire_"+name+"_"+(r.date||today())+".pdf");
+      setSync("PDF généré • données synchronisées","ok");
     }catch(error){
       console.error(error);setSync("Erreur de génération PDF","warning");alert("Impossible de générer le PDF. Recharge la page puis réessaie.");
     }
   }
 
   function filtered(){
-    const q=$("search").value.trim().toLowerCase(),status=$("statusFilter").value,level=$("levelFilter").value;
-    return [...records].filter(r=>{
-      const hay=[r.agent,r.site,r.motif,r.description,r.responsable].join(" ").toLowerCase();
-      return(!q||hay.includes(q))&&(!status||r.statut===status)&&(!level||r.niveau===level);
-    }).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));
+    var q=$("search").value.trim().toLowerCase();
+    var status=$("statusFilter").value;
+    var level=$("levelFilter").value;
+    return records.slice().filter(function(r){
+      var hay=[r.agent,r.site,r.motif,r.description,r.responsable].join(" ").toLowerCase();
+      return(!q||hay.indexOf(q)!==-1)&&(!status||r.statut===status)&&(!level||r.niveau===level);
+    }).sort(function(a,b){
+      return safeText(b.date).localeCompare(safeText(a.date))||safeText(b.updatedAt).localeCompare(safeText(a.updatedAt));
+    });
   }
-  function button(label,handler,className=""){
-    const b=document.createElement("button");b.type="button";b.textContent=label;b.className="btn btn-secondary"+(className?" "+className:"");b.style.padding="6px 8px";b.style.fontSize="11px";b.addEventListener("click",handler);return b;
+  function actionButton(label,handler,className){
+    var b=document.createElement("button");
+    b.type="button";b.textContent=label;b.className="btn btn-secondary"+(className?" "+className:"");
+    b.style.padding="6px 8px";b.style.fontSize="11px";b.addEventListener("click",handler);return b;
   }
   function render(){
-    const list=filtered();$("count").textContent=String(list.length);
-    const wrap=$("recordsWrap");wrap.innerHTML="";
-    if(!list.length){const empty=document.createElement("div");empty.className="empty";empty.textContent="Aucun dossier.";wrap.appendChild(empty);return;}
-    const table=document.createElement("table");
-    const thead=document.createElement("thead"),trh=document.createElement("tr");
-    ["Date","Agent","Site","Niveau","Statut","Motif","Photos","Actions"].forEach(text=>{const th=document.createElement("th");th.textContent=text;trh.appendChild(th);});
+    var list=filtered();
+    $("count").textContent=String(list.length);
+    var wrap=$("recordsWrap");wrap.innerHTML="";
+    if(!list.length){
+      var empty=document.createElement("div");empty.className="empty";empty.textContent="Aucun dossier.";wrap.appendChild(empty);return;
+    }
+    var table=document.createElement("table");
+    var thead=document.createElement("thead"),trh=document.createElement("tr");
+    ["Date","Agent","Site","Niveau","Statut","Motif","Photos","Actions"].forEach(function(text){var th=document.createElement("th");th.textContent=text;trh.appendChild(th);});
     thead.appendChild(trh);table.appendChild(thead);
-    const tbody=document.createElement("tbody");
-    list.forEach(r=>{
-      const tr=document.createElement("tr");
-      [r.date||"—",r.agent||"—",r.site||"—"].forEach(text=>{const td=document.createElement("td");td.textContent=text;tr.appendChild(td);});
-      const levelTd=document.createElement("td"),level=document.createElement("span");level.className="level "+slugLevel(r.niveau);level.textContent=r.niveau||"—";levelTd.appendChild(level);tr.appendChild(levelTd);
-      const statusTd=document.createElement("td");statusTd.textContent=r.statut||"—";tr.appendChild(statusTd);
-      const motifTd=document.createElement("td");motifTd.textContent=r.motif||"—";tr.appendChild(motifTd);
-      const photosTd=document.createElement("td"),photoCount=document.createElement("span");photoCount.className="photo-count";photoCount.textContent=String(Array.isArray(r.photos)?r.photos.length:0);photosTd.appendChild(photoCount);tr.appendChild(photosTd);
-      const actionTd=document.createElement("td"),actions=document.createElement("div");actions.className="actions";
-      actions.append(button("Générer PDF",()=>generatePdf(r.id)),button("Modifier",()=>editRecord(r.id)),button("Supprimer",()=>deleteRecord(r.id),"btn-danger"));
+    var tbody=document.createElement("tbody");
+    list.forEach(function(r){
+      var tr=document.createElement("tr");
+      [r.date||"—",r.agent||"—",r.site||"—"].forEach(function(text){var td=document.createElement("td");td.textContent=text;tr.appendChild(td);});
+      var levelTd=document.createElement("td"),level=document.createElement("span");level.className="level "+slugLevel(r.niveau);level.textContent=r.niveau||"—";levelTd.appendChild(level);tr.appendChild(levelTd);
+      var statusTd=document.createElement("td");statusTd.textContent=r.statut||"—";tr.appendChild(statusTd);
+      var motifTd=document.createElement("td");motifTd.textContent=r.motif||"—";tr.appendChild(motifTd);
+      var photosTd=document.createElement("td"),photoCount=document.createElement("span");photoCount.className="photo-count";photoCount.textContent=String(Array.isArray(r.photos)?r.photos.length:0);photosTd.appendChild(photoCount);tr.appendChild(photosTd);
+      var actionTd=document.createElement("td"),actions=document.createElement("div");actions.className="actions";
+      actions.appendChild(actionButton("Générer PDF",function(){generatePdf(r.id);}));
+      actions.appendChild(actionButton("Modifier",function(){editRecord(r.id);}));
+      actions.appendChild(actionButton("Supprimer",function(){deleteRecord(r.id);},"btn-danger"));
       actionTd.appendChild(actions);tr.appendChild(actionTd);tbody.appendChild(tr);
     });
     table.appendChild(tbody);wrap.appendChild(table);
   }
+
   function exportJSON(){
-    const blob=new Blob([JSON.stringify({exportedAt:nowIso(),storageVersion:STORAGE_VERSION,records},null,2)],{type:"application/json"});
-    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`discipline_${today()}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    var payload={exportedAt:nowIso(),storageVersion:STORAGE_VERSION,records:records};
+    var blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    var url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="discipline_"+today()+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
   }
 
-  $("photos").addEventListener("change",e=>{
-    const files=Array.from(e.target.files||[]);
-    const available=MAX_PHOTOS-existingPhotos.length-pendingPhotos.length;
-    if(available<=0){alert(`Maximum ${MAX_PHOTOS} photos par dossier.`);e.target.value="";return;}
-    let added=0;
-    files.slice(0,available).forEach(file=>{
-      if(!String(file.type||"").startsWith("image/")){alert(`${file.name} n’est pas une image.`);return;}
-      if(file.size>MAX_PHOTO_SIZE){alert(`${file.name} dépasse 12 Mo.`);return;}
-      pendingPhotos.push({file,previewUrl:URL.createObjectURL(file)});added++;
+  $("photos").addEventListener("change",function(e){
+    if(!storage){alert("L’ajout de photos n’est pas disponible sur cet appareil pour le moment.");e.target.value="";return;}
+    var files=Array.from(e.target.files||[]);
+    var available=MAX_PHOTOS-existingPhotos.length-pendingPhotos.length;
+    if(available<=0){alert("Maximum "+MAX_PHOTOS+" photos par dossier.");e.target.value="";return;}
+    var added=0;
+    files.slice(0,available).forEach(function(file){
+      if(safeText(file.type).indexOf("image/")!==0){alert(file.name+" n’est pas une image.");return;}
+      if(file.size>MAX_PHOTO_SIZE){alert(file.name+" dépasse 12 Mo.");return;}
+      pendingPhotos.push({file:file,previewUrl:URL.createObjectURL(file)});added++;
     });
-    if(files.length>available)alert(`Seules ${available} photo${available>1?"s":""} peuvent encore être ajoutées.`);
+    if(files.length>available)alert("Seules "+available+" photo"+(available>1?"s":"")+" peuvent encore être ajoutées.");
     e.target.value="";if(added)renderPhotoPreview();
   });
-  $("recordForm").addEventListener("submit",async e=>{
+
+  $("recordForm").addEventListener("submit",async function(e){
     e.preventDefault();
-    const data={};
-    ["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(field=>data[field]=$(field).value.trim());
+    if(!currentUser){alert("La session a expiré. Reconnecte-toi.");return;}
+    var data={};
+    ["agent","site","date","niveau","statut","responsable","motif","temoins","description","suite"].forEach(function(field){data[field]=$(field).value.trim();});
     if(!data.agent||!data.date||!data.motif||!data.description){alert("Agent, date, motif et description sont obligatoires.");return;}
-    const recordId=editingId||uid();
-    const removedPaths=[...removedPhotoPaths];
-    $("saveBtn").disabled=true;$("submitLabel").textContent=pendingPhotos.length?"Envoi des photos…":"Enregistrement…";
+
+    var recordId=editingId||uid();
+    var removedPaths=removedPhotoPaths.slice();
+    $("saveBtn").disabled=true;
+    $("submitLabel").textContent=pendingPhotos.length?"Envoi des photos…":"Enregistrement…";
+    setSync("Enregistrement sur Firebase…");
     try{
-      const uploaded=await uploadPendingPhotos(recordId);
-      const existing=records.find(x=>x.id===recordId);
-      const record={
-        ...(existing||{}),
+      var uploaded=await uploadPendingPhotos(recordId);
+      var existing=records.find(function(x){return x.id===recordId;});
+      var record=Object.assign({},existing||{},data,{
         id:recordId,
-        ...data,
-        photos:[...existingPhotos,...uploaded],
-        createdAt:existing?.createdAt||nowIso(),
-        createdBy:existing?.createdBy||currentUser?.uid||"",
+        photos:existingPhotos.concat(uploaded),
+        createdAt:(existing&&existing.createdAt)||nowIso(),
+        createdBy:(existing&&existing.createdBy)||currentUser.uid,
         updatedAt:nowIso(),
-        updatedBy:currentUser?.uid||""
-      };
-      const previous=[...records];
-      records=mergeRecords(records.filter(x=>x.id!==recordId),[record]);saveLocal();render();
-      const saved=await saveRecordCloud(record);
-      if(!saved){
-        records=previous;saveLocal();render();
-        throw new Error("Synchronisation Firebase impossible");
-      }
-      if(removedPaths.length)await deleteStoredPhotos(removedPaths);
+        updatedBy:currentUser.uid
+      });
+      await saveRecordCloud(record);
+      records=mergeRecords(records.filter(function(x){return x.id!==recordId;}),[record]);
+      saveLocalCache();render();
+      if(removedPaths.length)deleteStoredPhotos(removedPaths).catch(function(error){console.warn("Suppression photo",error);});
       resetForm();
+      setSync("Synchronisé sur Firebase • "+records.length+" dossier"+(records.length>1?"s":""),"ok");
     }catch(error){
-      console.error(error);setSync("Erreur d’enregistrement","warning");alert("Impossible d’enregistrer le dossier dans Firebase. Réessaie après avoir vérifié la connexion.");$("saveBtn").disabled=false;$("submitLabel").textContent=editingId?"Enregistrer les modifications":"Enregistrer";
+      console.error(error);
+      setSync("Erreur d’enregistrement Firebase","warning");
+      alert("Impossible d’enregistrer le dossier dans Firebase. Rien n’a été supprimé. Vérifie la connexion puis réessaie.");
+      $("saveBtn").disabled=false;
+      $("submitLabel").textContent=editingId?"Enregistrer les modifications":"Enregistrer";
     }
   });
+
   $("cancelEditBtn").addEventListener("click",resetForm);
-  ["search","statusFilter","levelFilter"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",render));
-  $("syncBtn").addEventListener("click",async()=>{try{await migrateCloudAndLocal();}catch(error){console.error(error);setSync("Synchronisation impossible","warning");alert("Impossible de resynchroniser avec Firebase. Vérifie la connexion puis réessaie.");}});
+  ["search","statusFilter","levelFilter"].forEach(function(id){$(id).addEventListener(id==="search"?"input":"change",render);});
   $("exportBtn").addEventListener("click",exportJSON);
-  $("logoutBtn").addEventListener("click",()=>auth.signOut());
-  $("loginForm").addEventListener("submit",async e=>{
-    e.preventDefault();$("loginError").textContent="";
-    try{await auth.signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value);}
-    catch(error){$("loginError").textContent="Connexion impossible : "+(error.message||"vérifie les identifiants.");}
-  });
-  auth.onAuthStateChanged(async user=>{
-    if(user){
-      currentUser=user;$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");loadLocal();render();await startRealtime();
-    }else{
-      currentUser=null;if(unsubscribe){unsubscribe();unsubscribe=null;}$("app").classList.add("hidden");$("loginScreen").classList.remove("hidden");
+  $("syncBtn").addEventListener("click",function(){bootstrapCloud();});
+  $("logoutBtn").addEventListener("click",function(){auth.signOut();});
+
+  $("loginForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    $("loginError").textContent="";
+    setLoginBusy(true);
+    try{
+      try{
+        if(firebase.auth.Auth && firebase.auth.Auth.Persistence){
+          await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        }
+      }catch(persistenceError){
+        console.warn("Persistance de session limitée",persistenceError);
+      }
+      await auth.signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value);
+    }catch(error){
+      $("loginError").textContent="Connexion impossible : "+(error.message||"vérifie les identifiants.");
+    }finally{
+      setLoginBusy(false);
     }
   });
+
+  auth.onAuthStateChanged(function(user){
+    if(user){
+      currentUser=user;
+      $("loginScreen").classList.add("hidden");
+      $("app").classList.remove("hidden");
+      backupLocalOnce();
+      loadLocalCache();
+      if(!storage){
+        $("photos").disabled=true;
+        renderPhotoPreview();
+      }
+      bootstrapCloud();
+    }else{
+      currentUser=null;
+      if(unsubscribe){unsubscribe();unsubscribe=null;}
+      $("app").classList.add("hidden");
+      $("loginScreen").classList.remove("hidden");
+      setSync("Déconnecté");
+    }
+  });
+
+  window.addEventListener("online",function(){if(currentUser)bootstrapCloud();});
+  window.addEventListener("offline",function(){setSync("Hors ligne — copie locale conservée","warning");});
+
   resetForm();
 })();
 </script>
