@@ -1,17 +1,74 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#16a34a"><title>Inovtec Dashboard</title><link rel="stylesheet" href="inovtec-common.css"></head>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#064e3b">
+<title>Inovtec Dashboard</title>
+<link rel="stylesheet" href="inovtec-common.css?v=20260813-7">
+<link rel="stylesheet" href="dashboard-index.css?v=20260813-1">
+</head>
 <body>
-<main class="page" style="max-width:760px;margin:auto">
-<section class="card"><h1>Inovtec Dashboard</h1><p>Accès central aux outils de gestion et de suivi.</p></section>
-<section class="card"><h2>Outils connectés</h2><div class="grid grid-2">
-<a class="btn btn-primary" href="INFOCHANTIERS-V2.html?v=20260813-6">Infos chantiers</a>
-<a class="btn btn-primary" href="ORGA.html">Organisation</a>
-<a class="btn btn-primary" href="DISCIPLINE-V9.html?v=20260813-8">Discipline</a>
-<a class="btn btn-primary" href="KONTROL-CLOUD.html?v=20260813-1">KONTROL</a>
-</div></section>
-<section class="card"><h2>Autres outils</h2><div class="grid grid-2">
-<a class="btn btn-secondary" href="PLANNINGS.html">Plannings</a><a class="btn btn-secondary" href="HEURE-SUP.html">Heures supplémentaires</a><a class="btn btn-secondary" href="TEMPS.html">Conversion temps</a><a class="btn btn-secondary" href="SALAIRE.html">Salaire</a><a class="btn btn-secondary" href="AGENTS.html">Classeur agents</a>
-</div></section>
+<div class="dashboard">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-mark"></div><div class="brand-copy"><strong>INOVTEC</strong><span>DASHBOARD</span></div></div>
+  <nav class="nav" aria-label="Navigation principale">
+    <a class="active" href="index.html"><span class="ico">⌂</span><span>Accueil</span></a>
+    <a href="PLANNINGS.html"><span class="ico">▦</span><span>Planning</span></a>
+    <a href="KONTROL-CLOUD.html?v=20260813-1"><span class="ico">✓</span><span>KONTROL</span></a>
+    <a href="DISCIPLINE-V9.html?v=20260813-8"><span class="ico">⚑</span><span>Discipline</span></a>
+    <a href="INFOCHANTIERS-V2.html?v=20260813-6"><span class="ico">ⓘ</span><span>Infos chantier</span></a>
+    <div class="nav-sep mobile-hide"></div>
+    <a class="mobile-hide" href="AGENTS.html"><span class="ico">♙</span><span>Classeur agents</span></a>
+    <a class="mobile-hide" href="ORGA.html"><span class="ico">◎</span><span>Organisation</span></a>
+    <a class="mobile-hide" href="HEURE-SUP.html"><span class="ico">＋</span><span>Heures sup.</span></a>
+  </nav>
+  <div class="side-bottom"><div class="side-note"><strong>Inovtec Construction</strong><br>Accès centralisé aux outils de suivi terrain.</div></div>
+</aside>
+<div class="main">
+<header class="appbar">
+  <span class="status-dot online" title="Dashboard opérationnel"></span>
+  <details class="notify-details"><summary class="bell" aria-label="Notifications">♢<span class="bell-badge">1</span></summary><div class="notif-panel static open"><h3>Notifications</h3><div class="notif-item ok"><strong>Dashboard opérationnel</strong><span>Les accès aux modules existants sont conservés.</span></div></div></details>
+  <div class="account"><div class="avatar">IN</div><div class="account-copy"><strong>Inovtec</strong><span>Dashboard</span></div></div>
+</header>
+<main class="content">
+  <section class="hero">
+    <div class="hero-copy"><div class="eyebrow">BONJOUR ET BIENVENUE</div><h1>Bienvenue sur<br><em>Inovtec</em> Dashboard</h1><p>Votre plateforme centralisée pour piloter vos opérations, vos chantiers et vos outils en toute simplicité.</p></div>
+    <div class="hero-date"><strong>Jeudi 13 août 2026</strong><span>Accueil centralisé</span></div>
+    <div class="geom" aria-hidden="true"><div class="g-dots"></div><div class="g-circle c1"></div><div class="g-circle c2"></div><div class="g-rect r1"></div><div class="g-rect r2"></div><div class="g-line l1"></div><div class="g-line l2"></div><div class="g-line l3"></div><div class="g-glow a"></div><div class="g-glow b"></div></div>
+  </section>
+
+  <section class="kpis" aria-label="Indicateurs">
+    <div class="kpi"><div class="kpi-icon">▣</div><div><small>Chantiers enregistrés</small><b>LIVE</b><div class="sub">Infos chantier synchronisées</div></div></div>
+    <div class="kpi"><div class="kpi-icon">♙</div><div><small>Agents référencés</small><b>OK</b><div class="sub">Classeur agents accessible</div></div></div>
+    <div class="kpi"><div class="kpi-icon">✓</div><div><small>Contrôles KONTROL archivés</small><b>PDF</b><div class="sub">Archives KONTROL en ligne</div></div></div>
+    <div class="kpi"><div class="kpi-icon">!</div><div><small>Dossiers Discipline ouverts</small><b>SYNC</b><div class="sub">Discipline multi-appareils</div></div></div>
+  </section>
+
+  <div class="section-head"><h2>Modules</h2><span>Tous vos outils, au même endroit</span></div>
+  <section class="modules">
+    <a class="module" href="PLANNINGS.html"><div class="module-top"><div class="module-ico">▦</div><h3>Planning</h3></div><p>Consultez et gérez les plannings de vos équipes et de vos chantiers.</p><span class="go">Accéder →</span><div class="module-art"></div></a>
+    <a class="module" href="KONTROL-CLOUD.html?v=20260813-1"><div class="module-top"><div class="module-ico">✓</div><h3>KONTROL</h3></div><p>Réalisez vos contrôles qualité et retrouvez les PDF archivés en ligne.</p><span class="go">Accéder →</span><div class="module-art"></div></a>
+    <a class="module" href="DISCIPLINE-V9.html?v=20260813-8"><div class="module-top"><div class="module-ico">⚑</div><h3>Discipline</h3></div><p>Gérez les dossiers, observations, photos, suivis et PDF disciplinaires.</p><span class="go">Accéder →</span><div class="module-art"></div></a>
+    <a class="module" href="INFOCHANTIERS-V2.html?v=20260813-6"><div class="module-top"><div class="module-ico">ⓘ</div><h3>Infos chantier</h3></div><p>Accédez aux informations clés, contacts, consignes et données de vos résidences.</p><span class="go">Accéder →</span><div class="module-art"></div></a>
+    <a class="module" href="AGENTS.html"><div class="module-top"><div class="module-ico">♙</div><h3>Classeur agents</h3></div><p>Consultez les informations et documents liés à vos agents.</p><span class="go">Accéder →</span><div class="module-art"></div></a>
+    <a class="module" href="ORGA.html"><div class="module-top"><div class="module-ico">◎</div><h3>Organisation</h3></div><p>Centralisez les tâches et l’organisation opérationnelle de votre activité.</p><span class="go">Accéder →</span><div class="module-art"></div></a>
+  </section>
+
+  <div class="section-head"><h2>Actions rapides</h2><span>Accès direct aux opérations courantes</span></div>
+  <section class="quick">
+    <a href="INFOCHANTIERS-V2.html?v=20260813-6"><span class="plus">＋</span>Créer / modifier un chantier</a>
+    <a href="ORGA.html"><span class="plus">＋</span>Planifier une tâche</a>
+    <a href="KONTROL-CLOUD.html?v=20260813-1"><span class="plus">＋</span>Nouveau contrôle KONTROL</a>
+    <a href="DISCIPLINE-V9.html?v=20260813-8"><span class="plus">＋</span>Nouveau dossier Discipline</a>
+    <a href="DEPLOYMENT_CHECK.md"><span class="plus">▤</span>Voir le rapport de déploiement</a>
+  </section>
+
+  <div class="section-head"><h2>Autres outils</h2><span>Fonctions existantes conservées</span></div>
+  <section class="tools"><a class="tool-link" href="HEURE-SUP.html">Heures supplémentaires</a><a class="tool-link" href="TEMPS.html">Conversion temps</a><a class="tool-link" href="SALAIRE.html">Salaire</a><a class="tool-link" href="AGENTS.html">Classeur agents</a></section>
+  <div class="foot">Inovtec Dashboard • Interface d’accueil modernisée • Les pages métiers existantes restent inchangées.</div>
 </main>
-</body></html>
+</div>
+</div>
+</body>
+</html>
