@@ -1,0 +1,110 @@
+name: Stabilise les menus déroulants
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-dropdown-stability.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Corriger les rafraîchissements qui ferment les menus
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # 1) Le DataHub ne doit plus réveiller toutes les interfaces quand
+          #    Firestore change sur un champ sans rapport avec agents/chantiers.
+          p=Path('inovtec-data-hub.js')
+          s=p.read_text(encoding='utf-8')
+          old='const listeners=new Set();\n'
+          new='const listeners=new Set();\nlet lastEmitSignature="";\n'
+          if 'let lastEmitSignature=' not in s:
+              if old not in s: raise SystemExit('Point DataHub listeners introuvable')
+              s=s.replace(old,new,1)
+          old='function emit(){const detail={agents:publicAgents(),chantiers:publicSites(),readyAgents,readyChantiers};listeners.forEach(fn=>{try{fn(detail)}catch{}});try{window.dispatchEvent(new CustomEvent("inovtec:datahub",{detail}))}catch{}}'
+          new='function emit(force=false){const detail={agents:publicAgents(),chantiers:publicSites(),readyAgents,readyChantiers};let signature="";try{signature=JSON.stringify([readyAgents,readyChantiers,detail.agents,detail.chantiers])}catch{}if(!force&&signature&&signature===lastEmitSignature)return;if(signature)lastEmitSignature=signature;listeners.forEach(fn=>{try{fn(detail)}catch{}});try{window.dispatchEvent(new CustomEvent("inovtec:datahub",{detail}))}catch{}}'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif new not in s:
+              raise SystemExit('Fonction DataHub emit introuvable')
+          p.write_text(s,encoding='utf-8')
+
+          # 2) Une mise à jour Firebase distante ne recharge plus l'iframe au
+          #    milieu d'une saisie ou pendant l'ouverture d'un select.
+          p=Path('inovtec-cloud-sync.js')
+          s=p.read_text(encoding='utf-8')
+          old='function reload(){clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>{try{frame?.contentWindow?.location.reload()}catch{}},180)}'
+          new='function frameIsBusy(){try{const d=frameDoc(),a=d?.activeElement;if(!a)return false;if(/^(SELECT|INPUT|TEXTAREA)$/i.test(a.tagName))return true;if(a.isContentEditable)return true;if(a.closest?.(".editor-popover.open,.modal.open,.modal.show,[role=dialog]"))return true}catch{}return false}\nfunction reload(){clearTimeout(reloadTimer);const attempt=()=>{if(frameIsBusy()){reloadTimer=setTimeout(attempt,700);return}try{frame?.contentWindow?.location.reload()}catch{}};reloadTimer=setTimeout(attempt,450)}'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif 'function frameIsBusy()' not in s:
+              raise SystemExit('Fonction cloud reload introuvable')
+          p.write_text(s,encoding='utf-8')
+
+          # 3) Dans le Planning, ne jamais reconstruire le select chantiers
+          #    pendant que l'utilisateur est en train de l'utiliser.
+          p=Path('planning-calendar.js')
+          s=p.read_text(encoding='utf-8')
+          old='h.subscribe(()=>{const changed=syncAgentsFromHub();if(changed)render();else if($("editorPopover").classList.contains("open")){const e=eventRef($("editorPopover").dataset.week,$("editorPopover").dataset.id);if(e)fillChantierSelect(e)}});'
+          new='h.subscribe(()=>{const pop=$("editorPopover"),editorOpen=pop.classList.contains("open"),active=document.activeElement,editing=editorOpen&&pop.contains(active),changed=syncAgentsFromHub();if(changed){if(!editing)render()}else if(editorOpen&&active!==$("edTitle")){const e=eventRef(pop.dataset.week,pop.dataset.id);if(e)fillChantierSelect(e)}});'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif new not in s:
+              raise SystemExit('Abonnement Planning introuvable')
+          p.write_text(s,encoding='utf-8')
+
+          # 4) Cache-busters afin que la correction soit chargée immédiatement.
+          p=Path('inovtec-page-shell.html')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'inovtec-data-hub\.js\?v=[^"\']+', 'inovtec-data-hub.js?v=20260815-menu1', s)
+          s=re.sub(r'inovtec-cloud-sync\.js\?v=[^"\']+', 'inovtec-cloud-sync.js?v=20260815-menu1', s)
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('PLANNINGS-LEGACY.html')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'planning-calendar\.js\?v=[^"\']+', 'planning-calendar.js?v=20260815-menu1', s)
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('PLANNINGS.html')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'PLANNINGS-LEGACY\.html%3Fv%3D[^"&<]+', 'PLANNINGS-LEGACY.html%3Fv%3D20260815-menu1', s)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Vérifier la correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check inovtec-data-hub.js
+          node --check inovtec-cloud-sync.js
+          node --check planning-calendar.js
+          grep -q 'lastEmitSignature' inovtec-data-hub.js
+          grep -q 'function frameIsBusy' inovtec-cloud-sync.js
+          grep -q 'active!==$("edTitle")' planning-calendar.js
+          grep -q 'inovtec-data-hub.js?v=20260815-menu1' inovtec-page-shell.html
+          grep -q 'planning-calendar.js?v=20260815-menu1' PLANNINGS-LEGACY.html
+
+      - name: Publier la correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Inovtec Bot'
+          git config user.email 'inovtec-bot@users.noreply.github.com'
+          git add inovtec-data-hub.js inovtec-cloud-sync.js planning-calendar.js inovtec-page-shell.html PLANNINGS-LEGACY.html PLANNINGS.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Stabilise les menus déroulants pendant la synchronisation'
+          git push origin HEAD:main
