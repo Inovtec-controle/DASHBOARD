@@ -4,6 +4,7 @@ const AGENTS_KEY="kontrol_agents_classeur_v2";
 const client=sessionStorage.ivDataHubClient||(sessionStorage.ivDataHubClient="hub_"+Date.now()+"_"+Math.random().toString(16).slice(2));
 let user=null,docRef=null,agentRecords=[],chantiers=[],readyAgents=false,readyChantiers=false,unsubDoc=null,unsubSites=null;
 const listeners=new Set();
+let lastEmitSignature="";
 const clone=v=>JSON.parse(JSON.stringify(v));
 const parse=s=>{try{return JSON.parse(s)}catch{return null}};
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
@@ -12,7 +13,7 @@ function compactAgent(a){return{id:String(a.id||""),createdAt:a.createdAt||new D
 function splitName(label){const p=String(label||"").trim().split(/\s+/).filter(Boolean);return{prenom:p.shift()||"",nom:p.join(" ")}}
 function publicAgents(){return agentRecords.filter(a=>a&&a.id).map(a=>({...compactAgent(a),name:displayName(a)})).sort((a,b)=>displayName(a).localeCompare(displayName(b),"fr",{sensitivity:"base"}))}
 function publicSites(){return chantiers.slice().sort((a,b)=>String(a.nom||a.adresse||"").localeCompare(String(b.nom||b.adresse||""),"fr",{sensitivity:"base",numeric:true}))}
-function emit(){const detail={agents:publicAgents(),chantiers:publicSites(),readyAgents,readyChantiers};listeners.forEach(fn=>{try{fn(detail)}catch{}});try{window.dispatchEvent(new CustomEvent("inovtec:datahub",{detail}))}catch{}}
+function emit(force=false){const detail={agents:publicAgents(),chantiers:publicSites(),readyAgents,readyChantiers};let signature="";try{signature=JSON.stringify([readyAgents,readyChantiers,detail.agents,detail.chantiers])}catch{}if(!force&&signature&&signature===lastEmitSignature)return;if(signature)lastEmitSignature=signature;listeners.forEach(fn=>{try{fn(detail)}catch{}});try{window.dispatchEvent(new CustomEvent("inovtec:datahub",{detail}))}catch{}}
 function fallbackAgents(){const x=parse(localStorage.getItem(AGENTS_KEY)||"[]");return Array.isArray(x)?x:[]}
 function restoreLocalBinaries(remote){const local=fallbackAgents();return remote.map(a=>{const la=local.find(x=>x?.id===a?.id);if(!la)return a;const out={...a};out.docs=(a.docs||[]).map(d=>{const ld=(la.docs||[]).find(x=>x?.id===d?.id);return ld?.dataUrl&&!d.dataUrl?{...d,dataUrl:ld.dataUrl}:d});out.incidents=(a.incidents||[]).map(inc=>{const li=(la.incidents||[]).find(x=>x?.id===inc?.id);if(!li)return inc;return{...inc,photos:(inc.photos||[]).map(p=>{const lp=(li.photos||[]).find(x=>x?.id===p?.id);return lp?.dataUrl&&!p.dataUrl?{...p,dataUrl:lp.dataUrl}:p})}});return out})}
 function readAgentsFromDoc(data){const entry=data?.moduleSyncV1?.agents,payload=parse(entry?.payload||"");if(Array.isArray(payload))return payload;const refs=Array.isArray(data?.referentialAgents)?data.referentialAgents:null;if(refs)return refs.map(a=>({...a,docs:[],incidents:[]}));return fallbackAgents()}

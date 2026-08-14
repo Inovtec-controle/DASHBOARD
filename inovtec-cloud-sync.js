@@ -201,7 +201,8 @@ function ensureLoginBox(){
 
 function showLogin(){const b=ensureLoginBox();if(b)b.style.display="grid"}
 function hideLogin(){const b=document.getElementById("ivCloudLogin");if(b)b.style.display="none"}
-function reload(){clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>{try{frame?.contentWindow?.location.reload()}catch{}},180)}
+function frameIsBusy(){try{const d=frameDoc(),a=d?.activeElement;if(!a)return false;if(/^(SELECT|INPUT|TEXTAREA)$/i.test(a.tagName))return true;if(a.isContentEditable)return true;if(a.closest?.(".editor-popover.open,.modal.open,.modal.show,[role=dialog]"))return true}catch{}return false}
+function reload(){clearTimeout(reloadTimer);const attempt=()=>{if(frameIsBusy()){reloadTimer=setTimeout(attempt,700);return}try{frame?.contentWindow?.location.reload()}catch{}};reloadTimer=setTimeout(attempt,450)}
 
 async function push(reason){
   if(!ref||!user||remoteApply)return;
