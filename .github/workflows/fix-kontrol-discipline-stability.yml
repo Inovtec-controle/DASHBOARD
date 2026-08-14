@@ -1,0 +1,109 @@
+name: Corrige KONTROL et les listes interactives
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-kontrol-discipline-stability.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Stabiliser les listes et corriger KONTROL
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # 1) Référentiel : ne plus reconstruire les datalists toutes les 2,5 s.
+          p = Path('inovtec-referential.js')
+          s = p.read_text(encoding='utf-8')
+          old = '''function addList(doc,id,items){let dl=doc.getElementById(id);if(!dl){dl=doc.createElement("datalist");dl.id=id;doc.body.appendChild(dl);}dl.innerHTML="";items.forEach(x=>{const o=doc.createElement("option");o.value=x;dl.appendChild(o);});return dl;}'''
+          new = '''const listRefreshTimers=new WeakMap();\nfunction addList(doc,id,items){let dl=doc.getElementById(id);if(!dl){dl=doc.createElement("datalist");dl.id=id;doc.body.appendChild(dl);}const values=[...new Set((items||[]).map(x=>String(x||"").trim()).filter(Boolean))],signature=JSON.stringify(values);if(dl.dataset.ivListSignature===signature)return dl;const active=doc.activeElement;if(active&&active.getAttribute&&active.getAttribute("list")===id){if(!listRefreshTimers.has(dl)){const timer=setTimeout(()=>{listRefreshTimers.delete(dl);addList(doc,id,values);},350);listRefreshTimers.set(dl,timer);}return dl;}const pending=listRefreshTimers.get(dl);if(pending){clearTimeout(pending);listRefreshTimers.delete(dl);}const frag=doc.createDocumentFragment();values.forEach(x=>{const o=doc.createElement("option");o.value=x;frag.appendChild(o);});dl.replaceChildren(frag);dl.dataset.ivListSignature=signature;return dl;}'''
+          if old not in s:
+              raise SystemExit('addList attendu introuvable dans inovtec-referential.js')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+
+          # 2) Tri alphabétique : ne jamais toucher à une datalist pendant son utilisation.
+          p = Path('inovtec-alphabetical-lists.js')
+          s = p.read_text(encoding='utf-8')
+          old = '''function sortDatalist(dl){\n  const arr=[...dl.querySelectorAll(":scope > option")],sorted=[...arr].sort((a,b)=>collator.compare(String(a.value||text(a)),String(b.value||text(b))));\n  if(arr.some((n,i)=>n!==sorted[i]))sorted.forEach(n=>dl.appendChild(n));\n}'''
+          new = '''function sortDatalist(dl){\n  const doc=dl.ownerDocument,active=doc?.activeElement;if(active?.getAttribute?.("list")===dl.id)return;\n  const arr=[...dl.querySelectorAll(":scope > option")],sorted=[...arr].sort((a,b)=>collator.compare(String(a.value||text(a)),String(b.value||text(b))));\n  if(arr.some((n,i)=>n!==sorted[i]))sorted.forEach(n=>dl.appendChild(n));\n}'''
+          if old not in s:
+              raise SystemExit('sortDatalist attendu introuvable')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+
+          # 3) KONTROL : le bloc Note qualité ne doit plus rester collé au-dessus des Photos.
+          p = Path('inovtec-visual-v2.css')
+          s = p.read_text(encoding='utf-8')
+          old = 'body.iv-mode-kontrol #summaryCard{grid-column:2;grid-row:3;position:sticky;top:4px;background:linear-gradient(145deg,#064e3b,#087654)!important;color:#fff!important}'
+          new = 'body.iv-mode-kontrol #summaryCard{grid-column:2;grid-row:3;position:relative;top:auto;z-index:1;background:linear-gradient(145deg,#064e3b,#087654)!important;color:#fff!important}'
+          if old not in s:
+              raise SystemExit('Règle summaryCard KONTROL introuvable')
+          s = s.replace(old, new, 1)
+          old2 = 'body.iv-mode-kontrol #photosCard{background:#fbfdfc!important}'
+          new2 = 'body.iv-mode-kontrol #photosCard{background:#fbfdfc!important;position:relative!important;z-index:3!important}'
+          if old2 not in s:
+              raise SystemExit('Règle photosCard KONTROL introuvable')
+          s = s.replace(old2, new2, 1)
+          p.write_text(s, encoding='utf-8')
+
+          # 4) Forcer les nouvelles versions dans le navigateur.
+          p = Path('inovtec-visual-runtime.js')
+          s = p.read_text(encoding='utf-8')
+          if 'inovtec-visual-v2.css?v=20260814-2' not in s:
+              raise SystemExit('Version CSS visuelle attendue introuvable')
+          s = s.replace('inovtec-visual-v2.css?v=20260814-2','inovtec-visual-v2.css?v=20260815-3')
+          p.write_text(s, encoding='utf-8')
+
+          p = Path('inovtec-page-shell.html')
+          s = p.read_text(encoding='utf-8')
+          replacements = {
+              'inovtec-referential.js?v=20260814-1':'inovtec-referential.js?v=20260815-2',
+              'inovtec-visual-runtime.js?v=20260815-2':'inovtec-visual-runtime.js?v=20260815-3',
+              'inovtec-alphabetical-lists.js?v=20260815-1':'inovtec-alphabetical-lists.js?v=20260815-2',
+          }
+          for old,new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'Référence attendue introuvable: {old}')
+              s = s.replace(old,new)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Vérifier les correctifs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check inovtec-referential.js
+          node --check inovtec-alphabetical-lists.js
+          node --check inovtec-visual-runtime.js
+          grep -q 'ivListSignature' inovtec-referential.js
+          grep -q 'active?.getAttribute?.("list")===dl.id' inovtec-alphabetical-lists.js
+          grep -q '#summaryCard{grid-column:2;grid-row:3;position:relative;top:auto' inovtec-visual-v2.css
+          grep -q '#photosCard{background:#fbfdfc!important;position:relative!important;z-index:3!important}' inovtec-visual-v2.css
+          grep -q 'inovtec-referential.js?v=20260815-2' inovtec-page-shell.html
+          grep -q 'inovtec-visual-runtime.js?v=20260815-3' inovtec-page-shell.html
+          grep -q 'inovtec-alphabetical-lists.js?v=20260815-2' inovtec-page-shell.html
+
+      - name: Publier la correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Inovtec Bot'
+          git config user.email 'inovtec-bot@users.noreply.github.com'
+          git add inovtec-referential.js inovtec-alphabetical-lists.js inovtec-visual-v2.css inovtec-visual-runtime.js inovtec-page-shell.html
+          git commit -m 'Corrige KONTROL et stabilise les listes interactives'
+          git push origin main
