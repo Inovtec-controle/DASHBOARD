@@ -1,92 +1,30 @@
 (()=>{
 "use strict";
+const KEY="inovtec_plannings_v2";
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const MONTHS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
-const START_HOUR=6,END_HOUR=22,HOUR_MM=12;
+const START_HOUR=6,END_HOUR=22;
 const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 function addDays(d,n){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()+n);return x}
 function mondayIndex(d){return(d.getDay()+6)%7}
 function dateFromWeek(key,day=0){const m=String(key||"").match(/^(\d{4})-W(\d{2})$/);if(!m)return null;const year=+m[1],week=+m[2],jan4=new Date(year,0,4),mon=addDays(jan4,-mondayIndex(jan4));return addDays(mon,(week-1)*7+day)}
-function rangeLabel(a,b){
-  if(!a||!b)return"Semaine affichée";
-  if(a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth())return`${a.getDate()}–${b.getDate()} ${MONTHS[b.getMonth()]} ${b.getFullYear()}`;
-  if(a.getFullYear()===b.getFullYear())return`${a.getDate()} ${MONTHS[a.getMonth()]}–${b.getDate()} ${MONTHS[b.getMonth()]} ${b.getFullYear()}`;
-  return`${a.getDate()} ${MONTHS[a.getMonth()]} ${a.getFullYear()}–${b.getDate()} ${MONTHS[b.getMonth()]} ${b.getFullYear()}`;
-}
+function rangeLabel(a,b){if(!a||!b)return"Semaine affichée";if(a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth())return`${a.getDate()}-${b.getDate()} ${MONTHS[b.getMonth()]} ${b.getFullYear()}`;if(a.getFullYear()===b.getFullYear())return`${a.getDate()} ${MONTHS[a.getMonth()]} - ${b.getDate()} ${MONTHS[b.getMonth()]} ${b.getFullYear()}`;return`${a.getDate()} ${MONTHS[a.getMonth()]} ${a.getFullYear()} - ${b.getDate()} ${MONTHS[b.getMonth()]} ${b.getFullYear()}`}
 function safeName(v){return String(v||"planning").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,80)||"planning"}
 function timeToMin(t){const m=String(t||"").match(/(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):START_HOUR*60}
-function readPlanning(){
-  const week=$("week")?.value||"";
-  const start=dateFromWeek(week,0),end=dateFromWeek(week,6);
-  const title=($("title")?.textContent||"Planning").replace(/^Planning\s*[—-]?\s*/i,"").trim();
-  const groups=DAYS.map(()=>[]);
-  [...($("rows")?.querySelectorAll("tr")||[])].forEach(tr=>{
-    const c=[...tr.cells].map(td=>(td.textContent||"").trim());
-    const idx=DAYS.findIndex(d=>d.toLowerCase()===String(c[0]||"").toLowerCase());
-    if(idx<0)return;
-    const tm=String(c[1]||"").match(/(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/);
-    groups[idx].push({start:tm?.[1]||"06:00",end:tm?.[2]||"07:00",time:c[1]||"",task:c[2]||"Intervention",site:c[3]||"",note:c[4]||""});
-  });
-  return{week,start,end,agent:title||"Aucun agent",groups};
-}
-function el(tag,cls,text){const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node}
-function buildDocument(data){
-  const root=el("div","pdf-planning");
-  root.innerHTML=`<style>
-    .pdf-planning{width:194mm;background:#fff;color:#173b30;font-family:Inter,Arial,sans-serif;font-size:9px;line-height:1.2}
-    .pdf-head{background:#064e3b;color:#fff;border-radius:4mm;padding:6mm 7mm 5.5mm;display:flex;align-items:flex-end;justify-content:space-between;gap:6mm;margin-bottom:4mm}
-    .pdf-kicker{font-size:7px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;opacity:.8;margin-bottom:2mm}.pdf-agent{font-size:19px;font-weight:800;line-height:1.05}.pdf-range{font-size:12px;font-weight:700;margin-top:1.6mm;opacity:.96}.pdf-brand{font-size:9px;font-weight:800;letter-spacing:.1em;text-align:right;white-space:pre-line;opacity:.9}
-    .pdf-calendar{border:1px solid rgba(0,0,0,.30);background:#fff;overflow:hidden}
-    .pdf-cal-head{display:grid;grid-template-columns:14mm repeat(7,minmax(0,1fr));height:13mm;background:#f2f7f4;border-bottom:1px solid rgba(0,0,0,.30)}
-    .pdf-head-time{border-right:1px solid rgba(0,0,0,.30)}.pdf-day-head{display:flex;flex-direction:column;justify-content:center;align-items:center;border-right:1px solid rgba(0,0,0,.30);text-align:center}.pdf-day-head:last-child{border-right:0}.pdf-day-head strong{font-size:8px;color:#075d43}.pdf-day-head span{font-size:6.5px;color:#6d8177;margin-top:.8mm}
-    .pdf-cal-body{display:grid;grid-template-columns:14mm minmax(0,1fr);height:${(END_HOUR-START_HOUR)*HOUR_MM}mm}
-    .pdf-time-rail{position:relative;border-right:1px solid rgba(0,0,0,.30);background:#fbfcfb}.pdf-time{position:absolute;right:1.4mm;transform:translateY(-45%);font-size:6.3px;color:#5e6863;font-weight:700}
-    .pdf-days-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));height:100%}.pdf-day-col{position:relative;border-right:1px solid rgba(0,0,0,.30);background-image:repeating-linear-gradient(to bottom,rgba(0,0,0,.30) 0,rgba(0,0,0,.30) .22mm,transparent .22mm,transparent ${HOUR_MM/2}mm,rgba(0,0,0,.14) ${HOUR_MM/2}mm,rgba(0,0,0,.14) ${HOUR_MM/2+.18}mm,transparent ${HOUR_MM/2+.18}mm,transparent ${HOUR_MM}mm)}.pdf-day-col:last-child{border-right:0}.pdf-day-col.weekend{background-color:#fbfcfb}
-    .pdf-event{position:absolute;left:1mm;right:1mm;border:.25mm solid #4c9c72;border-left:1mm solid #087654;border-radius:1.4mm;background:#e8f5ee;color:#173b30;padding:1mm 1.1mm;overflow:hidden;z-index:3}.pdf-event-time{font-size:6.2px;font-weight:900;color:#075d43;white-space:nowrap}.pdf-event-title{font-size:6.4px;font-weight:800;margin-top:.5mm;line-height:1.1;overflow:hidden}.pdf-event-site{font-size:5.6px;color:#52665d;margin-top:.4mm;line-height:1.08;overflow:hidden}.pdf-event-note{font-size:5.2px;color:#7c5f22;margin-top:.35mm;font-style:italic;line-height:1.05;overflow:hidden}
-    .pdf-foot{display:flex;justify-content:space-between;gap:8mm;margin-top:3mm;color:#7b8f85;font-size:7px}.pdf-foot strong{color:#315f4e}
-  </style>`;
-  const head=el("div","pdf-head"),left=el("div");
-  left.append(el("div","pdf-kicker","Planning hebdomadaire"),el("div","pdf-agent",data.agent),el("div","pdf-range",rangeLabel(data.start,data.end)));
-  head.append(left,el("div","pdf-brand","INOVTEC\nDASHBOARD"));root.appendChild(head);
-
-  const calendar=el("div","pdf-calendar"),calHead=el("div","pdf-cal-head");
-  calHead.appendChild(el("div","pdf-head-time"));
-  DAYS.forEach((name,i)=>{const d=addDays(data.start,i),h=el("div","pdf-day-head");h.append(el("strong",null,name),el("span",null,`${d.getDate()} ${MONTHS[d.getMonth()].slice(0,4)}.`));calHead.appendChild(h)});
-  calendar.appendChild(calHead);
-
-  const body=el("div","pdf-cal-body"),rail=el("div","pdf-time-rail"),grid=el("div","pdf-days-grid");
-  for(let h=START_HOUR;h<=END_HOUR;h++){const lab=el("div","pdf-time",`${String(h).padStart(2,"0")}:00`);lab.style.top=((h-START_HOUR)*HOUR_MM)+"mm";rail.appendChild(lab)}
-  DAYS.forEach((name,i)=>{
-    const col=el("div","pdf-day-col"+(i>=5?" weekend":""));
-    (data.groups[i]||[]).forEach(item=>{
-      const start=Math.max(START_HOUR*60,timeToMin(item.start)),end=Math.min(END_HOUR*60,Math.max(start+15,timeToMin(item.end)));
-      if(end<=START_HOUR*60||start>=END_HOUR*60)return;
-      const top=((start-START_HOUR*60)/60)*HOUR_MM,height=Math.max(5.5,((end-start)/60)*HOUR_MM);
-      const ev=el("div","pdf-event");ev.style.top=top+"mm";ev.style.height=height+"mm";
-      ev.append(el("div","pdf-event-time",item.time||`${item.start} – ${item.end}`),el("div","pdf-event-title",item.task||"Intervention"));
-      if(item.site)ev.appendChild(el("div","pdf-event-site",item.site));
-      if(item.note&&height>=13)ev.appendChild(el("div","pdf-event-note",item.note));
-      col.appendChild(ev);
-    });
-    grid.appendChild(col);
-  });
-  body.append(rail,grid);calendar.appendChild(body);root.appendChild(calendar);
-  const total=data.groups.reduce((n,g)=>n+g.length,0),foot=el("div","pdf-foot");
-  foot.innerHTML=`<span><strong>${total}</strong> intervention(s) planifiée(s)</span><span>${total?"Planning de la semaine affichée":"Planning vide — aucune intervention planifiée"}</span>`;
-  root.appendChild(foot);
-  return root;
-}
-async function generate(){
-  if(typeof window.html2pdf!=="function"){alert("Le générateur PDF n’est pas encore chargé. Réessaie dans quelques secondes.");return}
-  const data=readPlanning();
-  if(!data.start){alert("La semaine affichée n’a pas pu être déterminée.");return}
-  if(!data.agent||/aucun agent/i.test(data.agent)){alert("Sélectionne d’abord un agent dans la liste de gauche.");return}
-  const root=buildDocument(data);root.style.position="fixed";root.style.left="-10000px";root.style.top="0";root.style.zIndex="-1";document.body.appendChild(root);
-  const filename=`Planning_${safeName(data.agent)}_${data.start.getFullYear()}-${String(data.start.getMonth()+1).padStart(2,"0")}-${String(data.start.getDate()).padStart(2,"0")}.pdf`;
-  try{
-    await window.html2pdf().set({margin:[8,8,8,8],filename,image:{type:"jpeg",quality:.99},html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",scrollX:0,scrollY:0},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"]}}).from(root).save();
-  }catch(err){console.error(err);alert("Impossible de générer le PDF pour le moment.");}
-  finally{root.remove()}
-}
-window.InovtecPlanningPDF={generate,readPlanning};
+function loadState(){try{const s=JSON.parse(localStorage.getItem(KEY)||"{}");return s&&Array.isArray(s.agents)&&s.weeks?s:{agents:[],weeks:{},selected:null}}catch{return{agents:[],weeks:{},selected:null}}}
+function hubAgents(){try{return parent?.InovtecDataHub?.readyAgents?Array.from(parent.InovtecDataHub.agents||[]):[]}catch{return[]}}
+function hubName(a){return[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ").trim()||a?.displayName||a?.name||"Agent sans nom"}
+function copiesFor(agent){const masters=hubAgents();const m=masters.find(x=>String(x.id)===String(agent.refId||agent.id)||norm(hubName(x))===norm(agent.name));const raw=m?.job?.planningCopies;const n=Math.round(Number(raw));return Number.isFinite(n)&&n>=1?Math.min(10,n):2}
+function currentWeek(){return $("week")?.value||""}
+function agentData(state,week,agent){const start=dateFromWeek(week,0),end=dateFromWeek(week,6),groups=DAYS.map(()=>[]);const rows=Array.isArray(state.weeks?.[week])?state.weeks[week]:[];rows.filter(e=>String(e.agentId)===String(agent.id)).sort((a,b)=>Number(a.day)-Number(b.day)||String(a.start).localeCompare(String(b.start))).forEach(e=>{const d=Math.max(0,Math.min(6,Number(e.day)||0));groups[d].push({start:e.start||"06:00",end:e.end||"07:00",task:e.task||"Intervention",site:e.site||"",note:e.note||""})});return{agent:agent.name||"Agent",start,end,groups}}
+function jsPDFClass(){return window.jspdf?.jsPDF||window.jsPDF||null}
+function drawHeader(doc,data){doc.setFillColor(6,78,59);doc.roundedRect(8,7,281,23,4,4,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7);doc.text("PLANNING HEBDOMADAIRE",15,13);doc.setFontSize(18);doc.text(String(data.agent||"Agent"),15,21,{maxWidth:190});doc.setFontSize(10);doc.text(rangeLabel(data.start,data.end),15,27);doc.setFontSize(8);doc.text("INOVTEC DASHBOARD",281,18,{align:"right"});doc.setFont("helvetica","normal");doc.setTextColor(0,0,0)}
+function drawGrid(doc,data){const x=8,y=37,w=281,headH=12,timeW=14,bodyH=144,hourH=bodyH/(END_HOUR-START_HOUR),dayW=(w-timeW)/7,bodyY=y+headH;doc.setFillColor(243,247,245);doc.rect(x,y,w,headH,"F");doc.setDrawColor(178,178,178);doc.setLineWidth(.22);doc.rect(x,y,w,headH+bodyH);doc.line(x+timeW,y,x+timeW,y+headH+bodyH);for(let i=1;i<7;i++){const vx=x+timeW+i*dayW;doc.line(vx,y,vx,y+headH+bodyH)}doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(25,73,57);DAYS.forEach((name,i)=>{const d=addDays(data.start,i),cx=x+timeW+i*dayW+dayW/2;doc.text(name,cx,y+4.8,{align:"center"});doc.setFont("helvetica","normal");doc.setFontSize(6);doc.setTextColor(100,112,106);doc.text(`${d.getDate()} ${MONTHS[d.getMonth()].slice(0,4)}.`,cx,y+9,{align:"center"});doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(25,73,57)});doc.setFont("helvetica","normal");for(let h=START_HOUR;h<=END_HOUR;h++){const yy=bodyY+(h-START_HOUR)*hourH;doc.setDrawColor(178,178,178);doc.setLineWidth(.2);doc.line(x,yy,x+w,yy);if(h<END_HOUR){const hy=yy+hourH/2;doc.setDrawColor(214,214,214);doc.setLineWidth(.12);doc.line(x+timeW,hy,x+w,hy)}doc.setFontSize(6);doc.setTextColor(85,94,89);doc.text(`${pad(h)}:00`,x+timeW-1.4,yy+1.8,{align:"right"})}data.groups.forEach((list,day)=>{list.forEach(item=>{const s=Math.max(START_HOUR*60,timeToMin(item.start)),e=Math.min(END_HOUR*60,Math.max(s+15,timeToMin(item.end)));if(e<=START_HOUR*60||s>=END_HOUR*60)return;const ex=x+timeW+day*dayW+1,ey=bodyY+((s-START_HOUR*60)/60)*hourH,eh=Math.max(4.8,((e-s)/60)*hourH),ew=dayW-2;doc.setFillColor(232,245,238);doc.setDrawColor(76,156,114);doc.setLineWidth(.25);doc.roundedRect(ex,ey,ew,eh,1.2,1.2,"FD");doc.setFillColor(8,118,84);doc.rect(ex,ey,1,eh,"F");doc.setTextColor(7,93,67);doc.setFont("helvetica","bold");doc.setFontSize(5.5);doc.text(`${item.start} - ${item.end}`,ex+2,ey+2.6,{maxWidth:ew-3});if(eh>=7){doc.setTextColor(23,59,48);doc.setFontSize(6);const title=doc.splitTextToSize(String(item.task||"Intervention"),ew-3).slice(0,2);doc.text(title,ex+2,ey+5.2)}if(item.site&&eh>=12){doc.setFont("helvetica","normal");doc.setTextColor(82,102,93);doc.setFontSize(5);const site=doc.splitTextToSize(String(item.site),ew-3).slice(0,2);doc.text(site,ex+2,ey+9)}doc.setFont("helvetica","normal")})});doc.setTextColor(95,110,103);doc.setFontSize(6);const total=data.groups.reduce((n,g)=>n+g.length,0);doc.text(total?`${total} intervention(s) planifiée(s)`:"Planning vide - aucune intervention planifiée",8,204);doc.text("Document généré depuis Inovtec Dashboard",289,204,{align:"right"})}
+function drawPage(doc,data){drawHeader(doc,data);drawGrid(doc,data)}
+function makeDoc(){const C=jsPDFClass();if(!C){alert("Le générateur PDF n’est pas encore chargé. Réessaie dans quelques secondes.");return null}return new C({orientation:"landscape",unit:"mm",format:"a4",compress:true})}
+function single(){const state=loadState(),week=currentWeek(),agent=state.agents.find(a=>String(a.id)===String(state.selected));if(!week){alert("La semaine affichée n’a pas pu être déterminée.");return}if(!agent){alert("Sélectionne d’abord un agent dans la liste de gauche.");return}const doc=makeDoc();if(!doc)return;const data=agentData(state,week,agent);drawPage(doc,data);doc.save(`Planning_${safeName(data.agent)}_${data.start.getFullYear()}-${pad(data.start.getMonth()+1)}-${pad(data.start.getDate())}.pdf`)}
+function all(){const state=loadState(),week=currentWeek(),agents=Array.isArray(state.agents)?state.agents.slice():[];if(!week){alert("La semaine affichée n’a pas pu être déterminée.");return}if(!agents.length){alert("Aucun agent n’est disponible dans le Planning.");return}const queue=[];const maxCopies=Math.max(...agents.map(copiesFor),2);for(let round=1;round<=maxCopies;round++)agents.forEach(a=>{if(copiesFor(a)>=round)queue.push(a)});if(!queue.length)return;const doc=makeDoc();if(!doc)return;queue.forEach((agent,i)=>{if(i>0)doc.addPage("a4","landscape");drawPage(doc,agentData(state,week,agent))});const start=dateFromWeek(week,0);doc.save(`Plannings_tous_agents_${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}.pdf`)}
+window.InovtecPlanningPDF={generate:single,generateSingle:single,generateAll:all,copiesFor};
 })();
