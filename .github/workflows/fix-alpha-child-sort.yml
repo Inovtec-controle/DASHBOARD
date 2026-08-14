@@ -36,8 +36,8 @@ jobs:
 
           shell = Path('inovtec-page-shell.html')
           h = shell.read_text(encoding='utf-8')
-          oldref = 'inovtec-alphabetical-lists.js?v=20260815-stable1'
-          newref = 'inovtec-alphabetical-lists.js?v=20260815-stable2'
+          oldref = 'inovtec-alphabetical-lists.js?v=20260815-stable2'
+          newref = 'inovtec-alphabetical-lists.js?v=20260815-stable3'
           if oldref not in h:
               raise SystemExit('Référence cache du tri introuvable')
           shell.write_text(h.replace(oldref, newref), encoding='utf-8')
@@ -50,7 +50,7 @@ jobs:
           node --check inovtec-alphabetical-lists.js
           grep -Fq 'container.children].filter(n=>n.matches(selector))' inovtec-alphabetical-lists.js
           ! grep -Fq 'querySelectorAll(`:scope > ${selector}`)' inovtec-alphabetical-lists.js
-          grep -Fq 'inovtec-alphabetical-lists.js?v=20260815-stable2' inovtec-page-shell.html
+          grep -Fq 'inovtec-alphabetical-lists.js?v=20260815-stable3' inovtec-page-shell.html
           test -s inovtec-referential.js
           grep -Fq 'function renderAgents()' planning-calendar.js
           grep -Fq 'row.append(dot,name)' planning-calendar.js
