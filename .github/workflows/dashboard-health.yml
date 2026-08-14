@@ -35,6 +35,8 @@ jobs:
             PLANNINGS-LEGACY.html
             planning-calendar.css
             planning-calendar.js
+            planning-calendar-legal-loader.js
+            planning-context-fit.js
             KONTROL.html
             HEURE-SUP.html
             TEMPS.html
@@ -46,6 +48,7 @@ jobs:
             inovtec-cloud-sync.js
             inovtec-referential.js
             inovtec-visual-runtime.js
+            inovtec-agent-contract-hours.js
             inovtec-page-shell.html
           )
           for file in "${files[@]}"; do
@@ -66,7 +69,10 @@ jobs:
           node --check inovtec-cloud-sync.js
           node --check inovtec-referential.js
           node --check inovtec-visual-runtime.js
+          node --check inovtec-agent-contract-hours.js
           node --check planning-calendar.js
+          node --check planning-calendar-legal-loader.js
+          node --check planning-context-fit.js
           python3 - <<'PY'
           from html.parser import HTMLParser
           from pathlib import Path
