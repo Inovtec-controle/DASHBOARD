@@ -1,7 +1,7 @@
 .iv-topbar{display:none!important}
 .iv-main{grid-template-rows:auto auto minmax(0,1fr)!important}
 .iv-hero{min-height:142px!important;padding:24px 32px!important}
-.iv-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 18px 0}
+.iv-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 18px 0}
 .iv-summary-card{min-width:0;background:#fff;border:1px solid #dfeae4;border-radius:15px;padding:13px 14px;display:flex;align-items:center;gap:11px;box-shadow:0 6px 18px rgba(15,23,42,.045)}
 .iv-summary-icon{width:40px;height:40px;flex:0 0 40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#e8f8ef,#d9f5e5);color:#065f46;font-size:17px;font-weight:900}
 .iv-summary-copy{min-width:0}.iv-summary-label{display:block;font-size:9px;letter-spacing:.055em;text-transform:uppercase;color:#7a8d83;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.iv-summary-value{display:block;margin-top:3px;font-size:18px;line-height:1.05;color:#133d30;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.iv-summary-note{display:block;margin-top:3px;font-size:9px;color:#14a064;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
