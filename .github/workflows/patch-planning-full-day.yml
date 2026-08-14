@@ -51,15 +51,6 @@ jobs:
           replace('PLANNINGS.html',
                   'PLANNINGS-LEGACY.html%3Fv%3D20260815-hub15',
                   'PLANNINGS-LEGACY.html%3Fv%3D20260815-hub16')
-
-          health = Path('.github/workflows/dashboard-health.yml')
-          text = health.read_text(encoding='utf-8')
-          old = "          grep -q 'planning-pdf.js?v=20260815-3' PLANNINGS-LEGACY.html\n"
-          if old not in text:
-              raise SystemExit('Point d’insertion health check introuvable')
-          new = old + "          grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js\n          grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css\n          grep -q 'planning-calendar.js?v=20260815-7' PLANNINGS-LEGACY.html\n"
-          text = text.replace(old, new, 1)
-          health.write_text(text, encoding='utf-8')
           PY
 
       - name: Vérifier les modifications
@@ -78,7 +69,7 @@ jobs:
           set -euo pipefail
           git config user.name 'Inovtec Bot'
           git config user.email 'inovtec-bot@users.noreply.github.com'
-          git add planning-calendar.js planning-calendar.css PLANNINGS-LEGACY.html PLANNINGS.html .github/workflows/dashboard-health.yml
+          git add planning-calendar.js planning-calendar.css PLANNINGS-LEGACY.html PLANNINGS.html
           git diff --cached --quiet && exit 0
           git commit -m 'Affiche le planning agent de minuit à minuit'
           git push origin HEAD:main
