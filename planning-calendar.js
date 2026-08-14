@@ -100,7 +100,7 @@ function eventPosition(e){const s=timeToMin(e.start),en=Math.max(s+15,timeToMin(
 function createEventCard(week,e){
   const a=agentById(e.agentId),pos=eventPosition(e),card=document.createElement("article");card.className="event-card"+(selectedEvent===e.id?" selected":"");card.dataset.id=e.id;card.dataset.week=week;card.style.setProperty("--event-color",a?.color||"#4f9f57");card.style.top=pos.top+"px";card.style.height=pos.height+"px";
   card.innerHTML=`<div class="event-time">${e.start||""} – ${e.end||""}</div><div class="event-title"></div><div class="event-site"></div><div class="event-resize"></div>`;card.querySelector(".event-title").textContent=e.task||"Intervention";card.querySelector(".event-site").textContent=e.site||a?.name||"";
-  card.onclick=ev=>{if(Date.now()<suppressClickUntil)return;ev.stopPropagation();selectedEvent=e.id;openEditor(week,e,ev.clientX,ev.clientY)};
+  card.ondblclick=ev=>{if(Date.now()<suppressClickUntil)return;ev.preventDefault();ev.stopPropagation();selectedEvent=e.id;openEditor(week,e,ev.clientX,ev.clientY)};
   card.oncontextmenu=ev=>{ev.preventDefault();ev.stopPropagation();openEditor(week,e,ev.clientX,ev.clientY)};
   card.addEventListener("mousedown",ev=>{if(ev.button!==0)return;ev.stopPropagation();if(ev.target.classList.contains("event-resize"))startResize(ev,week,e,card);else startMove(ev,week,e,card)});
   return card
@@ -110,16 +110,17 @@ function renderTimeGrid(dates){
   const rail=$("timeRail");for(let h=START_HOUR;h<=END_HOUR;h++){const l=document.createElement("div");l.className="time-label";l.style.top=((h-START_HOUR)*HOUR_PX)+"px";l.textContent=pad(h)+":00";rail.appendChild(l)}
   const layer=$("daysLayer");layer.style.gridTemplateColumns=`repeat(${dates.length},1fr)`;const now=new Date();
   dates.forEach(d=>{
-    const col=document.createElement("div");col.className="day-column"+([5,6].includes(mondayIndex(d))?" weekend":"");col.dataset.date=dateInput(d);col.dataset.week=isoWeekKey(d);col.dataset.day=mondayIndex(d);col.addEventListener("mousedown",startCreate);layer.appendChild(col);
+    const col=document.createElement("div");col.className="day-column"+([5,6].includes(mondayIndex(d))?" weekend":"");col.dataset.date=dateInput(d);col.dataset.week=isoWeekKey(d);col.dataset.day=mondayIndex(d);col.addEventListener("dblclick",createOnDoubleClick);layer.appendChild(col);
     entriesForDate(d).filter(e=>visibleAgents.has(e.agentId)).forEach(e=>col.appendChild(createEventCard(isoWeekKey(d),e)));
     if(sameDate(d,now)){const mins=now.getHours()*60+now.getMinutes();if(mins>=START_HOUR*60&&mins<=END_HOUR*60){const line=document.createElement("div");line.className="now-line";line.style.top=(((mins-START_HOUR*60)/60)*HOUR_PX)+"px";col.appendChild(line)}}
   })
 }
-function startCreate(ev){
-  if(ev.button!==0||ev.target.closest(".event-card"))return;closeEditor();closeContext();const col=ev.currentTarget,start=minuteFromPointer(col,ev.clientY),ghost=document.createElement("div");ghost.className="creation-ghost";ghost.style.top=(((start-START_HOUR*60)/60)*HOUR_PX)+"px";ghost.style.height=(HOUR_PX)+"px";col.appendChild(ghost);let end=Math.min(END_HOUR*60,start+60),moved=false;
-  const move=e=>{moved=true;end=Math.max(start+15,minuteFromPointer(col,e.clientY));ghost.style.height=Math.max(14,((end-start)/60)*HOUR_PX)+"px"};
-  const up=e=>{document.removeEventListener("mousemove",move);document.removeEventListener("mouseup",up);ghost.remove();if(e.button!==0)return;const finalEnd=Math.min(END_HOUR*60,moved?Math.max(start+30,end):start+60),week=col.dataset.week,day=Number(col.dataset.day),event={id:uid("e"),agentId:state.selected,day,start:minToTime(start),end:minToTime(finalEnd),task:"Nouvelle intervention",site:"",note:""};entriesForWeek(week).push(event);save();selectedEvent=event.id;render();setTimeout(()=>openEditor(week,event,ev.clientX,ev.clientY),20)};
-  document.addEventListener("mousemove",move);document.addEventListener("mouseup",up)
+function createOnDoubleClick(ev){
+  if(ev.button!==0||ev.target.closest(".event-card"))return;
+  ev.preventDefault();closeEditor();closeContext();
+  const col=ev.currentTarget,start=minuteFromPointer(col,ev.clientY),end=Math.min(END_HOUR*60,start+60),week=col.dataset.week,day=Number(col.dataset.day);
+  const event={id:uid("e"),agentId:state.selected,day,start:minToTime(start),end:minToTime(end),task:"Nouvelle intervention",site:"",note:""};
+  entriesForWeek(week).push(event);save();selectedEvent=event.id;render();setTimeout(()=>openEditor(week,event,ev.clientX,ev.clientY),20)
 }
 function startMove(ev,week,e,card){
   const duration=Math.max(15,timeToMin(e.end)-timeToMin(e.start)),originX=ev.clientX,originY=ev.clientY;card.style.opacity=".65";let moved=false,target=null,start=timeToMin(e.start);
@@ -135,7 +136,7 @@ function startResize(ev,week,e,card){
 
 function renderMonth(){
   $("calendarViewport").innerHTML='<div class="month-view" id="monthView"></div>';const box=$("monthView"),first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),today=new Date();
-  for(let i=0;i<42;i++){const d=addDays(start,i),cell=document.createElement("div");cell.className="month-cell"+(d.getMonth()!==currentDate.getMonth()?" out":"")+(sameDate(d,today)?" today":"");cell.dataset.date=dateInput(d);const n=document.createElement("div");n.className="month-number";n.textContent=d.getDate();cell.appendChild(n);entriesForDate(d).filter(e=>visibleAgents.has(e.agentId)).slice(0,4).forEach(e=>{const p=document.createElement("div"),a=agentById(e.agentId);p.className="month-event";p.style.setProperty("--event-color",a?.color||COLORS[0]);p.textContent=`${e.start} ${e.task||"Intervention"}`;p.onclick=ev=>{ev.stopPropagation();openEditor(isoWeekKey(d),e,ev.clientX,ev.clientY)};cell.appendChild(p)});cell.ondblclick=ev=>{if(ev.target!==cell&&ev.target!==n)return;createDefaultForDate(d,ev.clientX,ev.clientY)};box.appendChild(cell)}
+  for(let i=0;i<42;i++){const d=addDays(start,i),cell=document.createElement("div");cell.className="month-cell"+(d.getMonth()!==currentDate.getMonth()?" out":"")+(sameDate(d,today)?" today":"");cell.dataset.date=dateInput(d);const n=document.createElement("div");n.className="month-number";n.textContent=d.getDate();cell.appendChild(n);entriesForDate(d).filter(e=>visibleAgents.has(e.agentId)).slice(0,4).forEach(e=>{const p=document.createElement("div"),a=agentById(e.agentId);p.className="month-event";p.style.setProperty("--event-color",a?.color||COLORS[0]);p.textContent=`${e.start} ${e.task||"Intervention"}`;p.ondblclick=ev=>{ev.preventDefault();ev.stopPropagation();openEditor(isoWeekKey(d),e,ev.clientX,ev.clientY)};cell.appendChild(p)});cell.ondblclick=ev=>{if(ev.target!==cell&&ev.target!==n)return;createDefaultForDate(d,ev.clientX,ev.clientY)};box.appendChild(cell)}
 }
 function renderList(){
   const box=document.createElement("div");box.className="list-view";$("calendarViewport").innerHTML="";$("calendarViewport").appendChild(box);const start=weekStart(currentDate);let total=0;
