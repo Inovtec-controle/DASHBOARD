@@ -18,7 +18,7 @@
       <div class="agent-search"><input id="agentSearch" type="search" placeholder="Rechercher un agent…" autocomplete="off"></div>
     </div>
     <div class="agent-list" id="agentList"></div>
-    <div class="agent-tip">Clic droit sur un agent pour le modifier, changer sa couleur ou le supprimer.<br>Clic droit dans la zone vide pour créer un agent.</div>
+    <div class="agent-tip">La liste vient du Classeur Agents et se met à jour automatiquement.<br>Clic droit sur un agent pour le modifier ou le supprimer.</div>
   </aside>
 
   <main class="calendar-pane">
@@ -43,8 +43,8 @@
 </div>
 
 <div class="editor-popover" id="editorPopover" role="dialog" aria-label="Modifier l’intervention">
-  <div class="editor-row"><span class="editor-icon">●</span><input class="editor-field editor-title" id="edTitle" maxlength="120" placeholder="Intervention"></div>
-  <div class="editor-row"><span class="editor-icon">⌖</span><input class="editor-field" id="edSite" maxlength="150" placeholder="Ajouter un chantier / lieu"></div>
+  <div class="editor-row"><span class="editor-icon">●</span><select class="editor-select editor-title" id="edTitle" aria-label="Chantier"><option value="">Choisir un chantier…</option></select></div>
+  <div class="editor-row"><span class="editor-icon">⌖</span><input class="editor-field" id="edSite" maxlength="250" placeholder="Adresse / lieu rempli automatiquement"></div>
   <div class="editor-row"><span class="editor-icon">▦</span><input class="editor-field" id="edDate" type="date"></div>
   <div class="editor-row"><span class="editor-icon">◷</span><div class="editor-time-pair"><input class="editor-field" id="edStart" type="time" step="900"><span>–</span><input class="editor-field" id="edEnd" type="time" step="900"></div></div>
   <div class="editor-row"><span class="editor-icon">♙</span><select class="editor-select" id="edAgent"></select></div>
@@ -65,7 +65,7 @@
   <button id="printBtn" type="button">Imprimer</button>
 </div>
 
-<script src="planning-calendar.js?v=20260814-3"></script>
+<script src="planning-calendar.js?v=20260814-4"></script>
 <script>(()=>{const hide=()=>{try{[...parent.document.querySelectorAll('.iv-tool')].forEach(b=>{if(/ajouter un agent/i.test(b.textContent||''))b.style.display='none'})}catch{}};setTimeout(hide,180);setTimeout(hide,650);setTimeout(hide,1400)})();</script>
 </body>
 </html>
