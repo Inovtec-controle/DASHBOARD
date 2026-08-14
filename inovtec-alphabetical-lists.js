@@ -35,6 +35,7 @@ function sortSelect(sel){
   sel.scrollTop=scroll;
 }
 function sortDatalist(dl){
+  const doc=dl.ownerDocument,active=doc?.activeElement;if(active?.getAttribute?.("list")===dl.id)return;
   const arr=[...dl.querySelectorAll(":scope > option")],sorted=[...arr].sort((a,b)=>collator.compare(String(a.value||text(a)),String(b.value||text(b))));
   if(arr.some((n,i)=>n!==sorted[i]))sorted.forEach(n=>dl.appendChild(n));
 }
