@@ -32,6 +32,9 @@ jobs:
             ORGA.html
             DISCIPLINE.html
             PLANNINGS.html
+            PLANNINGS-LEGACY.html
+            planning-calendar.css
+            planning-calendar.js
             KONTROL.html
             HEURE-SUP.html
             TEMPS.html
@@ -63,6 +66,7 @@ jobs:
           node --check inovtec-cloud-sync.js
           node --check inovtec-referential.js
           node --check inovtec-visual-runtime.js
+          node --check planning-calendar.js
           python3 - <<'PY'
           from html.parser import HTMLParser
           from pathlib import Path
@@ -70,7 +74,7 @@ jobs:
 
           pages = [
               'index.html','INFOCHANTIERS.html','ORGA.html','DISCIPLINE.html',
-              'PLANNINGS.html','KONTROL.html','HEURE-SUP.html','TEMPS.html',
+              'PLANNINGS.html','PLANNINGS-LEGACY.html','KONTROL.html','HEURE-SUP.html','TEMPS.html',
               'SALAIRE.html','AGENTS.html','inovtec-page-shell.html'
           ]
 
