@@ -71,7 +71,7 @@ jobs:
           grep -q 'planning-pdf.js?v=20260815-3' PLANNINGS-LEGACY.html
           grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js
           grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css
-          grep -q 'planning-calendar.js?v=20260815-7' PLANNINGS-LEGACY.html
+          grep -q 'planning-calendar.js?v=20260815-menu1' PLANNINGS-LEGACY.html
 
       - name: Vérifier la syntaxe JavaScript
         shell: bash
