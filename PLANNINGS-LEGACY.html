@@ -47,7 +47,7 @@
 
 <div class="editor-popover" id="editorPopover" role="dialog" aria-label="Modifier l’intervention">
   <div class="editor-row"><span class="editor-icon">●</span><select class="editor-select editor-title" id="edTitle" aria-label="Chantier"><option value="">Choisir un chantier…</option></select></div>
-  <div class="editor-row"><span class="editor-icon">⌖</span><input class="editor-field" id="edSite" maxlength="250" placeholder="Adresse / lieu rempli automatiquement"></div>
+  <div class="editor-row"><span class="editor-icon">≡</span><textarea class="editor-textarea editor-brief" id="edSite" maxlength="140" rows="2" placeholder="Décrire brièvement la tâche du jour…" aria-label="Tâche du jour"></textarea></div>
   <div class="editor-row"><span class="editor-icon">▦</span><input class="editor-field" id="edDate" type="date"></div>
   <div class="editor-row"><span class="editor-icon">◷</span><div class="editor-time-pair"><input class="editor-field" id="edStart" type="time" step="900"><span>–</span><input class="editor-field" id="edEnd" type="time" step="900"></div></div>
   <div class="editor-row"><span class="editor-icon">♙</span><select class="editor-select" id="edAgent"></select></div>
@@ -69,6 +69,7 @@
 </div>
 
 <script src="planning-calendar.js?v=20260814-6"></script>
+<script src="planning-editor-stability.js?v=20260815-1"></script>
 <script src="planning-legal-guard.js?v=20260814-1"></script>
 <script src="planning-copy-count.js?v=20260814-4"></script>
 <script src="planning-context-fit.js?v=20260814-1"></script>
