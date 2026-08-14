@@ -3,7 +3,7 @@
 const KEY="inovtec_plannings_v2";
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const COLORS=["#4f9f57","#4f8fd8","#7755b8","#e47c25","#e7556f","#43a9b4","#e5a72b","#6279be","#2f9c78","#b965a7"];
-const START_HOUR=6,END_HOUR=22,HOUR_PX=56;
+const START_HOUR=0,END_HOUR=24,HOUR_PX=56;
 const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,"0");
 const uid=p=>p+"_"+Date.now()+"_"+Math.random().toString(16).slice(2);
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
