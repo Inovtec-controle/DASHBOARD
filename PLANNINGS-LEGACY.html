@@ -3,108 +3,69 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f7f8f8">
+<meta name="theme-color" content="#0b6b43">
 <title>Inovtec — Planning</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="planning-apple.css?v=20260814-1">
+<link rel="stylesheet" href="planning-calendar.css?v=20260814-1">
 </head>
 <body>
-<div id="app">
-  <section class="planner">
-    <aside class="sidebar" id="sidebar">
-      <div class="side-head">
-        <div class="side-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-          <span>PLANNINGS</span>
-        </div>
-        <div class="search-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input id="agentSearch" type="search" placeholder="Rechercher un agent…" autocomplete="off">
-        </div>
-      </div>
-      <div id="agentList" class="agent-list"></div>
-      <div class="side-hint"><strong>Clic droit sur un agent</strong><span>Modifier, couleur, dupliquer ou supprimer.</span><span>Clic droit dans cette zone pour créer un agent.</span></div>
-    </aside>
+<div class="planner-shell">
+  <aside class="agent-panel" id="agentPanel">
+    <div class="agent-panel-head">
+      <h2>Agents</h2>
+      <div class="agent-search"><input id="agentSearch" type="search" placeholder="Rechercher un agent…" autocomplete="off"></div>
+    </div>
+    <div class="agent-list" id="agentList"></div>
+    <div class="agent-tip">Clic droit sur un agent pour le modifier, changer sa couleur ou le supprimer.<br>Clic droit dans la zone vide pour créer un agent.</div>
+  </aside>
 
-    <main class="main">
-      <div class="planner-top">
-        <h2>Planning</h2>
-        <div class="segmented" aria-label="Vue du planning">
-          <button type="button" data-view="day">Jour</button>
-          <button type="button" data-view="week" class="active">Semaine</button>
-          <button type="button" data-view="month">Mois</button>
-          <button type="button" data-view="list">Liste</button>
-        </div>
-        <span class="top-spacer"></span>
-        <span class="mini-status">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 17.5A4.5 4.5 0 0 0 17.5 9 6 6 0 0 0 6 10.5 3.5 3.5 0 0 0 6.5 17H8"/><path d="m12 15 2 2 4-4"/></svg>
-          Sauvegarde automatique
-        </span>
-        <button id="moreBtn" class="icon-btn" type="button" aria-label="Plus d'options">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
-        </button>
+  <main class="calendar-pane">
+    <div class="calendar-toolbar">
+      <div class="calendar-toolbar-left">
+        <button class="nav-btn" id="prevBtn" type="button" aria-label="Période précédente">‹</button>
+        <button class="nav-btn" id="nextBtn" type="button" aria-label="Période suivante">›</button>
+        <div class="period-label" id="periodLabel">—</div>
       </div>
-
-      <div class="rangebar">
-        <div class="navgroup">
-          <button id="prevBtn" type="button" aria-label="Période précédente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
-          <button id="nextBtn" type="button" aria-label="Période suivante"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+      <div class="calendar-toolbar-right">
+        <div class="view-tabs" aria-label="Type d’affichage">
+          <button class="view-tab" data-view="day" type="button">Jour</button>
+          <button class="view-tab active" data-view="week" type="button">Semaine</button>
+          <button class="view-tab" data-view="month" type="button">Mois</button>
+          <button class="view-tab" data-view="list" type="button">Liste</button>
         </div>
-        <strong id="rangeLabel">—</strong>
-        <span class="range-spacer"></span>
-        <button id="todayBtn" class="today-btn" type="button">Aujourd’hui</button>
+        <button class="soft-btn" id="todayBtn" type="button">Aujourd’hui</button>
       </div>
-
-      <div id="viewHost" class="view-host"></div>
-      <div class="footerbar"><small>Double-cliquez dans le calendrier pour créer une intervention · Glissez une intervention pour la déplacer</small><div id="legend" class="legend"></div></div>
-    </main>
-  </section>
+    </div>
+    <div class="calendar-scroll" id="calendarViewport"></div>
+  </main>
 </div>
 
-<div id="eventPopover" class="popover hidden" style="--event-color:#2b7d3d">
-  <form id="eventForm">
-    <div class="pop-row"><span class="pop-dot"></span><input id="evTitle" class="pop-title" maxlength="120" placeholder="Nouvelle intervention" required></div>
-    <div class="pop-field">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      <select id="evAgent"></select>
-    </div>
-    <div class="pop-field">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-      <input id="evDate" type="date" required>
-    </div>
-    <div class="pop-field">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      <div class="time-pair"><input id="evStart" type="time" step="900" required><span>–</span><input id="evEnd" type="time" step="900" required></div>
-    </div>
-    <div class="pop-field">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-4.6 7-12a7 7 0 1 0-14 0c0 7.4 7 12 7 12Z"/><circle cx="12" cy="9" r="2"/></svg>
-      <input id="evSite" maxlength="150" placeholder="Ajouter un lieu / chantier">
-    </div>
-    <div class="pop-field">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-      <select id="evRepeat" aria-label="Répétition"><option>Ne se répète pas</option></select>
-    </div>
-    <div class="pop-field">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-      <textarea id="evNote" maxlength="300" placeholder="Ajouter une note…"></textarea>
-    </div>
-    <div class="pop-actions"><button id="evDelete" class="danger-link" type="button">Supprimer</button><button class="done-link" type="submit">Terminé</button></div>
-  </form>
+<div class="editor-popover" id="editorPopover" role="dialog" aria-label="Modifier l’intervention">
+  <div class="editor-row"><span class="editor-icon">●</span><input class="editor-field editor-title" id="edTitle" maxlength="120" placeholder="Intervention"></div>
+  <div class="editor-row"><span class="editor-icon">⌖</span><input class="editor-field" id="edSite" maxlength="150" placeholder="Ajouter un chantier / lieu"></div>
+  <div class="editor-row"><span class="editor-icon">▦</span><input class="editor-field" id="edDate" type="date"></div>
+  <div class="editor-row"><span class="editor-icon">◷</span><div class="editor-time-pair"><input class="editor-field" id="edStart" type="time" step="900"><span>–</span><input class="editor-field" id="edEnd" type="time" step="900"></div></div>
+  <div class="editor-row"><span class="editor-icon">♙</span><select class="editor-select" id="edAgent"></select></div>
+  <div class="editor-row"><span class="editor-icon">≡</span><textarea class="editor-textarea" id="edNote" maxlength="250" placeholder="Ajouter une note…"></textarea></div>
+  <div class="editor-actions"><button class="editor-delete" id="edDelete" type="button">Supprimer</button><button class="editor-done" id="edDone" type="button">Terminé</button></div>
+</div>
+<div class="context-menu" id="contextMenu"></div>
+
+<div class="hidden-meta" aria-hidden="true">
+  <input id="week" type="week">
+  <div><label>Semaine calculée</label><div id="weekInfo">—</div></div>
+  <div><label>Sauvegarde</label><div id="syncBadge" class="status warning">Connexion…</div></div>
+  <h2 id="title">Planning</h2><span id="count">0 intervention</span>
+  <table><tbody id="rows"></tbody></table>
+  <div class="notice warning">Les données sont enregistrées dans ce navigateur.</div>
+  <button id="exportBtn" type="button">Exporter</button>
+  <input id="importFile" type="file" accept="application/json">
+  <button id="printBtn" type="button">Imprimer</button>
 </div>
 
-<div id="contextMenu" class="context-menu hidden"></div>
-<div id="moreMenu" class="more-menu hidden">
-  <button class="ctx-item" id="importAction" type="button">Importer un planning</button>
-  <button class="ctx-item" id="exportAction" type="button">Exporter les données</button>
-  <div class="ctx-sep"></div>
-  <button class="ctx-item" id="printAction" type="button">Imprimer</button>
-</div>
-<input id="importFile" type="file" accept="application/json" hidden>
-<button id="addAgent" type="button" hidden></button><button id="exportBtn" type="button" hidden></button><button id="printBtn" type="button" hidden></button>
-<div id="metaSummary"><span id="title"></span><span id="weekInfo"></span><span id="count"></span><table><tbody id="rows"></tbody></table></div>
-
-<script src="planning-apple.js?v=20260814-1"></script>
+<script src="planning-calendar.js?v=20260814-1"></script>
+<script>(()=>{const hide=()=>{try{[...parent.document.querySelectorAll('.iv-tool')].forEach(b=>{if(/ajouter un agent/i.test(b.textContent||''))b.style.display='none'})}catch{}};setTimeout(hide,180);setTimeout(hide,650);setTimeout(hide,1400)})();</script>
 </body>
 </html>
