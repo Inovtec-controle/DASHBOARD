@@ -66,7 +66,7 @@ jobs:
           grep -q 'inovtec-firebase-indicator.js' index.html
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'planning-editor-stability.js' PLANNINGS-LEGACY.html
-          grep -q 'planning-pdf.js?v=20260815-2' PLANNINGS-LEGACY.html
+          grep -q 'planning-pdf.js?v=20260815-3' PLANNINGS-LEGACY.html
 
       - name: Vérifier la syntaxe JavaScript
         shell: bash
