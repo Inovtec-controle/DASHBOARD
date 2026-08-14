@@ -49,6 +49,8 @@ jobs:
             inovtec-referential.js
             inovtec-visual-runtime.js
             inovtec-agent-contract-hours.js
+            inovtec-firebase-indicator.css
+            inovtec-firebase-indicator.js
             inovtec-page-shell.html
           )
           for file in "${files[@]}"; do
@@ -59,6 +61,8 @@ jobs:
           done
           grep -qi '<!DOCTYPE html>' index.html
           grep -q 'Classeur agents' index.html
+          grep -q 'inovtec-firebase-indicator.js' index.html
+          grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
 
       - name: Vérifier la syntaxe JavaScript
         shell: bash
@@ -70,6 +74,7 @@ jobs:
           node --check inovtec-referential.js
           node --check inovtec-visual-runtime.js
           node --check inovtec-agent-contract-hours.js
+          node --check inovtec-firebase-indicator.js
           node --check planning-calendar.js
           node --check planning-calendar-legal-loader.js
           node --check planning-context-fit.js
