@@ -1,0 +1,22 @@
+(()=>{
+"use strict";
+const KEY="inovtec_plannings_v2";
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+function state(){try{return JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch{return{}}}
+function timeMin(v){const m=String(v||"").match(/^(\d{1,2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):null}
+function weekDate(week,day){const m=String(week||"").match(/^(\d{4})-W(\d{2})$/);if(!m)return null;const y=Number(m[1]),w=Number(m[2]),jan4=new Date(y,0,4),idx=(jan4.getDay()+6)%7,mon=new Date(y,0,4-idx);mon.setDate(mon.getDate()+(w-1)*7+Number(day||0));return mon}
+function weekKey(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());const idx=(x.getDay()+6)%7;x.setDate(x.getDate()+3-idx);const y=new Date(x.getFullYear(),0,4),yidx=(y.getDay()+6)%7;const w=1+Math.round(((x-y)/86400000-3+yidx)/7);return x.getFullYear()+"-W"+pad(w)}
+function dayIndex(d){return(d.getDay()+6)%7}
+function masterFor(local){try{const h=parent?.InovtecDataHub;if(!h?.readyAgents)return null;return Array.from(h.agents||[]).find(m=>String(m.id)===String(local?.refId||local?.id)||norm(m.name||m.displayName)===norm(local?.name))||null}catch{return null}}
+function contract(local){const m=masterFor(local),j=m?.job||{};const raw=j.contractHoursWeekly??j.heuresContractuellesHebdo??j.heuresContractuelles??"";const hours=raw===""||raw==null?null:Number(String(raw).replace(",","."));return{hours:Number.isFinite(hours)&&hours>0?hours:null,type:String(j.typeContrat||"").trim()}}
+function absMin(d,min){return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()/60000+min}
+function fmt(min){min=Math.max(0,Math.round(min));return Math.floor(min/60)+" h "+pad(min%60)}
+function collect(s,agentId,omitWeek,omitId,candidate){const rows=[];Object.entries(s.weeks||{}).forEach(([w,arr])=>(arr||[]).forEach(e=>{if(String(e.agentId)!==String(agentId))return;if(w===omitWeek&&String(e.id)===String(omitId))return;const d=weekDate(w,e.day),a=timeMin(e.start),b=timeMin(e.end);if(d&&a!=null&&b!=null&&b>a)rows.push({date:d,key:d.toISOString().slice(0,10),start:a,end:b})}));if(candidate){const d=weekDate(candidate.week,candidate.day),a=timeMin(candidate.start),b=timeMin(candidate.end);if(d&&a!=null&&b!=null&&b>a)rows.push({date:d,key:d.toISOString().slice(0,10),start:a,end:b})}return rows}
+function warningsFor(candidate){const s=state(),local=(s.agents||[]).find(a=>String(a.id)===String(candidate.agentId));if(!local)return[];const c=contract(local);if(c.hours==null)return[];const rows=collect(s,candidate.agentId,candidate.oldWeek,candidate.id,candidate),groups=new Map();rows.forEach(r=>{const g=groups.get(r.key)||{date:r.date,first:r.start,last:r.end};g.first=Math.min(g.first,r.start);g.last=Math.max(g.last,r.end);groups.set(r.key,g)});const target=weekDate(candidate.week,candidate.day),key=target?.toISOString().slice(0,10),g=groups.get(key),out=[];if(g&&c.hours<35){const limit=c.hours<16?12*60:13*60,amp=g.last-g.first;if(amp>limit)out.push(`Amplitude journalière ${fmt(amp)} : limite de référence ${fmt(limit)} pour ${String(c.hours).replace(".",",")} h/semaine.`)}
+const ordered=[...groups.values()].sort((a,b)=>a.date-b.date),i=ordered.findIndex(x=>x===g);[[ordered[i-1],g],[g,ordered[i+1]]].forEach(([a,b])=>{if(!a||!b)return;const rest=absMin(b.date,b.first)-absMin(a.date,a.last);if(rest>=11*60)return;if(c.hours<35)out.push(`Repos entre deux journées : ${fmt(rest)} au lieu de 11 h.`);else if(rest<9*60)out.push(`Repos entre deux journées : ${fmt(rest)}. Il est inférieur à 9 h.`);else out.push(`Repos entre deux journées : ${fmt(rest)}. Le repos de référence est 11 h ; une dérogation éventuelle doit être vérifiée.`)});return out}
+function candidateFromEditor(){const s=state(),pop=$("editorPopover");if(!pop?.classList.contains("open"))return null;const d=new Date($("edDate")?.value+"T12:00:00");if(Number.isNaN(d.getTime()))return null;return{id:pop.dataset.id,oldWeek:pop.dataset.week,week:weekKey(d),day:dayIndex(d),agentId:$("edAgent")?.value,start:$("edStart")?.value,end:$("edEnd")?.value}}
+function onDone(e){const btn=e.target.closest?.("#edDone");if(!btn)return;const c=candidateFromEditor();if(!c)return;const w=warningsFor(c);if(!w.length)return;const ok=confirm("⚠️ ALERTE TEMPS DE TRAVAIL\n\n"+w.join("\n\n")+"\n\nEnregistrer quand même ?");if(!ok){e.preventDefault();e.stopImmediatePropagation()}}
+document.addEventListener("click",onDone,true);
+})();
