@@ -77,5 +77,5 @@ function bindFirebase(){
 window.addEventListener("offline",()=>apply("error","Pas de connexion réseau"));
 window.addEventListener("online",()=>{apply("loading","Reconnexion à Firebase en cours");setTimeout(poll,300)});
 document.getElementById("legacyFrame")?.addEventListener("load",()=>{apply("loading","Connexion à Firebase en cours");setTimeout(poll,180);setTimeout(poll,700)});
-bindFirebase();poll();setInterval(poll,900);
+bindFirebase();poll();setInterval(()=>{if(document.visibilityState==="visible")poll()},5000);
 })();
