@@ -1,0 +1,200 @@
+name: Stabilise tout le dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/stabilize-dashboard-global.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Supprimer les rafraîchissements agressifs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # 1) Référentiel : plus de reconstruction périodique des listes.
+          p = Path('inovtec-referential.js')
+          s = p.read_text(encoding='utf-8')
+          old = 'function start(){frame=document.getElementById("legacyFrame");const p=new URLSearchParams(location.search);mode=(p.get("mode")||"").toLowerCase();importLegacyAgents();discoverLooseAgents();syncRegistryIntoLegacyAgents();scanPlanning();scanHeures();frame?.addEventListener("load",()=>setTimeout(setupCurrentFrame,120));setInterval(()=>{importLegacyAgents();setupCurrentFrame();},2500);renderContext();initFirebase();}'
+          new = '''function safeRefreshCurrentFrame(){
+            try{
+              const d=frame?.contentDocument,a=d?.activeElement;
+              if(a&&(/^(SELECT|INPUT|TEXTAREA)$/i.test(a.tagName)||a.isContentEditable))return;
+            }catch{}
+            importLegacyAgents();setupCurrentFrame();
+          }
+          function start(){
+            frame=document.getElementById("legacyFrame");
+            const p=new URLSearchParams(location.search);mode=(p.get("mode")||"").toLowerCase();
+            importLegacyAgents();discoverLooseAgents();syncRegistryIntoLegacyAgents();scanPlanning();scanHeures();
+            frame?.addEventListener("load",()=>setTimeout(setupCurrentFrame,120));
+            window.addEventListener("storage",e=>{if([REF_KEY,AGENTS_KEY,PLAN_KEY,HS_KEY,ORGA_KEY].includes(e.key))setTimeout(safeRefreshCurrentFrame,180)});
+            window.addEventListener("focus",()=>setTimeout(safeRefreshCurrentFrame,250));
+            document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(safeRefreshCurrentFrame,250)});
+            renderContext();initFirebase();
+          }'''
+          if old not in s:
+              raise SystemExit('Bloc start référentiel introuvable')
+          p.write_text(s.replace(old,new),encoding='utf-8')
+
+          # 2) Tri alphabétique : aucune mutation pendant une interaction utilisateur.
+          Path('inovtec-alphabetical-lists.js').write_text(r'''(()=>{
+          "use strict";
+          const collator=new Intl.Collator("fr",{sensitivity:"base",numeric:true,ignorePunctuation:true});
+          const ORDERED_RE=/(^|[-_])(jour|day|weekday|mois|month|annee|year|semaine|week|heure|hour|minute|statut|status|priorite|priority|categorie|category|type|contrat|mode|view|vue|tri|sort|ordre|order|copies?)([-_]|$)/i;
+          const PLACEHOLDER_RE=/^(choisir|sélectionner|selectionner|--|—|aucun|aucune|tous|toutes|autre|autres|nouveau|nouvelle|ajouter)/i;
+          const text=n=>String(n?.textContent||n?.label||n?.value||"").replace(/\s+/g," ").trim();
+          const cmp=(a,b)=>collator.compare(text(a),text(b));
+          const states=new WeakMap();
+          let lastActivity=0;
+          function mark(){lastActivity=Date.now()}
+          function interactive(doc){
+            const a=doc?.activeElement;
+            if(a&&(/^(SELECT|TEXTAREA)$/i.test(a.tagName)||a.isContentEditable))return true;
+            if(a?.tagName==="INPUT"&&(a.getAttribute("list")||/^(text|search|email|tel|number|date|time)$/i.test(a.type||"text")))return true;
+            if(doc?.querySelector?.('.editor-popover.open,.modal.open,.modal.show,[role="dialog"][open],dialog[open]'))return true;
+            return Date.now()-lastActivity<700;
+          }
+          function shouldSortSelect(sel){
+            if(!sel||sel.multiple||sel.dataset.ivNoAlpha==="1")return false;
+            const key=[sel.id,sel.name,sel.getAttribute("aria-label"),sel.getAttribute("data-role")].filter(Boolean).join("-");
+            if(ORDERED_RE.test(key))return false;
+            const opts=[...sel.options];
+            if(opts.length<3)return false;
+            return opts.filter(o=>o.value&&!o.disabled&&!PLACEHOLDER_RE.test(text(o))).length>=2;
+          }
+          function sortSelect(sel){
+            const doc=sel.ownerDocument;if(interactive(doc)||!shouldSortSelect(sel))return;
+            const selected=sel.value,scroll=sel.scrollTop;
+            if(sel.querySelector("optgroup")){
+              [...sel.querySelectorAll("optgroup")].forEach(g=>{
+                const arr=[...g.children].filter(n=>n.tagName==="OPTION"),sorted=[...arr].sort(cmp);
+                if(arr.some((n,i)=>n!==sorted[i]))sorted.forEach(n=>g.appendChild(n));
+              });
+            }else{
+              const opts=[...sel.options],fixed=[],sortable=[];
+              opts.forEach((o,i)=>{if((i===0&&(!o.value||o.disabled||PLACEHOLDER_RE.test(text(o))))||o.disabled||!o.value||PLACEHOLDER_RE.test(text(o)))fixed.push(o);else sortable.push(o)});
+              const sorted=[...sortable].sort(cmp),target=[...fixed,...sorted];
+              if(opts.length===target.length&&opts.some((n,i)=>n!==target[i]))target.forEach(n=>sel.appendChild(n));
+            }
+            if([...sel.options].some(o=>o.value===selected))sel.value=selected;
+            sel.scrollTop=scroll;
+          }
+          function sortDatalist(dl){
+            const doc=dl.ownerDocument;if(interactive(doc))return;
+            const active=doc?.activeElement;if(active?.getAttribute?.("list")===dl.id)return;
+            const arr=[...dl.querySelectorAll(":scope > option")],sorted=[...arr].sort((a,b)=>collator.compare(String(a.value||text(a)),String(b.value||text(b))));
+            if(arr.some((n,i)=>n!==sorted[i]))sorted.forEach(n=>dl.appendChild(n));
+          }
+          function sortChildren(container,selector,labelSelector){
+            if(!container||interactive(container.ownerDocument))return;
+            const arr=[...container.querySelectorAll(`:scope > ${selector}`)];if(arr.length<2)return;
+            const key=n=>text(labelSelector?n.querySelector(labelSelector):n),sorted=[...arr].sort((a,b)=>collator.compare(key(a),key(b)));
+            if(arr.some((n,i)=>n!==sorted[i]))sorted.forEach(n=>container.appendChild(n));
+          }
+          function apply(doc){
+            if(!doc?.body||interactive(doc))return;
+            doc.querySelectorAll("select").forEach(sortSelect);
+            doc.querySelectorAll("datalist").forEach(sortDatalist);
+            sortChildren(doc.getElementById("agentList"),".agent-row, .agent-item, li, button",".agent-name, strong, .name");
+            sortChildren(doc.getElementById("siteList"),".site-item, li, button","strong, .site-name, .name");
+            sortChildren(doc.getElementById("chantierList"),".site-item, .chantier-item, li, button","strong, .name");
+            sortChildren(doc.getElementById("employeeList"),"li, button, .item",".name, strong");
+          }
+          function watch(doc){
+            if(!doc?.body||states.has(doc))return;
+            let timer=null;
+            const schedule=(delay=550)=>{clearTimeout(timer);timer=setTimeout(()=>{if(interactive(doc)){schedule(700);return}apply(doc)},delay)};
+            ["pointerdown","mousedown","touchstart","keydown","input","change","focusin"].forEach(type=>doc.addEventListener(type,mark,true));
+            doc.addEventListener("focusout",()=>schedule(900),true);
+            const mo=new MutationObserver(()=>schedule(700));mo.observe(doc.body,{childList:true,subtree:true});
+            states.set(doc,{mo});schedule(250);
+            const nested=doc.getElementById("kontrolFrame");if(nested){nested.addEventListener("load",()=>{try{watch(nested.contentDocument)}catch{}});try{watch(nested.contentDocument)}catch{}}
+          }
+          function frameDoc(){try{return document.getElementById("legacyFrame")?.contentDocument||null}catch{return null}}
+          const frame=document.getElementById("legacyFrame");
+          frame?.addEventListener("load",()=>setTimeout(()=>watch(frameDoc()),120));
+          setTimeout(()=>watch(frameDoc()),220);
+          window.InovtecAlphabeticalLists={apply:()=>apply(frameDoc()),watch};
+          })();
+          ''',encoding='utf-8')
+
+          # 3) Synthèse : mise à jour sur événements, plus toutes les 1,8 seconde.
+          p=Path('inovtec-visual-runtime.js');s=p.read_text(encoding='utf-8')
+          old='function start(){clearInterval(timer);lastHtml="";setTimeout(render,90);setTimeout(render,500);setTimeout(render,1200);timer=setInterval(render,1800)}'
+          new='''function bindSummaryEvents(d){if(!d?.body||d.body.dataset.ivSummaryEvents==="1")return;d.body.dataset.ivSummaryEvents="1";const schedule=()=>{clearTimeout(timer);timer=setTimeout(render,140)};["input","change","click"].forEach(type=>d.addEventListener(type,schedule,true));}\nfunction start(){clearTimeout(timer);lastHtml="";const d=doc();bindSummaryEvents(d);setTimeout(render,90);setTimeout(render,500);setTimeout(()=>{render();if(mode==="kontrol")bindSummaryEvents(kontrolDoc())},1200)}'''
+          if old not in s: raise SystemExit('Bloc start visual-runtime introuvable')
+          p.write_text(s.replace(old,new).replace('inovtec-visual-v2.css?v=20260815-3','inovtec-visual-v2.css?v=20260815-4'),encoding='utf-8')
+
+          # 4) Cloud : un changement distant ne recharge jamais une page pendant ou juste après une action.
+          p=Path('inovtec-cloud-sync.js');s=p.read_text(encoding='utf-8')
+          old='''function frameIsBusy(){try{const d=frameDoc(),a=d?.activeElement;if(!a)return false;if(/^(SELECT|INPUT|TEXTAREA)$/i.test(a.tagName))return true;if(a.isContentEditable)return true;if(a.closest?.(".editor-popover.open,.modal.open,.modal.show,[role=dialog]"))return true}catch{}return false}\nfunction reload(){clearTimeout(reloadTimer);const attempt=()=>{if(frameIsBusy()){reloadTimer=setTimeout(attempt,700);return}try{frame?.contentWindow?.location.reload()}catch{}};reloadTimer=setTimeout(attempt,450)}'''
+          new='''let lastFrameActivity=0;\nfunction markFrameActivity(){lastFrameActivity=Date.now()}\nfunction bindFrameActivity(d){if(!d?.body||d.body.dataset.ivCloudActivity==="1")return;d.body.dataset.ivCloudActivity="1";["pointerdown","mousedown","touchstart","keydown","input","change","focusin"].forEach(type=>d.addEventListener(type,markFrameActivity,true));const nested=d.getElementById("kontrolFrame");if(nested){nested.addEventListener("load",()=>{try{bindFrameActivity(nested.contentDocument)}catch{}});try{bindFrameActivity(nested.contentDocument)}catch{}}}\nfunction frameIsBusy(){try{for(const d of [frameDoc(),nestedKontrolDoc()].filter(Boolean)){const a=d.activeElement;if(a&&(/^(SELECT|INPUT|TEXTAREA)$/i.test(a.tagName)||a.isContentEditable))return true;if(d.querySelector?.('.editor-popover.open,.modal.open,.modal.show,[role="dialog"][open],dialog[open]'))return true}}catch{}return false}\nfunction reload(){clearTimeout(reloadTimer);bindFrameActivity(frameDoc());const attempt=()=>{const idle=Date.now()-lastFrameActivity;if(frameIsBusy()||idle<5000){reloadTimer=setTimeout(attempt,Math.max(800,5000-idle));return}try{frame?.contentWindow?.location.reload()}catch{}};reloadTimer=setTimeout(attempt,1000)}'''
+          if old not in s: raise SystemExit('Bloc reload cloud-sync introuvable')
+          s=s.replace(old,new)
+          s=s.replace('frame?.addEventListener("load",()=>setTimeout(()=>{','frame?.addEventListener("load",()=>{setTimeout(()=>bindFrameActivity(frameDoc()),80);setTimeout(()=>{')
+          s=s.replace('  },200));\n}\n})();','  },200)});\n}\n})();')
+          p.write_text(s,encoding='utf-8')
+
+          # 5) Indicateur Firebase : ne scrute plus le DOM presque chaque seconde.
+          p=Path('inovtec-firebase-indicator.js');s=p.read_text(encoding='utf-8')
+          s=s.replace('bindFirebase();poll();setInterval(poll,900);','bindFirebase();poll();setInterval(()=>{if(document.visibilityState==="visible")poll()},5000);')
+          p.write_text(s,encoding='utf-8')
+
+          # 6) Cache-busting des scripts stabilisés.
+          p=Path('inovtec-page-shell.html');s=p.read_text(encoding='utf-8')
+          reps={
+            'inovtec-cloud-sync.js?v=20260815-menu1':'inovtec-cloud-sync.js?v=20260815-stable1',
+            'inovtec-referential.js?v=20260815-2':'inovtec-referential.js?v=20260815-stable1',
+            'inovtec-visual-runtime.js?v=20260815-3':'inovtec-visual-runtime.js?v=20260815-stable1',
+            'inovtec-alphabetical-lists.js?v=20260815-2':'inovtec-alphabetical-lists.js?v=20260815-stable1',
+            'inovtec-firebase-indicator.js?v=20260815-1':'inovtec-firebase-indicator.js?v=20260815-stable1'
+          }
+          for a,b in reps.items():
+              if a not in s: raise SystemExit(f'Référence shell introuvable: {a}')
+              s=s.replace(a,b)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Vérifier la stabilité et la syntaxe
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check inovtec-referential.js
+          node --check inovtec-alphabetical-lists.js
+          node --check inovtec-visual-runtime.js
+          node --check inovtec-cloud-sync.js
+          node --check inovtec-firebase-indicator.js
+          grep -q '20260815-stable1' inovtec-page-shell.html
+          ! grep -Fq 'setInterval(()=>{importLegacyAgents();setupCurrentFrame();},2500)' inovtec-referential.js
+          ! grep -Fq 'timer=setInterval(render,1800)' inovtec-visual-runtime.js
+          grep -q 'idle<5000' inovtec-cloud-sync.js
+          grep -q 'interactive(doc)' inovtec-alphabetical-lists.js
+          grep -q 'position:relative;top:auto;z-index:1' inovtec-visual-v2.css
+
+      - name: Publier les corrections
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'Aucune modification à publier.'
+            exit 0
+          fi
+          git config user.name 'Inovtec Bot'
+          git config user.email 'inovtec-bot@users.noreply.github.com'
+          git add inovtec-referential.js inovtec-alphabetical-lists.js inovtec-visual-runtime.js inovtec-cloud-sync.js inovtec-firebase-indicator.js inovtec-page-shell.html
+          git commit -m 'Stabilise les interactions sur toutes les pages'
+          git push
