@@ -48,7 +48,7 @@ function sortDatalist(dl){
 }
 function sortChildren(container,selector,labelSelector){
   if(!container||interactive(container.ownerDocument))return;
-  const arr=[...container.querySelectorAll(`:scope > ${selector}`)];if(arr.length<2)return;
+  const arr=[...container.children].filter(n=>n.matches(selector));if(arr.length<2)return;
   const key=n=>text(labelSelector?n.querySelector(labelSelector):n),sorted=[...arr].sort((a,b)=>collator.compare(key(a),key(b)));
   if(arr.some((n,i)=>n!==sorted[i]))sorted.forEach(n=>container.appendChild(n));
 }
