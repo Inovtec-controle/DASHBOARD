@@ -30,7 +30,7 @@ function install(){
         const a=w.getSelectedAgent?.();
         if(!input)return;
         const raw=a?.job?.contractHoursWeekly;
-        input.value=(raw===null||raw===undefined||raw==="")?"":String(raw).replace(".",",");
+        input.value=(raw===null||raw===undefined||raw==="")?"":String(raw);
       }catch{}
     };
 
