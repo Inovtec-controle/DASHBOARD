@@ -1,0 +1,18 @@
+.iv-date,.hero-date{display:flex;flex-direction:column;align-items:center;text-align:center}
+.iv-date strong,.hero-date>strong{width:100%;text-align:center}
+.iv-date #timeLabel{display:block;width:100%;margin-top:3px;text-align:center;color:#d1fae5}
+.hero-time-row{position:relative!important;display:grid!important;grid-template-columns:1fr!important;place-items:center!important;width:100%;min-height:26px;margin-top:3px!important}
+.hero-time-row #timeLabel{display:block!important;width:100%;margin:0!important;text-align:center!important;color:#d1fae5!important;font-size:12px!important}
+.hero-time-row .weather-icon{position:absolute;left:0;top:50%;transform:translateY(-50%);margin:0}
+.hero-account{display:none!important}
+.iv-firebase-indicator{--iv-fb:#22c55e;position:relative;width:36px;height:36px;flex:0 0 36px;margin:8px auto 0;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);box-shadow:0 0 0 6px rgba(255,255,255,.045);transition:background .2s,border-color .2s,box-shadow .2s;cursor:default}
+.iv-firebase-indicator::before,.iv-firebase-indicator::after{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%}
+.iv-firebase-indicator[data-state="connected"]{--iv-fb:#34d399;background:rgba(52,211,153,.22);border-color:rgba(167,243,208,.48);box-shadow:0 0 0 6px rgba(52,211,153,.09)}
+.iv-firebase-indicator[data-state="connected"]::after{content:"✓";color:#a7f3d0;font-size:21px;font-weight:900;line-height:1}
+.iv-firebase-indicator[data-state="loading"]{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.20)}
+.iv-firebase-indicator[data-state="loading"]::before{content:"";inset:6px;border:3px solid rgba(167,243,208,.30);border-top-color:#6ee7b7;border-right-color:#34d399;animation:ivFirebaseSpin .82s linear infinite}
+.iv-firebase-indicator[data-state="error"]{--iv-fb:#ef4444;background:rgba(239,68,68,.20);border-color:rgba(254,202,202,.58);box-shadow:0 0 0 6px rgba(239,68,68,.08)}
+.iv-firebase-indicator[data-state="error"]::after{content:"×";color:#fecaca;font-size:25px;font-weight:800;line-height:1;transform:translateY(-1px)}
+@keyframes ivFirebaseSpin{to{transform:rotate(360deg)}}
+@media(max-width:760px){.iv-date{min-width:150px!important}.iv-firebase-indicator{width:32px;height:32px;flex-basis:32px;margin-top:6px}.iv-firebase-indicator[data-state="loading"]::before{inset:5px}.iv-firebase-indicator[data-state="connected"]::after{font-size:19px}.iv-firebase-indicator[data-state="error"]::after{font-size:23px}}
+@media(prefers-reduced-motion:reduce){.iv-firebase-indicator[data-state="loading"]::before{animation-duration:1.8s}}
