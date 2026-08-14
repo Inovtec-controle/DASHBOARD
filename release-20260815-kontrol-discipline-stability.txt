@@ -1,0 +1,1 @@
+Publication de la correction du 15/08/2026 : KONTROL (bloc Note qualité non superposé aux photos) et stabilité des listes/datalists pendant leur utilisation.
