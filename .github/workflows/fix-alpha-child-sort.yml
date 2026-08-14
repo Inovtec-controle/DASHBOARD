@@ -1,0 +1,66 @@
+name: Corrige le tri des listes sans casser les composants
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-alpha-child-sort.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Corriger le tri des enfants directs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('inovtec-alphabetical-lists.js')
+          s = p.read_text(encoding='utf-8')
+          old = 'const arr=[...container.querySelectorAll(`:scope > ${selector}`)];if(arr.length<2)return;'
+          new = 'const arr=[...container.children].filter(n=>n.matches(selector));if(arr.length<2)return;'
+          if old not in s:
+              raise SystemExit('Sélecteur de tri problématique introuvable')
+          s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+
+          shell = Path('inovtec-page-shell.html')
+          h = shell.read_text(encoding='utf-8')
+          oldref = 'inovtec-alphabetical-lists.js?v=20260815-stable1'
+          newref = 'inovtec-alphabetical-lists.js?v=20260815-stable2'
+          if oldref not in h:
+              raise SystemExit('Référence cache du tri introuvable')
+          shell.write_text(h.replace(oldref, newref), encoding='utf-8')
+          PY
+
+      - name: Vérifier la correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check inovtec-alphabetical-lists.js
+          grep -Fq 'container.children].filter(n=>n.matches(selector))' inovtec-alphabetical-lists.js
+          ! grep -Fq 'querySelectorAll(`:scope > ${selector}`)' inovtec-alphabetical-lists.js
+          grep -Fq 'inovtec-alphabetical-lists.js?v=20260815-stable2' inovtec-page-shell.html
+          test -s inovtec-referential.js
+          grep -Fq 'function renderAgents()' planning-calendar.js
+          grep -Fq 'row.append(dot,name)' planning-calendar.js
+
+      - name: Publier
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Inovtec Bot'
+          git config user.email 'inovtec-bot@users.noreply.github.com'
+          git add inovtec-alphabetical-lists.js inovtec-page-shell.html
+          git commit -m 'Corrige le tri des listes sans détacher les composants'
+          git push
