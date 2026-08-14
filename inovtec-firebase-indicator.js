@@ -25,9 +25,10 @@ function infer(text){
   if(/synchronisé|synchronise|connecté|connecte|en ligne|firebase.*(?:ok|actif)|données synchronisées|donnees synchronisees/.test(t))return{state:"connected",message:String(text).trim()};
   return null;
 }
+function frameDoc(){try{return document.getElementById("legacyFrame")?.contentDocument||null}catch{return null}}
 function iframeStatus(){
   try{
-    const frame=document.getElementById("legacyFrame"),d=frame?.contentDocument;if(!d)return null;
+    const d=frameDoc();if(!d)return null;
     const candidates=[d.getElementById("syncStatus"),...d.querySelectorAll(".status.ok,.status.warning")];
     for(const el of candidates){const r=infer(el?.textContent);if(r)return r}
     const kd=d.getElementById("kontrolFrame")?.contentDocument;
@@ -36,8 +37,24 @@ function iframeStatus(){
   return null;
 }
 function mirrorStatus(){const el=document.getElementById("syncMirror");return infer(el?.textContent)}
+function hideOldStatusUI(){
+  try{
+    let hiddenSummary=false;
+    document.querySelectorAll("#pageSummary .iv-summary-card").forEach(card=>{
+      const label=card.querySelector(".iv-summary-label")?.textContent||"";
+      const value=card.querySelector(".iv-summary-value")?.textContent||"";
+      if(/synchronisation/i.test(label)||(/synchronis/i.test(value)&&/firebase/i.test(card.textContent||""))){card.style.display="none";hiddenSummary=true}
+    });
+    const summary=document.getElementById("pageSummary");if(summary&&hiddenSummary)summary.style.gridTemplateColumns="repeat(auto-fit,minmax(180px,1fr))";
+    const d=frameDoc();
+    const sync=d?.getElementById("syncStatus");if(sync)sync.style.display="none";
+    const kd=d?.getElementById("kontrolFrame")?.contentDocument;
+    const old=kd?.getElementById("ivKontrolCloudState");if(old)old.style.display="none";
+    const ksync=kd?.getElementById("syncStatus");if(ksync)ksync.style.display="none";
+  }catch{}
+}
 function poll(){
-  indicator();
+  indicator();hideOldStatusUI();
   if(!navigator.onLine){apply("error","Pas de connexion réseau");return}
   const local=iframeStatus()||mirrorStatus();
   if(local){apply(local.state,local.message,true);return}
