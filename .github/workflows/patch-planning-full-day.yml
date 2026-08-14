@@ -49,17 +49,15 @@ jobs:
                   'planning-calendar.js?v=20260815-7')
 
           replace('PLANNINGS.html',
-                  'PLANNINGS-LEGACY.html%3Fv%3D20260815-hub14',
-                  'PLANNINGS-LEGACY.html%3Fv%3D20260815-hub15')
+                  'PLANNINGS-LEGACY.html%3Fv%3D20260815-hub15',
+                  'PLANNINGS-LEGACY.html%3Fv%3D20260815-hub16')
 
           health = Path('.github/workflows/dashboard-health.yml')
           text = health.read_text(encoding='utf-8')
           old = "          grep -q 'planning-pdf.js?v=20260815-3' PLANNINGS-LEGACY.html\n"
           if old not in text:
-              old = "          grep -q 'planning-pdf.js?v=20260815-2' PLANNINGS-LEGACY.html\n"
-          if old not in text:
               raise SystemExit('Point d’insertion health check introuvable')
-          new = old + "          grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js\n          grep -q 'height:calc(var(--pc-hour) \* 24)' planning-calendar.css\n          grep -q 'planning-calendar.js?v=20260815-7' PLANNINGS-LEGACY.html\n"
+          new = old + "          grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js\n          grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css\n          grep -q 'planning-calendar.js?v=20260815-7' PLANNINGS-LEGACY.html\n"
           text = text.replace(old, new, 1)
           health.write_text(text, encoding='utf-8')
           PY
@@ -70,8 +68,9 @@ jobs:
           set -euo pipefail
           node --check planning-calendar.js
           grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js
-          grep -q 'height:calc(var(--pc-hour) \* 24)' planning-calendar.css
+          grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css
           grep -q 'planning-calendar.js?v=20260815-7' PLANNINGS-LEGACY.html
+          grep -q 'PLANNINGS-LEGACY.html%3Fv%3D20260815-hub16' PLANNINGS.html
 
       - name: Publier le correctif
         shell: bash
