@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b6b43">
+<title>Inovtec — Congés & Absences</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="conges.css?v=20260815-1">
+</head>
+<body>
+<div class="leave-app">
+  <section class="leave-kpis" aria-label="Synthèse congés">
+    <article><span class="kpi-icon green">◷</span><div><small>Absents aujourd’hui</small><strong id="kpiToday">0</strong></div></article>
+    <article><span class="kpi-icon amber">!</span><div><small>À valider</small><strong id="kpiPending">0</strong></div></article>
+    <article><span class="kpi-icon blue">↗</span><div><small>À venir</small><strong id="kpiUpcoming">0</strong></div></article>
+    <article><span class="kpi-icon violet">⇄</span><div><small>Interventions à couvrir</small><strong id="kpiCoverage">0</strong></div></article>
+  </section>
+
+  <section class="leave-card calendar-card">
+    <div class="card-head">
+      <div><span class="eyebrow">VUE ÉQUIPE</span><h2>Calendrier des congés et absences</h2><p>Visualisez immédiatement les périodes d’absence et les remplacements restant à organiser.</p></div>
+      <div class="head-actions">
+        <button class="month-nav" id="prevMonth" type="button">‹</button>
+        <button class="month-label" id="monthLabel" type="button">—</button>
+        <button class="month-nav" id="nextMonth" type="button">›</button>
+        <button class="primary-btn" id="newLeave" type="button">＋ Nouvelle demande / absence</button>
+      </div>
+    </div>
+    <div class="legend"><span><i class="dot pending"></i>À valider</span><span><i class="dot approved"></i>Validée</span><span><i class="dot sick"></i>Maladie / absence</span><span><i class="dot rejected"></i>Refusée / annulée</span></div>
+    <div class="timeline-wrap" id="timelineWrap"></div>
+  </section>
+
+  <section class="leave-card list-card">
+    <div class="card-head compact">
+      <div><span class="eyebrow">SUIVI</span><h2>Demandes et absences</h2></div>
+      <div class="filters"><input id="searchLeave" type="search" placeholder="Rechercher un agent…"><select id="statusFilter"><option value="all">Tous les statuts</option><option value="pending">À valider</option><option value="approved">Validées</option><option value="rejected">Refusées</option><option value="cancelled">Annulées</option></select></div>
+    </div>
+    <div id="leaveList" class="leave-list"></div>
+  </section>
+</div>
+
+<div class="modal-backdrop" id="leaveModal" aria-hidden="true">
+  <form class="leave-modal" id="leaveForm">
+    <div class="modal-head"><div><span class="eyebrow">CONGÉS & ABSENCES</span><h2 id="modalTitle">Nouvelle demande / absence</h2></div><button class="icon-btn" id="closeModal" type="button">×</button></div>
+    <input id="leaveId" type="hidden">
+    <div class="form-grid">
+      <label class="span-2">Agent<select id="agentSelect" required><option value="">Choisir un agent…</option></select></label>
+      <label>Nature<select id="sourceType"><option value="request">Demande de congé</option><option value="absence">Absence enregistrée</option></select></label>
+      <label>Type<select id="leaveType"><option>Congés payés</option><option>Récupération</option><option>Maladie</option><option>Absence</option><option>Formation</option><option>Autre</option></select></label>
+      <label>Date de début<input id="startDate" type="date" required></label>
+      <label>Début de période<select id="startPart"><option value="full">Journée complète</option><option value="morning">Matin</option><option value="afternoon">Après-midi</option></select></label>
+      <label>Date de fin<input id="endDate" type="date" required></label>
+      <label>Fin de période<select id="endPart"><option value="full">Journée complète</option><option value="morning">Matin</option><option value="afternoon">Après-midi</option></select></label>
+      <label class="span-2">Commentaire<textarea id="leaveComment" rows="3" maxlength="400" placeholder="Information utile, motif, précision…"></textarea></label>
+    </div>
+    <div class="status-hint" id="statusHint">Une demande de congé sera enregistrée « À valider ».</div>
+    <div class="modal-actions"><button class="danger-link" id="deleteLeave" type="button" hidden>Supprimer</button><span></span><button class="secondary-btn" id="cancelModal" type="button">Annuler</button><button class="primary-btn" type="submit">Enregistrer</button></div>
+  </form>
+</div>
+
+<div class="modal-backdrop" id="loginModal" aria-hidden="true">
+  <form class="leave-modal login-modal" id="loginForm">
+    <div class="modal-head"><div><span class="eyebrow">INOVTEC</span><h2>Connexion requise</h2><p>Utilisez le même compte que sur le reste du dashboard.</p></div></div>
+    <label>Adresse email<input id="loginEmail" type="email" autocomplete="username" required></label>
+    <label>Mot de passe<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+    <div id="loginError" class="login-error"></div>
+    <button class="primary-btn full" type="submit">Se connecter</button>
+  </form>
+</div>
+<script src="conges.js?v=20260815-1"></script>
+</body>
+</html>
