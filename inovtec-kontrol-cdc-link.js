@@ -74,6 +74,7 @@ function decorateTasks(d,desired){
     let line=copy.querySelector(".iv-kontrol-cdc-meta");if(!line){line=d.createElement("div");line.className="iv-kontrol-cdc-meta";copy.appendChild(line)}line.innerHTML="";
     const freq=frequencyText(row);if(freq){const chip=d.createElement("span");chip.className="iv-kontrol-cdc-chip";chip.textContent=freq;line.appendChild(chip)}
     const days=Array.isArray(row.jours)?row.jours:[];days.forEach(day=>{const label=DAY_LABELS[day]||day;if(!label)return;const chip=d.createElement("span");chip.className="iv-kontrol-cdc-chip day";chip.textContent=label;line.appendChild(chip)});
+    tr.querySelectorAll(".actions button").forEach(btn=>{btn.disabled=true;btn.classList.add("iv-kontrol-cdc-managed");btn.title="Liste gérée depuis Infos chantier > Cahier des charges"});
   });
 }
 function sourceSummary(rows){const types=new Set((rows||[]).map(r=>String(r.sourceType||"manual").toLowerCase()));const labels=[];if(types.has("pdf"))labels.push("PDF");if(types.has("excel"))labels.push("Excel");if(types.has("manual"))labels.push("saisie manuelle");return labels.join(" + ")||"cahier des charges"}
