@@ -7,6 +7,8 @@
   const archiveModal = $("archiveModal");
   const archiveList = $("archiveList");
   const toast = $("toast");
+  const WORKING_DRAFT_KEY = "cq_app_state_bottomnote_v1";
+  const CLOUD_DRAFT_META_KEY = "iv_cloud_meta_kontrol";
   let toastTimer = null;
   let frameLoaded = false;
 
@@ -24,6 +26,72 @@
     toast.textContent = message;
     toast.className = "toast" + (isError ? " error" : "");
     toastTimer = setTimeout(() => toast.classList.add("hidden"), 5000);
+  }
+
+  function clearWorkingDraft() {
+    try {
+      localStorage.removeItem(WORKING_DRAFT_KEY);
+      localStorage.removeItem(CLOUD_DRAFT_META_KEY);
+    } catch (error) {
+      console.warn("Impossible de vider le brouillon KONTROL", error);
+    }
+  }
+
+  function controlWorkspaceNodes(doc) {
+    return [
+      doc.getElementById("tasksCard"),
+      doc.getElementById("summaryCard"),
+      doc.getElementById("obs")?.closest("section.card"),
+      doc.getElementById("ctrlNotes")?.closest("section.card"),
+      doc.getElementById("photosCard"),
+      doc.querySelector(".sticky-actions")
+    ].filter(Boolean);
+  }
+
+  function updateControlWorkspaceVisibility(doc) {
+    const site = doc.getElementById("site");
+    const visible = !!site?.value?.trim();
+    controlWorkspaceNodes(doc).forEach(node => {
+      node.hidden = !visible;
+      node.setAttribute("aria-hidden", visible ? "false" : "true");
+    });
+  }
+
+  function prepareFreshControl() {
+    try {
+      const doc = frame.contentDocument;
+      if (!doc?.body) return;
+      if (doc.body.dataset.ivFreshControlPrepared === "1") {
+        updateControlWorkspaceVisibility(doc);
+        return;
+      }
+      doc.body.dataset.ivFreshControlPrepared = "1";
+
+      ["date", "heure", "site", "agents", "controleur", "obs", "ctrlNotes"].forEach(id => {
+        const field = doc.getElementById(id);
+        if (!field) return;
+        field.value = "";
+        field.setAttribute("autocomplete", "off");
+        field.dispatchEvent(new Event("input", { bubbles:true }));
+      });
+
+      const newTask = doc.getElementById("newTaskInput");
+      if (newTask) newTask.value = "";
+
+      const site = doc.getElementById("site");
+      if (site) {
+        const refresh = () => updateControlWorkspaceVisibility(doc);
+        site.addEventListener("input", refresh);
+        site.addEventListener("change", refresh);
+      }
+      doc.getElementById("importFile")?.addEventListener("change", () => {
+        setTimeout(() => updateControlWorkspaceVisibility(doc), 120);
+      });
+
+      updateControlWorkspaceVisibility(doc);
+    } catch (error) {
+      console.warn("Préparation du contrôle vierge impossible", error);
+    }
   }
 
   function safeFileName(name) {
@@ -100,6 +168,9 @@
   frame.addEventListener("load", () => {
     if (frame.src && !frame.src.endsWith("about:blank")) {
       frameLoaded = true;
+      prepareFreshControl();
+      setTimeout(prepareFreshControl, 120);
+      setTimeout(prepareFreshControl, 500);
       hookPdfSave();
       setTimeout(hookPdfSave, 500);
       setTimeout(hookPdfSave, 1500);
@@ -203,7 +274,10 @@
     if (user) {
       loginScreen.classList.add("hidden");
       appShell.classList.remove("hidden");
-      if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) frame.src = "KONTROL.html";
+      if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) {
+        clearWorkingDraft();
+        frame.src = "KONTROL.html?v=20260816-blank1";
+      }
     } else {
       hideArchive();
       appShell.classList.add("hidden");
