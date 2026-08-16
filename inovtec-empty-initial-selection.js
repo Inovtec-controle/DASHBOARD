@@ -27,11 +27,43 @@ function ensureFullAgentsList(){
   }catch{}
 }
 
+function syncAgentCardVisibility(){
+  let d,w;try{d=frame?.contentDocument;w=frame?.contentWindow}catch{return}
+  if(!d?.body||!w)return;
+  const chip=d.getElementById("selectedChip");
+  const form=d.getElementById("agentForm");
+  const noMsg=d.getElementById("noAgentMessage");
+  const card=(chip||form||noMsg)?.closest(".card");
+  if(!card)return;
+  const chipText=(chip?.textContent||"").trim().toLowerCase();
+  const hasAgent=!!w.state?.selectedId && chipText!=="aucun";
+  if(card.hidden===!hasAgent)return;
+  card.hidden=!hasAgent;
+  card.setAttribute("aria-hidden",hasAgent?"false":"true");
+}
+
+function bindAgentCardVisibility(){
+  let d;try{d=frame?.contentDocument}catch{return}
+  if(!d?.body||d.documentElement.dataset.ivAgentCardVisibilityBound==="1")return;
+  const chip=d.getElementById("selectedChip");
+  const form=d.getElementById("agentForm");
+  if(!chip&&!form)return;
+  d.documentElement.dataset.ivAgentCardVisibilityBound="1";
+  const observer=new MutationObserver(()=>syncAgentCardVisibility());
+  if(chip)observer.observe(chip,{childList:true,subtree:true,characterData:true});
+  if(form)observer.observe(form,{attributes:true,attributeFilter:["style"]});
+  syncAgentCardVisibility();
+}
+
 function clearInitialSelection(){
   let d,w;try{d=frame?.contentDocument;w=frame?.contentWindow}catch{return}
   if(!d?.body||!w)return;
   ensureFullAgentsList();
-  if(d.documentElement.dataset.ivInitialSelectionCleared==="1")return;
+  bindAgentCardVisibility();
+  if(d.documentElement.dataset.ivInitialSelectionCleared==="1"){
+    syncAgentCardVisibility();
+    return;
+  }
   if(!w.state||typeof w.renderAll!=="function")return;
   d.documentElement.dataset.ivInitialSelectionCleared="1";
   try{
@@ -41,10 +73,17 @@ function clearInitialSelection(){
     if(search)search.value="";
     w.renderAll();
     ensureFullAgentsList();
+    bindAgentCardVisibility();
+    syncAgentCardVisibility();
   }catch(e){console.warn("Initialisation vide Classeur Agents",e)}
 }
 
-function refreshAgentsPage(){ensureFullAgentsList();clearInitialSelection()}
+function refreshAgentsPage(){
+  ensureFullAgentsList();
+  clearInitialSelection();
+  bindAgentCardVisibility();
+  syncAgentCardVisibility();
+}
 frame?.addEventListener("load",()=>{
   setTimeout(refreshAgentsPage,60);
   setTimeout(refreshAgentsPage,250);
