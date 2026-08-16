@@ -2,120 +2,39 @@
 "use strict";
 const params=new URLSearchParams(location.search);
 if((params.get("mode")||"").toLowerCase()!=="kontrol")return;
-const shellFrame=document.getElementById("legacyFrame");
-const firebase=window.firebase;
-const db=firebase?.firestore?.();
+const shellFrame=document.getElementById("legacyFrame"),firebase=window.firebase,db=firebase?.firestore?.();
+const MAP_KEY="iv_kontrol_site_refs_v1";
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const DAY_LABELS={lundi:"Lun",mardi:"Mar",mercredi:"Mer",jeudi:"Jeu",vendredi:"Ven",samedi:"Sam",dimanche:"Dim"};
 const FREQ_LABELS={jours:"Selon jours",quotidien:"Quotidien",hebdomadaire:"Hebdomadaire",mensuel:"Mensuel",pair_impair:"Semaines paires / impaires",ponctuel:"Ponctuel",autre:"Autre"};
-let currentSiteId="",currentRows=[],unsubscribeSite=null,inputTimer=null,lastDoc=null,syncing=false;
+let currentSiteId="",currentRows=[],unsubscribeSite=null,inputTimer=null,lastDoc=null,syncing=false,nestedFrame=null;
 function nestedDoc(){try{return shellFrame?.contentDocument?.getElementById("kontrolFrame")?.contentDocument||null}catch{return null}}
 function sites(){try{return Array.from(window.InovtecDataHub?.chantiers||[])}catch{return[]}}
 function siteIdOf(c){return String(c?.id||c?.refId||"")}
 function siteNameOf(c){return String(c?.nom||c?.name||c?.site||"").trim()}
 function siteAddressOf(c){return String(c?.adresse||c?.address||"").trim()}
-function resolveSite(value){
-  const v=norm(value);if(!v)return null;
-  const list=sites();
-  return list.find(c=>norm(siteNameOf(c))===v)
-    ||list.find(c=>norm(`${siteNameOf(c)} ${siteAddressOf(c)}`)===v)
-    ||list.find(c=>{const n=norm(siteNameOf(c));return n&&v.length>4&&(v.startsWith(n+" ")||n.startsWith(v+" "))})
-    ||null;
-}
-function ensureStyle(d){
-  if(d.getElementById("ivKontrolCdcStyle"))return;
-  const s=d.createElement("style");s.id="ivKontrolCdcStyle";s.textContent=`
-  .iv-kontrol-cdc-status{margin-top:7px;padding:9px 10px;border:1px solid #dbe7e1;border-radius:11px;background:#f8fcfa;color:#536b60;font-size:11px;line-height:1.35}.iv-kontrol-cdc-status strong{color:#14543b}.iv-kontrol-cdc-status.ok{border-color:#bfe3cf;background:#effaf4}.iv-kontrol-cdc-status.warn{border-color:#ecd7a5;background:#fff9e9;color:#705c27}.iv-kontrol-cdc-status.error{border-color:#efc3c3;background:#fff4f4;color:#8a3434}.iv-kontrol-cdc-status .iv-kontrol-cdc-source{display:block;margin-top:3px;font-size:10px;color:#6d8177}.iv-kontrol-task-copy{min-width:0;flex:1}.iv-kontrol-cdc-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}.iv-kontrol-cdc-chip{display:inline-flex;align-items:center;min-height:20px;padding:2px 6px;border-radius:999px;background:#edf7f1;color:#236348;font-size:9px;font-weight:800}.iv-kontrol-cdc-chip.day{background:#f3f6f4;color:#50665c}.iv-kontrol-cdc-managed{opacity:.7;cursor:not-allowed!important}
-  `;d.head.appendChild(s);
-}
-function ensureUi(d){
-  ensureStyle(d);
-  const input=d.getElementById("site");if(!input)return;
-  let list=d.getElementById("ivKontrolSites");if(!list){list=d.createElement("datalist");list.id="ivKontrolSites";d.body.appendChild(list)}
-  list.innerHTML="";
-  sites().slice().sort((a,b)=>siteNameOf(a).localeCompare(siteNameOf(b),"fr",{sensitivity:"base"})).forEach(c=>{const name=siteNameOf(c);if(!name)return;const o=d.createElement("option");o.value=name;const address=siteAddressOf(c);if(address)o.label=address;list.appendChild(o)});
-  input.setAttribute("list","ivKontrolSites");input.setAttribute("autocomplete","off");
-  const holder=input.closest(".grow-lg")||input.parentElement;
-  if(holder&&!d.getElementById("ivKontrolCdcStatus")){const box=d.createElement("div");box.id="ivKontrolCdcStatus";box.className="iv-kontrol-cdc-status";box.innerHTML="Sélectionne un chantier enregistré pour charger automatiquement son cahier des charges.";holder.appendChild(box)}
-  if(input.dataset.ivKontrolCdcBound!=="1"){
-    input.dataset.ivKontrolCdcBound="1";
-    input.addEventListener("change",()=>bindSelectedSite(d,true));
-    input.addEventListener("input",()=>{clearTimeout(inputTimer);inputTimer=setTimeout(()=>bindSelectedSite(d,false),350)});
-    d.getElementById("btnResidence")?.addEventListener("click",()=>setTimeout(()=>applyRows(d,currentRows,true),80));
-    d.getElementById("btnBureau")?.addEventListener("click",()=>setTimeout(()=>applyRows(d,currentRows,true),80));
-  }
-}
-function setStatus(d,html,type=""){
-  const box=d.getElementById("ivKontrolCdcStatus");if(!box)return;box.className="iv-kontrol-cdc-status"+(type?" "+type:"");box.innerHTML=html;
-}
-function setManagedControls(d,managed){
-  const input=d.getElementById("newTaskInput"),add=d.getElementById("addTaskBtn"),reset=d.getElementById("clearAllBtn"),importBtn=d.getElementById("importBtn");
-  [input,add,reset,importBtn].forEach(el=>{if(!el)return;el.disabled=!!managed;el.classList.toggle("iv-kontrol-cdc-managed",!!managed)});
-  if(input){input.placeholder=managed?"Liste gérée depuis le cahier des charges du chantier":"Ajouter une tâche personnalisée…";input.title=managed?"Modifie la liste depuis Infos chantier > Cahier des charges":""}
-  if(add)add.title=managed?"Les tâches proviennent du cahier des charges":"";
-  if(reset)reset.title=managed?"La liste est synchronisée depuis Infos chantier":"";
-  if(importBtn)importBtn.title=managed?"L’import JSON des tâches est désactivé lorsqu’un chantier est lié":"Importer depuis JSON";
-}
+function fmtDate(v){const m=String(v||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[3]}/${m[2]}/${m[1]}`:String(v||"")}
+function loadMap(){try{return JSON.parse(localStorage.getItem(MAP_KEY)||"{}")||{}}catch{return{}}}
+function rememberSite(value,c){const id=siteIdOf(c),key=norm(value||siteNameOf(c));if(!id||!key)return;const map=loadMap();if(map[key]===id)return;map[key]=id;try{localStorage.setItem(MAP_KEY,JSON.stringify(map))}catch{}}
+function resolveSite(value){const raw=String(value||"").trim(),v=norm(raw);if(!v)return null;const list=sites(),mapped=loadMap()[v];if(mapped){const hit=list.find(c=>siteIdOf(c)===String(mapped));if(hit)return hit}return list.find(c=>norm(siteNameOf(c))===v)||list.find(c=>norm(`${siteNameOf(c)} ${siteAddressOf(c)}`)===v)||list.find(c=>{const n=norm(siteNameOf(c));return n&&v.length>4&&(v.startsWith(n+" ")||n.startsWith(v+" "))})||null}
+function ensureStyle(d){if(d.getElementById("ivKontrolCdcStyle"))return;const s=d.createElement("style");s.id="ivKontrolCdcStyle";s.textContent=`.iv-kontrol-cdc-status{margin-top:7px;padding:9px 10px;border:1px solid #dbe7e1;border-radius:11px;background:#f8fcfa;color:#536b60;font-size:11px;line-height:1.35}.iv-kontrol-cdc-status strong{color:#14543b}.iv-kontrol-cdc-status.ok{border-color:#bfe3cf;background:#effaf4}.iv-kontrol-cdc-status.warn{border-color:#ecd7a5;background:#fff9e9;color:#705c27}.iv-kontrol-cdc-status.lost{border-color:#fecaca;background:#fff1f2;color:#991b1b}.iv-kontrol-cdc-status.error{border-color:#efc3c3;background:#fff4f4;color:#8a3434}.iv-kontrol-cdc-status .iv-kontrol-cdc-source{display:block;margin-top:3px;font-size:10px;color:inherit;opacity:.82}.iv-kontrol-task-copy{min-width:0;flex:1}.iv-kontrol-cdc-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}.iv-kontrol-cdc-chip{display:inline-flex;align-items:center;min-height:20px;padding:2px 6px;border-radius:999px;background:#edf7f1;color:#236348;font-size:9px;font-weight:800}.iv-kontrol-cdc-chip.day{background:#f3f6f4;color:#50665c}.iv-kontrol-cdc-managed{opacity:.7;cursor:not-allowed!important}`;d.head.appendChild(s)}
+function ensureUi(d){ensureStyle(d);const input=d.getElementById("site");if(!input)return;let list=d.getElementById("ivKontrolSites");if(!list){list=d.createElement("datalist");list.id="ivKontrolSites";d.body.appendChild(list)}list.innerHTML="";sites().slice().sort((a,b)=>siteNameOf(a).localeCompare(siteNameOf(b),"fr",{sensitivity:"base"})).forEach(c=>{const name=siteNameOf(c);if(!name)return;const o=d.createElement("option");o.value=name;const lost=String(c.dateFinContrat||"").trim();o.label=[siteAddressOf(c),lost?`✕ perdu · ${fmtDate(lost)}`:""].filter(Boolean).join(" · ");list.appendChild(o)});input.setAttribute("list","ivKontrolSites");input.setAttribute("autocomplete","off");const holder=input.closest(".grow-lg")||input.parentElement;if(holder&&!d.getElementById("ivKontrolCdcStatus")){const box=d.createElement("div");box.id="ivKontrolCdcStatus";box.className="iv-kontrol-cdc-status";box.textContent="Sélectionne un chantier enregistré pour charger automatiquement son cahier des charges.";holder.appendChild(box)}if(input.dataset.ivKontrolCdcBound!=="1"){input.dataset.ivKontrolCdcBound="1";input.addEventListener("change",()=>bindSelectedSite(d,true));input.addEventListener("input",()=>{clearTimeout(inputTimer);inputTimer=setTimeout(()=>bindSelectedSite(d,false),300)});d.getElementById("btnResidence")?.addEventListener("click",()=>setTimeout(()=>applyRows(d,currentRows,true),80));d.getElementById("btnBureau")?.addEventListener("click",()=>setTimeout(()=>applyRows(d,currentRows,true),80))}}
+function setStatus(d,html,type=""){const box=d.getElementById("ivKontrolCdcStatus");if(!box)return;box.className="iv-kontrol-cdc-status"+(type?" "+type:"");box.innerHTML=html}
+function setManagedControls(d,managed){const input=d.getElementById("newTaskInput"),add=d.getElementById("addTaskBtn"),reset=d.getElementById("clearAllBtn"),importBtn=d.getElementById("importBtn");[input,add,reset,importBtn].forEach(el=>{if(!el)return;el.disabled=!!managed;el.classList.toggle("iv-kontrol-cdc-managed",!!managed)});if(input){input.placeholder=managed?"Liste gérée depuis le cahier des charges du chantier":"Ajouter une tâche personnalisée…";input.title=managed?"Modifie la liste depuis Infos chantier > Cahier des charges":""}if(add)add.title=managed?"Les tâches proviennent du cahier des charges":"";if(reset)reset.title=managed?"La liste est synchronisée depuis Infos chantier":"";if(importBtn)importBtn.title=managed?"L’import JSON des tâches est désactivé lorsqu’un chantier est lié":"Importer depuis JSON"}
 function taskLabel(row){const p=String(row?.prestation||"").trim(),z=String(row?.zone||"").trim();return p?(z?`${z} — ${p}`:p):""}
-function desiredRows(rows){
-  const seen=new Set(),out=[];
-  (Array.isArray(rows)?rows:[]).slice().sort((a,b)=>(Number(a.ordre)||0)-(Number(b.ordre)||0)||String(a.zone||"").localeCompare(String(b.zone||""),"fr",{sensitivity:"base"})||String(a.prestation||"").localeCompare(String(b.prestation||""),"fr",{sensitivity:"base"})).forEach(row=>{const name=taskLabel(row),key=norm(name);if(!name||!key||seen.has(key))return;seen.add(key);out.push({name,key,row})});
-  return out;
-}
-function taskRows(d){return [...d.querySelectorAll("#tasksBody tr")].filter(tr=>tr.querySelector(".task-title"))}
+function desiredRows(rows){const seen=new Set(),out=[];(Array.isArray(rows)?rows:[]).slice().sort((a,b)=>(Number(a.ordre)||0)-(Number(b.ordre)||0)||String(a.zone||"").localeCompare(String(b.zone||""),"fr",{sensitivity:"base"})||String(a.prestation||"").localeCompare(String(b.prestation||""),"fr",{sensitivity:"base"})).forEach(row=>{const name=taskLabel(row),key=norm(name);if(!name||!key||seen.has(key))return;seen.add(key);out.push({name,key,row})});return out}
+function taskRows(d){return[...d.querySelectorAll("#tasksBody tr")].filter(tr=>tr.querySelector(".task-title"))}
 function currentTaskMap(d){const m=new Map();taskRows(d).forEach(tr=>{const title=tr.querySelector(".task-title")?.textContent?.trim()||"",key=norm(title);if(key)m.set(key,{tr,title})});return m}
-function frequencyText(row){const type=String(row?.frequenceType||"");const base=FREQ_LABELS[type]||String(row?.frequence||"").trim()||"";const detail=String(row?.frequence||"").trim();return detail&&norm(detail)!==norm(base)?`${base} · ${detail}`:base}
-function decorateTasks(d,desired){
-  const meta=new Map(desired.map(x=>[x.key,x.row]));
-  taskRows(d).forEach(tr=>{
-    const title=tr.querySelector(".task-title"),key=norm(title?.textContent||""),row=meta.get(key);if(!title||!row)return;
-    const wrap=title.closest(".task-title-wrap");if(!wrap)return;
-    let copy=wrap.querySelector(".iv-kontrol-task-copy");if(!copy){copy=d.createElement("div");copy.className="iv-kontrol-task-copy";wrap.insertBefore(copy,wrap.firstChild);copy.appendChild(title)}
-    let line=copy.querySelector(".iv-kontrol-cdc-meta");if(!line){line=d.createElement("div");line.className="iv-kontrol-cdc-meta";copy.appendChild(line)}line.innerHTML="";
-    const freq=frequencyText(row);if(freq){const chip=d.createElement("span");chip.className="iv-kontrol-cdc-chip";chip.textContent=freq;line.appendChild(chip)}
-    const days=Array.isArray(row.jours)?row.jours:[];days.forEach(day=>{const label=DAY_LABELS[day]||day;if(!label)return;const chip=d.createElement("span");chip.className="iv-kontrol-cdc-chip day";chip.textContent=label;line.appendChild(chip)});
-    tr.querySelectorAll(".actions button").forEach(btn=>{btn.disabled=true;btn.classList.add("iv-kontrol-cdc-managed");btn.title="Liste gérée depuis Infos chantier > Cahier des charges"});
-  });
-}
-function sourceSummary(rows){const types=new Set((rows||[]).map(r=>String(r.sourceType||"manual").toLowerCase()));const labels=[];if(types.has("pdf"))labels.push("PDF");if(types.has("excel"))labels.push("Excel");if(types.has("manual"))labels.push("saisie manuelle");return labels.join(" + ")||"cahier des charges"}
-function applyRows(d,rows,force=false){
-  if(!d?.body||syncing||!currentSiteId)return;
-  const desired=desiredRows(rows);syncing=true;
-  try{
-    const wanted=new Set(desired.map(x=>x.key));let guard=0;
-    while(guard++<500){const map=currentTaskMap(d),obsolete=[...map.entries()].find(([key])=>!wanted.has(key));if(!obsolete)break;const btn=obsolete[1].tr.querySelector('button[title="Supprimer"]');if(!btn)break;btn.click()}
-    const input=d.getElementById("newTaskInput"),add=d.getElementById("addTaskBtn");if(input&&add){input.disabled=false;add.disabled=false;let have=currentTaskMap(d);desired.forEach(item=>{if(have.has(item.key))return;input.value=item.name;add.click();have=currentTaskMap(d)})}
-    setManagedControls(d,true);decorateTasks(d,desired);
-    const linked=resolveSite(d.getElementById("site")?.value||"");const name=siteNameOf(linked)||"ce chantier";
-    if(desired.length)setStatus(d,`<strong>${desired.length} tâche${desired.length>1?"s":""} synchronisée${desired.length>1?"s":""}</strong> depuis le cahier des charges de ${escapeHtml(name)}.<span class="iv-kontrol-cdc-source">Zones, jours et fréquences sont conservés. Pour modifier cette liste, utilise Infos chantier → Cahier des charges. Source : ${escapeHtml(sourceSummary(rows))}.</span>`,"ok");
-    else setStatus(d,`<strong>Aucune tâche dans le cahier des charges de ${escapeHtml(name)}</strong><span class="iv-kontrol-cdc-source">Ajoute ou importe d’abord les prestations dans Infos chantier. KONTROL restera vide pour ce chantier.</span>`,"warn");
-  }finally{syncing=false}
-}
+function frequencyText(row){const type=String(row?.frequenceType||""),base=FREQ_LABELS[type]||String(row?.frequence||"").trim()||"",detail=String(row?.frequence||"").trim();return detail&&norm(detail)!==norm(base)?`${base} · ${detail}`:base}
+function decorateTasks(d,desired){const meta=new Map(desired.map(x=>[x.key,x.row]));taskRows(d).forEach(tr=>{const title=tr.querySelector(".task-title"),key=norm(title?.textContent||""),row=meta.get(key);if(!title||!row)return;const wrap=title.closest(".task-title-wrap");if(!wrap)return;let copy=wrap.querySelector(".iv-kontrol-task-copy");if(!copy){copy=d.createElement("div");copy.className="iv-kontrol-task-copy";wrap.insertBefore(copy,wrap.firstChild);copy.appendChild(title)}let line=copy.querySelector(".iv-kontrol-cdc-meta");if(!line){line=d.createElement("div");line.className="iv-kontrol-cdc-meta";copy.appendChild(line)}line.innerHTML="";const freq=frequencyText(row);if(freq){const chip=d.createElement("span");chip.className="iv-kontrol-cdc-chip";chip.textContent=freq;line.appendChild(chip)}const days=Array.isArray(row.jours)?row.jours:[];days.forEach(day=>{const label=DAY_LABELS[day]||day;if(!label)return;const chip=d.createElement("span");chip.className="iv-kontrol-cdc-chip day";chip.textContent=label;line.appendChild(chip)});tr.querySelectorAll(".actions button").forEach(btn=>{btn.disabled=true;btn.classList.add("iv-kontrol-cdc-managed");btn.title="Liste gérée depuis Infos chantier > Cahier des charges"})})}
+function sourceSummary(rows){const types=new Set((rows||[]).map(r=>String(r.sourceType||"manual").toLowerCase())),labels=[];if(types.has("pdf"))labels.push("PDF");if(types.has("excel"))labels.push("Excel");if(types.has("manual"))labels.push("saisie manuelle");return labels.join(" + ")||"cahier des charges"}
 function escapeHtml(v){return String(v||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function bindSelectedSite(d,force=false){
-  ensureUi(d);const input=d.getElementById("site"),site=resolveSite(input?.value||"");
-  if(!site){
-    if(unsubscribeSite){try{unsubscribeSite()}catch{}unsubscribeSite=null}currentSiteId="";currentRows=[];setManagedControls(d,false);
-    if((input?.value||"").trim())setStatus(d,"<strong>Chantier non reconnu.</strong> Choisis un chantier proposé dans la liste pour charger son cahier des charges.","warn");
-    else setStatus(d,"Sélectionne un chantier enregistré pour charger automatiquement son cahier des charges.");
-    return;
-  }
-  const id=siteIdOf(site);if(!id){setManagedControls(d,false);setStatus(d,"<strong>Ce chantier n’a pas d’identifiant Firebase exploitable.</strong>","error");return}
-  if(id===currentSiteId){if(force)applyRows(d,currentRows,true);return}
-  if(unsubscribeSite){try{unsubscribeSite()}catch{}unsubscribeSite=null}
-  currentSiteId=id;currentRows=[];setManagedControls(d,true);setStatus(d,`Chargement du cahier des charges de <strong>${escapeHtml(siteNameOf(site))}</strong>…`);
-  if(!db){setStatus(d,"<strong>Connexion Firebase indisponible.</strong> Impossible de charger le cahier des charges.","error");return}
-  unsubscribeSite=db.collection("chantiers").doc(id).onSnapshot(snap=>{
-    const block=snap.data()?.cahierDesChargesV1||{};currentRows=Array.isArray(block.rows)?block.rows:[];const nd=nestedDoc();if(nd)applyRows(nd,currentRows,true);
-  },err=>{console.error("Liaison KONTROL / cahier des charges impossible",err);const nd=nestedDoc();if(nd)setStatus(nd,"<strong>Impossible de lire le cahier des charges dans Firebase.</strong>","error")});
-}
-function install(){
-  const d=nestedDoc();if(!d?.body)return;
-  if(d!==lastDoc){lastDoc=d;currentSiteId="";currentRows=[];if(unsubscribeSite){try{unsubscribeSite()}catch{}unsubscribeSite=null}}
-  ensureUi(d);bindSelectedSite(d,false);
-  if(currentSiteId&&currentRows.length)decorateTasks(d,desiredRows(currentRows));
-}
-if(shellFrame)shellFrame.addEventListener("load",()=>{setTimeout(install,300);setTimeout(install,1200);setTimeout(install,2500)});
-try{window.InovtecDataHub?.subscribe?.(()=>{const d=nestedDoc();if(d){ensureUi(d);bindSelectedSite(d,false)}})}catch{}
-setInterval(install,900);setTimeout(install,700);
+function statusType(site,normal="ok"){return String(site?.dateFinContrat||"").trim()?"lost":normal}
+function statusPrefix(site){const lost=String(site?.dateFinContrat||"").trim();return lost?`<strong>✕ Chantier marqué perdu — fin de contrat ${escapeHtml(fmtDate(lost))}.</strong> `:""}
+function applyRows(d,rows,force=false){if(!d?.body||syncing||!currentSiteId)return;const desired=desiredRows(rows);syncing=true;try{const wanted=new Set(desired.map(x=>x.key));let guard=0;while(guard++<500){const map=currentTaskMap(d),obsolete=[...map.entries()].find(([key])=>!wanted.has(key));if(!obsolete)break;const btn=obsolete[1].tr.querySelector('button[title="Supprimer"]');if(!btn)break;btn.click()}const input=d.getElementById("newTaskInput"),add=d.getElementById("addTaskBtn");if(input&&add){input.disabled=false;add.disabled=false;let have=currentTaskMap(d);desired.forEach(item=>{if(have.has(item.key))return;input.value=item.name;add.click();have=currentTaskMap(d)})}setManagedControls(d,true);decorateTasks(d,desired);const linked=resolveSite(d.getElementById("site")?.value||""),name=siteNameOf(linked)||"ce chantier",prefix=statusPrefix(linked);if(desired.length)setStatus(d,`${prefix}<strong>${desired.length} tâche${desired.length>1?"s":""} synchronisée${desired.length>1?"s":""}</strong> depuis le cahier des charges de ${escapeHtml(name)}.<span class="iv-kontrol-cdc-source">Zones, jours et fréquences sont conservés. Pour modifier cette liste, utilise Infos chantier → Cahier des charges. Source : ${escapeHtml(sourceSummary(rows))}.</span>`,statusType(linked,"ok"));else setStatus(d,`${prefix}<strong>Aucune tâche dans le cahier des charges de ${escapeHtml(name)}</strong><span class="iv-kontrol-cdc-source">Ajoute ou importe d’abord les prestations dans Infos chantier. KONTROL restera vide pour ce chantier.</span>`,statusType(linked,"warn"))}finally{syncing=false}}
+function bindSelectedSite(d,force=false){ensureUi(d);const input=d.getElementById("site"),site=resolveSite(input?.value||"");if(!site){if(unsubscribeSite){try{unsubscribeSite()}catch{}unsubscribeSite=null}currentSiteId="";currentRows=[];setManagedControls(d,false);if((input?.value||"").trim())setStatus(d,"<strong>Chantier non reconnu.</strong> Choisis un chantier proposé dans la liste pour charger son cahier des charges.","warn");else setStatus(d,"Sélectionne un chantier enregistré pour charger automatiquement son cahier des charges.");return}rememberSite(input?.value||siteNameOf(site),site);if(input)input.dataset.ivChantierId=siteIdOf(site);const id=siteIdOf(site);if(!id){setManagedControls(d,false);setStatus(d,"<strong>Ce chantier n’a pas d’identifiant Firebase exploitable.</strong>","error");return}if(id===currentSiteId){if(force)applyRows(d,currentRows,true);return}if(unsubscribeSite){try{unsubscribeSite()}catch{}unsubscribeSite=null}currentSiteId=id;currentRows=[];setManagedControls(d,true);setStatus(d,`${statusPrefix(site)}Chargement du cahier des charges de <strong>${escapeHtml(siteNameOf(site))}</strong>…`,statusType(site,""));if(!db){setStatus(d,"<strong>Connexion Firebase indisponible.</strong> Impossible de charger le cahier des charges.","error");return}unsubscribeSite=db.collection("chantiers").doc(id).onSnapshot(snap=>{const block=snap.data()?.cahierDesChargesV1||{};currentRows=Array.isArray(block.rows)?block.rows:[];const nd=nestedDoc();if(nd)applyRows(nd,currentRows,true)},err=>{console.error("Liaison KONTROL / cahier des charges impossible",err);const nd=nestedDoc();if(nd)setStatus(nd,"<strong>Impossible de lire le cahier des charges dans Firebase.</strong>","error")})}
+function install(){const d=nestedDoc();if(!d?.body)return;if(d!==lastDoc){lastDoc=d;currentSiteId="";currentRows=[];if(unsubscribeSite){try{unsubscribeSite()}catch{}unsubscribeSite=null}}ensureUi(d);bindSelectedSite(d,false);if(currentSiteId&&currentRows.length)decorateTasks(d,desiredRows(currentRows))}
+function bindNestedLoad(){let nf;try{nf=shellFrame?.contentDocument?.getElementById("kontrolFrame")||null}catch{nf=null}if(!nf||nf===nestedFrame)return;nestedFrame=nf;nf.addEventListener("load",()=>{setTimeout(install,120);setTimeout(install,650)})}
+function boot(){bindNestedLoad();install()}
+if(shellFrame)shellFrame.addEventListener("load",()=>{setTimeout(boot,180);setTimeout(boot,800);setTimeout(boot,1800)});try{window.InovtecDataHub?.subscribe?.(()=>boot())}catch{}setTimeout(boot,600);setTimeout(boot,2200);
 })();
