@@ -1,1 +1,80 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b6b43"><title>Inovtec — Planning</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="planning-calendar.css?v=20260815-3"><link rel="stylesheet" href="planning-responsive.css?v=20260814-1"><link rel="stylesheet" href="planning-parity.css?v=20260814-1"><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script></head><body><div class="planner-shell"><aside class="agent-panel" id="agentPanel"><div class="agent-panel-head"><h2>Agents</h2><div class="agent-search"><input id="agentSearch" type="search" placeholder="Rechercher un agent…" autocomplete="off"></div></div><div class="agent-list" id="agentList"></div><div class="agent-tip">La liste vient du Classeur Agents et se met à jour automatiquement.<br>Clic droit sur un agent : réglages PDF et rythme du planning.</div></aside><main class="calendar-pane"><div class="calendar-toolbar"><div class="calendar-toolbar-left"><button class="nav-btn" id="prevBtn" type="button" aria-label="Période précédente">‹</button><button class="nav-btn" id="nextBtn" type="button" aria-label="Période suivante">›</button><div class="period-label" id="periodLabel">—</div></div><div class="calendar-toolbar-right"><div class="view-tabs" aria-label="Type d’affichage"><button class="view-tab" data-view="day" type="button">Jour</button><button class="view-tab active" data-view="week" type="button">Semaine</button><button class="view-tab" data-view="month" type="button">Mois</button><button class="view-tab" data-view="list" type="button">Liste</button></div><button class="soft-btn" id="todayBtn" type="button">Aujourd’hui</button></div></div><div class="calendar-scroll" id="calendarViewport"></div></main></div><div class="editor-popover" id="editorPopover" role="dialog" aria-label="Modifier l’intervention"><div class="editor-row"><span class="editor-icon">●</span><select class="editor-select editor-title" id="edTitle" aria-label="Chantier"><option value="">Choisir un chantier…</option></select></div><div class="editor-row"><span class="editor-icon">≡</span><textarea class="editor-textarea editor-brief" id="edSite" maxlength="140" rows="2" placeholder="Décrire brièvement la tâche du jour…" aria-label="Tâche du jour"></textarea></div><div class="editor-row"><span class="editor-icon">▦</span><input class="editor-field" id="edDate" type="date"></div><div class="editor-row"><span class="editor-icon">◷</span><div class="editor-time-pair"><input class="editor-field" id="edStart" type="time" step="900"><span>–</span><input class="editor-field" id="edEnd" type="time" step="900"></div></div><div class="editor-row"><span class="editor-icon">♙</span><select class="editor-select" id="edAgent"></select></div><div class="editor-row"><span class="editor-icon">≡</span><textarea class="editor-textarea" id="edNote" maxlength="250" placeholder="Ajouter une note…"></textarea></div><div class="editor-actions"><button class="editor-delete" id="edDelete" type="button">Supprimer</button><button class="editor-done" id="edDone" type="button">Terminé</button></div></div><div class="context-menu" id="contextMenu"></div><div class="hidden-meta" aria-hidden="true"><input id="week" type="week"><div><label>Semaine calculée</label><div id="weekInfo">—</div></div><div><label>Sauvegarde</label><div id="syncBadge" class="status warning">Connexion…</div></div><h2 id="title">Planning</h2><span id="count">0 intervention</span><table><tbody id="rows"></tbody></table><div class="notice warning">Les données sont enregistrées dans ce navigateur.</div><button id="exportBtn" type="button">Exporter</button><input id="importFile" type="file" accept="application/json"><button id="printBtn" type="button">Imprimer</button></div><script src="planning-calendar.js?v=20260816-blank1"></script><script src="planning-editor-stability.js?v=20260815-1"></script><script src="planning-legal-guard.js?v=20260814-1"></script><script src="planning-copy-count.js?v=20260814-4"></script><script src="planning-context-fit.js?v=20260814-1"></script><script src="planning-pdf.js?v=20260815-3"></script><script src="planning-autoheight.js?v=20260814-1"></script><script>(()=>{const hide=()=>{try{[...parent.document.querySelectorAll('.iv-tool')].forEach(b=>{if(/ajouter un agent/i.test(b.textContent||''))b.style.display='none'})}catch{}};setTimeout(hide,180);setTimeout(hide,650);setTimeout(hide,1400)})();</script></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b6b43">
+<title>Inovtec — Planning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="planning-calendar.css?v=20260815-3">
+<link rel="stylesheet" href="planning-responsive.css?v=20260814-1">
+<link rel="stylesheet" href="planning-parity.css?v=20260814-1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="planner-shell">
+  <aside class="agent-panel" id="agentPanel">
+    <div class="agent-panel-head">
+      <h2>Agents</h2>
+      <div class="agent-search"><input id="agentSearch" type="search" placeholder="Rechercher un agent…" autocomplete="off"></div>
+    </div>
+    <div class="agent-list" id="agentList"></div>
+    <div class="agent-tip">La liste vient du Classeur Agents et se met à jour automatiquement.<br>Clic droit sur un agent : réglages PDF et rythme du planning.</div>
+  </aside>
+
+  <main class="calendar-pane">
+    <div class="calendar-toolbar">
+      <div class="calendar-toolbar-left">
+        <button class="nav-btn" id="prevBtn" type="button" aria-label="Période précédente">‹</button>
+        <button class="nav-btn" id="nextBtn" type="button" aria-label="Période suivante">›</button>
+        <div class="period-label" id="periodLabel">—</div>
+      </div>
+      <div class="calendar-toolbar-right">
+        <div class="view-tabs" aria-label="Type d’affichage">
+          <button class="view-tab" data-view="day" type="button">Jour</button>
+          <button class="view-tab active" data-view="week" type="button">Semaine</button>
+          <button class="view-tab" data-view="month" type="button">Mois</button>
+          <button class="view-tab" data-view="list" type="button">Liste</button>
+        </div>
+        <button class="soft-btn" id="todayBtn" type="button">Aujourd’hui</button>
+      </div>
+    </div>
+    <div class="calendar-scroll" id="calendarViewport"></div>
+  </main>
+</div>
+
+<div class="editor-popover" id="editorPopover" role="dialog" aria-label="Modifier l’intervention">
+  <div class="editor-row"><span class="editor-icon">●</span><select class="editor-select editor-title" id="edTitle" aria-label="Chantier"><option value="">Choisir un chantier…</option></select></div>
+  <div class="editor-row"><span class="editor-icon">≡</span><textarea class="editor-textarea editor-brief" id="edSite" maxlength="140" rows="2" placeholder="Décrire brièvement la tâche du jour…" aria-label="Tâche du jour"></textarea></div>
+  <div class="editor-row"><span class="editor-icon">▦</span><input class="editor-field" id="edDate" type="date"></div>
+  <div class="editor-row"><span class="editor-icon">◷</span><div class="editor-time-pair"><input class="editor-field" id="edStart" type="time" step="900"><span>–</span><input class="editor-field" id="edEnd" type="time" step="900"></div></div>
+  <div class="editor-row"><span class="editor-icon">♙</span><select class="editor-select" id="edAgent"></select></div>
+  <div class="editor-row"><span class="editor-icon">≡</span><textarea class="editor-textarea" id="edNote" maxlength="250" placeholder="Ajouter une note…"></textarea></div>
+  <div class="editor-actions"><button class="editor-delete" id="edDelete" type="button">Supprimer</button><button class="editor-done" id="edDone" type="button">Terminé</button></div>
+</div>
+<div class="context-menu" id="contextMenu"></div>
+
+<div class="hidden-meta" aria-hidden="true">
+  <input id="week" type="week">
+  <div><label>Semaine calculée</label><div id="weekInfo">—</div></div>
+  <div><label>Sauvegarde</label><div id="syncBadge" class="status warning">Connexion…</div></div>
+  <h2 id="title">Planning</h2><span id="count">0 intervention</span>
+  <table><tbody id="rows"></tbody></table>
+  <div class="notice warning">Les données sont enregistrées dans ce navigateur.</div>
+  <button id="exportBtn" type="button">Exporter</button>
+  <input id="importFile" type="file" accept="application/json">
+  <button id="printBtn" type="button">Imprimer</button>
+</div>
+
+<script src="planning-calendar.js?v=20260816-blank1"></script>
+<script src="planning-editor-stability.js?v=20260815-1"></script>
+<script src="planning-legal-guard.js?v=20260814-1"></script>
+<script src="planning-copy-count.js?v=20260814-4"></script>
+<script src="planning-context-fit.js?v=20260814-1"></script>
+<script src="planning-pdf.js?v=20260815-3"></script>
+<script src="planning-autoheight.js?v=20260814-1"></script>
+<script>(()=>{const hide=()=>{try{[...parent.document.querySelectorAll('.iv-tool')].forEach(b=>{if(/ajouter un agent/i.test(b.textContent||''))b.style.display='none'})}catch{}};setTimeout(hide,180);setTimeout(hide,650);setTimeout(hide,1400)})();</script>
+</body>
+</html>
