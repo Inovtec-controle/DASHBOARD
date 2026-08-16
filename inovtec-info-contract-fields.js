@@ -36,11 +36,12 @@ function ensureStyle(d){
     #ivContractFields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;padding:12px;border:1px solid #dce9e2;border-radius:14px;background:#f9fcfa}
     #ivContractFields .field{min-width:0}#ivContractFields label{font-weight:800;color:#28473c}
     #ivDateFinContrat:not(:placeholder-shown){border-color:#ef9a9a}
-    .site-item.iv-contract-ending{border-color:#ef4444!important;background:#fff5f5!important;box-shadow:0 0 0 3px rgba(239,68,68,.09)!important}
+    .site-item.iv-contract-ending{position:relative;padding-right:38px!important}
     .site-item.iv-contract-ending.active{border-color:#dc2626!important;background:#fff1f2!important;box-shadow:0 0 0 4px rgba(220,38,38,.13)!important}
-    .site-item.iv-contract-ending strong{color:#991b1b!important}
-    .site-item .iv-contract-date-note{margin-top:6px!important;color:#dc2626!important;font-size:10px!important;font-weight:800!important}
-    @media(max-width:760px){#ivContractFields{grid-template-columns:1fr;padding:10px}}
+    .site-item.iv-contract-ending.active strong{color:#991b1b!important}
+    .site-item .iv-contract-lost-mark{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:999px;border:1px solid #fecaca;background:#fff;color:#dc2626;font-size:12px;font-weight:900;line-height:1;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+    .site-item.iv-contract-ending.active .iv-contract-lost-mark{border-color:#dc2626;background:#dc2626;color:#fff}
+    @media(max-width:760px){#ivContractFields{grid-template-columns:1fr;padding:10px}.site-item.iv-contract-ending{padding-right:34px!important}.site-item .iv-contract-lost-mark{right:8px}}
   `;
   d.head.appendChild(s);
 }
@@ -104,11 +105,18 @@ function decorateSiteList(d){
     const site=findSiteForButton(button);
     const end=String(site?.dateFinContrat||"").trim();
     button.classList.toggle("iv-contract-ending",!!end);
-    let note=button.querySelector(".iv-contract-date-note");
+    button.querySelector(".iv-contract-date-note")?.remove();
+    let mark=button.querySelector(".iv-contract-lost-mark");
     if(end){
-      if(!note){note=d.createElement("span");note.className="iv-contract-date-note";button.appendChild(note);}
-      note.textContent=`Fin de contrat : ${fmtDate(end)}`;
-    }else note?.remove();
+      if(!mark){
+        mark=d.createElement("span");
+        mark.className="iv-contract-lost-mark";
+        mark.setAttribute("aria-hidden","true");
+        mark.textContent="✕";
+        button.appendChild(mark);
+      }
+      mark.title=`Chantier perdu — fin de contrat : ${fmtDate(end)}`;
+    }else mark?.remove();
   });
 }
 function syncFromSite(d){
