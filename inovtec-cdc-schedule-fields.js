@@ -2,137 +2,28 @@
 "use strict";
 const mode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
 if(mode!=="infos")return;
-const frame=document.getElementById("legacyFrame");
-const firebase=window.firebase;
-const db=firebase?.firestore?.();
-const auth=firebase?.auth?.();
-const DAYS=[
-  ["lundi","Lun"],["mardi","Mar"],["mercredi","Mer"],["jeudi","Jeu"],["vendredi","Ven"],["samedi","Sam"],["dimanche","Dim"]
-];
-const TYPES={
-  jours:"Selon jours",
-  quotidien:"Quotidien",
-  hebdomadaire:"Hebdomadaire",
-  mensuel:"Mensuel",
-  pair_impair:"Semaines paires / impaires",
-  ponctuel:"Ponctuel",
-  autre:"Autre"
-};
-let currentSiteId="",rows=[],unsubscribe=null;
+const frame=document.getElementById("legacyFrame"),firebase=window.firebase,db=firebase?.firestore?.(),auth=firebase?.auth?.();
+const DAYS=[["lundi","Lun"],["mardi","Mar"],["mercredi","Mer"],["jeudi","Jeu"],["vendredi","Ven"],["samedi","Sam"],["dimanche","Dim"]];
+const TYPES={jours:"Selon jours",quotidien:"Quotidien",hebdomadaire:"Hebdomadaire",mensuel:"Mensuel",pair_impair:"Semaines paires / impaires",ponctuel:"Ponctuel",autre:"Autre"};
+let currentSiteId="",rows=[],unsubscribe=null,lastDoc=null,bodyObserver=null,installTimer=null;
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const uid=()=>"cdc_"+Date.now()+"_"+Math.random().toString(16).slice(2);
 const hubSites=()=>{try{return Array.from(window.InovtecDataHub?.chantiers||[])}catch{return[]}};
 function doc(){try{return frame?.contentDocument||null}catch{return null}}
-function activeSite(d){
-  const nom=d?.getElementById("nom")?.value.trim()||"",adresse=d?.getElementById("adresse")?.value.trim()||"";
-  if(!nom&&!adresse)return null;
-  const list=hubSites();
-  return list.find(c=>norm(c.nom)===norm(nom)&&(!adresse||norm(c.adresse)===norm(adresse)))||list.find(c=>norm(c.nom)===norm(nom))||list.find(c=>adresse&&norm(c.adresse)===norm(adresse))||null;
-}
-function inferType(row){
-  if(row?.frequenceType&&TYPES[row.frequenceType])return row.frequenceType;
-  const f=norm(row?.frequence);
-  if(/semaine.*paire/.test(f)&&/impaire/.test(f))return "pair_impair";
-  if(/mensuel|mensuelle|chaque mois/.test(f))return "mensuel";
-  if(/quotidien|tous les jours|chaque jour/.test(f))return "quotidien";
-  if(/hebdo|chaque semaine|1 fois semaine|une fois semaine/.test(f))return "hebdomadaire";
-  if(Array.isArray(row?.jours)&&row.jours.length)return "jours";
-  return f?"autre":"jours";
-}
+function activeSite(d){const nom=d?.getElementById("nom")?.value.trim()||"",adresse=d?.getElementById("adresse")?.value.trim()||"";if(!nom&&!adresse)return null;const list=hubSites();return list.find(c=>norm(c.nom)===norm(nom)&&(!adresse||norm(c.adresse)===norm(adresse)))||list.find(c=>norm(c.nom)===norm(nom))||list.find(c=>adresse&&norm(c.adresse)===norm(adresse))||null}
+function inferType(row){if(row?.frequenceType&&TYPES[row.frequenceType])return row.frequenceType;const f=norm(row?.frequence);if(/semaine.*paire/.test(f)&&/impaire/.test(f))return"pair_impair";if(/mensuel|mensuelle|chaque mois/.test(f))return"mensuel";if(/quotidien|tous les jours|chaque jour/.test(f))return"quotidien";if(/hebdo|chaque semaine|1 fois semaine|une fois semaine/.test(f))return"hebdomadaire";if(Array.isArray(row?.jours)&&row.jours.length)return"jours";return f?"autre":"jours"}
 function typeLabel(row){return TYPES[inferType(row)]||"Autre"}
 function sortedRows(){return rows.slice().sort((a,b)=>(Number(a.ordre)||0)-(Number(b.ordre)||0)||String(a.zone||"").localeCompare(String(b.zone||""),"fr",{sensitivity:"base"})||String(a.prestation||"").localeCompare(String(b.prestation||""),"fr",{sensitivity:"base"}))}
-function ensureStyle(d){
-  if(d.getElementById("ivCdcScheduleStyle"))return;
-  const s=d.createElement("style");s.id="ivCdcScheduleStyle";s.textContent=`
-  .iv-cdc-days-field{grid-column:1/-1}.iv-cdc-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin-top:6px}.iv-cdc-day{display:flex;align-items:center;justify-content:center;gap:6px;min-height:38px;border:1px solid #d7e5de;border-radius:10px;background:#fbfdfc;color:#315548;font-size:10px;font-weight:800;cursor:pointer}.iv-cdc-day input{width:15px!important;height:15px!important;margin:0!important}.iv-cdc-freq-badge{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;background:#eaf7f0;color:#126443;font-size:9px;font-weight:850;white-space:nowrap}.iv-cdc-freq-detail{margin-top:4px;color:#64766d;font-size:9px;line-height:1.3}.iv-cdc-days-cell{min-width:145px}.iv-cdc-day-chip{display:inline-flex;margin:1px 2px 1px 0;padding:3px 5px;border-radius:7px;background:#f0f7f3;color:#245b46;font-size:8px;font-weight:850}.iv-cdc-structured-note{margin-top:8px;padding:8px 10px;border:1px solid #dce9e3;border-radius:10px;background:#f8fcfa;color:#63766d;font-size:9px}.iv-cdc-structured-note strong{color:#14513a}.iv-cdc-table{min-width:1120px!important}
-  @media(max-width:700px){.iv-cdc-days{grid-template-columns:repeat(4,minmax(0,1fr))}}
-  `;d.head.appendChild(s);
-}
-function ensureFields(d){
-  const form=d.getElementById("ivCdcForm"),overlay=d.getElementById("ivCdcOverlay");if(!form||!overlay)return;
-  ensureStyle(d);
-  if(!d.getElementById("ivCdcFrequenceType")){
-    const old=d.getElementById("ivCdcFrequence"),oldField=old?.closest(".field");
-    if(oldField){const lab=oldField.querySelector("label");if(lab)lab.textContent="Détail / fréquence libre";}
-    const typeField=d.createElement("div");typeField.className="field";typeField.innerHTML='<label for="ivCdcFrequenceType">Type de fréquence</label><select id="ivCdcFrequenceType"><option value="jours">Selon jours</option><option value="quotidien">Quotidien</option><option value="hebdomadaire">Hebdomadaire</option><option value="mensuel">Mensuel</option><option value="pair_impair">Semaines paires / impaires</option><option value="ponctuel">Ponctuel</option><option value="autre">Autre</option></select>';
-    if(oldField)oldField.insertAdjacentElement("afterend",typeField);else form.querySelector(".iv-cdc-form-grid")?.prepend(typeField);
-    const days=d.createElement("div");days.className="field iv-cdc-days-field";days.id="ivCdcDaysField";days.innerHTML='<label>Jours prévus</label><div class="iv-cdc-days">'+DAYS.map(([k,l])=>`<label class="iv-cdc-day"><input type="checkbox" data-iv-cdc-day="${k}"> ${l}</label>`).join("")+'</div><div class="iv-cdc-structured-note"><strong>Données structurées :</strong> ces jours pourront être comparés au Planning et alimentés automatiquement par les futurs imports Excel / PDF.</div>';
-    typeField.insertAdjacentElement("afterend",days);
-  }
-  if(form.dataset.ivStructuredSave!=="1"){
-    form.dataset.ivStructuredSave="1";
-    form.addEventListener("submit",e=>{e.preventDefault();e.stopImmediatePropagation();saveStructured(d)},true);
-  }
-  if(overlay.dataset.ivStructuredObserver!=="1"){
-    overlay.dataset.ivStructuredObserver="1";
-    const obs=new MutationObserver(()=>{if(!overlay.hidden)populateStructuredFields(d)});obs.observe(overlay,{attributes:true,attributeFilter:["hidden"]});
-  }
-}
-function populateStructuredFields(d){
-  const overlay=d.getElementById("ivCdcOverlay");if(!overlay)return;
-  const rowId=overlay.dataset.rowId||"",row=rows.find(r=>String(r.id)===String(rowId));
-  const type=d.getElementById("ivCdcFrequenceType");if(type)type.value=inferType(row||{});
-  const selected=new Set(Array.isArray(row?.jours)?row.jours:[]);
-  d.querySelectorAll("[data-iv-cdc-day]").forEach(cb=>cb.checked=selected.has(cb.dataset.ivCdcDay));
-}
-async function updateRows(transform){
-  if(!db||!currentSiteId)throw new Error("Chantier introuvable");
-  const ref=db.collection("chantiers").doc(currentSiteId);
-  await db.runTransaction(async tx=>{
-    const snap=await tx.get(ref);if(!snap.exists)throw new Error("Chantier introuvable");
-    const block=snap.data()?.cahierDesChargesV1||{},latest=Array.isArray(block.rows)?block.rows:[],next=transform(latest.map(r=>({...r})));
-    tx.update(ref,{"cahierDesChargesV1.schemaVersion":2,"cahierDesChargesV1.rows":next,"cahierDesChargesV1.updatedAtMs":Date.now(),"cahierDesChargesV1.updatedBy":auth?.currentUser?.uid||"","cahierDesChargesV1.structuredSchedule":true});
-  });
-}
-async function saveStructured(d){
-  const overlay=d.getElementById("ivCdcOverlay"),rowId=overlay?.dataset.rowId||"",prestation=d.getElementById("ivCdcPrestation")?.value.trim()||"";
-  if(!prestation){d.getElementById("ivCdcPrestation")?.focus();return}
-  const jours=[...d.querySelectorAll("[data-iv-cdc-day]:checked")].map(x=>x.dataset.ivCdcDay);
-  const payload={
-    zone:d.getElementById("ivCdcZone")?.value.trim()||"",
-    prestation,
-    frequence:d.getElementById("ivCdcFrequence")?.value.trim()||"",
-    frequenceType:d.getElementById("ivCdcFrequenceType")?.value||"jours",
-    jours,
-    methodeConsigne:d.getElementById("ivCdcMethode")?.value.trim()||"",
-    controle:d.getElementById("ivCdcControle")?.value.trim()||"",
-    observations:d.getElementById("ivCdcObservations")?.value.trim()||""
-  };
-  try{
-    await updateRows(latest=>{
-      if(rowId){const i=latest.findIndex(r=>String(r.id)===String(rowId));if(i>=0)latest[i]={...latest[i],...payload,updatedAtMs:Date.now()};return latest}
-      const max=Math.max(0,...latest.map(r=>Number(r.ordre)||0));latest.push({id:uid(),...payload,ordre:max+10,sourceType:"manual",createdAtMs:Date.now(),updatedAtMs:Date.now()});return latest;
-    });
-    if(overlay){overlay.hidden=true;overlay.dataset.rowId=""}
-  }catch(e){console.error("Sauvegarde cahier des charges structuré impossible",e);alert("Impossible d’enregistrer cette ligne. Vérifie la connexion Firebase.")}
-}
-function decorateTable(d){
-  const card=d.getElementById("ivCdcCard"),table=card?.querySelector(".iv-cdc-table");if(!table)return;
-  const head=table.querySelector("thead tr"),freqHead=[...head?.children||[]].find(th=>/fréquence/i.test(th.textContent||""));
-  if(freqHead&&!head.querySelector('[data-iv-cdc-days-head="1"]')){const th=d.createElement("th");th.dataset.ivCdcDaysHead="1";th.textContent="Jours";freqHead.insertAdjacentElement("afterend",th)}
-  const ordered=sortedRows();
-  [...table.querySelectorAll("tbody tr")].forEach((tr,i)=>{
-    const row=ordered[i]||{},cells=[...tr.children],freqCell=cells[2];
-    if(freqCell){freqCell.textContent="";const badge=d.createElement("span");badge.className="iv-cdc-freq-badge";badge.textContent=typeLabel(row);freqCell.appendChild(badge);const detail=String(row.frequence||"").trim();if(detail&&norm(detail)!==norm(typeLabel(row))){const div=d.createElement("div");div.className="iv-cdc-freq-detail";div.textContent=detail;freqCell.appendChild(div)}}
-    if(!tr.querySelector('[data-iv-cdc-days-cell="1"]')){const td=d.createElement("td");td.dataset.ivCdcDaysCell="1";td.className="iv-cdc-days-cell";const ref=tr.children[2];ref?.insertAdjacentElement("afterend",td)}
-    const dayCell=tr.querySelector('[data-iv-cdc-days-cell="1"]');if(dayCell){dayCell.textContent="";const days=Array.isArray(row.jours)?row.jours:[];if(days.length){DAYS.filter(([k])=>days.includes(k)).forEach(([,l])=>{const chip=d.createElement("span");chip.className="iv-cdc-day-chip";chip.textContent=l;dayCell.appendChild(chip)})}else dayCell.textContent=inferType(row)==="quotidien"?"Tous les jours":"—"}
-  });
-  const freqStat=card.querySelector("#ivCdcFreq");if(freqStat){const count=new Set(rows.map(r=>inferType(r)||norm(r.frequence)).filter(Boolean)).size;freqStat.textContent=String(count)}
-  card.dataset.scheduleSchemaVersion="2";
-}
-function bindSite(d){
-  const site=activeSite(d),siteId=site?.id||"";
-  if(String(siteId)===String(currentSiteId))return;
-  if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null}
-  currentSiteId=siteId;rows=[];
-  if(!currentSiteId||!db)return;
-  unsubscribe=db.collection("chantiers").doc(currentSiteId).onSnapshot(snap=>{const block=snap.data()?.cahierDesChargesV1||{};rows=Array.isArray(block.rows)?block.rows:[];setTimeout(()=>{const d2=doc();if(d2){ensureFields(d2);decorateTable(d2)}},80)},e=>console.error("Lecture fréquences structurées impossible",e));
-}
-function install(){
-  const d=doc();if(!d?.body)return;
-  ensureFields(d);bindSite(d);decorateTable(d);
-}
+function ensureStyle(d){if(d.getElementById("ivCdcScheduleStyle"))return;const s=d.createElement("style");s.id="ivCdcScheduleStyle";s.textContent=`.iv-cdc-days-field{grid-column:1/-1}.iv-cdc-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin-top:6px}.iv-cdc-day{display:flex;align-items:center;justify-content:center;gap:6px;min-height:38px;border:1px solid #d7e5de;border-radius:10px;background:#fbfdfc;color:#315548;font-size:10px;font-weight:800;cursor:pointer}.iv-cdc-day input{width:15px!important;height:15px!important;margin:0!important}.iv-cdc-freq-badge{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;background:#eaf7f0;color:#126443;font-size:9px;font-weight:850;white-space:nowrap}.iv-cdc-freq-detail{margin-top:4px;color:#64766d;font-size:9px;line-height:1.3}.iv-cdc-days-cell{min-width:145px}.iv-cdc-day-chip{display:inline-flex;margin:1px 2px 1px 0;padding:3px 5px;border-radius:7px;background:#f0f7f3;color:#245b46;font-size:8px;font-weight:850}.iv-cdc-structured-note{margin-top:8px;padding:8px 10px;border:1px solid #dce9e3;border-radius:10px;background:#f8fcfa;color:#63766d;font-size:9px}.iv-cdc-structured-note strong{color:#14513a}.iv-cdc-table{min-width:1120px!important}@media(max-width:700px){.iv-cdc-days{grid-template-columns:repeat(4,minmax(0,1fr))}}`;d.head.appendChild(s)}
+function ensureFields(d){const form=d.getElementById("ivCdcForm"),overlay=d.getElementById("ivCdcOverlay");if(!form||!overlay)return;ensureStyle(d);if(!d.getElementById("ivCdcFrequenceType")){const old=d.getElementById("ivCdcFrequence"),oldField=old?.closest(".field");if(oldField){const lab=oldField.querySelector("label");if(lab)lab.textContent="Détail / fréquence libre"}const typeField=d.createElement("div");typeField.className="field";typeField.innerHTML='<label for="ivCdcFrequenceType">Type de fréquence</label><select id="ivCdcFrequenceType"><option value="jours">Selon jours</option><option value="quotidien">Quotidien</option><option value="hebdomadaire">Hebdomadaire</option><option value="mensuel">Mensuel</option><option value="pair_impair">Semaines paires / impaires</option><option value="ponctuel">Ponctuel</option><option value="autre">Autre</option></select>';if(oldField)oldField.insertAdjacentElement("afterend",typeField);else form.querySelector(".iv-cdc-form-grid")?.prepend(typeField);const days=d.createElement("div");days.className="field iv-cdc-days-field";days.id="ivCdcDaysField";days.innerHTML='<label>Jours prévus</label><div class="iv-cdc-days">'+DAYS.map(([k,l])=>`<label class="iv-cdc-day"><input type="checkbox" data-iv-cdc-day="${k}"> ${l}</label>`).join("")+'</div><div class="iv-cdc-structured-note"><strong>Données structurées :</strong> ces jours peuvent être réutilisés dans le Planning et les imports Excel / PDF.</div>';typeField.insertAdjacentElement("afterend",days)}if(form.dataset.ivStructuredSave!=="1"){form.dataset.ivStructuredSave="1";form.addEventListener("submit",e=>{e.preventDefault();e.stopImmediatePropagation();saveStructured(d)},true)}if(overlay.dataset.ivStructuredObserver!=="1"){overlay.dataset.ivStructuredObserver="1";new MutationObserver(()=>{if(!overlay.hidden)populateStructuredFields(d)}).observe(overlay,{attributes:true,attributeFilter:["hidden"]})}}
+function populateStructuredFields(d){const overlay=d.getElementById("ivCdcOverlay");if(!overlay)return;const rowId=overlay.dataset.rowId||"",row=rows.find(r=>String(r.id)===String(rowId));const type=d.getElementById("ivCdcFrequenceType");if(type)type.value=inferType(row||{});const selected=new Set(Array.isArray(row?.jours)?row.jours:[]);d.querySelectorAll("[data-iv-cdc-day]").forEach(cb=>cb.checked=selected.has(cb.dataset.ivCdcDay))}
+async function updateRows(transform){if(!db||!currentSiteId)throw new Error("Chantier introuvable");const ref=db.collection("chantiers").doc(currentSiteId);await db.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists)throw new Error("Chantier introuvable");const block=snap.data()?.cahierDesChargesV1||{},latest=Array.isArray(block.rows)?block.rows:[],next=transform(latest.map(r=>({...r})));tx.update(ref,{"cahierDesChargesV1.schemaVersion":2,"cahierDesChargesV1.rows":next,"cahierDesChargesV1.updatedAtMs":Date.now(),"cahierDesChargesV1.updatedBy":auth?.currentUser?.uid||"","cahierDesChargesV1.structuredSchedule":true})})}
+async function saveStructured(d){const overlay=d.getElementById("ivCdcOverlay"),rowId=overlay?.dataset.rowId||"",prestation=d.getElementById("ivCdcPrestation")?.value.trim()||"";if(!prestation){d.getElementById("ivCdcPrestation")?.focus();return}const jours=[...d.querySelectorAll("[data-iv-cdc-day]:checked")].map(x=>x.dataset.ivCdcDay),payload={zone:d.getElementById("ivCdcZone")?.value.trim()||"",prestation,frequence:d.getElementById("ivCdcFrequence")?.value.trim()||"",frequenceType:d.getElementById("ivCdcFrequenceType")?.value||"jours",jours,methodeConsigne:d.getElementById("ivCdcMethode")?.value.trim()||"",controle:d.getElementById("ivCdcControle")?.value.trim()||"",observations:d.getElementById("ivCdcObservations")?.value.trim()||""};try{await updateRows(latest=>{if(rowId){const i=latest.findIndex(r=>String(r.id)===String(rowId));if(i>=0)latest[i]={...latest[i],...payload,updatedAtMs:Date.now()};return latest}const max=Math.max(0,...latest.map(r=>Number(r.ordre)||0));latest.push({id:uid(),...payload,ordre:max+10,sourceType:"manual",createdAtMs:Date.now(),updatedAtMs:Date.now()});return latest});if(overlay){overlay.hidden=true;overlay.dataset.rowId=""}}catch(e){console.error("Sauvegarde cahier des charges structuré impossible",e);alert("Impossible d’enregistrer cette ligne. Vérifie la connexion Firebase.")}}
+function scheduleSignature(ordered){return JSON.stringify(ordered.map(r=>[String(r.id||""),String(r.frequenceType||""),String(r.frequence||""),Array.isArray(r.jours)?r.jours.join(","):""]))}
+function decorateTable(d){const card=d.getElementById("ivCdcCard"),table=card?.querySelector(".iv-cdc-table");if(!table)return;const ordered=sortedRows(),signature=scheduleSignature(ordered);if(table.dataset.ivScheduleSignature===signature&&table.querySelector('[data-iv-cdc-days-head="1"]'))return;const head=table.querySelector("thead tr"),freqHead=[...head?.children||[]].find(th=>/fréquence/i.test(th.textContent||""));if(freqHead&&!head.querySelector('[data-iv-cdc-days-head="1"]')){const th=d.createElement("th");th.dataset.ivCdcDaysHead="1";th.textContent="Jours";freqHead.insertAdjacentElement("afterend",th)}[...table.querySelectorAll("tbody tr")].forEach((tr,i)=>{const row=ordered[i]||{},freqCell=tr.children[2];if(freqCell){freqCell.textContent="";const badge=d.createElement("span");badge.className="iv-cdc-freq-badge";badge.textContent=typeLabel(row);freqCell.appendChild(badge);const detail=String(row.frequence||"").trim();if(detail&&norm(detail)!==norm(typeLabel(row))){const div=d.createElement("div");div.className="iv-cdc-freq-detail";div.textContent=detail;freqCell.appendChild(div)}}let dayCell=tr.querySelector('[data-iv-cdc-days-cell="1"]');if(!dayCell){dayCell=d.createElement("td");dayCell.dataset.ivCdcDaysCell="1";dayCell.className="iv-cdc-days-cell";tr.children[2]?.insertAdjacentElement("afterend",dayCell)}dayCell.textContent="";const days=Array.isArray(row.jours)?row.jours:[];if(days.length)DAYS.filter(([k])=>days.includes(k)).forEach(([,l])=>{const chip=d.createElement("span");chip.className="iv-cdc-day-chip";chip.textContent=l;dayCell.appendChild(chip)});else dayCell.textContent=inferType(row)==="quotidien"?"Tous les jours":"—"});const freqStat=card.querySelector("#ivCdcFreq");if(freqStat){const count=new Set(rows.map(r=>inferType(r)||norm(r.frequence)).filter(Boolean)).size;if(freqStat.textContent!==String(count))freqStat.textContent=String(count)}table.dataset.ivScheduleSignature=signature;card.dataset.scheduleSchemaVersion="2"}
+function bindSite(d){const site=activeSite(d),siteId=site?.id||"";if(String(siteId)===String(currentSiteId))return;if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null}currentSiteId=siteId;rows=[];if(!currentSiteId||!db)return;unsubscribe=db.collection("chantiers").doc(currentSiteId).onSnapshot(snap=>{const block=snap.data()?.cahierDesChargesV1||{};rows=Array.isArray(block.rows)?block.rows:[];scheduleInstall()},e=>console.error("Lecture fréquences structurées impossible",e))}
+function install(){const d=doc();if(!d?.body)return;if(d!==lastDoc){lastDoc=d;try{bodyObserver?.disconnect()}catch{}bodyObserver=new MutationObserver(scheduleInstall);bodyObserver.observe(d.body,{childList:true,subtree:true})}ensureFields(d);bindSite(d);decorateTable(d)}
+function scheduleInstall(){clearTimeout(installTimer);installTimer=setTimeout(install,70)}
 window.InovtecCahierDesChargesSchema={version:2,fields:["zone","prestation","frequenceType","frequence","jours","methodeConsigne","controle","observations","ordre","sourceType"],days:DAYS.map(x=>x[0]),frequencyTypes:Object.keys(TYPES),supportedSources:["manual","excel","pdf"]};
-if(frame){frame.addEventListener("load",()=>{setTimeout(install,220);setTimeout(install,900)});setInterval(install,700);setTimeout(install,500)}
-try{window.InovtecDataHub?.subscribe?.(()=>install())}catch{}
+frame?.addEventListener("load",()=>{setTimeout(install,180);setTimeout(install,700)});setTimeout(install,450);try{window.InovtecDataHub?.subscribe?.(scheduleInstall)}catch{}
 })();
