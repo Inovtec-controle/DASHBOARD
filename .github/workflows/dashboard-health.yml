@@ -40,6 +40,8 @@ jobs:
             planning-calendar-legal-loader.js
             planning-context-fit.js
             KONTROL.html
+            KONTROL-CLOUD-LEGACY.html
+            kontrol-cloud.js
             HEURE-SUP.html
             TEMPS.html
             SALAIRE.html
@@ -88,6 +90,7 @@ jobs:
           node --check inovtec-empty-initial-selection.js
           node --check inovtec-planning-launch-selection.js
           node --check inovtec-info-agent-planning.js
+          node --check kontrol-cloud.js
           node --check planning-calendar.js
           node --check planning-editor-stability.js
           node --check planning-pdf.js
@@ -100,7 +103,7 @@ jobs:
 
           pages = [
               'index.html','INFOCHANTIERS.html','ORGA.html','DISCIPLINE.html',
-              'PLANNINGS.html','PLANNINGS-LEGACY.html','KONTROL.html','HEURE-SUP.html','TEMPS.html',
+              'PLANNINGS.html','PLANNINGS-LEGACY.html','KONTROL.html','KONTROL-CLOUD-LEGACY.html','HEURE-SUP.html','TEMPS.html',
               'SALAIRE.html','AGENTS.html','inovtec-page-shell.html'
           ]
 
