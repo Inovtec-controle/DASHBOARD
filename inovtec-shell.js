@@ -30,7 +30,7 @@ $("refreshPage").onclick=()=>{loading.classList.remove("hidden");try{frame.conte
 $("openOriginal").onclick=()=>window.open(legacyPage,"_blank");
 function targetDoc(){try{return frame.contentDocument||null}catch{return null}}
 function nestedKontrolDoc(){try{return frame.contentDocument?.getElementById("kontrolFrame")?.contentDocument||null}catch{return null}}
-function addTheme(doc,modeName){if(!doc||!doc.head||!doc.body)return;doc.body.classList.add("iv-embedded",`iv-mode-${modeName}`);if(!doc.querySelector('link[data-inovtec-modern="1"]')){const link=doc.createElement("link");link.rel="stylesheet";link.href="inovtec-embedded.css?v=20260814-1";link.dataset.inovtecModern="1";doc.head.appendChild(link)}}
+function addTheme(doc,modeName){if(!doc||!doc.head||!doc.body)return;doc.body.classList.add("iv-embedded",`iv-mode-${modeName}`);if(!doc.querySelector('link[data-inovtec-modern="1"]')){const link=doc.createElement("link");link.rel="stylesheet";link.href="inovtec-embedded.css?v=20260816-agents1";link.dataset.inovtecModern="1";doc.head.appendChild(link)}}
 function textButton(doc,labels){const buttons=[...doc.querySelectorAll("button,a.btn,label.btn")];return buttons.find(el=>labels.some(label=>(el.textContent||"").trim().toLowerCase().includes(label)))}
 function clickTarget(selector,labels=[],deep=false){const doc=deep?nestedKontrolDoc():targetDoc();if(!doc)return false;let el=selector?doc.querySelector(selector):null;if(!el&&labels.length)el=textButton(doc,labels);if(el){el.click();return true}return false}
 function focusTarget(selector){const doc=targetDoc();const el=doc?.querySelector(selector);if(el){el.focus();el.scrollIntoView({behavior:"smooth",block:"center"});return true}return false}
