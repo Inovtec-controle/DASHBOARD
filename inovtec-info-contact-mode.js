@@ -26,7 +26,7 @@ function ensureStyle(d){
   const s=d.createElement("style");
   s.id="ivContactTypeStyle";
   s.textContent=`
-    #ivContactTypeBlock{margin:2px 0 16px}.iv-contact-type-title{font-size:12px;font-weight:850;color:#163f31;margin-bottom:9px}.iv-contact-type-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.iv-contact-choice{appearance:none;width:100%;border:1px solid #d8e5df;border-radius:14px;background:#fff;padding:13px 14px;display:flex;align-items:center;gap:11px;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}.iv-contact-choice:hover{border-color:#93c9ad}.iv-contact-choice.active{border-color:#15905d;background:#f5fcf8;box-shadow:0 0 0 3px rgba(21,144,93,.09)}.iv-contact-radio{width:20px;height:20px;border:2px solid #aebdb6;border-radius:50%;display:grid;place-items:center;flex:0 0 20px}.iv-contact-choice.active .iv-contact-radio{border-color:#15905d}.iv-contact-choice.active .iv-contact-radio:after{content:"";width:10px;height:10px;border-radius:50%;background:#15905d}.iv-contact-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#eaf8f0;color:#087247;font-size:17px;flex:0 0 38px}.iv-contact-copy{min-width:0}.iv-contact-copy strong{display:block;color:#153e30;font-size:13px}.iv-contact-copy span{display:block;color:#75857d;font-size:10px;line-height:1.35;margin-top:2px}.iv-client-title{font-size:12px;font-weight:850;color:#163f31;margin:2px 0 9px}.iv-client-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.iv-client-grid .field{min-width:0}.iv-contact-help{margin-top:10px;padding:9px 11px;border:1px solid #dcebe3;border-radius:11px;background:#f7fcf9;color:#60766b;font-size:10px;line-height:1.4}.iv-contact-help strong{color:#176044}
+    #ivContactTypeBlock{margin:2px 0 16px}.iv-contact-type-title{font-size:12px;font-weight:850;color:#163f31;margin-bottom:9px}.iv-contact-type-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.iv-contact-choice{appearance:none;width:100%;border:1px solid #d8e5df;border-radius:14px;background:#fff;padding:13px 14px;display:flex;align-items:center;gap:11px;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}.iv-contact-choice:hover{border-color:#93c9ad}.iv-contact-choice.active{border-color:#15905d;background:#f5fcf8;box-shadow:0 0 0 3px rgba(21,144,93,.09)}.iv-contact-radio{width:20px;height:20px;border:2px solid #aebdb6;border-radius:50%;display:grid;place-items:center;flex:0 0 20px}.iv-contact-choice.active .iv-contact-radio{border-color:#15905d}.iv-contact-choice.active .iv-contact-radio:after{content:"";width:10px;height:10px;border-radius:50%;background:#15905d}.iv-contact-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#eaf8f0;color:#087247;font-size:17px;flex:0 0 38px}.iv-contact-copy{min-width:0}.iv-contact-copy strong{display:block;color:#153e30;font-size:13px}.iv-contact-copy span{display:block;color:#75857d;font-size:10px;line-height:1.35;margin-top:2px}.iv-client-title{font-size:12px;font-weight:850;color:#163f31;margin:2px 0 9px}.iv-client-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.iv-client-grid .field{min-width:0}.iv-contact-help{margin-top:10px;padding:9px 11px;border:1px solid #dcebe3;border-radius:11px;background:#f7fcf9;color:#60766b;font-size:10px;line-height:1.4}.iv-contact-help strong{color:#176044}#ivSyndicContactFields[hidden],#ivClientContactFields[hidden]{display:none!important}
     @media(max-width:760px){.iv-contact-type-grid,.iv-client-grid{grid-template-columns:1fr}.iv-contact-choice{padding:11px}.iv-contact-copy strong{font-size:12px}}
   `;
   d.head.appendChild(s);
@@ -34,13 +34,18 @@ function ensureStyle(d){
 function contactCard(d){
   return [...(d?.querySelectorAll("#siteForm section.card")||[])].find(card=>/^contacts?$/i.test((card.querySelector("h2")?.textContent||"").trim()))||null;
 }
+function cleanType(type){
+  if(type==="client")return "client";
+  if(type==="syndic_cs")return "syndic_cs";
+  return "";
+}
 function setType(d,type,markDirty=false){
   const block=d.getElementById("ivContactTypeBlock");
   if(!block)return;
-  const next=type==="client"?"client":"syndic_cs";
+  const next=cleanType(type);
   block.dataset.contactType=next;
   block.querySelectorAll(".iv-contact-choice").forEach(btn=>{
-    const active=btn.dataset.type===next;
+    const active=!!next&&btn.dataset.type===next;
     btn.classList.toggle("active",active);
     btn.setAttribute("aria-pressed",active?"true":"false");
   });
@@ -60,16 +65,17 @@ function ensureUi(d){
     currentGrid.id="ivSyndicContactFields";
     block=d.createElement("div");
     block.id="ivContactTypeBlock";
-    block.dataset.contactType="syndic_cs";
-    block.innerHTML=`<div class="iv-contact-type-title">Type de contact à utiliser</div><div class="iv-contact-type-grid"><button type="button" class="iv-contact-choice active" data-type="syndic_cs" aria-pressed="true"><span class="iv-contact-radio"></span><span class="iv-contact-icon">♙</span><span class="iv-contact-copy"><strong>Syndic / conseil syndical</strong><span>Utilise les contacts syndic et conseil syndical déjà présents.</span></span></button><button type="button" class="iv-contact-choice" data-type="client" aria-pressed="false"><span class="iv-contact-radio"></span><span class="iv-contact-icon">●</span><span class="iv-contact-copy"><strong>Client</strong><span>Affiche une fiche contact client simple et dédiée.</span></span></button></div>`;
+    block.dataset.contactType="";
+    block.innerHTML=`<div class="iv-contact-type-title">Type de contact à utiliser</div><div class="iv-contact-type-grid"><button type="button" class="iv-contact-choice" data-type="syndic_cs" aria-pressed="false"><span class="iv-contact-radio"></span><span class="iv-contact-icon">♙</span><span class="iv-contact-copy"><strong>Syndic / conseil syndical</strong><span>Affiche les contacts syndic et conseil syndical.</span></span></button><button type="button" class="iv-contact-choice" data-type="client" aria-pressed="false"><span class="iv-contact-radio"></span><span class="iv-contact-icon">●</span><span class="iv-contact-copy"><strong>Client</strong><span>Affiche le contact client simple et dédié.</span></span></button></div>`;
     currentGrid.insertAdjacentElement("beforebegin",block);
     const client=d.createElement("div");
     client.id="ivClientContactFields";
     client.hidden=true;
-    client.innerHTML=`<div class="iv-client-title">Contact client</div><div class="iv-client-grid"><div class="field"><label for="ivClientNom">Nom client</label><input id="ivClientNom" autocomplete="organization" placeholder="Ex. : Société Dupont"></div><div class="field"><label for="ivClientTelephone">Téléphone client</label><input id="ivClientTelephone" type="tel" autocomplete="tel" placeholder="Ex. : 06 12 34 56 78"></div><div class="field"><label for="ivClientEmail">Email client</label><input id="ivClientEmail" type="email" autocomplete="email" placeholder="Ex. : contact@dupont.fr"></div></div><div class="iv-contact-help"><strong>Client sélectionné :</strong> les champs Syndic / Conseil syndical sont simplement masqués, jamais supprimés. Tu peux changer de type plus tard sans perdre les anciennes informations.</div>`;
+    client.innerHTML=`<div class="iv-client-title">Contact client</div><div class="iv-client-grid"><div class="field"><label for="ivClientNom">Nom client</label><input id="ivClientNom" autocomplete="organization" placeholder="Ex. : Société Dupont"></div><div class="field"><label for="ivClientTelephone">Téléphone client</label><input id="ivClientTelephone" type="tel" autocomplete="tel" placeholder="Ex. : 06 12 34 56 78"></div><div class="field"><label for="ivClientEmail">Email client</label><input id="ivClientEmail" type="email" autocomplete="email" placeholder="Ex. : contact@dupont.fr"></div></div><div class="iv-contact-help"><strong>Client sélectionné :</strong> les anciennes informations Syndic / Conseil syndical restent conservées mais ne sont pas affichées.</div>`;
     currentGrid.insertAdjacentElement("afterend",client);
     block.querySelectorAll(".iv-contact-choice").forEach(btn=>btn.addEventListener("click",()=>setType(d,btn.dataset.type,true)));
     ["ivClientNom","ivClientTelephone","ivClientEmail"].forEach(id=>d.getElementById(id)?.addEventListener("input",()=>{dirty=true}));
+    setType(d,"",false);
   }
   const form=d.getElementById("siteForm");
   if(form&&form.dataset.ivContactModeBound!=="1"){
@@ -88,7 +94,7 @@ function ensureUi(d){
 }
 function collect(d){
   return {
-    contactType:d.getElementById("ivContactTypeBlock")?.dataset.contactType==="client"?"client":"syndic_cs",
+    contactType:cleanType(d.getElementById("ivContactTypeBlock")?.dataset.contactType||""),
     clientNom:d.getElementById("ivClientNom")?.value.trim()||"",
     clientTelephone:d.getElementById("ivClientTelephone")?.value.trim()||"",
     clientEmail:d.getElementById("ivClientEmail")?.value.trim()||""
@@ -102,7 +108,7 @@ function applySite(d,site,force=false){
   d.getElementById("ivClientNom").value=String(site.clientNom||"");
   d.getElementById("ivClientTelephone").value=String(site.clientTelephone||"");
   d.getElementById("ivClientEmail").value=String(site.clientEmail||"");
-  setType(d,site.contactType==="client"?"client":"syndic_cs",false);
+  setType(d,cleanType(site.contactType),false);
   dirty=false;
 }
 function resetDraft(d){
@@ -110,7 +116,7 @@ function resetDraft(d){
   if(d.getElementById("ivClientNom"))d.getElementById("ivClientNom").value="";
   if(d.getElementById("ivClientTelephone"))d.getElementById("ivClientTelephone").value="";
   if(d.getElementById("ivClientEmail"))d.getElementById("ivClientEmail").value="";
-  setType(d,"syndic_cs",false);
+  setType(d,"",false);
 }
 function syncFromSite(d){
   ensureUi(d);
@@ -149,7 +155,7 @@ async function saveAfterBase(d,payload,wasNew){
     loadedSiteId=id;dirty=false;
   }catch(error){
     console.error("Enregistrement du type de contact impossible",error);
-    alert("Le chantier a été enregistré, mais les informations du contact client n’ont pas pu être synchronisées. Réessaie avec Enregistrer.");
+    alert("Le chantier a été enregistré, mais le type de contact n’a pas pu être synchronisé. Réessaie avec Enregistrer.");
   }
 }
 function install(){
