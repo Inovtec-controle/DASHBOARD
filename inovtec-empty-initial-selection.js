@@ -7,6 +7,8 @@ const frame=document.getElementById("legacyFrame");
 function ensureFullAgentsList(){
   let d;try{d=frame?.contentDocument}catch{return}
   if(!d?.head||!d?.body)return;
+  const detailsHeader=d.getElementById("selectedChip")?.closest(".cardHeader");
+  if(detailsHeader)detailsHeader.style.setProperty("display","none","important");
   let style=d.getElementById("ivAgentsFullListFix");
   if(!style){
     style=d.createElement("style");
