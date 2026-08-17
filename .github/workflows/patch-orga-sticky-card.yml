@@ -1,0 +1,73 @@
+name: Fixe la bulle Nouvelle tâche Organisation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-orga-sticky-card.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rendre Nouvelle tâche fixe et défilable
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('ORGA-LEGACY.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_section = '''    <main class="page">
+      <section class="card">'''
+          new_section = '''    <main class="page">
+      <section class="card task-form-card">'''
+          if old_section not in s:
+              raise SystemExit('Carte Nouvelle tâche introuvable ou déjà modifiée')
+          s = s.replace(old_section, new_section, 1)
+
+          old_css = '''    .archive-item:last-child{border-bottom:0}
+    @media(max-width:900px){.board{grid-template-columns:repeat(4,280px)}}'''
+          new_css = '''    .archive-item:last-child{border-bottom:0}
+    .task-form-card{position:sticky;top:82px;z-index:30;max-height:calc(100vh - 98px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+    .task-form-card #taskForm>.btn-primary{position:sticky;bottom:0;z-index:2;width:100%;box-shadow:0 -10px 22px rgba(255,255,255,.96)}
+    @media(max-width:900px){.board{grid-template-columns:repeat(4,280px)}}
+    @media(max-width:760px){.task-form-card{top:10px;max-height:calc(100vh - 20px)}}'''
+          if old_css not in s:
+              raise SystemExit('Ancre CSS Organisation introuvable')
+          s = s.replace(old_css, new_css, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Vérifier la correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '<section class="card task-form-card">' ORGA-LEGACY.html
+          grep -Fq '.task-form-card{position:sticky;top:82px' ORGA-LEGACY.html
+          grep -Fq '.task-form-card #taskForm>.btn-primary{position:sticky;bottom:0' ORGA-LEGACY.html
+          grep -Fq '@media(max-width:760px){.task-form-card{top:10px' ORGA-LEGACY.html
+          test "$(grep -o 'id="taskForm"' ORGA-LEGACY.html | wc -l)" -eq 1
+          test "$(grep -o 'id="submitLabel"' ORGA-LEGACY.html | wc -l)" -eq 1
+
+      - name: Publier et nettoyer le patch ponctuel
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Inovtec Bot'
+          git config user.email 'inovtec-bot@users.noreply.github.com'
+          rm .github/workflows/patch-orga-sticky-card.yml
+          git add ORGA-LEGACY.html .github/workflows/patch-orga-sticky-card.yml
+          git commit -m 'Fixe et rend défilable Nouvelle tâche Organisation'
+          git push
