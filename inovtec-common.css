@@ -107,7 +107,7 @@ tr:last-child td{border-bottom:0}
 .login-card p{margin:0 0 18px;color:var(--muted);font-size:13px}
 .hidden{display:none!important}
 section.card:has(#taskForm){
-  position:sticky;top:82px;z-index:30;padding:12px;
+  position:sticky;top:0;z-index:30;padding:12px;
 }
 section.card:has(#taskForm) .section-title{margin-bottom:7px}
 section.card:has(#taskForm) .field{gap:3px}
@@ -149,7 +149,7 @@ section.card:has(#taskForm) #taskForm>.btn-primary{width:100%;margin-top:8px!imp
   .topbar{position:static}
   .btn{min-height:44px}
   th,td{min-width:120px}
-  section.card:has(#taskForm){top:10px}
+  section.card:has(#taskForm){top:0}
   body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm){top:0!important}
   body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) #taskForm>.btn-primary{min-height:34px!important}
 }
