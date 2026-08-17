@@ -4,7 +4,8 @@ const params=new URLSearchParams(location.search);
 if((params.get("mode")||"").toLowerCase()!=="infos")return;
 const frame=document.getElementById("legacyFrame"),summary=document.getElementById("pageSummary");
 if(!frame||!summary)return;
-let lastHtml="",timer=null,lastDoc=null;
+let lastHtml="",lastDoc=null,rendering=false;
+let stableSite="Aucun chantier",stableAgent="Non affecté",stableDisabled=true;
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const value=(d,id,fallback)=>{const el=d?.getElementById(id),v=String(el?.value||el?.textContent||"").trim();return v||fallback};
 function doc(){try{return frame.contentDocument||null}catch{return null}}
@@ -20,6 +21,23 @@ function hideLegacyActions(d){
   const newBtn=d?.getElementById("newBtn"),deleteBtn=d?.getElementById("deleteBtn");
   const wrap=newBtn?.closest(".actions")||deleteBtn?.closest(".actions");
   if(wrap){wrap.style.display="none";wrap.dataset.ivMovedToSummary="1"}
+}
+function captureStable(d){
+  if(!d?.body)return;
+  stableSite=value(d,"nom","Aucun chantier");
+  stableAgent=value(d,"agentNom","Non affecté");
+  stableDisabled=!!d.getElementById("deleteBtn")?.disabled;
+}
+function render(capture=false){
+  const d=doc();if(!d?.body)return;
+  ensureStyle();hideLegacyActions(d);
+  if(capture)captureStable(d);
+  const html=card("⌖","Chantier actif",stableSite,"Fiche sélectionnée")+card("♙","Agent affecté",stableAgent,"Référentiel commun")+actionsCard(stableDisabled);
+  if(summary.innerHTML===html){lastHtml=html;return;}
+  rendering=true;
+  lastHtml=html;
+  summary.innerHTML=html;
+  rendering=false;
 }
 function forceNewUi(d){
   const form=d.getElementById("siteForm"),empty=d.getElementById("emptySelection"),state=d.getElementById("recordState");
@@ -39,19 +57,32 @@ function triggerLegacyNew(d){
   try{src.click();return true}catch{}
   try{return src.dispatchEvent(new d.defaultView.MouseEvent("click",{bubbles:true,cancelable:true,view:d.defaultView}))}catch{return false}
 }
+function setNewStable(){stableSite="Aucun chantier";stableAgent="Non affecté";stableDisabled=true;render(false)}
 function runNew(){
   const d=doc();if(!d?.body)return;
-  triggerLegacyNew(d);forceNewUi(d);
+  triggerLegacyNew(d);forceNewUi(d);setNewStable();
   [60,180,420].forEach(delay=>setTimeout(()=>{
     if(!newStateReady(d))triggerLegacyNew(d);
-    forceNewUi(d);render();
+    forceNewUi(d);
   },delay));
 }
 function runDelete(){
   const d=doc();if(!d?.body)return;
   const src=d.getElementById("deleteBtn");
   if(src&&!src.disabled)src.click();
-  setTimeout(render,80);setTimeout(render,500);
+  setTimeout(()=>{setNewStable()},120);
+}
+function bindFrameEvents(d){
+  if(!d?.body||d.body.dataset.ivInfoStableSummary==="1")return;
+  d.body.dataset.ivInfoStableSummary="1";
+  d.addEventListener("click",e=>{
+    if(e.target.closest?.("#siteList .site-item"))setTimeout(()=>render(true),0);
+  },true);
+  const form=d.getElementById("siteForm");
+  form?.addEventListener("submit",()=>{
+    setTimeout(()=>render(true),80);
+    setTimeout(()=>render(true),450);
+  },true);
 }
 document.addEventListener("click",e=>{
   const newBtn=e.target.closest?.("#ivInfoNewBtn");
@@ -59,15 +90,16 @@ document.addEventListener("click",e=>{
   const deleteBtn=e.target.closest?.("#ivInfoDeleteBtn");
   if(deleteBtn){e.preventDefault();e.stopPropagation();runDelete();}
 },true);
-function render(){
+const observer=new MutationObserver(()=>{
+  if(rendering)return;
+  if(summary.innerHTML!==lastHtml)render(false);
+});
+observer.observe(summary,{childList:true,subtree:true,characterData:true});
+function install(){
   const d=doc();if(!d?.body)return;
-  ensureStyle();hideLegacyActions(d);
-  const site=value(d,"nom","Aucun chantier"),agent=value(d,"agentNom","Non affecté"),disabled=!!d.getElementById("deleteBtn")?.disabled;
-  const html=card("⌖","Chantier actif",site,"Fiche sélectionnée")+card("♙","Agent affecté",agent,"Référentiel commun")+actionsCard(disabled);
-  if(html!==lastHtml||summary.innerHTML!==html){lastHtml=html;summary.innerHTML=html}
-  if(d!==lastDoc){lastDoc=d;["input","change","click"].forEach(type=>d.addEventListener(type,()=>{clearTimeout(timer);timer=setTimeout(render,90)},true))}
+  if(d!==lastDoc){lastDoc=d;bindFrameEvents(d);captureStable(d);}
+  render(false);
 }
-const observer=new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(render,20)});observer.observe(summary,{childList:true,subtree:true,characterData:true});
-frame.addEventListener("load",()=>{setTimeout(render,80);setTimeout(render,350);setTimeout(render,900)});
-setInterval(render,700);setTimeout(render,250);
+frame.addEventListener("load",()=>{setTimeout(install,80);setTimeout(install,350);setTimeout(install,900)});
+setTimeout(install,250);
 })();
