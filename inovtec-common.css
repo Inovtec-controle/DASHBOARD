@@ -107,8 +107,17 @@ tr:last-child td{border-bottom:0}
 .login-card p{margin:0 0 18px;color:var(--muted);font-size:13px}
 .hidden{display:none!important}
 section.card:has(#taskForm){
-  position:sticky;top:82px;z-index:30;
+  position:sticky;top:82px;z-index:30;padding:12px;
 }
+section.card:has(#taskForm) .section-title{margin-bottom:7px}
+section.card:has(#taskForm) .field{gap:3px}
+section.card:has(#taskForm) .field label{font-size:11px}
+section.card:has(#taskForm) input,
+section.card:has(#taskForm) select,
+section.card:has(#taskForm) textarea{padding:7px 10px}
+section.card:has(#taskForm) textarea{min-height:56px;max-height:72px;resize:none}
+section.card:has(#taskForm) #taskForm .field[style*="margin-top"]{margin-top:6px!important}
+section.card:has(#taskForm) #taskForm>.btn-primary{width:100%;margin-top:8px!important;padding:8px 12px}
 @media(max-width:760px){
   .page{padding:10px}
   .grid-2,.grid-3{grid-template-columns:1fr}
