@@ -118,6 +118,31 @@ section.card:has(#taskForm) textarea{padding:7px 10px}
 section.card:has(#taskForm) textarea{min-height:56px;max-height:72px;resize:none}
 section.card:has(#taskForm) #taskForm .field[style*="margin-top"]{margin-top:6px!important}
 section.card:has(#taskForm) #taskForm>.btn-primary{width:100%;margin-top:8px!important;padding:8px 12px}
+
+/* Organisation : sur les petits écrans, le style visuel moderne remet les cartes en position relative.
+   Cette règle, volontairement plus spécifique, conserve Nouvelle tâche ancrée en haut de l'iframe,
+   donc directement sous la synthèse Tâches actives, sans défilement interne. */
+@media(max-width:1050px){
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm){
+    position:sticky!important;
+    top:0!important;
+    z-index:40!important;
+    align-self:start!important;
+    padding:8px 10px!important;
+    overflow:visible!important;
+    max-height:none!important;
+  }
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) .section-title{margin-bottom:4px!important}
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) .section-title h2{font-size:15px!important;line-height:1.1!important}
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) .field{gap:2px!important}
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) .field label{font-size:10px!important;line-height:1.1!important}
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) input,
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) select{padding:5px 8px!important;min-height:32px!important;height:32px!important}
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) textarea{padding:5px 8px!important;min-height:44px!important;height:44px!important;max-height:44px!important;resize:none!important}
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) #taskForm .field[style*="margin-top"]{margin-top:4px!important}
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) #taskForm>.btn-primary{width:100%!important;margin-top:5px!important;min-height:34px!important;padding:6px 10px!important}
+}
+
 @media(max-width:760px){
   .page{padding:10px}
   .grid-2,.grid-3{grid-template-columns:1fr}
@@ -125,4 +150,6 @@ section.card:has(#taskForm) #taskForm>.btn-primary{width:100%;margin-top:8px!imp
   .btn{min-height:44px}
   th,td{min-width:120px}
   section.card:has(#taskForm){top:10px}
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm){top:0!important}
+  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1):has(#taskForm) #taskForm>.btn-primary{min-height:34px!important}
 }
