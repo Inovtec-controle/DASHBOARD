@@ -108,12 +108,6 @@ tr:last-child td{border-bottom:0}
 .hidden{display:none!important}
 section.card:has(#taskForm){
   position:sticky;top:82px;z-index:30;
-  max-height:calc(100vh - 98px);overflow-y:auto;
-  overscroll-behavior:contain;scrollbar-gutter:stable;
-}
-section.card:has(#taskForm) #taskForm>.btn-primary{
-  position:sticky;bottom:0;z-index:2;width:100%;
-  box-shadow:0 -12px 22px rgba(255,255,255,.96)
 }
 @media(max-width:760px){
   .page{padding:10px}
@@ -121,5 +115,5 @@ section.card:has(#taskForm) #taskForm>.btn-primary{
   .topbar{position:static}
   .btn{min-height:44px}
   th,td{min-width:120px}
-  section.card:has(#taskForm){top:10px;max-height:calc(100vh - 20px)}
+  section.card:has(#taskForm){top:10px}
 }
