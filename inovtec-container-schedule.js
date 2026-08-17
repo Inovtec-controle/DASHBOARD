@@ -11,7 +11,7 @@ const FIELDS=[
 ];
 const norm=v=>String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
 function parseDays(v){
- if(Array.isArray(v))return DAYS.filter(d=>v.map(norm).includes(d));
+ if(Array.isArray(v)){const a=v.map(norm);return DAYS.filter(d=>a.includes(d))}
  const s=norm(v);if(!s)return[];
  const aliases={lundi:["lundi","lun"],mardi:["mardi","mar"],mercredi:["mercredi","mer"],jeudi:["jeudi","jeu"],vendredi:["vendredi","ven"],samedi:["samedi","sam"],dimanche:["dimanche","dim"]};
  return DAYS.filter(d=>aliases[d].some(a=>new RegExp(`(^|[^a-z])${a}([^a-z]|$)`).test(s)));
@@ -42,10 +42,11 @@ function activeHubSite(d){
  return list.find(c=>norm(c.nom)===n&&(!a||norm(c.adresse)===a))||list.find(c=>norm(c.nom)===n)||list.find(c=>a&&norm(c.adresse)===a)||null;
 }
 async function resolveSite(d){
- const form=d?.getElementById("siteForm"),known=String(form?.dataset.ivChantierId||currentSiteId||"").trim();
- if(known&&db){try{const snap=await db.collection("chantiers").doc(known).get();if(snap.exists)return{id:snap.id,...snap.data()}}catch{}}
+ const n=d?.getElementById("nom")?.value.trim()||"",a=d?.getElementById("adresse")?.value.trim()||"";if(!n&&!a)return null;
  const h=activeHubSite(d);if(h?.id)return h;
- const n=d?.getElementById("nom")?.value.trim()||"",a=d?.getElementById("adresse")?.value.trim()||"";if(!n||!db)return null;
+ const form=d?.getElementById("siteForm"),known=String(form?.dataset.ivChantierId||currentSiteId||"").trim();
+ if(known&&db){try{const snap=await db.collection("chantiers").doc(known).get();if(snap.exists){const s={id:snap.id,...snap.data()};if((!n||norm(s.nom)===norm(n))&&(!a||norm(s.adresse)===norm(a)))return s}}catch{}}
+ if(!n||!db)return null;
  try{const snap=await db.collection("chantiers").where("nom","==",n).limit(10).get(),rows=snap.docs.map(x=>({id:x.id,...x.data()}));return rows.find(x=>!a||norm(x.adresse)===norm(a))||rows[0]||null}catch{return null}
 }
 function ensureStyle(d){if(d.getElementById("ivContainerDaysStyle"))return;const s=d.createElement("style");s.id="ivContainerDaysStyle";s.textContent=`
@@ -70,7 +71,7 @@ function ensurePicker(d,f){
 }
 function installPickers(d){ensureStyle(d);FIELDS.forEach(f=>ensurePicker(d,f))}
 function loadFromSite(d,site,force=false){
- installPickers(d);const sig=String(site?.id||"")+"|"+String(d.getElementById("nom")?.value||"")+"|"+String(d.getElementById("adresse")?.value||"");if(!force&&dirty&&sig===lastSignature)return;lastSignature=sig;currentSiteId=String(site?.id||"");if(currentSiteId)d.getElementById("siteForm")?.setAttribute("data-iv-chantier-id",currentSiteId);
+ installPickers(d);const sig=String(site?.id||"")+"|"+String(d.getElementById("nom")?.value||"")+"|"+String(d.getElementById("adresse")?.value||"");if(!force&&dirty&&sig===lastSignature)return;lastSignature=sig;currentSiteId=String(site?.id||"");const form=d.getElementById("siteForm");if(currentSiteId)form?.setAttribute("data-iv-chantier-id",currentSiteId);else form?.removeAttribute("data-iv-chantier-id");
  const s=site?scheduleForSite(site):Object.fromEntries(FIELDS.map(f=>[f.id,fieldState(d,f.id)]));FIELDS.forEach(f=>updatePicker(d,f.id,s[f.id]||[],false));dirty=false;
 }
 async function refresh(d,force=false){if(!d?.body)return;installPickers(d);const site=await resolveSite(d);loadFromSite(d,site,force)}
@@ -80,9 +81,10 @@ async function persist(d){
  if(!dirty||!db)return;const site=await resolveSite(d);if(!site?.id)return;const s=currentSchedule(d),now=Date.now(),legacy={};FIELDS.forEach(f=>legacy[f.id]=serialize(s[f.id]));
  try{await db.collection("chantiers").doc(site.id).set({...legacy,conteneursPlanningV1:{schemaVersion:1,...s,updatedAtMs:now,updatedBy:auth?.currentUser?.uid||""}},{merge:true});currentSiteId=String(site.id);d.getElementById("siteForm")?.setAttribute("data-iv-chantier-id",currentSiteId);dirty=false}catch(e){console.error("Sauvegarde planning conteneurs impossible",e)}
 }
+function resetSelectionState(d){currentSiteId="";lastSignature="";dirty=false;clearTimeout(saveTimer);d.getElementById("siteForm")?.removeAttribute("data-iv-chantier-id")}
 function bind(d){
  if(d.documentElement.dataset.ivContainerDaysBound==="1")return;d.documentElement.dataset.ivContainerDaysBound="1";
- d.addEventListener("click",e=>{if(!e.target.closest?.(".iv-container-picker"))closeMenus(d);if(e.target.closest?.(".site-item,#newBtn,#deleteBtn")){if(dirty)persist(d);setTimeout(()=>refresh(d,true),120);setTimeout(()=>refresh(d,true),600)}},true);
+ d.addEventListener("click",e=>{if(!e.target.closest?.(".iv-container-picker"))closeMenus(d);const target=e.target.closest?.(".site-item,#newBtn,#deleteBtn");if(!target)return;if(dirty)persist(d);if(target.matches("#newBtn,#deleteBtn"))resetSelectionState(d);setTimeout(()=>refresh(d,true),140);setTimeout(()=>refresh(d,true),650)},true);
  d.getElementById("siteForm")?.addEventListener("submit",()=>{FIELDS.forEach(f=>updatePicker(d,f.id,fieldState(d,f.id),false));dirty=true;setTimeout(()=>persist(d),500);setTimeout(()=>persist(d),1400)},true);
 }
 function install(){const d=doc();if(!d?.body)return;installPickers(d);bind(d);refresh(d)}
