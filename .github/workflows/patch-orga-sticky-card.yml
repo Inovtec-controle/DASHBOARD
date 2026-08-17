@@ -71,3 +71,5 @@ jobs:
           git add ORGA-LEGACY.html .github/workflows/patch-orga-sticky-card.yml
           git commit -m 'Fixe et rend défilable Nouvelle tâche Organisation'
           git push
+
+# second déclenchement
