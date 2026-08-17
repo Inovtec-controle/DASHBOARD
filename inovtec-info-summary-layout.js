@@ -21,18 +21,35 @@ function hideLegacyActions(d){
   const wrap=newBtn?.closest(".actions")||deleteBtn?.closest(".actions");
   if(wrap){wrap.style.display="none";wrap.dataset.ivMovedToSummary="1"}
 }
-function bindButtons(d){
-  const n=document.getElementById("ivInfoNewBtn"),del=document.getElementById("ivInfoDeleteBtn");
-  if(n&&!n.dataset.bound){n.dataset.bound="1";n.addEventListener("click",()=>{d.getElementById("newBtn")?.click();setTimeout(render,80);setTimeout(render,350)})}
-  if(del&&!del.dataset.bound){del.dataset.bound="1";del.addEventListener("click",()=>{const src=d.getElementById("deleteBtn");if(src&&!src.disabled)src.click();setTimeout(render,80);setTimeout(render,500)})}
+function runNew(){
+  const d=doc();if(!d?.body)return;
+  const src=d.getElementById("newBtn");
+  if(!src)return;
+  src.click();
+  setTimeout(()=>{
+    if(d.getElementById("siteForm")?.classList.contains("hidden")) src.click();
+    render();
+  },40);
+  setTimeout(render,250);
 }
+function runDelete(){
+  const d=doc();if(!d?.body)return;
+  const src=d.getElementById("deleteBtn");
+  if(src&&!src.disabled)src.click();
+  setTimeout(render,80);setTimeout(render,500);
+}
+document.addEventListener("click",e=>{
+  const newBtn=e.target.closest?.("#ivInfoNewBtn");
+  if(newBtn){e.preventDefault();e.stopPropagation();runNew();return;}
+  const deleteBtn=e.target.closest?.("#ivInfoDeleteBtn");
+  if(deleteBtn){e.preventDefault();e.stopPropagation();runDelete();}
+},true);
 function render(){
   const d=doc();if(!d?.body)return;
   ensureStyle();hideLegacyActions(d);
   const site=value(d,"nom","Aucun chantier"),agent=value(d,"agentNom","Non affecté"),disabled=!!d.getElementById("deleteBtn")?.disabled;
   const html=card("⌖","Chantier actif",site,"Fiche sélectionnée")+card("♙","Agent affecté",agent,"Référentiel commun")+actionsCard(disabled);
   if(html!==lastHtml||summary.innerHTML!==html){lastHtml=html;summary.innerHTML=html}
-  bindButtons(d);
   if(d!==lastDoc){lastDoc=d;["input","change","click"].forEach(type=>d.addEventListener(type,()=>{clearTimeout(timer);timer=setTimeout(render,90)},true))}
 }
 const observer=new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(render,20)});observer.observe(summary,{childList:true,subtree:true,characterData:true});
