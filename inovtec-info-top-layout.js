@@ -31,10 +31,21 @@ function ensureStyle(d){
   `;
   d.head.appendChild(style);
 }
+function ensureTypeOptions(d){
+  const select=d?.getElementById("ivTypeChantier");if(!select)return;
+  const wanted=["","Copropriétés","Tertiaire","Industriels","Autre"];
+  const actual=[...select.options].map(o=>o.value||o.textContent||"");
+  if(actual.length===wanted.length&&actual.every((v,i)=>v===wanted[i]))return;
+  const previous=select.value;
+  const mapped=previous==="Copropriété"?"Copropriétés":previous==="Industriel"?"Industriels":wanted.includes(previous)?previous:"";
+  select.innerHTML='<option value="">— Sélectionner —</option><option value="Copropriétés">Copropriétés</option><option value="Tertiaire">Tertiaire</option><option value="Industriels">Industriels</option><option value="Autre">Autre</option>';
+  select.value=mapped;
+}
 function arrange(d){
   const containerLabel=d?.querySelector?.('label[for="locauxConteneurs"]');
   if(containerLabel)containerLabel.textContent="Local conteneurs";
   const form=d?.getElementById("siteForm");if(!form)return;
+  ensureTypeOptions(d);
   const general=findCard(d,/informations?\s+g[eé]n[eé]rales?/i);
   const contacts=findCard(d,/^contacts?$/i);
   if(!general||!contacts)return;
