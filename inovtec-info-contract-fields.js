@@ -169,7 +169,6 @@ function install(){
   syncFromSite(d);
 }
 frame?.addEventListener("load",()=>{setTimeout(install,120);setTimeout(install,600);setTimeout(install,1400)});
-try{window.InovtecDataHub?.subscribe?.(()=>{const d=doc();if(d)syncFromSite(d)})}catch{}
-setInterval(install,750);
+try{window.InovtecDataHub?.subscribe?.(()=>{const d=doc();if(d&&!dirty)syncFromSite(d)})}catch{}
 setTimeout(install,450);
 })();
