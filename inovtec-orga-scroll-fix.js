@@ -43,6 +43,11 @@ body.iv-visual-v2.iv-mode-organisation main.page{
   align-items:start!important;
   padding:0 4px 18px!important;
 }
+body.iv-visual-v2.iv-mode-organisation #description{
+  height:180px!important;
+  min-height:180px!important;
+  resize:vertical!important;
+}
 body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1){
   grid-column:1!important;
   grid-row:1/3!important;
