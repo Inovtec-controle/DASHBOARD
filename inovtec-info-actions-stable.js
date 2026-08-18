@@ -79,6 +79,5 @@ frame.addEventListener("load",()=>{
   setTimeout(ensureCard,350);
   setTimeout(ensureCard,900);
 });
-setInterval(ensureCard,1000);
 setTimeout(ensureCard,250);
 })();
