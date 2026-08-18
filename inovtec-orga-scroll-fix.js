@@ -6,6 +6,7 @@ const mode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
 if(mode!=="organisation")return;
 
 let resizeObserver=null;
+let mutationObserver=null;
 let resizeTimer=null;
 
 function applyShellLayout(){
@@ -32,44 +33,64 @@ body.iv-orga-global-scroll .iv-frame{height:1px;min-height:1px;overflow:hidden!i
 `;
 }
 
-function getContentRoot(d){
+function scheduleResize(delay=0){
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(resizeFrame,delay);
+}
+
+function measureContentHeight(d){
   const app=d.getElementById("app");
   const login=d.getElementById("loginScreen");
-  if(app && !app.classList.contains("hidden")) return app;
-  return login || app || d.body;
+  if(!app || app.classList.contains("hidden")){
+    if(login && !login.classList.contains("hidden")) return 560;
+    return 1;
+  }
+
+  const bodyTop=d.body.getBoundingClientRect().top;
+  const topbar=app.querySelector(":scope > .topbar");
+  const main=app.querySelector("main.page");
+  let bottom=0;
+
+  [topbar,main].forEach(el=>{
+    if(!el)return;
+    const r=el.getBoundingClientRect();
+    if(r.width||r.height) bottom=Math.max(bottom,r.bottom-bodyTop);
+  });
+
+  return Math.max(1,Math.ceil(bottom));
 }
 
 function resizeFrame(){
   try{
     const d=frame.contentDocument;
     if(!d?.body)return;
-    const root=getContentRoot(d);
-    const height=Math.ceil(Math.max(root.scrollHeight,root.getBoundingClientRect().height));
-    if(height>0){
-      const target=height+4;
-      if(Math.abs(frame.getBoundingClientRect().height-target)>1) frame.style.height=target+"px";
-    }
+    const target=measureContentHeight(d);
+    const current=parseFloat(frame.style.height)||frame.getBoundingClientRect().height||0;
+    if(Math.abs(current-target)>1) frame.style.height=target+"px";
   }catch(e){console.warn("Organisation frame resize",e);}
 }
 
-function watchHeight(){
+function watchContent(){
   try{
     const d=frame.contentDocument;
     if(!d?.body)return;
     if(resizeObserver) resizeObserver.disconnect();
+    if(mutationObserver) mutationObserver.disconnect();
+
+    const app=d.getElementById("app");
+    const topbar=app?.querySelector(":scope > .topbar");
+    const main=app?.querySelector("main.page");
+    const board=d.getElementById("board");
+
     if("ResizeObserver" in window){
-      resizeObserver=new ResizeObserver(()=>{
-        clearTimeout(resizeTimer);
-        resizeTimer=setTimeout(resizeFrame,25);
-      });
-      resizeObserver.observe(d.body);
-      const app=d.getElementById("app");
-      const login=d.getElementById("loginScreen");
-      const main=d.querySelector("main.page");
-      if(app) resizeObserver.observe(app);
-      if(login) resizeObserver.observe(login);
-      if(main) resizeObserver.observe(main);
+      resizeObserver=new ResizeObserver(()=>scheduleResize(25));
+      if(topbar)resizeObserver.observe(topbar);
+      if(main)resizeObserver.observe(main);
     }
+
+    mutationObserver=new MutationObserver(()=>scheduleResize(25));
+    if(board)mutationObserver.observe(board,{childList:true,subtree:true,characterData:true});
+    if(main)mutationObserver.observe(main,{childList:true,subtree:true,attributes:true,attributeFilter:["class","style"]});
   }catch(e){console.warn("Organisation height watch",e);}
 }
 
@@ -78,6 +99,8 @@ function apply(){
   try{
     const d=frame.contentDocument;
     if(!d?.head||!d.body)return;
+    frame.setAttribute("scrolling","no");
+
     let style=d.getElementById("ivOrgaNoInternalScroll");
     if(!style){
       style=d.createElement("style");
@@ -85,22 +108,17 @@ function apply(){
       d.head.appendChild(style);
     }
     style.textContent=`
-html:has(body.iv-visual-v2.iv-mode-organisation){
+html,body{
+  height:auto!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body #app{
   height:auto!important;
   min-height:0!important;
   overflow:visible!important;
 }
-body.iv-visual-v2.iv-mode-organisation{
-  height:auto!important;
-  min-height:0!important;
-  overflow:visible!important;
-}
-body.iv-visual-v2.iv-mode-organisation #app{
-  height:auto!important;
-  min-height:0!important;
-  overflow:visible!important;
-}
-body.iv-visual-v2.iv-mode-organisation main.page{
+body main.page{
   height:auto!important;
   max-height:none!important;
   min-height:0!important;
@@ -110,14 +128,16 @@ body.iv-visual-v2.iv-mode-organisation main.page{
   grid-template-rows:auto auto!important;
   gap:10px!important;
   align-items:start!important;
+  align-content:start!important;
   padding:0 4px 18px!important;
 }
-body.iv-visual-v2.iv-mode-organisation #description{
+body #description{
   height:180px!important;
   min-height:180px!important;
+  max-height:none!important;
   resize:vertical!important;
 }
-body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1){
+body main.page>section.card:nth-of-type(1){
   grid-column:1!important;
   grid-row:1/3!important;
   position:sticky!important;
@@ -128,7 +148,7 @@ body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1){
   overflow:visible!important;
   max-height:none!important;
 }
-body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(2){
+body main.page>section.card:nth-of-type(2){
   grid-column:2!important;
   grid-row:1!important;
   height:auto!important;
@@ -138,7 +158,7 @@ body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(2){
   align-self:start!important;
   margin:0!important;
 }
-body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(3){
+body main.page>section.card:nth-of-type(3){
   grid-column:2!important;
   grid-row:2!important;
   height:auto!important;
@@ -148,52 +168,52 @@ body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(3){
   align-self:start!important;
   margin:0!important;
 }
-body.iv-visual-v2.iv-mode-organisation .board{
+body .board{
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
   grid-auto-rows:max-content!important;
   align-items:start!important;
-  height:auto!important;
+  align-content:start!important;
+  height:max-content!important;
   min-height:0!important;
   max-height:none!important;
   overflow:visible!important;
-  overflow-x:visible!important;
-  overflow-y:visible!important;
   padding-bottom:0!important;
 }
-body.iv-visual-v2.iv-mode-organisation .task-list,
-body.iv-visual-v2.iv-mode-organisation .table-wrap{
+body .task-list,
+body .table-wrap{
   height:auto!important;
   min-height:0!important;
   max-height:none!important;
   overflow:visible!important;
 }
-body.iv-visual-v2.iv-mode-organisation .column{
+body .column{
   min-width:0!important;
   min-height:0!important;
-  height:auto!important;
+  height:max-content!important;
   align-self:start!important;
 }
 @media(max-width:900px){
-  body.iv-visual-v2.iv-mode-organisation .board{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body .board{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 @media(max-width:619px){
-  body.iv-visual-v2.iv-mode-organisation main.page{grid-template-columns:1fr!important;grid-template-rows:auto auto auto!important}
-  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(1){grid-column:1!important;grid-row:1!important;position:relative!important;top:auto!important}
-  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(2){grid-column:1!important;grid-row:2!important;overflow:visible!important}
-  body.iv-visual-v2.iv-mode-organisation main.page>section.card:nth-of-type(3){grid-column:1!important;grid-row:3!important;overflow:visible!important}
-  body.iv-visual-v2.iv-mode-organisation .board{grid-template-columns:1fr!important}
+  body main.page{grid-template-columns:1fr!important;grid-template-rows:auto auto auto!important}
+  body main.page>section.card:nth-of-type(1){grid-column:1!important;grid-row:1!important;position:relative!important;top:auto!important}
+  body main.page>section.card:nth-of-type(2){grid-column:1!important;grid-row:2!important;overflow:visible!important}
+  body main.page>section.card:nth-of-type(3){grid-column:1!important;grid-row:3!important;overflow:visible!important}
+  body .board{grid-template-columns:1fr!important}
 }
 `;
-    watchHeight();
-    resizeFrame();
-    setTimeout(resizeFrame,100);
-    setTimeout(resizeFrame,400);
-    setTimeout(resizeFrame,1000);
+
+    watchContent();
+    scheduleResize(0);
+    scheduleResize(120);
+    setTimeout(()=>scheduleResize(0),450);
+    setTimeout(()=>scheduleResize(0),1000);
   }catch(e){console.warn("Organisation scroll fix",e);}
 }
 
 frame.addEventListener("load",apply);
-window.addEventListener("resize",()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(resizeFrame,80);});
+window.addEventListener("resize",()=>scheduleResize(80));
 applyShellLayout();
 setTimeout(apply,150);
 setTimeout(apply,700);
