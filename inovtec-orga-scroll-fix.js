@@ -41,9 +41,9 @@ body.iv-orga-global-scroll .iv-shell{
 body.iv-orga-global-scroll .iv-sidebar{
   position:sticky!important;
   top:0!important;
-  height:auto!important;
-  min-height:100dvh!important;
-  overflow:visible!important;
+  height:100dvh!important;
+  min-height:0!important;
+  overflow:hidden!important;
 }
 body.iv-orga-global-scroll .iv-main{
   height:auto!important;
@@ -59,7 +59,6 @@ body.iv-orga-global-scroll .iv-stage{
 body.iv-orga-global-scroll .iv-frame{
   display:block!important;
   width:100%!important;
-  height:1px;
   min-height:1px!important;
   overflow:hidden!important;
 }
@@ -95,23 +94,40 @@ function measureContentHeight(d){
   if(!app || app.classList.contains("hidden")){
     if(login && !login.classList.contains("hidden")){
       const r=login.getBoundingClientRect();
-      return Math.max(1,Math.ceil(r.height));
+      return Math.max(1,Math.ceil(r.bottom));
     }
     return 1;
   }
 
   const appRect=app.getBoundingClientRect();
-  const topbar=app.querySelector(":scope > .topbar");
-  const main=app.querySelector("main.page");
-  let bottom=0;
+  const selectors=[
+    ":scope > .topbar",
+    "main.page",
+    "main.page > section.card",
+    "#board",
+    "#board .column",
+    "#board .task-list",
+    "#board .task"
+  ];
 
-  [topbar,main].forEach(el=>{
-    if(!el)return;
-    const r=el.getBoundingClientRect();
-    if(r.width||r.height) bottom=Math.max(bottom,r.bottom-appRect.top);
+  let bottom=0;
+  const seen=new Set();
+  selectors.forEach(selector=>{
+    let nodes=[];
+    try{nodes=Array.from(app.querySelectorAll(selector));}catch(e){return;}
+    nodes.forEach(el=>{
+      if(seen.has(el))return;
+      seen.add(el);
+      const r=el.getBoundingClientRect();
+      if(!(r.width||r.height))return;
+      const top=r.top-appRect.top;
+      const visualBottom=r.bottom-appRect.top;
+      const contentBottom=top+Math.max(r.height,el.scrollHeight||0);
+      bottom=Math.max(bottom,visualBottom,contentBottom);
+    });
   });
 
-  return Math.max(1,Math.ceil(bottom));
+  return Math.max(1,Math.ceil(bottom+8));
 }
 
 function resizeFrame(){
@@ -132,20 +148,20 @@ function watchContent(){
     if(mutationObserver)mutationObserver.disconnect();
 
     const app=d.getElementById("app");
-    const topbar=app?.querySelector(":scope > .topbar");
     const main=app?.querySelector("main.page");
     const board=d.getElementById("board");
-    const boardCard=board?.closest("section.card");
 
     if("ResizeObserver" in window){
       resizeObserver=new ResizeObserver(()=>scheduleResize(30));
-      if(topbar)resizeObserver.observe(topbar);
-      if(main)resizeObserver.observe(main);
-      if(boardCard)resizeObserver.observe(boardCard);
-      if(board)resizeObserver.observe(board);
+      [main,board,...Array.from(d.querySelectorAll("#board .column, #board .task-list"))].filter(Boolean).forEach(el=>{
+        try{resizeObserver.observe(el);}catch(e){}
+      });
     }
 
-    mutationObserver=new MutationObserver(()=>scheduleResize(30));
+    mutationObserver=new MutationObserver(()=>{
+      scheduleResize(30);
+      setTimeout(()=>watchContent(),60);
+    });
     if(main)mutationObserver.observe(main,{childList:true,subtree:true,attributes:true,attributeFilter:["class","style"]});
   }catch(e){console.warn("Organisation height watch",e);}
 }
@@ -171,7 +187,7 @@ html,body{
   height:auto!important;
   min-height:0!important;
   max-height:none!important;
-  overflow:hidden!important;
+  overflow:visible!important;
 }
 body #app{
   height:auto!important;
@@ -287,15 +303,17 @@ body .column{
 
     watchContent();
     scheduleResize(0);
-    setTimeout(()=>scheduleResize(0),120);
-    setTimeout(()=>scheduleResize(0),450);
-    setTimeout(()=>scheduleResize(0),1000);
+    setTimeout(()=>scheduleResize(0),100);
+    setTimeout(()=>scheduleResize(0),300);
+    setTimeout(()=>scheduleResize(0),700);
+    setTimeout(()=>scheduleResize(0),1400);
   }catch(e){console.warn("Organisation scroll fix",e);}
 }
 
 frame.addEventListener("load",apply);
 window.addEventListener("resize",()=>scheduleResize(80));
 applyShellLayout();
-setTimeout(apply,150);
-setTimeout(apply,700);
+setTimeout(apply,120);
+setTimeout(apply,500);
+setTimeout(apply,1000);
 })();
