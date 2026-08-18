@@ -51,6 +51,5 @@ function install(){
   compact(d);
 }
 frame?.addEventListener("load",()=>{setTimeout(install,180);setTimeout(install,700);setTimeout(install,1300)});
-setInterval(install,650);
 setTimeout(install,450);
 })();
