@@ -18,5 +18,5 @@ function apply(){
  if(empty&&/fichier Excel/i.test(empty.textContent||""))empty.innerHTML='<strong>Aucune ligne pour ce chantier</strong>L’espace est prêt. Tu pourras remplir manuellement quelques lignes ou importer directement ton fichier Excel ou PDF à l’étape suivante.';
  card.dataset.supportedSources="manual,excel,pdf";
 }
-if(frame){frame.addEventListener("load",()=>{setTimeout(apply,200);setTimeout(apply,800)});setInterval(apply,900);setTimeout(apply,500)}
+if(frame){frame.addEventListener("load",()=>{setTimeout(apply,200);setTimeout(apply,800)});setTimeout(apply,500)}
 })();
