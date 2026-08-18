@@ -32,6 +32,8 @@ function ensureStyle(d){
   d.head.appendChild(style);
 }
 function arrange(d){
+  const containerLabel=d?.querySelector?.('label[for="locauxConteneurs"]');
+  if(containerLabel)containerLabel.textContent="Local conteneurs / aire de présentations";
   const form=d?.getElementById("siteForm");if(!form)return;
   const general=findCard(d,/informations?\s+g[eé]n[eé]rales?/i);
   const contacts=findCard(d,/^contacts?$/i);
