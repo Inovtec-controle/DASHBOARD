@@ -5,7 +5,8 @@ const frame=document.getElementById("legacyFrame");
 const PARENT_FB=window.firebase;
 const DAYS={lundi:"Lu",mardi:"Ma",mercredi:"Me",jeudi:"Je",vendredi:"Ve",samedi:"Sa",dimanche:"Di"};
 const DAY_KEYS=Object.keys(DAYS);
-const FREQ_TYPES={jours:"Selon jours",quotidien:"Quotidien",hebdomadaire:"Hebdomadaire",mensuel:"Mensuel",pair_impair:"Semaines paires / impaires",ponctuel:"Ponctuel",autre:"Autre"};
+const FREQ_TYPES={jours:"Selon jours",quotidien:"Quotidien",hebdomadaire:"Hebdomadaire",bimensuel:"Bimensuel",mensuel:"Mensuel",trimestriel:"Trimestriel",semestriel:"Semestriel",biannuel:"Bi-annuel",annuel:"Annuel",autre:"Autre"};
+const LEGACY_FREQ_TYPES={pair_impair:"Semaines paires / impaires",ponctuel:"Ponctuel"};
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const clean=v=>String(v??"").replace(/[–—]/g,"-").replace(/[’]/g,"'").replace(/œ/g,"oe").replace(/Œ/g,"OE").replace(/•/g,",").trim();
 function D(){try{return frame?.contentDocument||null}catch{return null}}
@@ -37,12 +38,16 @@ function frequencyLabel(r){
  if(type==="jours")return"";
  if(type==="autre")return raw&&norm(raw)!=="selon jours"?raw:FREQ_TYPES.autre;
  if(FREQ_TYPES[type])return FREQ_TYPES[type];
+ if(LEGACY_FREQ_TYPES[type])return LEGACY_FREQ_TYPES[type];
  const f=norm(raw);
- if(/semaine.*paire/.test(f)&&/impaire/.test(f))return FREQ_TYPES.pair_impair;
+ if(/bimensuel|deux fois par mois|2 fois par mois/.test(f))return FREQ_TYPES.bimensuel;
+ if(/trimestriel|chaque trimestre/.test(f))return FREQ_TYPES.trimestriel;
+ if(/semestriel|chaque semestre/.test(f))return FREQ_TYPES.semestriel;
+ if(/bi annuel|biannuel|deux fois par an|2 fois par an/.test(f))return FREQ_TYPES.biannuel;
+ if(/annuel|chaque an|une fois par an|1 fois par an/.test(f))return FREQ_TYPES.annuel;
  if(/mensuel|mensuelle|chaque mois/.test(f))return FREQ_TYPES.mensuel;
  if(/quotidien|tous les jours|chaque jour/.test(f))return FREQ_TYPES.quotidien;
  if(/hebdo|chaque semaine|1 fois semaine|une fois semaine/.test(f))return FREQ_TYPES.hebdomadaire;
- if(/ponctuel/.test(f))return FREQ_TYPES.ponctuel;
  return norm(raw)==="selon jours"?"":raw;
 }
 function interventionDays(r){
@@ -119,9 +124,9 @@ async function generate(d,w,button){
  finally{button.disabled=false;button.textContent=old}
 }
 function bind(){
- const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfDirectV6)return;w.__ivAgentPdfDirectV6=true;
+ const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfDirectV7)return;w.__ivAgentPdfDirectV7=true;
  w.addEventListener("click",e=>{const b=e.target?.closest?.("#pdfBtn");if(!b)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();generate(d,w,b)},true);
- const b=d.getElementById("pdfBtn");if(b){b.title="Generer la fiche agent PDF avec frequence ou jours";b.dataset.ivPdfDirect="6"}
+ const b=d.getElementById("pdfBtn");if(b){b.title="Generer la fiche agent PDF avec frequence ou jours";b.dataset.ivPdfDirect="7"}
 }
 frame?.addEventListener("load",()=>{setTimeout(bind,100);setTimeout(bind,500);setTimeout(bind,1200)});
 setTimeout(bind,300);setInterval(bind,1200);
