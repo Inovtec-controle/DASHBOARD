@@ -1,33 +1,68 @@
 (()=>{
 "use strict";
 if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()!=="infos")return;
-const frame=document.getElementById("legacyFrame"),fb=window.firebase,db=fb?.firestore?.();
+const frame=document.getElementById("legacyFrame");
+const PARENT_FB=window.firebase;
 const DAYS={lundi:"Lun",mardi:"Mar",mercredi:"Mer",jeudi:"Jeu",vendredi:"Ven",samedi:"Sam",dimanche:"Dim"};
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+const clean=v=>String(v??"").replace(/[–—]/g,"-").replace(/[’]/g,"'").replace(/œ/g,"oe").replace(/Œ/g,"OE").replace(/•/g,",").trim();
 function D(){try{return frame?.contentDocument||null}catch{return null}}
 function W(){try{return frame?.contentWindow||null}catch{return null}}
 function hubSites(){try{return Array.from(window.InovtecDataHub?.chantiers||[])}catch{return[]}}
-async function resolveSite(d){
-  const form=d?.getElementById("siteForm"),known=String(form?.dataset.ivChantierId||"").trim();
-  if(known&&db){try{const snap=await db.collection("chantiers").doc(known).get();if(snap.exists)return{id:snap.id,...snap.data()}}catch(e){console.warn("Fiche agent PDF: lecture chantier par ID impossible",e)}}
-  const nom=d?.getElementById("nom")?.value.trim()||"",adresse=d?.getElementById("adresse")?.value.trim()||"",list=hubSites();
-  let site=list.find(s=>norm(s.nom)===norm(nom)&&adresse&&norm(s.adresse)===norm(adresse))||list.find(s=>nom&&norm(s.nom)===norm(nom))||list.find(s=>adresse&&norm(s.adresse)===norm(adresse))||null;
-  if(site?.id&&db){try{const snap=await db.collection("chantiers").doc(String(site.id)).get();if(snap.exists)return{id:snap.id,...snap.data()}}catch{}}
-  if(site)return site;
-  if(nom&&db){try{const snap=await db.collection("chantiers").where("nom","==",nom).limit(10).get(),found=snap.docs.map(x=>({id:x.id,...x.data()}));site=found.find(x=>!adresse||norm(x.adresse)===norm(adresse))||found[0]||null;if(site)return site}catch(e){console.warn("Fiche agent PDF: recherche chantier impossible",e)}}
-  return {};
+function formValue(d,id){const e=d?.getElementById(id);return e&&"value" in e?String(e.value||"").trim():""}
+function dbOf(w){try{return w?.firebase?.firestore?.()||PARENT_FB?.firestore?.()||null}catch{return null}}
+async function resolveSite(d,w){
+ const db=dbOf(w),form=d?.getElementById("siteForm"),known=String(form?.dataset.ivChantierId||"").trim();
+ if(known&&db){try{const s=await db.collection("chantiers").doc(known).get();if(s.exists)return{id:s.id,...s.data()}}catch(e){console.warn("PDF chantier id",e)}}
+ const nom=formValue(d,"nom"),adresse=formValue(d,"adresse"),list=hubSites();
+ let site=list.find(s=>norm(s.nom)===norm(nom)&&adresse&&norm(s.adresse)===norm(adresse))||list.find(s=>nom&&norm(s.nom)===norm(nom))||list.find(s=>adresse&&norm(s.adresse)===norm(adresse))||null;
+ if(site?.id&&db){try{const s=await db.collection("chantiers").doc(String(site.id)).get();if(s.exists)return{id:s.id,...s.data()}}catch{}}
+ if(nom&&db){try{const q=await db.collection("chantiers").where("nom","==",nom).limit(10).get(),found=q.docs.map(x=>({id:x.id,...x.data()}));const hit=found.find(x=>!adresse||norm(x.adresse)===norm(adresse))||found[0];if(hit)return hit}catch(e){console.warn("PDF recherche chantier",e)}}
+ return site||{};
 }
-function val(d,site,id,...aliases){const el=d?.getElementById(id);if(el&&"value" in el){const v=String(el.value||"").trim();if(v)return v}for(const k of [id,...aliases]){const v=site?.[k];if(v!==undefined&&v!==null&&String(v).trim())return String(v).trim()}return""}
+function val(d,site,id,...aliases){const live=formValue(d,id);if(live)return live;for(const k of [id,...aliases]){const v=site?.[k];if(v!==undefined&&v!==null&&String(v).trim())return String(v).trim()}return""}
+function rowsOf(site){const r=site?.cahierDesChargesV1?.rows;return Array.isArray(r)?r.slice().sort((a,b)=>(Number(a.ordre)||0)-(Number(b.ordre)||0)||String(a.zone||"").localeCompare(String(b.zone||""),"fr",{sensitivity:"base"})||String(a.prestation||"").localeCompare(String(b.prestation||""),"fr",{sensitivity:"base"})):[]}
+function freqText(r){const days=Array.isArray(r?.jours)?r.jours.filter(x=>DAYS[x]).map(x=>DAYS[x]):[];const type=String(r?.frequenceType||"").toLowerCase();if(type==="quotidien")return"Tous les jours";if(days.length)return days.join(", ");if(type==="hebdomadaire")return"Hebdomadaire";if(type==="mensuel")return"Mensuel";if(type==="ponctuel")return"Ponctuel";return clean(r?.frequence||"")||"-"}
 function cleanFilename(v){return String(v||"chantier").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,70)||"chantier"}
-function rowsOf(site){const rows=site?.cahierDesChargesV1?.rows;return Array.isArray(rows)?rows.slice().sort((a,b)=>(Number(a.ordre)||0)-(Number(b.ordre)||0)||String(a.zone||"").localeCompare(String(b.zone||""),"fr",{sensitivity:"base"})||String(a.prestation||"").localeCompare(String(b.prestation||""),"fr",{sensitivity:"base"})):[]}
-function daysText(r){const a=Array.isArray(r?.jours)?r.jours.filter(x=>DAYS[x]):[];if(a.length)return a.map(x=>DAYS[x]).join(" • ");if(r?.frequenceType==="quotidien"||/quotidien|tous les jours|chaque jour/i.test(String(r?.frequence||"")))return"Tous les jours";return"—"}
-function css(el,s){el.style.cssText=s;return el}
-function el(d,tag,text,s=""){const n=d.createElement(tag);n.textContent=text;if(s)n.style.cssText=s;return n}
-function section(d,root,title,items){const kept=items.filter(x=>String(x[1]||"").trim());if(!kept.length)return;const box=css(d.createElement("section"),"margin:0 0 18px;page-break-inside:avoid;");box.appendChild(el(d,"h2",title,"margin:0 0 9px;padding-bottom:6px;border-bottom:1px solid #d8e7df;color:#075f42;font-size:18px;"));kept.forEach(([label,value])=>{const item=css(d.createElement("div"),"margin:0 0 7px;padding:9px 11px;border:1px solid #dce9e3;border-radius:8px;background:#f8fcfa;page-break-inside:avoid;");item.appendChild(el(d,"div",label,"margin-bottom:3px;color:#6a7d74;font-size:10px;font-weight:700;text-transform:uppercase;"));item.appendChild(el(d,"div",value,"color:#17352b;font-size:13px;font-weight:600;white-space:pre-wrap;"));box.appendChild(item)});root.appendChild(box)}
-function cdc(d,root,rows){const kept=rows.filter(r=>String(r?.zone||r?.prestation||"").trim());if(!kept.length)return;const s=css(d.createElement("section"),"margin:0 0 18px;");s.appendChild(el(d,"h2","Cahier des charges","margin:0 0 9px;padding-bottom:6px;border-bottom:1px solid #d8e7df;color:#075f42;font-size:18px;"));const table=css(d.createElement("table"),"width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;");const thead=d.createElement("thead"),trh=d.createElement("tr");[["Zone","25%"],["Prestation","53%"],["Jours","22%"]].forEach(([t,w])=>{const th=el(d,"th",t,"padding:7px;background:#eaf6ef;color:#155a40;text-align:left;border:1px solid #d4e5dc;font-size:11px;");th.style.width=w;trh.appendChild(th)});thead.appendChild(trh);table.appendChild(thead);const tbody=d.createElement("tbody");kept.forEach(r=>{const tr=css(d.createElement("tr"),"page-break-inside:avoid;");[r.zone||"—",r.prestation||"—",daysText(r)].forEach(v=>tr.appendChild(el(d,"td",v,"padding:8px;border:1px solid #dde8e2;vertical-align:top;white-space:pre-wrap;word-break:break-word;")));tbody.appendChild(tr)});table.appendChild(tbody);s.appendChild(table);root.appendChild(s)}
-function build(d,site){const root=css(d.createElement("div"),"font-family:Arial,sans-serif;color:#17352b;background:#fff;width:760px;box-sizing:border-box;");const head=css(d.createElement("div"),"padding:22px 24px 18px;background:#064e3b;color:#fff;border-radius:0 0 16px 16px;margin-bottom:20px;");head.appendChild(el(d,"div","INOVTEC · FICHE AGENT","color:#9af0c5;font-size:11px;font-weight:700;letter-spacing:1.5px;"));head.appendChild(el(d,"h1",val(d,site,"nom")||"Chantier","margin:8px 0 4px;font-size:28px;line-height:1.1;color:#fff;"));const adresse=val(d,site,"adresse");if(adresse)head.appendChild(el(d,"div",adresse,"color:#d8f7e8;font-size:13px;white-space:pre-wrap;"));root.appendChild(head);const body=css(d.createElement("div"),"padding:0 18px 12px;");section(d,body,"Accès au chantier",[["Clé / badge",val(d,site,"cles")],["Code d’accès",val(d,site,"code")],["Accès / particularités du local nettoyage",val(d,site,"accesLocalNettoyage")]]);cdc(d,body,rowsOf(site));section(d,body,"Matériel & locaux",[["Franges / matériel spécifique",val(d,site,"franges")],["Consommables",val(d,site,"consommables")],["Local nettoyage",val(d,site,"localnettoyage")],["Type d’ampoules",val(d,site,"ampoules")]]);section(d,body,"Conteneurs",[["Local conteneurs",val(d,site,"locauxConteneurs")],["Sortie OM",val(d,site,"sortieOM")],["Rentrée OM",val(d,site,"rentreeOM")],["Sortie TRI",val(d,site,"sortieTRI")],["Rentrée TRI",val(d,site,"rentreeTRI")]]);section(d,body,"Points techniques",[["Prises électriques",val(d,site,"electricite","électricité")],["Point d’eau",val(d,site,"eau","Eau")],["Observations techniques",val(d,site,"observationsTechniques")]]);section(d,body,"Consignes complémentaires",[["Informations complémentaires",val(d,site,"infopropres")]]);body.appendChild(el(d,"div","Fiche opérationnelle générée depuis Inovtec Dashboard","margin-top:12px;padding-top:8px;border-top:1px solid #e2ebe6;color:#809087;font-size:10px;text-align:right;"));root.appendChild(body);return root}
-async function nextPaint(w){await new Promise(r=>w.requestAnimationFrame(()=>w.requestAnimationFrame(r)))}
-async function generate(d,w,button){if(typeof w?.html2pdf!=="function"){w?.alert?.("Le générateur PDF n’est pas chargé. Actualise la page puis réessaie.");return}const nom=d?.getElementById("nom")?.value.trim()||"";if(!nom){w.alert("Sélectionne ou renseigne un chantier avant de générer la fiche agent.");return}const old=button.textContent;button.disabled=true;button.textContent="⏳ Génération…";let host=null;try{const site=await resolveSite(d),root=build(d,site);host=css(d.createElement("div"),"position:fixed;left:0;top:0;width:760px;background:#fff;z-index:-2147483647;pointer-events:none;opacity:1;visibility:visible;");host.id="ivAgentPdfRenderHost";host.appendChild(root);d.body.appendChild(host);await nextPaint(w);const rect=root.getBoundingClientRect();if(rect.width<500||rect.height<100||!root.textContent.trim())throw Error("Le contenu PDF n’a pas été rendu correctement");await w.html2pdf().set({margin:7,filename:`Fiche-agent-${cleanFilename(nom)}.pdf`,image:{type:"jpeg",quality:.98},html2canvas:{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"]}}).from(root).save()}catch(e){console.error("Fiche agent PDF",e);w?.alert?.("La fiche PDF n’a pas pu être générée correctement. Actualise la page puis réessaie.")}finally{try{host?.remove()}catch{}button.disabled=false;button.textContent=old}}
-function bind(){const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfHardFixBound)return;w.__ivAgentPdfHardFixBound=true;w.addEventListener("click",e=>{const b=e.target?.closest?.("#pdfBtn");if(!b)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();generate(d,w,b)},true)}
-frame?.addEventListener("load",()=>{setTimeout(bind,120);setTimeout(bind,600);setTimeout(bind,1300)});setTimeout(bind,350);setInterval(bind,1200);
+async function ensureJsPdf(d,w){
+ if(w?.jspdf?.jsPDF)return w.jspdf.jsPDF;
+ let s=d.getElementById("ivJsPdfDirectLoader");
+ if(!s){s=d.createElement("script");s.id="ivJsPdfDirectLoader";s.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";d.head.appendChild(s)}
+ await new Promise((resolve,reject)=>{if(w?.jspdf?.jsPDF)return resolve();const done=()=>w?.jspdf?.jsPDF?resolve():reject(new Error("jsPDF indisponible"));s.addEventListener("load",done,{once:true});s.addEventListener("error",()=>reject(new Error("Chargement jsPDF impossible")),{once:true});setTimeout(done,5000)});
+ if(!w?.jspdf?.jsPDF)throw new Error("jsPDF indisponible");return w.jspdf.jsPDF;
+}
+function makeWriter(pdf,name,address){
+ const pageW=210,pageH=297,left=12,right=12,contentW=pageW-left-right;let y=43;
+ function header(){pdf.setFillColor(6,78,59);pdf.rect(0,0,pageW,34,"F");pdf.setTextColor(255,255,255);pdf.setFont("helvetica","bold");pdf.setFontSize(8);pdf.text("INOVTEC - FICHE AGENT",left,10);pdf.setFontSize(18);pdf.text(pdf.splitTextToSize(clean(name)||"Chantier",150),left,19);if(address){pdf.setFont("helvetica","normal");pdf.setFontSize(9);pdf.text(pdf.splitTextToSize(clean(address),150),left,29)}pdf.setTextColor(23,53,43);y=43}
+ function newPage(){pdf.addPage();header()}
+ function need(h){if(y+h>pageH-13)newPage()}
+ function title(t){need(13);pdf.setFont("helvetica","bold");pdf.setFontSize(12);pdf.setTextColor(7,95,66);pdf.text(clean(t),left,y);pdf.setDrawColor(205,224,215);pdf.line(left,y+2,198,y+2);y+=8}
+ function item(label,value){value=clean(value);if(!value)return;const lines=pdf.splitTextToSize(value,contentW-4);const h=6+lines.length*4.2;need(h+2);pdf.setFillColor(248,252,250);pdf.setDrawColor(220,233,227);pdf.roundedRect(left,y,contentW,h,2,2,"FD");pdf.setTextColor(106,125,116);pdf.setFont("helvetica","bold");pdf.setFontSize(7.5);pdf.text(clean(label).toUpperCase(),left+3,y+4);pdf.setTextColor(23,53,43);pdf.setFont("helvetica","normal");pdf.setFontSize(9.5);pdf.text(lines,left+3,y+9);y+=h+3}
+ function section(t,items){const kept=items.filter(x=>clean(x[1]));if(!kept.length)return;title(t);kept.forEach(x=>item(x[0],x[1]));y+=2}
+ function cdc(rows){if(!rows.length)return;title("Cahier des charges");const x=[left,55,153],w=[43,98,45];function tableHead(){need(10);pdf.setFillColor(234,246,239);pdf.setDrawColor(212,229,220);pdf.setFont("helvetica","bold");pdf.setFontSize(8);pdf.setTextColor(21,90,64);["Zone","Prestation","Frequence / jours"].forEach((t,i)=>{pdf.rect(x[i],y,w[i],8,"FD");pdf.text(t,x[i]+2,y+5)});y+=8}tableHead();rows.forEach(r=>{const cells=[clean(r.zone)||"-",clean(r.prestation)||"-",freqText(r)];const lines=cells.map((v,i)=>pdf.splitTextToSize(v,w[i]-4));const h=Math.max(9,...lines.map(a=>5+a.length*3.6));if(y+h>pageH-13){newPage();title("Cahier des charges (suite)");tableHead()}pdf.setDrawColor(221,232,226);pdf.setTextColor(38,63,54);pdf.setFont("helvetica","normal");pdf.setFontSize(8.5);lines.forEach((arr,i)=>{pdf.rect(x[i],y,w[i],h);pdf.text(arr,x[i]+2,y+5)});y+=h});y+=4}
+ header();return{section,cdc,finish(){pdf.setTextColor(128,144,135);pdf.setFontSize(7.5);pdf.text("Fiche operationnelle generee depuis Inovtec Dashboard",198,pageH-7,{align:"right"})}}
+}
+async function generate(d,w,button){
+ const name=formValue(d,"nom");if(!name){w.alert("Selectionne un chantier avant de generer la fiche agent PDF.");return}
+ const old=button.textContent;button.disabled=true;button.textContent="Generation PDF...";
+ try{
+  const JsPDF=await ensureJsPdf(d,w),site=await resolveSite(d,w),pdf=new JsPDF({unit:"mm",format:"a4",orientation:"portrait"}),writer=makeWriter(pdf,val(d,site,"nom")||name,val(d,site,"adresse"));
+  writer.section("Acces au chantier",[["Adresse",val(d,site,"adresse")],["GPS",val(d,site,"gps")],["Cle / badge",val(d,site,"cles")],["Code d'acces",val(d,site,"code")],["Acces / particularites du local nettoyage",val(d,site,"accesLocalNettoyage")]]);
+  writer.section("Agent et planning",[["Agent",val(d,site,"agentNom")],["Telephone agent",val(d,site,"agentTel")],["Lundi",val(d,site,"lundi")],["Mardi",val(d,site,"mardi")],["Mercredi",val(d,site,"mercredi")],["Jeudi",val(d,site,"jeudi")],["Vendredi",val(d,site,"vendredi")],["Samedi",val(d,site,"samedi")],["Dimanche",val(d,site,"dimanche")],["Consignes specifiques",val(d,site,"consignesAgents")]]);
+  writer.cdc(rowsOf(site));
+  writer.section("Materiel et locaux",[["Franges / materiel specifique",val(d,site,"franges")],["Consommables",val(d,site,"consommables")],["Local nettoyage",val(d,site,"localnettoyage")],["Type d'ampoules",val(d,site,"ampoules")],["Prises electriques",val(d,site,"electricite","électricité")],["Point d'eau",val(d,site,"eau","Eau")]]);
+  writer.section("Conteneurs",[["Local conteneurs",val(d,site,"locauxConteneurs")],["Sortie OM",val(d,site,"sortieOM")],["Rentree OM",val(d,site,"rentreeOM")],["Sortie TRI",val(d,site,"sortieTRI")],["Rentree TRI",val(d,site,"rentreeTRI")]]);
+  writer.section("Informations complementaires",[["Informations",val(d,site,"infopropres")],["Observations techniques",val(d,site,"observationsTechniques")]]);
+  writer.finish();
+  pdf.save(`Fiche-agent-${cleanFilename(name)}.pdf`);
+ }catch(e){console.error("Fiche agent PDF directe",e);w.alert("Impossible de generer la fiche PDF. Actualise Infos chantier puis reessaie.")}
+ finally{button.disabled=false;button.textContent=old}
+}
+function bind(){
+ const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfDirectV2)return;w.__ivAgentPdfDirectV2=true;
+ w.addEventListener("click",e=>{const b=e.target?.closest?.("#pdfBtn");if(!b)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();generate(d,w,b)},true);
+ const b=d.getElementById("pdfBtn");if(b){b.title="Generer la fiche agent PDF avec les donnees du chantier";b.dataset.ivPdfDirect="2"}
+}
+frame?.addEventListener("load",()=>{setTimeout(bind,100);setTimeout(bind,500);setTimeout(bind,1200)});
+setTimeout(bind,300);setInterval(bind,1200);
 })();
