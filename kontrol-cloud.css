@@ -28,4 +28,27 @@ body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
 .open-btn{flex:0 0 auto}
 .toast{position:fixed;z-index:120;left:50%;bottom:18px;transform:translateX(-50%);max-width:min(520px,calc(100% - 32px));padding:10px 14px;border-radius:999px;background:#0f172a;color:#fff;font-size:13px;font-weight:700;box-shadow:0 12px 32px rgba(15,23,42,.24)}
 .toast.error{background:#991b1b}
-@media(max-width:600px){.modal-backdrop{padding:8px}.modal{max-height:92vh;border-radius:16px}.modal-head{flex-direction:column}.modal-actions{width:100%;justify-content:stretch}.modal-actions .btn{flex:1}.archive-item{align-items:flex-start;flex-direction:column}.open-btn{width:100%}.cloud-button{right:10px;bottom:10px}}
+@media(max-width:600px){
+  .login-screen{align-items:flex-start;min-height:100vh;min-height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:max(16px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+  .login-card{width:100%;max-width:430px;margin:auto 0;border-radius:16px;padding:20px 16px 18px;box-shadow:0 12px 30px rgba(15,23,42,.10)}
+  .login-card h1{font-size:22px;line-height:1.15;margin-bottom:8px}
+  .login-card p{font-size:13px;line-height:1.45;margin-bottom:16px}
+  .field{margin-top:14px}
+  .field label{font-size:13px;margin-bottom:7px}
+  .field input{min-height:50px;padding:13px 14px;font-size:16px;line-height:1.2;border-radius:12px}
+  .btn-primary{min-height:50px;margin-top:18px;font-size:15px}
+  .login-error{font-size:12px;line-height:1.35}
+  .modal-backdrop{padding:8px}.modal{max-height:92vh;border-radius:16px}.modal-head{flex-direction:column}.modal-actions{width:100%;justify-content:stretch}.modal-actions .btn{flex:1}.archive-item{align-items:flex-start;flex-direction:column}.open-btn{width:100%}.cloud-button{right:10px;bottom:10px}
+}
+@media(max-width:360px){
+  .login-screen{padding-left:10px;padding-right:10px}
+  .login-card{padding:18px 14px 16px;border-radius:14px}
+  .login-card h1{font-size:20px}
+}
+@media(max-width:600px) and (max-height:560px){
+  .login-screen{padding-top:10px;padding-bottom:10px}
+  .login-card{margin:0 auto}
+  .login-card p{margin-bottom:10px}
+  .field{margin-top:10px}
+  .btn-primary{margin-top:12px}
+}
