@@ -24,25 +24,32 @@ async function resolveSite(d,w){
 }
 function val(d,site,id,...aliases){const live=formValue(d,id);if(live)return live;for(const k of [id,...aliases]){const v=site?.[k];if(v!==undefined&&v!==null&&String(v).trim())return String(v).trim()}return""}
 function rowsOf(site){const r=site?.cahierDesChargesV1?.rows;return Array.isArray(r)?r.slice().sort((a,b)=>(Number(a.ordre)||0)-(Number(b.ordre)||0)||String(a.zone||"").localeCompare(String(b.zone||""),"fr",{sensitivity:"base"})||String(a.prestation||"").localeCompare(String(b.prestation||""),"fr",{sensitivity:"base"})):[]}
+function isAccordingDays(r){
+ const type=String(r?.frequenceType||"").trim();
+ if(type)return type==="jours";
+ const raw=norm(r?.frequence);
+ if(raw==="selon jours")return true;
+ return !raw&&Array.isArray(r?.jours)&&r.jours.length>0;
+}
 function frequencyLabel(r){
  const type=String(r?.frequenceType||"").trim();
+ const raw=clean(r?.frequence);
  if(type==="jours")return"";
+ if(type==="autre")return raw&&norm(raw)!=="selon jours"?raw:FREQ_TYPES.autre;
  if(FREQ_TYPES[type])return FREQ_TYPES[type];
- const f=norm(r?.frequence);
+ const f=norm(raw);
  if(/semaine.*paire/.test(f)&&/impaire/.test(f))return FREQ_TYPES.pair_impair;
  if(/mensuel|mensuelle|chaque mois/.test(f))return FREQ_TYPES.mensuel;
  if(/quotidien|tous les jours|chaque jour/.test(f))return FREQ_TYPES.quotidien;
  if(/hebdo|chaque semaine|1 fois semaine|une fois semaine/.test(f))return FREQ_TYPES.hebdomadaire;
- if(Array.isArray(r?.jours)&&r.jours.length)return"";
- const raw=clean(r?.frequence);
+ if(/ponctuel/.test(f))return FREQ_TYPES.ponctuel;
  return norm(raw)==="selon jours"?"":raw;
 }
 function interventionDays(r){
  const out=new Set();
- const type=norm(r?.frequenceType),freq=norm(r?.frequence);
- if(type==="quotidien"||/quotidien|tous les jours|chaque jour/.test(freq))return new Set(DAY_KEYS);
  const source=Array.isArray(r?.jours)?r.jours:[];
  source.forEach(v=>{const n=norm(v);const key=DAY_KEYS.find(k=>n===k||n===k.slice(0,3)||n.startsWith(k));if(key)out.add(key)});
+ const freq=norm(r?.frequence);
  if(/lundi au vendredi|du lundi au vendredi|lundi vendredi/.test(freq))DAY_KEYS.slice(0,5).forEach(k=>out.add(k));
  DAY_KEYS.forEach(k=>{if(freq.includes(k)||new RegExp(`(^| )${k.slice(0,3)}($| )`).test(freq))out.add(k)});
  return out;
@@ -66,8 +73,7 @@ function makeWriter(pdf,name,address){
  function cdc(rows){
   if(!rows.length)return;
   title("Cahier des charges");
-  pdf.setFont("helvetica","normal");pdf.setFontSize(7);pdf.setTextColor(100,120,111);pdf.text("X = intervention prevue",left,y);y+=4;
-  const zoneW=34,taskW=95,dayW=(contentW-zoneW-taskW)/7;
+  const zoneW=34,taskW=95,daysW=contentW-zoneW-taskW,dayW=daysW/7;
   const cols=[{label:"Zone",w:zoneW},{label:"Prestation",w:taskW},...DAY_KEYS.map(k=>({label:DAYS[k],w:dayW,key:k}))];
   function tableHead(){
    need(10);let x=left;
@@ -77,18 +83,19 @@ function makeWriter(pdf,name,address){
   }
   tableHead();
   rows.forEach(r=>{
-   const zone=clean(r.zone)||"-",task=clean(r.prestation)||"-",freq=frequencyLabel(r),days=interventionDays(r);
-   const zoneLines=pdf.splitTextToSize(zone,zoneW-4),taskLines=pdf.splitTextToSize(task,taskW-4),freqLines=freq?pdf.splitTextToSize(clean(freq),taskW-4):[];
-   const taskLineCount=taskLines.length+(freqLines.length?freqLines.length+1:0);
-   const h=Math.max(9,5+Math.max(zoneLines.length,taskLineCount)*3.6);
+   const zone=clean(r.zone)||"-",task=clean(r.prestation)||"-",accordingDays=isAccordingDays(r),freq=frequencyLabel(r),days=interventionDays(r);
+   const zoneLines=pdf.splitTextToSize(zone,zoneW-4),taskLines=pdf.splitTextToSize(task,taskW-4),freqLines=!accordingDays&&freq?pdf.splitTextToSize(clean(freq),daysW-6):[];
+   const h=Math.max(9,5+Math.max(zoneLines.length,taskLines.length,freqLines.length)*3.6);
    if(y+h>pageH-13){newPage();title("Cahier des charges (suite)");tableHead()}
    pdf.setDrawColor(221,232,226);pdf.setTextColor(38,63,54);pdf.setFont("helvetica","normal");pdf.setFontSize(8.2);
    let x=left;
    pdf.rect(x,y,zoneW,h);pdf.text(zoneLines,x+2,y+5);x+=zoneW;
-   pdf.rect(x,y,taskW,h);pdf.setFont("helvetica","normal");pdf.setFontSize(8.2);pdf.setTextColor(38,63,54);pdf.text(taskLines,x+2,y+5);
-   if(freqLines.length){const freqY=y+5+taskLines.length*3.6+1.3;pdf.setFont("helvetica","bold");pdf.setFontSize(7.2);pdf.setTextColor(7,95,66);pdf.text(freqLines,x+2,freqY)}
-   x+=taskW;
-   DAY_KEYS.forEach(k=>{pdf.setDrawColor(221,232,226);pdf.rect(x,y,dayW,h);if(days.has(k)){pdf.setTextColor(38,63,54);pdf.setFont("helvetica","bold");pdf.setFontSize(10);pdf.text("X",x+dayW/2,y+h/2+1.8,{align:"center"})}x+=dayW});
+   pdf.rect(x,y,taskW,h);pdf.text(taskLines,x+2,y+5);x+=taskW;
+   if(accordingDays){
+    DAY_KEYS.forEach(k=>{pdf.setDrawColor(221,232,226);pdf.rect(x,y,dayW,h);if(days.has(k)){pdf.setTextColor(38,63,54);pdf.setFont("helvetica","bold");pdf.setFontSize(10);pdf.text("X",x+dayW/2,y+h/2+1.8,{align:"center"});pdf.setFont("helvetica","normal");pdf.setFontSize(8.2)}x+=dayW});
+   }else{
+    pdf.setFillColor(248,252,250);pdf.setDrawColor(221,232,226);pdf.rect(x,y,daysW,h,"FD");pdf.setTextColor(7,95,66);pdf.setFont("helvetica","bold");pdf.setFontSize(9);if(freqLines.length)pdf.text(freqLines,x+daysW/2,y+h/2-(freqLines.length-1)*1.8+1.8,{align:"center"});
+   }
    y+=h;
   });
   y+=4;
@@ -112,9 +119,9 @@ async function generate(d,w,button){
  finally{button.disabled=false;button.textContent=old}
 }
 function bind(){
- const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfDirectV5)return;w.__ivAgentPdfDirectV5=true;
+ const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfDirectV6)return;w.__ivAgentPdfDirectV6=true;
  w.addEventListener("click",e=>{const b=e.target?.closest?.("#pdfBtn");if(!b)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();generate(d,w,b)},true);
- const b=d.getElementById("pdfBtn");if(b){b.title="Generer la fiche agent PDF avec frequence sous la prestation";b.dataset.ivPdfDirect="5"}
+ const b=d.getElementById("pdfBtn");if(b){b.title="Generer la fiche agent PDF avec frequence ou jours";b.dataset.ivPdfDirect="6"}
 }
 frame?.addEventListener("load",()=>{setTimeout(bind,100);setTimeout(bind,500);setTimeout(bind,1200)});
 setTimeout(bind,300);setInterval(bind,1200);
