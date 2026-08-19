@@ -3,8 +3,8 @@
 if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()!=="infos")return;
 const frame=document.getElementById("legacyFrame"),fb=window.firebase,db=fb?.firestore?.(),auth=fb?.auth?.();
 const DAYS=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-let patchedDoc=null;
-const txt=v=>String(v??"").trim(),uid=()=>"cdc_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+let patchedDoc=null,suggestionSiteId="",suggestionRows=[];
+const txt=v=>String(v??"").trim(),uid=()=>"cdc_"+Date.now()+"_"+Math.random().toString(16).slice(2),norm=v=>txt(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 function D(){try{return frame?.contentDocument||null}catch{return null}}
 async function site(d){
  let s=null;try{s=await window.InovtecCdcImport?.resolveSite?.()}catch(e){console.warn("CDC resolve",e)}
@@ -12,31 +12,80 @@ async function site(d){
  const id=txt(d.getElementById("siteForm")?.dataset.ivChantierId);if(id){try{const snap=await db.collection("chantiers").doc(id).get();if(snap.exists)return{id:snap.id,...snap.data()}}catch{}}
  return null;
 }
+function ensureStyle(d){
+ if(d.getElementById("ivCdcManualErgoStyle"))return;
+ const s=d.createElement("style");s.id="ivCdcManualErgoStyle";s.textContent=`
+#ivCdcOverlay .iv-cdc-modal{width:min(950px,calc(100vw - 24px))!important;max-height:94vh!important}
+#ivCdcOverlay .iv-cdc-form-grid{gap:14px!important}
+#ivCdcOverlay .iv-cdc-suggest-field{position:relative}
+#ivCdcOverlay .iv-cdc-suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:120;background:#fff;border:1px solid #cfe0d7;border-radius:11px;box-shadow:0 14px 35px rgba(15,50,38,.16);max-height:220px;overflow:auto;padding:5px}
+#ivCdcOverlay .iv-cdc-suggest[hidden]{display:none}
+#ivCdcOverlay .iv-cdc-suggest button{display:block;width:100%;border:0;background:#fff;text-align:left;padding:9px 10px;border-radius:8px;color:#24483a;font:inherit;font-size:11px;cursor:pointer}
+#ivCdcOverlay .iv-cdc-suggest button:hover,#ivCdcOverlay .iv-cdc-suggest button:focus{background:#edf8f2;outline:none}
+#ivCdcOverlay .iv-cdc-suggest-empty{padding:8px 10px;color:#7b8b83;font-size:10px}
+#ivCdcOverlay .iv-cdc-suggest-hint{display:block;margin-top:4px;color:#7a8b82;font-size:9px}
+@media(max-width:780px){#ivCdcOverlay .iv-cdc-modal{width:min(100%,calc(100vw - 18px))!important;padding:14px!important}}
+`;d.head.appendChild(s);
+}
+function hideField(d,id){const e=d.getElementById(id),field=e?.closest?.(".field");if(field)field.hidden=true}
+function ensureSuggestionUi(d,inputId,boxId,hint){
+ const input=d.getElementById(inputId);if(!input)return null;const field=input.closest(".field");if(!field)return null;field.classList.add("iv-cdc-suggest-field");input.autocomplete="off";
+ let box=d.getElementById(boxId);if(!box){box=d.createElement("div");box.id=boxId;box.className="iv-cdc-suggest";box.hidden=true;field.appendChild(box)}
+ if(!field.querySelector(".iv-cdc-suggest-hint")){const h=d.createElement("small");h.className="iv-cdc-suggest-hint";h.textContent=hint;input.insertAdjacentElement("afterend",h)}
+ return{input,box};
+}
+function unique(values){const seen=new Set(),out=[];values.forEach(v=>{v=txt(v);const k=norm(v);if(v&&!seen.has(k)){seen.add(k);out.push(v)}});return out}
+function valuesFor(d,kind){
+ if(kind==="zone")return unique(suggestionRows.map(r=>r.zone)).sort((a,b)=>a.localeCompare(b,"fr",{sensitivity:"base"}));
+ const zone=norm(d.getElementById("ivCdcZone")?.value),same=[],other=[];suggestionRows.forEach(r=>{const p=txt(r.prestation);if(!p)return;(zone&&norm(r.zone)===zone?same:other).push(p)});return unique(same.concat(other));
+}
+function renderSuggestions(d,kind,force=false){
+ const cfg=kind==="zone"?{inputId:"ivCdcZone",boxId:"ivCdcZoneSuggestions"}:{inputId:"ivCdcPrestation",boxId:"ivCdcPrestationSuggestions"},ui=ensureSuggestionUi(d,cfg.inputId,cfg.boxId,kind==="zone"?"Clique dans la liste pour reprendre une zone déjà saisie.":"Les prestations de la zone choisie sont proposées en premier.");if(!ui)return;
+ const q=norm(ui.input.value),all=valuesFor(d,kind),matches=all.filter(v=>!q||norm(v).includes(q)).slice(0,10);ui.box.innerHTML="";
+ if(!force&&!q){ui.box.hidden=true;return}
+ if(!matches.length){const e=d.createElement("div");e.className="iv-cdc-suggest-empty";e.textContent="Aucune suggestion enregistrée";ui.box.appendChild(e);ui.box.hidden=false;return}
+ matches.forEach(v=>{const b=d.createElement("button");b.type="button";b.textContent=v;b.addEventListener("mousedown",e=>e.preventDefault());b.addEventListener("click",()=>{ui.input.value=v;ui.box.hidden=true;ui.input.dispatchEvent(new Event("change",{bubbles:true}));if(kind==="zone"){const p=d.getElementById("ivCdcPrestation");if(p){p.focus();renderSuggestions(d,"prestation",true)}}});ui.box.appendChild(b)});ui.box.hidden=false;
+}
+function bindSuggestions(d){
+ [["ivCdcZone","zone"],["ivCdcPrestation","prestation"]].forEach(([id,kind])=>{const input=d.getElementById(id);if(!input||input.dataset.ivSuggestBound==="1")return;input.dataset.ivSuggestBound="1";input.addEventListener("input",()=>renderSuggestions(d,kind,true));input.addEventListener("focus",()=>renderSuggestions(d,kind,true));input.addEventListener("keydown",e=>{if(e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}})});
+ if(d.body.dataset.ivCdcSuggestOutside!=="1"){d.body.dataset.ivCdcSuggestOutside="1";d.addEventListener("mousedown",e=>{if(e.target.closest?.(".iv-cdc-suggest-field"))return;["ivCdcZoneSuggestions","ivCdcPrestationSuggestions"].forEach(id=>{const box=d.getElementById(id);if(box)box.hidden=true})},true)}
+}
+function applyManualUi(d){
+ ensureStyle(d);hideField(d,"ivCdcFrequence");hideField(d,"ivCdcControle");hideField(d,"ivCdcMethode");
+ const title=d.getElementById("ivCdcModalTitle");if(title&&!d.getElementById("ivCdcOverlay")?.dataset.rowId)title.textContent="Saisir le cahier des charges";
+ ensureSuggestionUi(d,"ivCdcZone","ivCdcZoneSuggestions","Clique dans la liste pour reprendre une zone déjà saisie.");ensureSuggestionUi(d,"ivCdcPrestation","ivCdcPrestationSuggestions","Les prestations de la zone choisie sont proposées en premier.");bindSuggestions(d);
+}
+async function loadSuggestions(d,target){
+ if(!target?.id)return;suggestionSiteId=String(target.id);try{const snap=await db.collection("chantiers").doc(suggestionSiteId).get(),rows=snap.data()?.cahierDesChargesV1?.rows;suggestionRows=Array.isArray(rows)?rows:[]}catch(e){console.warn("CDC suggestions",e);suggestionRows=[]}applyManualUi(d);
+}
 function resetModal(d){
  const o=d.getElementById("ivCdcOverlay");if(!o)return;o.dataset.rowId="";
- ["ivCdcZone","ivCdcPrestation","ivCdcFrequence","ivCdcMethode","ivCdcControle","ivCdcObservations"].forEach(id=>{const e=d.getElementById(id);if(e)e.value=""});
+ ["ivCdcZone","ivCdcPrestation","ivCdcObservations"].forEach(id=>{const e=d.getElementById(id);if(e)e.value=""});
  const t=d.getElementById("ivCdcFrequenceType");if(t)t.value="jours";
  d.querySelectorAll("[data-iv-cdc-day]").forEach(x=>x.checked=false);
- const title=d.getElementById("ivCdcModalTitle");if(title)title.textContent="Ajouter une prestation";
- o.hidden=false;setTimeout(()=>d.getElementById("ivCdcPrestation")?.focus(),20);
+ const title=d.getElementById("ivCdcModalTitle");if(title)title.textContent="Saisir le cahier des charges";
+ applyManualUi(d);o.hidden=false;setTimeout(()=>{const z=d.getElementById("ivCdcZone");z?.focus();renderSuggestions(d,"zone",true)},20);
 }
 async function save(d){
  const target=await site(d);if(!target?.id){alert("Sélectionne et enregistre d’abord le chantier.");return}
  const o=d.getElementById("ivCdcOverlay"),rowId=txt(o?.dataset.rowId),prestation=txt(d.getElementById("ivCdcPrestation")?.value);if(!prestation){d.getElementById("ivCdcPrestation")?.focus();return}
  const jours=[...d.querySelectorAll("[data-iv-cdc-day]:checked")].map(x=>x.dataset.ivCdcDay).filter(x=>DAYS.includes(x));
- const payload={zone:txt(d.getElementById("ivCdcZone")?.value),prestation,frequence:txt(d.getElementById("ivCdcFrequence")?.value),frequenceType:d.getElementById("ivCdcFrequenceType")?.value||"jours",jours,methodeConsigne:txt(d.getElementById("ivCdcMethode")?.value),controle:txt(d.getElementById("ivCdcControle")?.value),observations:txt(d.getElementById("ivCdcObservations")?.value),updatedAtMs:Date.now()};
+ const payload={zone:txt(d.getElementById("ivCdcZone")?.value),prestation,frequenceType:d.getElementById("ivCdcFrequenceType")?.value||"jours",jours,observations:txt(d.getElementById("ivCdcObservations")?.value),updatedAtMs:Date.now()};
  const btn=d.querySelector("#ivCdcForm button[type=submit]");if(btn){btn.disabled=true;btn.textContent="Enregistrement…"}
  try{
   await db.runTransaction(async tx=>{const ref=db.collection("chantiers").doc(String(target.id)),snap=await tx.get(ref);if(!snap.exists)throw Error("Chantier introuvable");const block=snap.data()?.cahierDesChargesV1||{},rows=Array.isArray(block.rows)?block.rows.map(r=>({...r})):[];if(rowId){const i=rows.findIndex(r=>String(r.id)===rowId);if(i>=0)rows[i]={...rows[i],...payload}}else{const ordre=Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10;rows.push({id:uid(),...payload,ordre,sourceType:"manual",createdAtMs:Date.now()})}tx.update(ref,{"cahierDesChargesV1.schemaVersion":2,"cahierDesChargesV1.structuredSchedule":true,"cahierDesChargesV1.rows":rows,"cahierDesChargesV1.updatedAtMs":Date.now(),"cahierDesChargesV1.updatedBy":auth?.currentUser?.uid||""})});
-  if(o){o.hidden=true;o.dataset.rowId=""}
+  suggestionRows.push({zone:payload.zone,prestation:payload.prestation});if(o){o.hidden=true;o.dataset.rowId=""}
  }catch(e){console.error("CDC manual save",e);alert("Impossible d’enregistrer le cahier des charges. Vérifie la connexion Firebase.")}
  finally{if(btn){btn.disabled=false;btn.textContent="Enregistrer"}}
 }
 function patchManual(d){
- const o=d.getElementById("ivCdcOverlay"),old=d.getElementById("ivCdcForm");if(!o||!old||old.dataset.ivOperationalFix==="1")return;
- const form=old.cloneNode(true);form.dataset.ivOperationalFix="1";old.replaceWith(form);
- const close=()=>{o.hidden=true;o.dataset.rowId=""};d.getElementById("ivCdcClose")?.addEventListener("click",close);d.getElementById("ivCdcCancel")?.addEventListener("click",close);form.addEventListener("submit",e=>{e.preventDefault();save(d)});
- let add=d.getElementById("ivCdcAdd");if(add&&add.dataset.ivOperationalFix!=="1"){const n=add.cloneNode(true);n.dataset.ivOperationalFix="1";n.textContent="✍️ Saisir manuellement";n.disabled=false;n.addEventListener("click",async e=>{e.preventDefault();const target=await site(d);if(!target?.id){alert("Sélectionne et enregistre d’abord le chantier.");return}resetModal(d)});add.replaceWith(n)}
+ const o=d.getElementById("ivCdcOverlay"),old=d.getElementById("ivCdcForm");if(!o||!old)return;applyManualUi(d);
+ if(old.dataset.ivOperationalFix!=="1"){
+  const form=old.cloneNode(true);form.dataset.ivOperationalFix="1";old.replaceWith(form);applyManualUi(d);
+  const close=()=>{o.hidden=true;o.dataset.rowId=""};d.getElementById("ivCdcClose")?.addEventListener("click",close);d.getElementById("ivCdcCancel")?.addEventListener("click",close);form.addEventListener("submit",e=>{e.preventDefault();save(d)});
+ }
+ let add=d.getElementById("ivCdcAdd");if(add&&add.dataset.ivOperationalFix!=="1"){const n=add.cloneNode(true);n.dataset.ivOperationalFix="1";n.textContent="✍️ Saisir manuellement";n.disabled=false;n.addEventListener("click",async e=>{e.preventDefault();const target=await site(d);if(!target?.id){alert("Sélectionne et enregistre d’abord le chantier.");return}await loadSuggestions(d,target);resetModal(d)});add.replaceWith(n)}
+ if(o.dataset.ivSuggestionObserver!=="1"){o.dataset.ivSuggestionObserver="1";new MutationObserver(async()=>{if(o.hidden)return;const target=await site(d);if(target?.id)await loadSuggestions(d,target);applyManualUi(d)}).observe(o,{attributes:true,attributeFilter:["hidden"]})}
 }
 function patchPdf(d){
  const b=d.getElementById("ivCdcImport"),input=d.getElementById("ivCdcFile");if(!b||!input)return;
