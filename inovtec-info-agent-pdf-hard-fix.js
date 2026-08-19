@@ -3,8 +3,9 @@
 if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()!=="infos")return;
 const frame=document.getElementById("legacyFrame");
 const PARENT_FB=window.firebase;
-const DAYS={lundi:"Lun",mardi:"Mar",mercredi:"Mer",jeudi:"Jeu",vendredi:"Ven",samedi:"Sam",dimanche:"Dim"};
+const DAYS={lundi:"Lu",mardi:"Ma",mercredi:"Me",jeudi:"Je",vendredi:"Ve",samedi:"Sa",dimanche:"Di"};
 const DAY_KEYS=Object.keys(DAYS);
+const FREQ_TYPES={jours:"Selon jours",quotidien:"Quotidien",hebdomadaire:"Hebdomadaire",mensuel:"Mensuel",pair_impair:"Semaines paires / impaires",ponctuel:"Ponctuel",autre:"Autre"};
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const clean=v=>String(v??"").replace(/[–—]/g,"-").replace(/[’]/g,"'").replace(/œ/g,"oe").replace(/Œ/g,"OE").replace(/•/g,",").trim();
 function D(){try{return frame?.contentDocument||null}catch{return null}}
@@ -23,6 +24,17 @@ async function resolveSite(d,w){
 }
 function val(d,site,id,...aliases){const live=formValue(d,id);if(live)return live;for(const k of [id,...aliases]){const v=site?.[k];if(v!==undefined&&v!==null&&String(v).trim())return String(v).trim()}return""}
 function rowsOf(site){const r=site?.cahierDesChargesV1?.rows;return Array.isArray(r)?r.slice().sort((a,b)=>(Number(a.ordre)||0)-(Number(b.ordre)||0)||String(a.zone||"").localeCompare(String(b.zone||""),"fr",{sensitivity:"base"})||String(a.prestation||"").localeCompare(String(b.prestation||""),"fr",{sensitivity:"base"})):[]}
+function frequencyLabel(r){
+ const type=String(r?.frequenceType||"").trim();
+ if(FREQ_TYPES[type])return FREQ_TYPES[type];
+ const f=norm(r?.frequence);
+ if(/semaine.*paire/.test(f)&&/impaire/.test(f))return FREQ_TYPES.pair_impair;
+ if(/mensuel|mensuelle|chaque mois/.test(f))return FREQ_TYPES.mensuel;
+ if(/quotidien|tous les jours|chaque jour/.test(f))return FREQ_TYPES.quotidien;
+ if(/hebdo|chaque semaine|1 fois semaine|une fois semaine/.test(f))return FREQ_TYPES.hebdomadaire;
+ if(Array.isArray(r?.jours)&&r.jours.length)return FREQ_TYPES.jours;
+ return clean(r?.frequence)||"-";
+}
 function interventionDays(r){
  const out=new Set();
  const type=norm(r?.frequenceType),freq=norm(r?.frequence);
@@ -53,25 +65,26 @@ function makeWriter(pdf,name,address){
   if(!rows.length)return;
   title("Cahier des charges");
   pdf.setFont("helvetica","normal");pdf.setFontSize(7);pdf.setTextColor(100,120,111);pdf.text("X = intervention prevue",left,y);y+=4;
-  const zoneW=36,taskW=77,dayW=(contentW-zoneW-taskW)/7;
-  const cols=[{label:"Zone",w:zoneW},{label:"Prestation",w:taskW},...DAY_KEYS.map(k=>({label:DAYS[k],w:dayW,key:k}))];
+  const zoneW=29,taskW=57,freqW=33,dayW=(contentW-zoneW-taskW-freqW)/7;
+  const cols=[{label:"Zone",w:zoneW},{label:"Prestation",w:taskW},{label:"Freq.",w:freqW},...DAY_KEYS.map(k=>({label:DAYS[k],w:dayW,key:k}))];
   function tableHead(){
    need(10);let x=left;
-   pdf.setFillColor(234,246,239);pdf.setDrawColor(212,229,220);pdf.setFont("helvetica","bold");pdf.setFontSize(7.3);pdf.setTextColor(21,90,64);
-   cols.forEach((c,i)=>{pdf.rect(x,y,c.w,8,"FD");pdf.text(c.label,i<2?x+2:x+c.w/2,y+5,{align:i<2?"left":"center"});x+=c.w});
+   pdf.setFillColor(234,246,239);pdf.setDrawColor(212,229,220);pdf.setFont("helvetica","bold");pdf.setFontSize(7);pdf.setTextColor(21,90,64);
+   cols.forEach((c,i)=>{pdf.rect(x,y,c.w,8,"FD");pdf.text(c.label,i<3?x+2:x+c.w/2,y+5,{align:i<3?"left":"center"});x+=c.w});
    y+=8;
   }
   tableHead();
   rows.forEach(r=>{
-   const zone=clean(r.zone)||"-",task=clean(r.prestation)||"-",days=interventionDays(r);
-   const zoneLines=pdf.splitTextToSize(zone,zoneW-4),taskLines=pdf.splitTextToSize(task,taskW-4);
-   const h=Math.max(9,5+Math.max(zoneLines.length,taskLines.length)*3.6);
+   const zone=clean(r.zone)||"-",task=clean(r.prestation)||"-",freq=frequencyLabel(r),days=interventionDays(r);
+   const zoneLines=pdf.splitTextToSize(zone,zoneW-4),taskLines=pdf.splitTextToSize(task,taskW-4),freqLines=pdf.splitTextToSize(clean(freq),freqW-4);
+   const h=Math.max(9,5+Math.max(zoneLines.length,taskLines.length,freqLines.length)*3.6);
    if(y+h>pageH-13){newPage();title("Cahier des charges (suite)");tableHead()}
-   pdf.setDrawColor(221,232,226);pdf.setTextColor(38,63,54);pdf.setFont("helvetica","normal");pdf.setFontSize(8.2);
+   pdf.setDrawColor(221,232,226);pdf.setTextColor(38,63,54);pdf.setFont("helvetica","normal");pdf.setFontSize(8);
    let x=left;
    pdf.rect(x,y,zoneW,h);pdf.text(zoneLines,x+2,y+5);x+=zoneW;
    pdf.rect(x,y,taskW,h);pdf.text(taskLines,x+2,y+5);x+=taskW;
-   DAY_KEYS.forEach(k=>{pdf.rect(x,y,dayW,h);if(days.has(k)){pdf.setFont("helvetica","bold");pdf.setFontSize(10);pdf.text("X",x+dayW/2,y+h/2+1.8,{align:"center"});pdf.setFont("helvetica","normal");pdf.setFontSize(8.2)}x+=dayW});
+   pdf.rect(x,y,freqW,h);pdf.text(freqLines,x+2,y+5);x+=freqW;
+   DAY_KEYS.forEach(k=>{pdf.rect(x,y,dayW,h);if(days.has(k)){pdf.setFont("helvetica","bold");pdf.setFontSize(10);pdf.text("X",x+dayW/2,y+h/2+1.8,{align:"center"});pdf.setFont("helvetica","normal");pdf.setFontSize(8)}x+=dayW});
    y+=h;
   });
   y+=4;
@@ -95,9 +108,9 @@ async function generate(d,w,button){
  finally{button.disabled=false;button.textContent=old}
 }
 function bind(){
- const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfDirectV3)return;w.__ivAgentPdfDirectV3=true;
+ const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfDirectV4)return;w.__ivAgentPdfDirectV4=true;
  w.addEventListener("click",e=>{const b=e.target?.closest?.("#pdfBtn");if(!b)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();generate(d,w,b)},true);
- const b=d.getElementById("pdfBtn");if(b){b.title="Generer la fiche agent PDF avec le cahier des charges par jour";b.dataset.ivPdfDirect="3"}
+ const b=d.getElementById("pdfBtn");if(b){b.title="Generer la fiche agent PDF avec frequence et jours d'intervention";b.dataset.ivPdfDirect="4"}
 }
 frame?.addEventListener("load",()=>{setTimeout(bind,100);setTimeout(bind,500);setTimeout(bind,1200)});
 setTimeout(bind,300);setInterval(bind,1200);
