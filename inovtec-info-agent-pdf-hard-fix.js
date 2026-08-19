@@ -4,6 +4,7 @@ if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()!=="infos
 const frame=document.getElementById("legacyFrame");
 const PARENT_FB=window.firebase;
 const DAYS={lundi:"Lun",mardi:"Mar",mercredi:"Mer",jeudi:"Jeu",vendredi:"Ven",samedi:"Sam",dimanche:"Dim"};
+const DAY_KEYS=Object.keys(DAYS);
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const clean=v=>String(v??"").replace(/[–—]/g,"-").replace(/[’]/g,"'").replace(/œ/g,"oe").replace(/Œ/g,"OE").replace(/•/g,",").trim();
 function D(){try{return frame?.contentDocument||null}catch{return null}}
@@ -22,7 +23,16 @@ async function resolveSite(d,w){
 }
 function val(d,site,id,...aliases){const live=formValue(d,id);if(live)return live;for(const k of [id,...aliases]){const v=site?.[k];if(v!==undefined&&v!==null&&String(v).trim())return String(v).trim()}return""}
 function rowsOf(site){const r=site?.cahierDesChargesV1?.rows;return Array.isArray(r)?r.slice().sort((a,b)=>(Number(a.ordre)||0)-(Number(b.ordre)||0)||String(a.zone||"").localeCompare(String(b.zone||""),"fr",{sensitivity:"base"})||String(a.prestation||"").localeCompare(String(b.prestation||""),"fr",{sensitivity:"base"})):[]}
-function freqText(r){const days=Array.isArray(r?.jours)?r.jours.filter(x=>DAYS[x]).map(x=>DAYS[x]):[];const type=String(r?.frequenceType||"").toLowerCase();if(type==="quotidien")return"Tous les jours";if(days.length)return days.join(", ");if(type==="hebdomadaire")return"Hebdomadaire";if(type==="mensuel")return"Mensuel";if(type==="ponctuel")return"Ponctuel";return clean(r?.frequence||"")||"-"}
+function interventionDays(r){
+ const out=new Set();
+ const type=norm(r?.frequenceType),freq=norm(r?.frequence);
+ if(type==="quotidien"||/quotidien|tous les jours|chaque jour/.test(freq))return new Set(DAY_KEYS);
+ const source=Array.isArray(r?.jours)?r.jours:[];
+ source.forEach(v=>{const n=norm(v);const key=DAY_KEYS.find(k=>n===k||n===k.slice(0,3)||n.startsWith(k));if(key)out.add(key)});
+ if(/lundi au vendredi|du lundi au vendredi|lundi vendredi/.test(freq))DAY_KEYS.slice(0,5).forEach(k=>out.add(k));
+ DAY_KEYS.forEach(k=>{if(freq.includes(k)||new RegExp(`(^| )${k.slice(0,3)}($| )`).test(freq))out.add(k)});
+ return out;
+}
 function cleanFilename(v){return String(v||"chantier").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,70)||"chantier"}
 async function ensureJsPdf(d,w){
  if(w?.jspdf?.jsPDF)return w.jspdf.jsPDF;
@@ -39,7 +49,33 @@ function makeWriter(pdf,name,address){
  function title(t){need(13);pdf.setFont("helvetica","bold");pdf.setFontSize(12);pdf.setTextColor(7,95,66);pdf.text(clean(t),left,y);pdf.setDrawColor(205,224,215);pdf.line(left,y+2,198,y+2);y+=8}
  function item(label,value){value=clean(value);if(!value)return;const lines=pdf.splitTextToSize(value,contentW-4);const h=6+lines.length*4.2;need(h+2);pdf.setFillColor(248,252,250);pdf.setDrawColor(220,233,227);pdf.roundedRect(left,y,contentW,h,2,2,"FD");pdf.setTextColor(106,125,116);pdf.setFont("helvetica","bold");pdf.setFontSize(7.5);pdf.text(clean(label).toUpperCase(),left+3,y+4);pdf.setTextColor(23,53,43);pdf.setFont("helvetica","normal");pdf.setFontSize(9.5);pdf.text(lines,left+3,y+9);y+=h+3}
  function section(t,items){const kept=items.filter(x=>clean(x[1]));if(!kept.length)return;title(t);kept.forEach(x=>item(x[0],x[1]));y+=2}
- function cdc(rows){if(!rows.length)return;title("Cahier des charges");const x=[left,55,153],w=[43,98,45];function tableHead(){need(10);pdf.setFillColor(234,246,239);pdf.setDrawColor(212,229,220);pdf.setFont("helvetica","bold");pdf.setFontSize(8);pdf.setTextColor(21,90,64);["Zone","Prestation","Frequence / jours"].forEach((t,i)=>{pdf.rect(x[i],y,w[i],8,"FD");pdf.text(t,x[i]+2,y+5)});y+=8}tableHead();rows.forEach(r=>{const cells=[clean(r.zone)||"-",clean(r.prestation)||"-",freqText(r)];const lines=cells.map((v,i)=>pdf.splitTextToSize(v,w[i]-4));const h=Math.max(9,...lines.map(a=>5+a.length*3.6));if(y+h>pageH-13){newPage();title("Cahier des charges (suite)");tableHead()}pdf.setDrawColor(221,232,226);pdf.setTextColor(38,63,54);pdf.setFont("helvetica","normal");pdf.setFontSize(8.5);lines.forEach((arr,i)=>{pdf.rect(x[i],y,w[i],h);pdf.text(arr,x[i]+2,y+5)});y+=h});y+=4}
+ function cdc(rows){
+  if(!rows.length)return;
+  title("Cahier des charges");
+  pdf.setFont("helvetica","normal");pdf.setFontSize(7);pdf.setTextColor(100,120,111);pdf.text("X = intervention prevue",left,y);y+=4;
+  const zoneW=36,taskW=77,dayW=(contentW-zoneW-taskW)/7;
+  const cols=[{label:"Zone",w:zoneW},{label:"Prestation",w:taskW},...DAY_KEYS.map(k=>({label:DAYS[k],w:dayW,key:k}))];
+  function tableHead(){
+   need(10);let x=left;
+   pdf.setFillColor(234,246,239);pdf.setDrawColor(212,229,220);pdf.setFont("helvetica","bold");pdf.setFontSize(7.3);pdf.setTextColor(21,90,64);
+   cols.forEach((c,i)=>{pdf.rect(x,y,c.w,8,"FD");pdf.text(c.label,i<2?x+2:x+c.w/2,y+5,{align:i<2?"left":"center"});x+=c.w});
+   y+=8;
+  }
+  tableHead();
+  rows.forEach(r=>{
+   const zone=clean(r.zone)||"-",task=clean(r.prestation)||"-",days=interventionDays(r);
+   const zoneLines=pdf.splitTextToSize(zone,zoneW-4),taskLines=pdf.splitTextToSize(task,taskW-4);
+   const h=Math.max(9,5+Math.max(zoneLines.length,taskLines.length)*3.6);
+   if(y+h>pageH-13){newPage();title("Cahier des charges (suite)");tableHead()}
+   pdf.setDrawColor(221,232,226);pdf.setTextColor(38,63,54);pdf.setFont("helvetica","normal");pdf.setFontSize(8.2);
+   let x=left;
+   pdf.rect(x,y,zoneW,h);pdf.text(zoneLines,x+2,y+5);x+=zoneW;
+   pdf.rect(x,y,taskW,h);pdf.text(taskLines,x+2,y+5);x+=taskW;
+   DAY_KEYS.forEach(k=>{pdf.rect(x,y,dayW,h);if(days.has(k)){pdf.setFont("helvetica","bold");pdf.setFontSize(10);pdf.text("X",x+dayW/2,y+h/2+1.8,{align:"center"});pdf.setFont("helvetica","normal");pdf.setFontSize(8.2)}x+=dayW});
+   y+=h;
+  });
+  y+=4;
+ }
  header();return{section,cdc,finish(){pdf.setTextColor(128,144,135);pdf.setFontSize(7.5);pdf.text("Fiche operationnelle generee depuis Inovtec Dashboard",198,pageH-7,{align:"right"})}}
 }
 async function generate(d,w,button){
@@ -59,9 +95,9 @@ async function generate(d,w,button){
  finally{button.disabled=false;button.textContent=old}
 }
 function bind(){
- const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfDirectV2)return;w.__ivAgentPdfDirectV2=true;
+ const d=D(),w=W();if(!d?.body||!w||w.__ivAgentPdfDirectV3)return;w.__ivAgentPdfDirectV3=true;
  w.addEventListener("click",e=>{const b=e.target?.closest?.("#pdfBtn");if(!b)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();generate(d,w,b)},true);
- const b=d.getElementById("pdfBtn");if(b){b.title="Generer la fiche agent PDF avec les donnees du chantier";b.dataset.ivPdfDirect="2"}
+ const b=d.getElementById("pdfBtn");if(b){b.title="Generer la fiche agent PDF avec le cahier des charges par jour";b.dataset.ivPdfDirect="3"}
 }
 frame?.addEventListener("load",()=>{setTimeout(bind,100);setTimeout(bind,500);setTimeout(bind,1200)});
 setTimeout(bind,300);setInterval(bind,1200);
