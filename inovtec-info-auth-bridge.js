@@ -7,11 +7,17 @@ if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
 const auth=firebase.auth();
 const db=firebase.firestore();
 const frame=document.getElementById("legacyFrame");
-let verifiedUid="",frameSyncTimer=null;
+let verifiedUid="",frameSyncTimer=null,reloadedForUid="";
 
 function setIndicator(state,message){
   try{window.InovtecFirebaseIndicator?.setState?.(state,message)}catch{}
   try{window.dispatchEvent(new CustomEvent("inovtec:firebase-status",{detail:{state,message}}))}catch{}
+  const mirror=document.getElementById("syncMirror");if(mirror)mirror.textContent=message||"Firebase";
+}
+async function setBestPersistence(){
+  const P=firebase.auth.Auth.Persistence;
+  for(const mode of [P.LOCAL,P.SESSION,P.NONE]){try{await auth.setPersistence(mode);return mode}catch{}}
+  return null;
 }
 function box(){
   let el=document.getElementById("ivInfosAuthBridge");
@@ -24,9 +30,9 @@ function box(){
   el.querySelector("#ivInfosAuthForm").addEventListener("submit",async e=>{
     e.preventDefault();
     const err=el.querySelector("#ivInfosAuthError"),btn=el.querySelector("#ivInfosAuthSubmit");
-    err.textContent="";btn.disabled=true;btn.textContent="Connexion…";setIndicator("loading","Connexion à Firebase en cours");
+    err.textContent="";btn.disabled=true;btn.textContent="Connexion…";setIndicator("loading","Connexion à Firebase en cours…");
     try{
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      await setBestPersistence();
       await auth.signInWithEmailAndPassword(el.querySelector("#ivInfosAuthEmail").value.trim(),el.querySelector("#ivInfosAuthPassword").value);
     }catch(ex){
       console.error("Connexion Infos chantier",ex);
@@ -41,7 +47,7 @@ function hideLogin(){const el=document.getElementById("ivInfosAuthBridge");if(el
 
 async function verifyFirestore(user){
   if(!user)return false;
-  if(verifiedUid===user.uid)return true;
+  if(verifiedUid===user.uid){setIndicator("connected","Firebase connecté · chantiers synchronisés");return true}
   setIndicator("loading","Vérification Firebase…");
   try{
     await db.collection("chantiers").limit(1).get();
@@ -54,6 +60,11 @@ async function verifyFirestore(user){
     return false;
   }
 }
+function forceFrameReload(user){
+  if(!frame||!user||reloadedForUid===user.uid)return;
+  reloadedForUid=user.uid;
+  try{const u=new URL(frame.src,location.href);u.searchParams.set("authSync",String(Date.now()));frame.src=u.href}catch{}
+}
 async function syncFrameAuth(){
   clearTimeout(frameSyncTimer);
   const user=auth.currentUser;if(!user||!frame)return;
@@ -63,15 +74,21 @@ async function syncFrameAuth(){
       if(childAuth&&!childAuth.currentUser){
         try{await childAuth.updateCurrentUser(user)}catch(e){console.warn("Pont Auth vers Infos chantier",e)}
       }
-      const login=d?.getElementById("loginScreen"),app=d?.getElementById("app");
-      if(childAuth?.currentUser&&login&&app){login.classList.add("hidden");app.classList.remove("hidden")}
+      if(childAuth?.currentUser){
+        const login=d?.getElementById("loginScreen"),app=d?.getElementById("app");
+        if(login&&app){login.classList.add("hidden");app.classList.remove("hidden")}
+        return;
+      }
+      setTimeout(()=>{
+        try{const ca=frame.contentWindow?.firebase?.auth?.();if(auth.currentUser&&!ca?.currentUser)forceFrameReload(auth.currentUser)}catch{}
+      },650);
     }catch(e){console.warn("Synchronisation iframe Infos chantier",e)}
-  },350);
+  },300);
 }
 
-try{auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{})}catch{}
+setBestPersistence().catch(()=>{});
 auth.onAuthStateChanged(async user=>{
-  if(!user){verifiedUid="";showLogin();setIndicator("error","Compte Firebase non connecté");return}
+  if(!user){verifiedUid="";reloadedForUid="";showLogin();setIndicator("error","Compte Firebase non connecté");return}
   hideLogin();
   await verifyFirestore(user);
   syncFrameAuth();
