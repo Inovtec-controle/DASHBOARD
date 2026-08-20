@@ -1,0 +1,99 @@
+name: Dashboard operational smoke
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-operational-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vérifier les fichiers critiques
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            index.html firebase-config.js inovtec-auth-gateway.js
+            inovtec-page-shell.html inovtec-info-shell-stable.html
+            INFOCHANTIERS.html INFOCHANTIERS-V2.html
+            PLANNINGS.html KONTROL-CLOUD.html DISCIPLINE.html DISCIPLINE-V9.html
+            AGENTS.html ORGA.html HEURE-SUP.html CONGES.html TEMPS.html SALAIRE.html
+            PLANNINGS-LEGACY.html KONTROL-CLOUD-LEGACY.html DISCIPLINE-V9-LEGACY.html
+            AGENTS-LEGACY.html ORGA-LEGACY.html HEURE-SUP-LEGACY.html CONGES-LEGACY.html
+            TEMPS-LEGACY.html SALAIRE-LEGACY.html
+          )
+          for file in "${files[@]}"; do
+            test -s "$file" || { echo "::error file=$file::Fichier absent ou vide"; exit 1; }
+          done
+
+      - name: Vérifier la syntaxe JavaScript critique
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check firebase-config.js
+          node --check inovtec-auth-gateway.js
+          node --check dashboard-index.js
+          node --check inovtec-shell.js
+          node --check inovtec-cloud-sync.js
+          node --check inovtec-data-hub.js
+          node --check inovtec-firebase-indicator.js
+          node --check kontrol-cloud.js
+          node --check conges.js
+          node --check discipline-v9.js
+
+      - name: Vérifier les entrées et le cache-busting
+        shell: bash
+        run: |
+          set -euo pipefail
+          build='20260820-global-operational1'
+          grep -q "firebase-config.js?v=$build" index.html
+          grep -q "firebase-config.js?v=$build" inovtec-page-shell.html
+          grep -q 'inovtec-auth-gateway.js' firebase-config.js
+          grep -q 'Connexion au Dashboard' inovtec-auth-gateway.js
+          grep -q 'inovtec-info-shell-stable.html' INFOCHANTIERS-V2.html
+          for page in PLANNINGS.html KONTROL-CLOUD.html DISCIPLINE-V9.html AGENTS.html ORGA.html HEURE-SUP.html CONGES.html TEMPS.html SALAIRE.html; do
+            grep -q "$build" "$page" || { echo "::error file=$page::Version globale absente"; exit 1; }
+            grep -qi 'no-cache, no-store, must-revalidate' "$page" || { echo "::error file=$page::Protection anti-cache absente"; exit 1; }
+          done
+
+  live-pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: static-checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier le site GitHub Pages réellement servi
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://inovtec-controle.github.io/DASHBOARD'
+          build='20260820-global-operational1'
+          ok=0
+          for attempt in $(seq 1 12); do
+            if curl -fsSL --retry 2 --retry-delay 2 "$base/index.html?health=$attempt" -o /tmp/index.html \
+              && grep -q "$build" /tmp/index.html \
+              && curl -fsSL --retry 2 --retry-delay 2 "$base/firebase-config.js?v=$build" -o /tmp/firebase-config.js \
+              && grep -q 'inovtec-auth-gateway.js' /tmp/firebase-config.js \
+              && curl -fsSL --retry 2 --retry-delay 2 "$base/inovtec-auth-gateway.js?v=$build" -o /tmp/auth.js \
+              && grep -q 'Connexion au Dashboard' /tmp/auth.js; then
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          test "$ok" = 1 || { echo '::error::Le site public ne sert pas encore la version opérationnelle attendue.'; exit 1; }
+          for page in INFOCHANTIERS-V2.html PLANNINGS.html KONTROL-CLOUD.html DISCIPLINE-V9.html AGENTS.html ORGA.html HEURE-SUP.html CONGES.html TEMPS.html SALAIRE.html; do
+            curl -fsSL --retry 3 --retry-delay 2 "$base/$page?health=$RANDOM" -o /dev/null
+          done
+          echo 'Dashboard public accessible et version opérationnelle détectée.'
