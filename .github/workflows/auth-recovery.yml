@@ -1,0 +1,146 @@
+name: Récupération connexion Dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/auth-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Réparer les connexions sans toucher aux données
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          build='20260820-auth-recovery1'
+
+          # Planning / Agents / Heures : si Safari refuse LOCAL, tenter SESSION puis mémoire,
+          # mais toujours tenter l'authentification ensuite.
+          p=Path('inovtec-cloud-sync.js')
+          s=p.read_text(encoding='utf-8')
+          old='''      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);\n      await firebase.auth().signInWithEmailAndPassword(box.querySelector("#ivCloudEmail").value.trim(),box.querySelector("#ivCloudPassword").value);'''
+          new='''      try{await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(_e1){try{await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION)}catch(_e2){try{await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE)}catch(_e3){}}}\n      await firebase.auth().signInWithEmailAndPassword(box.querySelector("#ivCloudEmail").value.trim(),box.querySelector("#ivCloudPassword").value);'''
+          if old not in s:
+              raise SystemExit('Bloc connexion cloud-sync introuvable')
+          p.write_text(s.replace(old,new),encoding='utf-8')
+
+          # KONTROL : même stratégie de secours.
+          p=Path('kontrol-cloud.js')
+          s=p.read_text(encoding='utf-8')
+          old='''      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);\n      await auth.signInWithEmailAndPassword($("loginEmail").value.trim(), $("loginPassword").value);'''
+          new='''      try{await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(_e1){try{await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)}catch(_e2){try{await auth.setPersistence(firebase.auth.Auth.Persistence.NONE)}catch(_e3){}}}\n      await auth.signInWithEmailAndPassword($("loginEmail").value.trim(), $("loginPassword").value);'''
+          if old not in s:
+              raise SystemExit('Bloc connexion KONTROL introuvable')
+          p.write_text(s.replace(old,new),encoding='utf-8')
+
+          # Congés : même correction, avec l'instance Firebase du parent.
+          p=Path('conges.js')
+          s=p.read_text(encoding='utf-8')
+          old='''try{await f.auth().setPersistence(f.auth.Auth.Persistence.LOCAL);await f.auth().signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value)}catch(ex)'''
+          new='''try{try{await f.auth().setPersistence(f.auth.Auth.Persistence.LOCAL)}catch(_e1){try{await f.auth().setPersistence(f.auth.Auth.Persistence.SESSION)}catch(_e2){try{await f.auth().setPersistence(f.auth.Auth.Persistence.NONE)}catch(_e3){}}}await f.auth().signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value)}catch(ex)'''
+          if old not in s:
+              raise SystemExit('Bloc connexion Congés introuvable')
+          p.write_text(s.replace(old,new),encoding='utf-8')
+
+          # Discipline : le fichier a été vidé par erreur dans l'état actuel.
+          # Restaurer exactement le moteur V9 introduit dans le commit fonctionnel d'origine.
+          disc=Path('discipline-v9.js')
+          if disc.stat().st_size < 100:
+              import subprocess
+              restored=subprocess.check_output(['git','show','88a0cd6557fb2b78f8de2d9b88be85ee85270738:discipline-v9.js'])
+              disc.write_bytes(restored)
+
+          # Si la version restaurée force LOCAL, lui appliquer le même fallback.
+          s=disc.read_text(encoding='utf-8')
+          s=s.replace('await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);','try{await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(_e1){try{await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)}catch(_e2){try{await auth.setPersistence(firebase.auth.Auth.Persistence.NONE)}catch(_e3){}}}')
+          disc.write_text(s,encoding='utf-8')
+
+          # Forcer le chargement des scripts réparés.
+          replacements={
+            'inovtec-cloud-sync.js?v=20260815-stable2':f'inovtec-cloud-sync.js?v={build}',
+            'kontrol-cloud.js?v=20260816-blank1':f'kontrol-cloud.js?v={build}',
+            'conges.js?v=20260815-1':f'conges.js?v={build}',
+            'discipline-v9.js?v=20260813-10':f'discipline-v9.js?v={build}'
+          }
+          for file, pairs in {
+              'inovtec-page-shell.html':[('inovtec-cloud-sync.js?v=20260815-stable2',f'inovtec-cloud-sync.js?v={build}')],
+              'KONTROL-CLOUD-LEGACY.html':[('kontrol-cloud.js?v=20260816-blank1',f'kontrol-cloud.js?v={build}')],
+              'CONGES-LEGACY.html':[('conges.js?v=20260815-1',f'conges.js?v={build}')],
+              'DISCIPLINE-V9-LEGACY.html':[('discipline-v9.js?v=20260813-10',f'discipline-v9.js?v={build}')]
+          }.items():
+              path=Path(file); text=path.read_text(encoding='utf-8')
+              for a,b in pairs:
+                  if a not in text:
+                      raise SystemExit(f'Référence attendue absente dans {file}: {a}')
+                  text=text.replace(a,b)
+              path.write_text(text,encoding='utf-8')
+
+          # Forcer un nouveau shell depuis toutes les entrées synchronisées.
+          entry_pages=['PLANNINGS.html','AGENTS.html','HEURE-SUP.html','CONGES.html','KONTROL-CLOUD.html','DISCIPLINE-V9.html']
+          for file in entry_pages:
+              p=Path(file); s=p.read_text(encoding='utf-8')
+              import re
+              s=re.sub(r'build=[^&"<]+',f'build={build}',s)
+              s=s.replace('PLANNINGS-LEGACY.html%3Fv%3D20260815-menu1',f'PLANNINGS-LEGACY.html%3Fv%3D{build}')
+              s=s.replace('AGENTS-LEGACY.html%3Fv%3D20260814-contract2',f'AGENTS-LEGACY.html%3Fv%3D{build}')
+              s=s.replace('CONGES-LEGACY.html%3Fv%3D20260815-1',f'CONGES-LEGACY.html%3Fv%3D{build}')
+              if 'cache-control' not in s.lower():
+                  s=s.replace('<meta name="viewport" content="width=device-width,initial-scale=1">', '<meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate"><meta http-equiv="pragma" content="no-cache"><meta http-equiv="expires" content="0">')
+              p.write_text(s,encoding='utf-8')
+
+          # Accueil : ne jamais imposer d'auth globale, seulement forcer les nouvelles entrées.
+          p=Path('index.html'); s=p.read_text(encoding='utf-8')
+          if 'cache-control' not in s.lower():
+              s=s.replace('<meta name="theme-color" content="#064e3b">','<meta name="theme-color" content="#064e3b">\n<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">\n<meta http-equiv="pragma" content="no-cache">\n<meta http-equiv="expires" content="0">')
+          import re
+          for page in ['PLANNINGS.html','KONTROL-CLOUD.html','DISCIPLINE-V9.html','AGENTS.html','ORGA.html','HEURE-SUP.html','CONGES.html','INFOCHANTIERS-V2.html']:
+              s=re.sub(re.escape(page)+r'(?:\?v=[^"<]+)?',page+f'?v={build}',s)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Vérifier avant publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s discipline-v9.js
+          node --check inovtec-cloud-sync.js
+          node --check kontrol-cloud.js
+          node --check conges.js
+          node --check discipline-v9.js
+          grep -q '20260820-auth-recovery1' inovtec-page-shell.html
+          grep -q '20260820-auth-recovery1' KONTROL-CLOUD-LEGACY.html
+          grep -q '20260820-auth-recovery1' CONGES-LEGACY.html
+          grep -q '20260820-auth-recovery1' DISCIPLINE-V9-LEGACY.html
+          grep -q 'Persistence.SESSION' inovtec-cloud-sync.js
+          grep -q 'Persistence.SESSION' kontrol-cloud.js
+          grep -q 'Persistence.SESSION' conges.js
+          grep -q 'recordsV9' discipline-v9.js
+
+      - name: Publier la récupération
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Inovtec Recovery Bot'
+          git config user.email 'inovtec-recovery@users.noreply.github.com'
+          files=(inovtec-cloud-sync.js kontrol-cloud.js conges.js discipline-v9.js inovtec-page-shell.html KONTROL-CLOUD-LEGACY.html CONGES-LEGACY.html DISCIPLINE-V9-LEGACY.html PLANNINGS.html AGENTS.html HEURE-SUP.html CONGES.html KONTROL-CLOUD.html DISCIPLINE-V9.html index.html)
+          git add -- "${files[@]}"
+          if git diff --cached --quiet; then
+            echo 'Aucune modification à publier.'
+            exit 0
+          fi
+          git commit -m 'Rétablit les connexions Firebase sur ordinateur et téléphone'
+          git push
