@@ -8,7 +8,7 @@ const mode=(params.get("mode")||"").toLowerCase();
 const frame=document.getElementById("legacyFrame");
 const AUTH_OPTIONAL=new Set(["temps","salaire"]);
 const requireAuth=!AUTH_OPTIONAL.has(mode);
-let reloadedUid="";
+let reloadedUid="",booted=false;
 
 function setStatus(state,message){
   try{window.InovtecFirebaseIndicator?.setState?.(state,message)}catch{}
@@ -34,6 +34,7 @@ function friendlyError(error){
 function overlay(){
   let el=document.getElementById("ivGlobalAuthGateway");
   if(el)return el;
+  if(!document.body)return null;
   el=document.createElement("div");
   el.id="ivGlobalAuthGateway";
   el.style.cssText="position:fixed;inset:0;z-index:2147483000;display:none;place-items:center;background:rgba(3,33,25,.58);backdrop-filter:blur(6px);padding:16px";
@@ -54,13 +55,20 @@ function overlay(){
   });
   return el;
 }
-function showLogin(){if(!requireAuth)return;const el=overlay();el.style.display="grid";const n=el.querySelector("#ivGlobalAuthNetwork");if(n)n.textContent=navigator.onLine?"":"Aucune connexion Internet détectée."}
+function showLogin(){
+  if(!requireAuth)return;
+  const el=overlay();
+  if(!el)return;
+  el.style.display="grid";
+  const n=el.querySelector("#ivGlobalAuthNetwork");if(n)n.textContent=navigator.onLine?"":"Aucune connexion Internet détectée.";
+}
 function hideLogin(){const el=document.getElementById("ivGlobalAuthGateway");if(el)el.style.display="none"}
 function childStillLoggedOut(){
   try{
     const d=frame?.contentDocument;if(!d)return false;
     const login=d.getElementById("loginScreen");
-    if(login&&!login.classList.contains("hidden")&&getComputedStyle(login).display!=="none")return true;
+    const childView=frame?.contentWindow;
+    if(login&&!login.classList.contains("hidden")&&childView?.getComputedStyle(login).display!=="none")return true;
     const modal=d.getElementById("loginModal");
     if(modal&&(modal.classList.contains("open")||modal.getAttribute("aria-hidden")==="false"))return true;
   }catch{}
@@ -79,25 +87,28 @@ function syncFrame(user){
     }catch(error){console.warn("Synchronisation de session du module",error)}
   },500);
 }
-
-setBestPersistence().catch(()=>{});
-auth.onAuthStateChanged(user=>{
-  if(user){
-    hideLogin();
-    setStatus("connected","Firebase connecté");
-    syncFrame(user);
-  }else{
-    reloadedUid="";
-    if(requireAuth){showLogin();setStatus("error","Connexion Firebase requise")}
-    else{hideLogin();setStatus("loading","Outil local")}
-  }
-},error=>{
-  console.error("État Firebase",error);
-  if(requireAuth)showLogin();
-  setStatus("error","Firebase indisponible");
-});
-frame?.addEventListener("load",()=>{const user=auth.currentUser;if(user)syncFrame(user)});
-window.addEventListener("offline",()=>{const el=document.getElementById("ivGlobalAuthNetwork");if(el)el.textContent="Aucune connexion Internet détectée.";setStatus("error","Pas de connexion réseau")});
-window.addEventListener("online",()=>{const el=document.getElementById("ivGlobalAuthNetwork");if(el)el.textContent="";if(auth.currentUser)setStatus("connected","Firebase connecté")});
-overlay();
+function boot(){
+  if(booted)return;booted=true;
+  overlay();
+  setBestPersistence().catch(()=>{});
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      hideLogin();
+      setStatus("connected","Firebase connecté");
+      syncFrame(user);
+    }else{
+      reloadedUid="";
+      if(requireAuth){showLogin();setStatus("error","Connexion Firebase requise")}
+      else{hideLogin();setStatus("loading","Outil local")}
+    }
+  },error=>{
+    console.error("État Firebase",error);
+    if(requireAuth)showLogin();
+    setStatus("error","Firebase indisponible");
+  });
+  frame?.addEventListener("load",()=>{const user=auth.currentUser;if(user)syncFrame(user)});
+  window.addEventListener("offline",()=>{const el=document.getElementById("ivGlobalAuthNetwork");if(el)el.textContent="Aucune connexion Internet détectée.";setStatus("error","Pas de connexion réseau")});
+  window.addEventListener("online",()=>{const el=document.getElementById("ivGlobalAuthNetwork");if(el)el.textContent="";if(auth.currentUser)setStatus("connected","Firebase connecté")});
+}
+if(document.body)boot();else document.addEventListener("DOMContentLoaded",boot,{once:true});
 })();
