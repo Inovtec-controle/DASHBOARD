@@ -40,3 +40,18 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
     console.warn("Migration locale ignorée", error);
   }
 })();
+
+(() => {
+  try {
+    if (window.top !== window) return;
+    if (/inovtec-info-shell-stable\.html$/i.test(location.pathname)) return;
+    if (document.querySelector('script[data-inovtec-auth-gateway="1"]')) return;
+    const script = document.createElement("script");
+    script.src = "inovtec-auth-gateway.js?v=20260820-global-operational1";
+    script.async = false;
+    script.dataset.inovtecAuthGateway = "1";
+    document.head.appendChild(script);
+  } catch (error) {
+    console.warn("Chargement de la connexion globale ignoré", error);
+  }
+})();
