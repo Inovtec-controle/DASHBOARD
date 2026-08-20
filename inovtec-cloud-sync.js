@@ -192,7 +192,7 @@ function ensureLoginBox(){
     e.preventDefault();
     const err=box.querySelector("#ivCloudLoginError");err.textContent="";
     try{
-      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      try{await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(_e1){try{await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION)}catch(_e2){try{await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE)}catch(_e3){}}}
       await firebase.auth().signInWithEmailAndPassword(box.querySelector("#ivCloudEmail").value.trim(),box.querySelector("#ivCloudPassword").value);
     }catch(ex){err.textContent="Connexion impossible : "+(ex?.message||"vérifie les identifiants.")}
   });

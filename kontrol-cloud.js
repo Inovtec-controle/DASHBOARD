@@ -263,7 +263,7 @@
     event.preventDefault();
     $("loginError").textContent = "";
     try {
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      try{await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(_e1){try{await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)}catch(_e2){try{await auth.setPersistence(firebase.auth.Auth.Persistence.NONE)}catch(_e3){}}}
       await auth.signInWithEmailAndPassword($("loginEmail").value.trim(), $("loginPassword").value);
     } catch (error) {
       $("loginError").textContent = "Connexion impossible : " + (error.message || "vérifie les identifiants.");
