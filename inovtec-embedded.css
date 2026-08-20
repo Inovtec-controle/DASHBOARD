@@ -20,4 +20,41 @@ body.iv-mode-heures .wrap,body.iv-mode-temps .wrap,body.iv-mode-salaire .wrap{ma
 body.iv-mode-heures .wrap>header:first-child,body.iv-mode-temps .wrap>header:first-child,body.iv-mode-salaire .wrap>header:first-child{border-radius:14px!important;padding:14px!important;background:linear-gradient(135deg,#f3fbf6,#e8f6ee)!important;border:1px solid #dce9e3!important;margin-bottom:12px!important}
 body.iv-mode-kontrol header.hero{border-radius:14px!important;margin:10px 12px!important;background:linear-gradient(135deg,#065f46,#059669)!important;color:#fff!important}body.iv-mode-kontrol main{max-width:none!important;padding:12px 12px 105px!important}body.iv-mode-kontrol .card{border-color:#dce9e3!important;border-radius:15px!important;box-shadow:0 6px 18px rgba(15,23,42,.05)!important}
 @media(max-width:900px){body.iv-mode-infos .layout,body.iv-mode-agents .content{grid-template-columns:1fr!important}}
+@media(max-width:760px){
+html,body.iv-embedded.iv-mode-infos{overflow-x:hidden!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos main.page{padding:6px 6px 92px!important;width:100%!important;max-width:100%!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .layout{display:block!important;grid-template-columns:1fr!important;gap:8px!important;width:100%!important;max-width:100%!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .sidebar{position:static!important;top:auto!important;max-height:none!important;overflow:visible!important;width:100%!important;margin:0 0 8px!important;padding:10px!important;border-radius:12px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .sidebar .section-title{margin-bottom:8px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .sidebar .actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .sidebar .actions .btn{width:100%!important;min-width:0!important;min-height:42px!important;padding:9px 8px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteList{max-height:230px!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding-right:2px!important;-webkit-overflow-scrolling:touch!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .site-item{padding:10px!important;margin-bottom:6px!important;border-radius:10px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm:not(.hidden){display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important;width:100%!important;max-width:100%!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm>section.card,body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm>.sticky-save{grid-column:1!important;width:100%!important;max-width:100%!important;min-width:0!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm>section.card{padding:11px!important;border-radius:12px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm .grid,body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm .grid.grid-2,body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm .grid.grid-3{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm .field{min-width:0!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm .field label{font-size:13px!important;line-height:1.25!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm input,body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm select,body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm textarea{font-size:16px!important;line-height:1.35!important;padding:11px 12px!important;min-width:0!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm textarea{min-height:76px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm .section-title{margin-bottom:10px!important;align-items:flex-start!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm .section-title h2,body.iv-embedded.iv-visual-v2.iv-mode-infos #siteForm .section-title h3{font-size:15px!important;line-height:1.2!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .days{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important;overflow:visible!important;width:100%!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .days .field{padding:8px!important;border-radius:10px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .days textarea{min-height:68px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #ivContractFields{grid-template-columns:minmax(0,1fr)!important;width:100%!important;padding:9px!important;gap:9px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .iv-site-group{padding:10px!important;border-radius:12px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .iv-site-group-grid{grid-template-columns:minmax(0,1fr)!important;gap:9px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .iv-cdc-head{display:block!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .iv-cdc-actions{display:grid!important;grid-template-columns:1fr!important;width:100%!important;margin-top:10px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .iv-cdc-actions .iv-cdc-btn{width:100%!important;min-height:44px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .iv-cdc-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #ivCdcOverlay{padding:8px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #ivCdcOverlay .iv-cdc-modal{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;max-height:94dvh!important;padding:12px!important;border-radius:14px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #ivCdcOverlay .iv-cdc-form-grid{grid-template-columns:minmax(0,1fr)!important;gap:9px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #ivCdcOverlay .iv-cdc-modal-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos #ivCdcOverlay .iv-cdc-modal-actions>*{width:100%!important;min-height:44px!important}
+body.iv-embedded.iv-visual-v2.iv-mode-infos .iv-cdc-table-wrap{max-width:100%!important;-webkit-overflow-scrolling:touch!important}
+}
 @media(max-width:680px){body.iv-embedded .page,body.iv-mode-heures .wrap,body.iv-mode-temps .wrap,body.iv-mode-salaire .wrap{padding:8px!important}body.iv-mode-agents .content{padding:8px!important}}
