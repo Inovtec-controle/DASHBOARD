@@ -1,6 +1,7 @@
 (()=>{
 "use strict";
 if(window.__INOVTEC_DASHBOARD_MARK1__)return;window.__INOVTEC_DASHBOARD_MARK1__=true;
+const recovery=document.createElement("script");recovery.src="inovtec-historical-data-recovery.js?v=20260823-recovery1";recovery.async=false;document.head.appendChild(recovery);
 const $=id=>document.getElementById(id),parse=s=>{try{return JSON.parse(String(s||""))}catch{return null}},SHARED_ID="__inovtec_shared_workspace_v1__";
 const set=(id,v)=>{const e=$(id);if(e)e.textContent=String(v)};
 const monthKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
@@ -18,7 +19,7 @@ async function refresh(user){
     const db=firebase.firestore(),snap=await db.collection("chantiers").doc(SHARED_ID).get(),w=snap.exists?(snap.data()||{}):{};
     const hs=hoursData(w),entries=Array.isArray(hs.entries)?hs.entries:[],now=new Date(),mk=monthKey(now),monthEntries=entries.filter(e=>String(e?.date||"").slice(0,7)===mk),monthMin=monthEntries.reduce((a,e)=>a+(Number(e?.minutes)||0),0);
     set("kpiHours",minutesLabel(monthMin));set("kpiHoursSub",`${monthEntries.length} ligne${monthEntries.length>1?"s":""} ce mois`);set("hsLines",monthEntries.length);set("hsHours",minutesLabel(monthMin));
-    const tasks=Array.isArray(w.tasks)?w.tasks:[],active=tasks.filter(t=>!t?.archived&&t?.status!=="done"),todo=tasks.filter(t=>!t?.archived&&t?.status==="todo").length,doing=tasks.filter(t=>!t?.archived&&t?.status==="doing").length,done=tasks.filter(t=>!t?.archived&&t?.status==="done").length,late=tasks.filter(overdue).length;
+    const tasks=Array.isArray(w.tasks)?w.tasks:[],active=tasks.filter(t=>!t?.archived&&t?.status!=="done"),todo=tasks.filter(t=>!t?.archived&&t?.status==="todo").length,doing=tasks.filter(t=>!t?.archived&&(t?.status==="inprogress"||t?.status==="doing")).length,done=tasks.filter(t=>!t?.archived&&t?.status==="done").length,late=tasks.filter(overdue).length;
     set("kpiTasks",active.length);set("kpiTasksSub",late?`${late} en retard`:"Aucun retard détecté");set("taskTodo",todo);set("taskDoing",doing);set("taskDone",done);set("taskLate",late);
     const planning=planningData(w),agents=Array.isArray(planning.agents)?planning.agents:[],weekEntries=Object.values(planning.weeks||{}).flat().filter(Boolean);
     set("planningAgents",agents.length);set("planningEntries",weekEntries.length);set("planningSummary",agents.length?`${agents.length} agent${agents.length>1?"s":""} dans le planning`:"Planning prêt à être renseigné");
@@ -28,7 +29,8 @@ async function refresh(user){
 }
 function observeKpis(){["kpiSites","kpiAgents","kpiKontrol","kpiDiscipline"].forEach(id=>{const e=$(id);if(e)new MutationObserver(updateMirror).observe(e,{childList:true,subtree:true,characterData:true})});updateMirror()}
 observeKpis();
-if(window.firebase&&window.INOVTEC_FIREBASE_CONFIG){try{if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);firebase.auth().onAuthStateChanged(u=>{if(u){setTimeout(()=>refresh(u),220);setTimeout(()=>refresh(u),1800)}})}catch(e){console.warn(e)}}
+if(window.firebase&&window.INOVTEC_FIREBASE_CONFIG){try{if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);firebase.auth().onAuthStateChanged(u=>{if(u){set("sharedStatus","Récupération et synchronisation des données…");setTimeout(()=>refresh(u),350);setTimeout(()=>refresh(u),2200)}})}catch(e){console.warn(e)}}
+window.addEventListener("inovtec:historical-data-recovered",()=>{try{const u=firebase.auth().currentUser;if(u){set("sharedStatus","Anciennes données récupérées et partagées");setTimeout(()=>refresh(u),120)}}catch{}});
 window.addEventListener("focus",()=>{try{const u=firebase.auth().currentUser;if(u)refresh(u)}catch{}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){try{const u=firebase.auth().currentUser;if(u)refresh(u)}catch{}}});
 })();
