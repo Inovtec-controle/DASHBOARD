@@ -1,0 +1,61 @@
+name: Cross page data health
+
+on:
+  push:
+    branches: [main, 'fix/cross-page-data-model']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-cross-page-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Vérifier les scripts de cohérence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s DATA_SHARING_MAP.md
+          test -s inovtec-cross-page-data.js
+          test -s inovtec-kontrol-ref-metadata.js
+          test -s dashboard-index-shared.js
+          node --check inovtec-cross-page-data.js
+          node --check inovtec-kontrol-ref-metadata.js
+          node --check dashboard-index-shared.js
+
+      - name: Vérifier le branchement des pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'inovtec-cross-page-data.js?v=20260823-crosspage1' inovtec-page-shell.html
+          grep -q 'inovtec-cross-page-data.js?v=20260823-crosspage1' inovtec-info-shell-stable.html
+          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260823-crosspage1' KONTROL-CLOUD-LEGACY.html
+          grep -q 'dashboard-index-shared.js?v=20260823-crosspage1' index.html
+
+      - name: Vérifier le modèle commun
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'agentRefId' inovtec-cross-page-data.js
+          grep -q 'chantierId' inovtec-cross-page-data.js
+          grep -q 'referentialLinks' inovtec-cross-page-data.js
+          grep -q 'referentialAgents' inovtec-cross-page-data.js
+          grep -q 'Classeur agents' DATA_SHARING_MAP.md
+          grep -q 'Infos chantier' DATA_SHARING_MAP.md
+          grep -q 'kontrolPdfMeta' dashboard-index-shared.js
+          grep -q 'agentRefIds' inovtec-kontrol-ref-metadata.js
+          grep -q 'chantierId' inovtec-kontrol-ref-metadata.js
+
+      - name: Vérifier les calculateurs indépendants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'Conversion du temps' DATA_SHARING_MAP.md
+          grep -q 'Salaire' DATA_SHARING_MAP.md
+          echo 'Les calculateurs restent indépendants des données métier.'
