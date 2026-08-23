@@ -1,0 +1,28 @@
+name: Planning coverage health
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier le moteur de couverture
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s inovtec-planning-coverage.js
+          grep -q 'inovtec-planning-coverage.js' PLANNINGS-LEGACY.html
+          grep -q 'cahierDesChargesV1' inovtec-planning-coverage.js
+          grep -q 'chantierId' inovtec-planning-coverage.js
+          grep -q 'Fréquence à préciser' inovtec-planning-coverage.js
+          grep -q 'Couverture des opérations' inovtec-planning-coverage.js
+          node --check inovtec-planning-coverage.js
