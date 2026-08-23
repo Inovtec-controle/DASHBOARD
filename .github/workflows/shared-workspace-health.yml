@@ -1,0 +1,50 @@
+name: Shared workspace health
+
+on:
+  push:
+    branches: [main, 'fix/firebase-shared-workspace']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-shared-workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Vérifier les scripts partagés
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s inovtec-shared-workspace.js
+          test -s inovtec-kontrol-shared-archive.js
+          node --check inovtec-shared-workspace.js
+          node --check inovtec-kontrol-shared-archive.js
+
+      - name: Vérifier le branchement des pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'inovtec-shared-workspace.js?v=20260823-shared1' inovtec-page-shell.html
+          grep -q 'firebase-firestore-compat.js' KONTROL-CLOUD-LEGACY.html
+          grep -q 'inovtec-kontrol-shared-archive.js?v=20260823-shared1' KONTROL-CLOUD-LEGACY.html
+          grep -q '__inovtec_shared_workspace_v1__' inovtec-shared-workspace.js
+          grep -q '__inovtec_shared_discipline_v1__' inovtec-shared-workspace.js
+          grep -q 'kontrolPdfMeta' inovtec-kontrol-shared-archive.js
+          grep -q '_hidden:true' inovtec-shared-workspace.js
+          grep -q '_hidden:true' inovtec-kontrol-shared-archive.js
+
+      - name: Vérifier la compatibilité avec les règles Firebase actuelles
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'match /chantiers/{chantierId}' firestore.rules
+          grep -q 'allow read, create, update, delete: if signedIn();' firestore.rules
+          ! grep -q 'collection("discipline").doc("__inovtec_shared' inovtec-shared-workspace.js
+          ! grep -q 'kontrol/shared/pdfs' inovtec-kontrol-shared-archive.js
+          echo 'Le partage utilise uniquement la collection chantiers déjà autorisée aux comptes authentifiés.'
