@@ -87,12 +87,11 @@ function patchManual(d){
  let add=d.getElementById("ivCdcAdd");if(add&&add.dataset.ivOperationalFix!=="1"){const n=add.cloneNode(true);n.dataset.ivOperationalFix="1";n.textContent="✍️ Saisir manuellement";n.disabled=false;n.addEventListener("click",async e=>{e.preventDefault();const target=await site(d);if(!target?.id){alert("Sélectionne et enregistre d’abord le chantier.");return}await loadSuggestions(d,target);resetModal(d)});add.replaceWith(n)}
  if(o.dataset.ivSuggestionObserver!=="1"){o.dataset.ivSuggestionObserver="1";new MutationObserver(async()=>{if(o.hidden)return;const target=await site(d);if(target?.id)await loadSuggestions(d,target);applyManualUi(d)}).observe(o,{attributes:true,attributeFilter:["hidden"]})}
 }
-function patchPdf(d){
- const b=d.getElementById("ivCdcImport"),input=d.getElementById("ivCdcFile");if(!b||!input)return;
- if(b.dataset.ivOperationalFix==="1")return;
- const n=b.cloneNode(true);n.dataset.ivOperationalFix="1";n.dataset.ivRealImport="1";n.textContent="📄 Importer un PDF";n.disabled=false;n.title="Importer le cahier des charges PDF de ce chantier";
- n.addEventListener("click",async e=>{e.preventDefault();const target=await site(d);if(!target?.id){alert("Sélectionne et enregistre d’abord le chantier.");return}input.accept="application/pdf,.pdf";input.click()});b.replaceWith(n);
+function patchImport(d){
+ const b=d.getElementById("ivCdcImport"),input=d.getElementById("ivCdcFile");if(!b)return;
+ b.textContent="📄 Importer PDF / Excel";b.title="Importer un cahier des charges PDF ou Excel";b.dataset.supportedFormats="xlsx,xls,pdf";
+ if(input)input.accept=".xlsx,.xls,.pdf,application/pdf";
 }
-function install(){const d=D();if(!d?.body)return;if(d!==patchedDoc)patchedDoc=d;patchManual(d);patchPdf(d)}
+function install(){const d=D();if(!d?.body)return;if(d!==patchedDoc)patchedDoc=d;patchManual(d);patchImport(d)}
 frame?.addEventListener("load",()=>{setTimeout(install,300);setTimeout(install,900);setTimeout(install,1700)});setTimeout(install,600);setInterval(install,900);
 })();
