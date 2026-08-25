@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b6b43">
+<title>Inovtec — Variables agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="variables.css?v=20260825-1">
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="top-left">
+      <div class="field"><label>Mois de paie</label><input id="monthPick" type="month"></div>
+      <div class="field"><label>Rechercher</label><input id="searchAgent" class="search" type="search" placeholder="Nom d’un agent…"></div>
+    </div>
+    <div class="top-actions">
+      <button class="btn soft" id="detectPlanning" type="button">◷ Détecter planning</button>
+      <button class="btn" id="exportCsv" type="button">⇩ Export CSV</button>
+      <button class="btn primary" id="newVariable" type="button">＋ Ajouter une variable</button>
+    </div>
+  </div>
+
+  <section class="kpis">
+    <article class="kpi"><small>Agents référencés</small><strong id="kpiAgents">0</strong><div class="hint">Classeur agents</div></article>
+    <article class="kpi"><small>Variables du mois</small><strong id="kpiEntries">0</strong><div class="hint">Heures + absences</div></article>
+    <article class="kpi"><small>À vérifier</small><strong id="kpiReview">0</strong><div class="hint">Avant transmission paie</div></article>
+    <article class="kpi"><small>Justificatifs manquants</small><strong id="kpiDocs">0</strong><div class="hint">Maladie / AT / absence</div></article>
+  </section>
+
+  <div class="layout">
+    <section class="panel">
+      <div class="panel-head"><h2>Agents</h2><span class="tag" id="agentCount">0</span></div>
+      <div class="agent-list" id="agentList"></div>
+    </section>
+
+    <section class="panel">
+      <div class="detail">
+        <div class="detail-top">
+          <div class="detail-title"><h2 id="agentName">Sélectionnez un agent</h2><p id="agentMeta">Les agents viennent automatiquement du Classeur agents.</p></div>
+          <div class="status-actions">
+            <button class="btn soft" id="verifyBtn" type="button">✓ Vérifier</button>
+            <button class="btn" id="transmitBtn" type="button">⇧ Marquer transmis</button>
+          </div>
+        </div>
+
+        <div class="summary-grid" id="summaryGrid"></div>
+
+        <div class="tabs">
+          <button class="tab active" data-tab="journal" type="button">Journal du mois</button>
+          <button class="tab" data-tab="recap" type="button">Récapitulatif paie</button>
+        </div>
+
+        <div id="journalTab">
+          <div class="journal-head"><h3>Détail des variables</h3><button class="btn soft" id="quickAdd" type="button">＋ Ajouter</button></div>
+          <div class="entries" id="entries"></div>
+          <div class="notice">Les congés et absences affichés ici proviennent directement du module <b>Congés & absences</b>. Les heures sont enregistrées dans ce nouveau module Variables. Une modification faite ici reste synchronisée avec Firebase.</div>
+        </div>
+
+        <div id="recapTab" hidden>
+          <div class="journal-head"><h3>Récapitulatif du mois</h3><span class="tag">Prêt pour la paie</span></div>
+          <div class="recap"><table><thead><tr><th>Agent</th><th>Compl.</th><th>Sup.</th><th>Dimanche</th><th>Férié</th><th>Nuit</th><th>Absences</th><th>Statut</th></tr></thead><tbody id="recapBody"></tbody></table></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="modal-bg" id="variableModal" aria-hidden="true">
+  <form class="modal" id="variableForm">
+    <div class="modal-head"><div><h2 id="modalTitle">Ajouter une variable</h2><p>Saisie rapide reliée à l’agent et, si besoin, au chantier.</p></div><button class="btn" id="closeVariable" type="button">×</button></div>
+    <div class="modal-body">
+      <input id="editId" type="hidden">
+      <input id="editSource" type="hidden">
+      <div class="form-grid">
+        <div class="field span-2"><label>Agent</label><select id="formAgent" required></select></div>
+        <div class="field"><label>Type</label><select id="formType" required>
+          <optgroup label="Heures"><option value="heures_complementaires">Heures complémentaires</option><option value="heures_supplementaires">Heures supplémentaires</option><option value="dimanche">Heures du dimanche</option><option value="ferie">Heures jour férié</option><option value="nuit">Heures de nuit</option></optgroup>
+          <optgroup label="Absences"><option value="conges_payes">Congés payés</option><option value="maladie">Arrêt maladie</option><option value="accident_travail">Accident du travail</option><option value="absence_autorisee">Absence autorisée</option><option value="absence_injustifiee">Absence injustifiée</option><option value="recuperation">Récupération</option><option value="formation">Formation</option><option value="autre_absence">Autre absence</option></optgroup>
+        </select></div>
+        <div class="field" id="dateField"><label>Date</label><input id="formDate" type="date"></div>
+        <div class="field" id="durationField"><label>Durée</label><input id="formDuration" type="text" inputmode="decimal" placeholder="Ex. 2:30 ou 2,5"></div>
+        <div class="field" id="siteField"><label>Chantier / site</label><select id="formSite"><option value="">Aucun / non renseigné</option></select></div>
+        <div class="field absence-only" hidden><label>Du</label><input id="formStart" type="date"></div>
+        <div class="field absence-only" hidden><label>Au</label><input id="formEnd" type="date"></div>
+        <div class="field absence-only" hidden><label>Début</label><select id="formStartPart"><option value="full">Journée complète</option><option value="morning">Matin</option><option value="afternoon">Après-midi</option></select></div>
+        <div class="field absence-only" hidden><label>Fin</label><select id="formEndPart"><option value="full">Journée complète</option><option value="morning">Matin</option><option value="afternoon">Après-midi</option></select></div>
+        <label class="check absence-only span-2" hidden><input id="formDoc" type="checkbox"> Justificatif reçu / enregistré</label>
+        <div class="field span-2"><label>Commentaire</label><textarea id="formNote" rows="3" maxlength="500" placeholder="Remplacement, précision utile, motif…"></textarea></div>
+      </div>
+      <div class="notice warn" id="formHint">Les heures complémentaires sont proposées par défaut pour un agent à temps partiel ; vous pouvez toujours changer le type.</div>
+    </div>
+    <div class="modal-actions"><button class="btn danger" id="deleteVariable" type="button" hidden>Supprimer</button><button class="btn" id="cancelVariable" type="button">Annuler</button><button class="btn primary" type="submit">Enregistrer</button></div>
+  </form>
+</div>
+
+<div class="modal-bg" id="planningModal" aria-hidden="true">
+  <div class="modal">
+    <div class="modal-head"><div><h2>Détection depuis le planning</h2><p>Dimanches et jours fériés travaillés trouvés pour le mois sélectionné.</p></div><button class="btn" id="closePlanning" type="button">×</button></div>
+    <div class="modal-body"><div id="planningSummary" class="notice"></div><div class="suggestions" id="planningSuggestions"></div></div>
+    <div class="modal-actions"><button class="btn" id="cancelPlanning" type="button">Fermer</button><button class="btn primary" id="addPlanningSuggestions" type="button">Ajouter les suggestions cochées</button></div>
+  </div>
+</div>
+
+<div class="login" id="loginBox">
+  <form class="login-card" id="loginForm"><h2>Connexion Inovtec</h2><p>Utilisez le même compte pour retrouver les variables sur ordinateur et téléphone.</p><div class="field"><label>Email</label><input id="loginEmail" type="email" autocomplete="username" required></div><div class="field"><label>Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div><button class="btn primary" style="width:100%;margin-top:12px" type="submit">Se connecter</button><div class="login-error" id="loginError"></div></form>
+</div>
+
+<script src="variables.js?v=20260825-1"></script>
+</body>
+</html>
