@@ -23,6 +23,16 @@ const HOME_DATA=[
   ["INFOCHANTIERS-V2.html","Chantiers","▤","data-chantiers"],
   ["AGENTS.html","Agents","◉","data-agents"]
 ];
+// Le menu mobile reste volontairement inchangé : la demande porte sur le menu gauche desktop.
+const MOBILE_PAGES=[
+  ["index.html","Accueil","⌂","home"],
+  ["INFOCHANTIERS-V2.html","Infos chantier","ⓘ","infos"],
+  ["AGENTS.html","Classeur agents","♙","agents"],
+  ["PLANNINGS.html","Planning","▦","planning"],
+  ["CONGES.html","Congés & absences","☼","conges"],
+  ["VARIABLES.html","Variables agents","◷","variables"],
+  ["ORGA.html","Organisation","◎","organisation"]
+];
 const SHELL_MENU=[...HOME_MAIN,...HOME_TOOLS,...HOME_DATA];
 const MODULE_PAGES=[...HOME_MAIN.slice(1),...HOME_TOOLS];
 const base=a=>String(a?.getAttribute?.("href")||"").split("?")[0].replace(/^\.\//,"");
@@ -34,7 +44,7 @@ function rebuildLegacyNav(nav){if(!nav)return;const doc=nav.ownerDocument;nav.in
 function rebuildHomeMain(nav){if(!nav)return;const doc=nav.ownerDocument;nav.innerHTML="";HOME_MAIN.forEach(p=>{const a=navLink(doc,p,false);if(p[3]==="home")a.classList.add("active");nav.appendChild(a)})}
 function setPageHeader(desktop,mobile,key,label,eyebrow,title,subtitle){document.querySelectorAll("#desktopNav a,#mobileNav a").forEach(a=>a.classList.remove("active"));desktop.querySelector(`a[href="${key}"]`)?.classList.add("active");mobile?.querySelector(`a[href="${key}"]`)?.classList.add("active");const set=(id,v,h)=>{const e=document.getElementById(id);if(e)h?e.innerHTML=v:e.textContent=v};set("topTitle",label);set("eyebrow",eyebrow);set("pageTitle",title,1);set("pageSubtitle",subtitle);document.title=`${label} — Inovtec Dashboard`}
 function addShellTool(frame,tools,cls,label,handler){if(!tools||tools.querySelector("."+cls))return;const b=document.createElement("button");b.type="button";b.className=`iv-tool primary ${cls}`;b.innerHTML=`<span>＋</span><span>${label}</span>`;b.onclick=handler;tools.insertBefore(b,tools.firstChild)}
-function shell(){const desktop=document.getElementById("desktopNav");if(!desktop)return;rebuildShellDesktop(desktop);const mobile=document.getElementById("mobileNav");if(mobile){const mobilePages=HOME_MAIN.slice(0,7);mobile.innerHTML=mobilePages.map(p=>`<a href="${p[0]}"><span>${p[2]}</span><span>${p[1].replace("Classeur ","").replace("Infos chantier","Chantiers").replace("Congés & absences","Congés").replace("Variables agents","Variables")}</span></a>`).join("");const key=activeKey();mobilePages.forEach((p,i)=>{if(p[3]===key)mobile.children[i]?.classList.add("active")})}
+function shell(){const desktop=document.getElementById("desktopNav");if(!desktop)return;rebuildShellDesktop(desktop);const mobile=document.getElementById("mobileNav");if(mobile){mobile.innerHTML=MOBILE_PAGES.map(p=>`<a href="${p[0]}"><span>${p[2]}</span><span>${p[1].replace("Classeur ","").replace("Infos chantier","Chantiers").replace("Congés & absences","Congés").replace("Variables agents","Variables")}</span></a>`).join("");const key=activeKey();MOBILE_PAGES.forEach((p,i)=>{if(p[3]===key)mobile.children[i]?.classList.add("active")})}
 const f=document.getElementById("legacyFrame"),t=document.getElementById("quickTools");
 if(mode==="conges"){setPageHeader(desktop,mobile,"CONGES.html","Congés & absences","CONGÉS & ABSENCES",'Congés & <em>absences</em>',"Enregistrez les demandes, validez les périodes d’absence et pilotez les remplacements liés au planning.");const add=()=>addShellTool(f,t,"iv-conges-tool","Nouvelle demande / absence",()=>{try{f.contentDocument?.getElementById("newLeave")?.click()}catch{}});f?.addEventListener("load",()=>setTimeout(add,180));setTimeout(add,700)}
 if(mode==="variables"){setPageHeader(desktop,mobile,"VARIABLES.html","Variables agents","VARIABLES DE PAIE",'Variables <em>agents</em>',"Centralisez heures complémentaires, supplémentaires, dimanches, jours fériés, nuits et absences sans ressaisie.");const add=()=>addShellTool(f,t,"iv-variables-tool","Ajouter une variable",()=>{try{f.contentDocument?.getElementById("newVariable")?.click()}catch{}});f?.addEventListener("load",()=>setTimeout(add,180));setTimeout(add,700)}
