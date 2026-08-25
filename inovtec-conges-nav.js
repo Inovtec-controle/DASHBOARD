@@ -2,7 +2,7 @@
 "use strict";
 if(!document.querySelector('script[data-iv-nav-order="1"]')){
   const s=document.createElement("script");
-  s.src="inovtec-navigation-order.js?v=20260815-2";
+  s.src="inovtec-navigation-order.js?v=20260825-menu-unifie1";
   s.dataset.ivNavOrder="1";
   s.async=false;
   document.head.appendChild(s);
