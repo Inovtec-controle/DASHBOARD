@@ -1,63 +1,332 @@
 (()=>{
 "use strict";
-const VAR_KEY="inovtec_variables_v1",LEAVE_KEY="inovtec_absences_v1",PLANNING_KEY="inovtec_plannings_v2",LEGACY_HOURS_KEY="HSUPP_DUR_APP_V1";
-const $=id=>document.getElementById(id);const parentWin=(()=>{try{return parent&&parent!==window?parent:window}catch{return window}})();
-const fb=()=>{try{return parentWin.firebase||window.firebase}catch{return null}};const hub=()=>{try{return parentWin.InovtecDataHub||null}catch{return null}};
-const uid=p=>p+"_"+Date.now().toString(16)+"_"+Math.random().toString(16).slice(2);const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-const pad=n=>String(n).padStart(2,"0");const isoNow=()=>new Date().toISOString();const parse=(s,f)=>{try{const v=JSON.parse(s);return v??f}catch{return f}};
-const TYPE_LABELS={heures_complementaires:"Heures complémentaires",heures_supplementaires:"Heures supplémentaires",dimanche:"Heures du dimanche",ferie:"Heures jour férié",nuit:"Heures de nuit",conges_payes:"Congés payés",maladie:"Arrêt maladie",accident_travail:"Accident du travail",absence_autorisee:"Absence autorisée",absence_injustifiee:"Absence injustifiée",recuperation:"Récupération",formation:"Formation",autre_absence:"Autre absence"};
+
+const VAR_KEY="inovtec_variables_v1";
+const LEAVE_KEY="inovtec_absences_v1";
+const PLANNING_KEY="inovtec_plannings_v2";
+const LEGACY_HOURS_KEY="HSUPP_DUR_APP_V1";
+const $=id=>document.getElementById(id);
+const parentWin=(()=>{try{return parent&&parent!==window?parent:window}catch{return window}})();
+const fb=()=>{try{return parentWin.firebase||window.firebase}catch{return null}};
+const hub=()=>{try{return parentWin.InovtecDataHub||null}catch{return null}};
+const uid=p=>p+"_"+Date.now().toString(16)+"_"+Math.random().toString(16).slice(2);
+const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+const pad=n=>String(n).padStart(2,"0");
+const isoNow=()=>new Date().toISOString();
+const parse=(s,f)=>{try{const v=JSON.parse(s);return v??f}catch{return f}};
+
+const TYPE_LABELS={
+  heures_complementaires:"Heures complémentaires",
+  heures_supplementaires:"Heures supplémentaires",
+  dimanche:"Heures du dimanche",
+  ferie:"Heures jour férié",
+  nuit:"Heures de nuit",
+  conges_payes:"Congés payés",
+  maladie:"Arrêt maladie",
+  accident_travail:"Accident du travail",
+  absence_autorisee:"Absence autorisée",
+  absence_injustifiee:"Absence injustifiée",
+  recuperation:"Récupération",
+  formation:"Formation",
+  autre_absence:"Autre absence"
+};
 const ABS_TYPES=new Set(["conges_payes","maladie","accident_travail","absence_autorisee","absence_injustifiee","recuperation","formation","autre_absence"]);
-const LEAVE_TO_TYPE={"conges payes":"conges_payes","récupération":"recuperation","recuperation":"recuperation","maladie":"maladie","arret maladie":"maladie","arrêt maladie":"maladie","accident du travail":"accident_travail","accident travail":"accident_travail","absence autorisee":"absence_autorisee","absence autorisée":"absence_autorisee","absence injustifiee":"absence_injustifiee","absence injustifiée":"absence_injustifiee","formation":"formation","absence":"autre_absence","autre":"autre_absence"};
-const TYPE_TO_LEAVE={conges_payes:"Congés payés",maladie:"Maladie",accident_travail:"Accident du travail",absence_autorisee:"Absence autorisée",absence_injustifiee:"Absence injustifiée",recuperation:"Récupération",formation:"Formation",autre_absence:"Autre absence"};
-let state={version:1,entries:[],monthStatus:{},meta:{}},leaves=[],agents=[],chantiers=[],selectedAgentId="",user=null,docRef=null,unsub=null,hubUnsub=null,variablesReady=false,planningSuggestions=[];
-function cleanState(v){return{version:1,entries:Array.isArray(v?.entries)?v.entries:[],monthStatus:v?.monthStatus&&typeof v.monthStatus==="object"?v.monthStatus:{},meta:v?.meta&&typeof v.meta==="object"?v.meta:{}}}
-function loadLocal(){state=cleanState(parse(localStorage.getItem(VAR_KEY)||"{}",{}));const l=parse(localStorage.getItem(LEAVE_KEY)||"[]",[]);leaves=Array.isArray(l)?l:[]}
-function saveLocal(){localStorage.setItem(VAR_KEY,JSON.stringify(state))}function saveLeavesLocal(){localStorage.setItem(LEAVE_KEY,JSON.stringify(leaves))}
-function displayAgent(a){return a?.name||a?.displayName||[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ")||"Agent"}function initials(n){return String(n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()).join("")||"?"}
-function todayMonth(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}`}function currentMonth(){return $("monthPick").value||todayMonth()}function monthBounds(m=currentMonth()){const [y,mo]=m.split("-").map(Number);const last=new Date(y,mo,0).getDate();return{start:`${y}-${pad(mo)}-01`,end:`${y}-${pad(mo)}-${pad(last)}`}}
-function parseDate(s){const m=String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?new Date(+m[1],+m[2]-1,+m[3]):null}function fmtDate(s){const d=parseDate(s);return d?new Intl.DateTimeFormat("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}).format(d):"—"}
-function formatMinutes(min){min=Math.max(0,Math.round(Number(min)||0));return`${Math.floor(min/60)}h${pad(min%60)}`}function parseDuration(v){const s=String(v||"").trim().replace(",",".");if(!s)return 0;const hm=s.match(/^(\d{1,3})\s*[:h]\s*(\d{1,2})$/i);if(hm)return Math.max(0,+hm[1]*60+Math.min(59,+hm[2]));const n=Number(s);return Number.isFinite(n)&&n>0?Math.round(n*60):0}
-function leaveUnits(l){const s=parseDate(l.startDate),e=parseDate(l.endDate);if(!s||!e||e<s)return 0;let n=Math.round((e-s)/86400000)+1;if(l.startDate===l.endDate)return(l.startPart!=="full"||l.endPart!=="full")?.5:1;if(l.startPart!=="full")n-=.5;if(l.endPart!=="full")n-=.5;return Math.max(.5,n)}
-function statusKey(agentId,m=currentMonth()){return`${m}|${agentId}`}function getStatus(agentId){return state.monthStatus[statusKey(agentId)]?.status||"draft"}function statusLabel(s){return s==="verified"?"Vérifié":s==="transmitted"?"Transmis":"À vérifier"}function setStatus(agentId,status){state.monthStatus[statusKey(agentId)]={status,updatedAt:isoNow()};saveAndPush("status-"+status);render()}
-function markDraft(agentId){if(!agentId)return;state.monthStatus[statusKey(agentId)]={status:"draft",updatedAt:isoNow()}}
-function typeFromLeave(l){const n=norm(l.type);return LEAVE_TO_TYPE[n]||(/maladie/.test(n)?"maladie":/accident/.test(n)?"accident_travail":/formation/.test(n)?"formation":/recup/.test(n)?"recuperation":/conge/.test(n)?"conges_payes":"autre_absence")}
-function activeLeave(l){return l&&l.status!=="rejected"&&l.status!=="cancelled"}function leaveInMonth(l,m=currentMonth()){const b=monthBounds(m);return activeLeave(l)&&String(l.startDate||"")<=b.end&&String(l.endDate||"")>=b.start}
+const LEAVE_TO_TYPE={
+  "conges payes":"conges_payes",maladie:"maladie","arret maladie":"maladie",
+  "accident du travail":"accident_travail","accident travail":"accident_travail",
+  "absence autorisee":"absence_autorisee","absence injustifiee":"absence_injustifiee",
+  recuperation:"recuperation",formation:"formation",absence:"autre_absence",autre:"autre_absence"
+};
+const TYPE_TO_LEAVE={
+  conges_payes:"Congés payés",maladie:"Maladie",accident_travail:"Accident du travail",
+  absence_autorisee:"Absence autorisée",absence_injustifiee:"Absence injustifiée",
+  recuperation:"Récupération",formation:"Formation",autre_absence:"Autre absence"
+};
+
+let state={version:1,entries:[],monthStatus:{},meta:{}};
+let leaves=[],agents=[],chantiers=[],selectedAgentId="";
+let user=null,docRef=null,unsub=null,hubUnsub=null;
+let variablesReady=false,legacyHoursResolved=false,legacyHoursCloud=[];
+let planningSuggestions=[];
+
+function cleanState(v){
+  return{
+    version:1,
+    entries:Array.isArray(v?.entries)?v.entries:[],
+    monthStatus:v?.monthStatus&&typeof v.monthStatus==="object"?v.monthStatus:{},
+    meta:v?.meta&&typeof v.meta==="object"?v.meta:{}
+  };
+}
+function loadLocal(){
+  state=cleanState(parse(localStorage.getItem(VAR_KEY)||"{}",{}));
+  const l=parse(localStorage.getItem(LEAVE_KEY)||"[]",[]);
+  leaves=Array.isArray(l)?l:[];
+}
+function saveLocal(){localStorage.setItem(VAR_KEY,JSON.stringify(state))}
+function saveLeavesLocal(){localStorage.setItem(LEAVE_KEY,JSON.stringify(leaves))}
+function displayAgent(a){return a?.name||a?.displayName||[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ")||"Agent"}
+function initials(n){return String(n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()).join("")||"?"}
+function todayMonth(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}`}
+function currentMonth(){return $("monthPick").value||todayMonth()}
+function monthBounds(m=currentMonth()){
+  const [y,mo]=m.split("-").map(Number),last=new Date(y,mo,0).getDate();
+  return{start:`${y}-${pad(mo)}-01`,end:`${y}-${pad(mo)}-${pad(last)}`};
+}
+function parseDate(s){const m=String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?new Date(+m[1],+m[2]-1,+m[3]):null}
+function fmtDate(s){const d=parseDate(s);return d?new Intl.DateTimeFormat("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}).format(d):"—"}
+function formatMinutes(min){min=Math.max(0,Math.round(Number(min)||0));return`${Math.floor(min/60)}h${pad(min%60)}`}
+function parseDuration(v){
+  const s=String(v||"").trim().replace(",",".");if(!s)return 0;
+  const hm=s.match(/^(\d{1,3})\s*[:h]\s*(\d{1,2})$/i);
+  if(hm)return Math.max(0,+hm[1]*60+Math.min(59,+hm[2]));
+  const n=Number(s);return Number.isFinite(n)&&n>0?Math.round(n*60):0;
+}
+function leaveUnitsInMonth(l,m=currentMonth()){
+  const b=monthBounds(m),rawStart=String(l.startDate||""),rawEnd=String(l.endDate||"");
+  const start=rawStart<b.start?b.start:rawStart,end=rawEnd>b.end?b.end:rawEnd;
+  const s=parseDate(start),e=parseDate(end);if(!s||!e||e<s)return 0;
+  let n=Math.round((e-s)/86400000)+1;
+  if(start===end&&rawStart===rawEnd&&(l.startPart!=="full"||l.endPart!=="full"))return .5;
+  if(start===rawStart&&l.startPart!=="full")n-=.5;
+  if(end===rawEnd&&l.endPart!=="full")n-=.5;
+  return Math.max(.5,n);
+}
+function statusKey(agentId,m=currentMonth()){return`${m}|${agentId}`}
+function getStatus(agentId){return state.monthStatus[statusKey(agentId)]?.status||"draft"}
+function statusLabel(s){return s==="verified"?"Vérifié":s==="transmitted"?"Transmis":"À vérifier"}
+function setStatus(agentId,status){state.monthStatus[statusKey(agentId)]={status,updatedAt:isoNow()};saveAndPush("status-"+status);render()}
+function markDraft(agentId){if(agentId)state.monthStatus[statusKey(agentId)]={status:"draft",updatedAt:isoNow()}}
+function typeFromLeave(l){
+  const n=norm(l.type);
+  return LEAVE_TO_TYPE[n]||(/maladie/.test(n)?"maladie":/accident/.test(n)?"accident_travail":/formation/.test(n)?"formation":/recup/.test(n)?"recuperation":/conge/.test(n)?"conges_payes":"autre_absence");
+}
+function activeLeave(l){return l&&l.status!=="rejected"&&l.status!=="cancelled"}
+function leaveInMonth(l,m=currentMonth()){const b=monthBounds(m);return activeLeave(l)&&String(l.startDate||"")<=b.end&&String(l.endDate||"")>=b.start}
 function hourEntriesFor(agentId,m=currentMonth()){return state.entries.filter(e=>!e.deleted&&String(e.agentRefId)===String(agentId)&&String(e.date||"").startsWith(m))}
 function leavesFor(agentId,m=currentMonth()){return leaves.filter(l=>String(l.agentRefId)===String(agentId)&&leaveInMonth(l,m))}
-function summary(agentId,m=currentMonth()){const out={heures_complementaires:0,heures_supplementaires:0,dimanche:0,ferie:0,nuit:0,absences:0,absText:[]};hourEntriesFor(agentId,m).forEach(e=>{if(Object.prototype.hasOwnProperty.call(out,e.type))out[e.type]+=Number(e.minutes)||0});leavesFor(agentId,m).filter(l=>l.status==="approved").forEach(l=>{const u=leaveUnits(l);out.absences+=u;out.absText.push(`${TYPE_LABELS[typeFromLeave(l)]||l.type} ${u} j`)});return out}
+function summary(agentId,m=currentMonth()){
+  const out={heures_complementaires:0,heures_supplementaires:0,dimanche:0,ferie:0,nuit:0,absences:0};
+  hourEntriesFor(agentId,m).forEach(e=>{if(Object.prototype.hasOwnProperty.call(out,e.type))out[e.type]+=Number(e.minutes)||0});
+  leavesFor(agentId,m).filter(l=>l.status==="approved").forEach(l=>out.absences+=leaveUnitsInMonth(l,m));
+  return out;
+}
 function selectedAgent(){return agents.find(a=>String(a.id)===String(selectedAgentId))||null}
-function agentMeta(a){if(!a)return"";const job=a.job||{},parts=[];if(job.poste)parts.push(job.poste);if(job.typeContrat)parts.push(job.typeContrat);const h=Number(job.contractHoursWeekly);if(Number.isFinite(h)&&h>0)parts.push(`${String(h).replace(".",",")} h/semaine`);return parts.join(" · ")||"Informations du Classeur agents"}
+function agentMeta(a){
+  if(!a)return"";const job=a.job||{},parts=[];
+  if(job.poste)parts.push(job.poste);if(job.typeContrat)parts.push(job.typeContrat);
+  const h=Number(job.contractHoursWeekly);if(Number.isFinite(h)&&h>0)parts.push(`${String(h).replace(".",",")} h/semaine`);
+  return parts.join(" · ")||"Informations du Classeur agents";
+}
 function defaultType(a){const h=Number(a?.job?.contractHoursWeekly);return Number.isFinite(h)&&h>0&&h<35?"heures_complementaires":"heures_supplementaires"}
-function currentAgentName(id){return displayAgent(agents.find(a=>String(a.id)===String(id)))||"Agent"}
-function entryRows(agentId){const hours=hourEntriesFor(agentId).map(e=>({...e,source:"variables",sortDate:e.date||"",kind:"hours"}));const abs=leavesFor(agentId).map(l=>({id:l.id,source:"conges",kind:"absence",agentRefId:l.agentRefId,agentName:l.agentName,type:typeFromLeave(l),startDate:l.startDate,endDate:l.endDate,startPart:l.startPart,endPart:l.endPart,note:l.comment||"",doc:!!l.payrollMeta?.justificatif,status:l.status,sortDate:l.startDate||""}));return[...hours,...abs].sort((a,b)=>String(b.sortDate).localeCompare(String(a.sortDate)))}
+function entryRows(agentId){
+  const hours=hourEntriesFor(agentId).map(e=>({...e,source:"variables",sortDate:e.date||"",kind:"hours"}));
+  const abs=leavesFor(agentId).map(l=>({
+    id:l.id,source:"conges",kind:"absence",agentRefId:l.agentRefId,agentName:l.agentName,
+    type:typeFromLeave(l),startDate:l.startDate,endDate:l.endDate,startPart:l.startPart,endPart:l.endPart,
+    note:l.comment||"",doc:!!l.payrollMeta?.justificatif,status:l.status,sortDate:l.startDate||""
+  }));
+  return[...hours,...abs].sort((a,b)=>String(b.sortDate).localeCompare(String(a.sortDate)));
+}
 function documentRequired(type){return["maladie","accident_travail","absence_autorisee","absence_injustifiee"].includes(type)}
 function render(){renderAgents();renderDetail();renderRecap();renderKpis();buildFormOptions()}
-function renderAgents(){const q=norm($("searchAgent").value),list=agents.filter(a=>!q||norm(displayAgent(a)).includes(q));$("agentCount").textContent=list.length;const box=$("agentList");box.innerHTML="";if(!list.length){box.innerHTML='<div class="empty">Aucun agent trouvé.</div>';return}list.forEach(a=>{const b=document.createElement("button");b.type="button";b.className="agent-btn"+(String(a.id)===String(selectedAgentId)?" active":"");const st=getStatus(a.id);b.innerHTML=`<span class="avatar">${initials(displayAgent(a))}</span><span class="agent-copy"><strong></strong><small>${agentMeta(a)}</small></span><span class="status-dot ${st}"></span>`;b.querySelector("strong").textContent=displayAgent(a);b.onclick=()=>{selectedAgentId=a.id;render()};box.appendChild(b)})}
-function renderDetail(){const a=selectedAgent();if(!a){$("agentName").textContent="Sélectionnez un agent";$("agentMeta").textContent="Les agents viennent automatiquement du Classeur agents.";$("summaryGrid").innerHTML="";$("entries").innerHTML='<div class="empty">Aucun agent sélectionné.</div>';$("verifyBtn").disabled=true;$("transmitBtn").disabled=true;return}$("verifyBtn").disabled=false;$("transmitBtn").disabled=false;$("agentName").textContent=displayAgent(a);$("agentMeta").textContent=agentMeta(a)+` · ${statusLabel(getStatus(a.id))}`;const s=summary(a.id),cards=[["Complémentaires",s.heures_complementaires],["Supplémentaires",s.heures_supplementaires],["Dimanche",s.dimanche],["Jour férié",s.ferie],["Nuit",s.nuit],["Absences",null]];$("summaryGrid").innerHTML=cards.map(([l,v])=>`<div class="metric"><small>${l}</small><strong>${v===null?`${String(s.absences).replace(".5",",5")} j`:formatMinutes(v)}</strong></div>`).join("");const rows=entryRows(a.id),box=$("entries");box.innerHTML="";if(!rows.length){box.innerHTML='<div class="empty">Aucune variable pour ce mois. Utilisez « Ajouter » ou « Détecter planning ».</div>';return}rows.forEach(r=>{const row=document.createElement("div");row.className="entry";const label=TYPE_LABELS[r.type]||r.type;let amount=r.kind==="hours"?formatMinutes(r.minutes):`${String(leaveUnits(r)).replace(".5",",5")} j`;let meta="";if(r.kind==="hours")meta=[r.siteName,r.note].filter(Boolean).join(" · ");else meta=[r.status==="pending"?"À valider dans Congés & absences":"Validée",r.note,documentRequired(r.type)?(r.doc?"📎 Justificatif reçu":"⚠ Justificatif manquant"):""].filter(Boolean).join(" · ");row.innerHTML=`<div class="entry-date">${r.kind==="hours"?fmtDate(r.date):(r.startDate===r.endDate?fmtDate(r.startDate):fmtDate(r.startDate)+" → "+fmtDate(r.endDate))}</div><div class="entry-main"><strong>${label} · ${amount}</strong><small></small><div style="margin-top:5px"><span class="tag ${r.kind==="hours"?"hours":"abs"}">${r.kind==="hours"?"Variable":"Congés & absences"}</span></div></div><div class="entry-actions"><button class="mini edit" type="button">Modifier</button><button class="mini delete" type="button">Supprimer</button></div>`;row.querySelector("small").textContent=meta;row.querySelector(".edit").onclick=()=>openEdit(r);row.querySelector(".delete").onclick=()=>deleteRow(r);box.appendChild(row)})}
-function renderRecap(){const body=$("recapBody");body.innerHTML="";agents.forEach(a=>{const s=summary(a.id),tr=document.createElement("tr"),st=getStatus(a.id);tr.innerHTML=`<td><strong></strong></td><td>${formatMinutes(s.heures_complementaires)}</td><td>${formatMinutes(s.heures_supplementaires)}</td><td>${formatMinutes(s.dimanche)}</td><td>${formatMinutes(s.ferie)}</td><td>${formatMinutes(s.nuit)}</td><td>${s.absences?String(s.absences).replace(".5",",5")+" j":"—"}</td><td><span class="tag">${statusLabel(st)}</span></td>`;tr.querySelector("strong").textContent=displayAgent(a);body.appendChild(tr)})}
-function renderKpis(){const m=currentMonth();$("kpiAgents").textContent=agents.length;const hourCount=state.entries.filter(e=>!e.deleted&&String(e.date||"").startsWith(m)).length,leaveCount=leaves.filter(l=>leaveInMonth(l,m)).length;$("kpiEntries").textContent=hourCount+leaveCount;$("kpiReview").textContent=agents.filter(a=>getStatus(a.id)==="draft").length;$("kpiDocs").textContent=leaves.filter(l=>leaveInMonth(l,m)&&l.status==="approved"&&documentRequired(typeFromLeave(l))&&!l.payrollMeta?.justificatif).length}
-function buildFormOptions(){const sel=$("formAgent"),v=sel.value;sel.innerHTML='<option value="">Choisir un agent…</option>';agents.forEach(a=>{const o=document.createElement("option");o.value=a.id;o.textContent=displayAgent(a);sel.appendChild(o)});if([...sel.options].some(o=>o.value===v))sel.value=v;else if(selectedAgentId)sel.value=selectedAgentId;const site=$("formSite"),sv=site.value;site.innerHTML='<option value="">Aucun / non renseigné</option>';chantiers.forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.nom||c.adresse||"Chantier";site.appendChild(o)});if([...site.options].some(o=>o.value===sv))site.value=sv}
-function toggleForm(){const abs=ABS_TYPES.has($("formType").value);document.querySelectorAll(".absence-only").forEach(x=>x.hidden=!abs);$("dateField").hidden=abs;$("durationField").hidden=abs;$("siteField").hidden=abs;const a=agents.find(x=>String(x.id)===String($("formAgent").value));const h=Number(a?.job?.contractHoursWeekly);$("formHint").textContent=abs?"Cette absence sera enregistrée dans le module Congés & absences afin de rester liée au planning.":Number.isFinite(h)&&h>0?`Contrat détecté : ${String(h).replace(".",",")} h/semaine. Le type reste modifiable avant enregistrement.`:"Le type reste modifiable. Renseignez les heures contractuelles dans le Classeur agents pour faciliter le choix complémentaire / supplémentaire."}
-function resetForm(){const a=selectedAgent();$("editId").value="";$("editSource").value="";$("modalTitle").textContent="Ajouter une variable";$("formAgent").value=a?.id||"";$("formType").value=defaultType(a);const d=new Date(),iso=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;$("formDate").value=iso;$("formDuration").value="";$("formSite").value="";$("formStart").value=iso;$("formEnd").value=iso;$("formStartPart").value="full";$("formEndPart").value="full";$("formDoc").checked=false;$("formNote").value="";$("deleteVariable").hidden=true;toggleForm()}
-function openModal(){resetForm();$("variableModal").classList.add("open");$("variableModal").setAttribute("aria-hidden","false");setTimeout(()=>$("formType").focus(),30)}function closeModal(){$("variableModal").classList.remove("open");$("variableModal").setAttribute("aria-hidden","true")}
-function openEdit(r){buildFormOptions();$("editId").value=r.id;$("editSource").value=r.source;$("modalTitle").textContent="Modifier la variable";$("formAgent").value=r.agentRefId||"";$("formType").value=r.type;$("formDate").value=r.date||"";$("formDuration").value=r.minutes?`${Math.floor(r.minutes/60)}:${pad(r.minutes%60)}`:"";$("formSite").value=r.siteId||"";$("formStart").value=r.startDate||"";$("formEnd").value=r.endDate||"";$("formStartPart").value=r.startPart||"full";$("formEndPart").value=r.endPart||"full";$("formDoc").checked=!!r.doc;$("formNote").value=r.note||"";$("deleteVariable").hidden=false;toggleForm();$("variableModal").classList.add("open");$("variableModal").setAttribute("aria-hidden","false")}
-async function onSubmit(e){e.preventDefault();const agentId=$("formAgent").value,a=agents.find(x=>String(x.id)===String(agentId));if(!a)return alert("Choisissez un agent.");const type=$("formType").value,id=$("editId").value,source=$("editSource").value;if(ABS_TYPES.has(type)){const start=$("formStart").value,end=$("formEnd").value;if(!start||!end||end<start)return alert("Vérifiez les dates de début et de fin.");let l=source==="conges"?leaves.find(x=>x.id===id):null;const rec={id:l?.id||uid("leave"),agentRefId:agentId,agentName:displayAgent(a),sourceType:l?.sourceType||"absence",type:TYPE_TO_LEAVE[type]||"Autre absence",startDate:start,endDate:end,startPart:$("formStartPart").value,endPart:$("formEndPart").value,comment:$("formNote").value.trim(),status:l?.status||"approved",payrollMeta:{...(l?.payrollMeta||{}),justificatif:$("formDoc").checked,updatedFrom:"variables",updatedAt:isoNow()},createdAt:l?.createdAt||isoNow(),updatedAt:isoNow()};if(l)Object.assign(l,rec);else leaves.push(rec);markDraft(agentId);closeModal();await pushLeaves(id?"variables-edit-absence":"variables-create-absence");render();return}const minutes=parseDuration($("formDuration").value);if(!minutes)return alert("Indiquez une durée valide, par exemple 2:30 ou 2,5.");const date=$("formDate").value;if(!date)return alert("Indiquez la date.");const siteId=$("formSite").value,c=chantiers.find(x=>String(x.id)===String(siteId));let entry=source==="variables"?state.entries.find(x=>x.id===id):null;const rec={id:entry?.id||uid("var"),agentRefId:agentId,agentName:displayAgent(a),type,date,minutes,siteId:siteId||"",siteName:c?(c.nom||c.adresse||""):"",note:$("formNote").value.trim(),createdAt:entry?.createdAt||isoNow(),updatedAt:isoNow(),deleted:false};if(entry)Object.assign(entry,rec);else state.entries.push(rec);markDraft(agentId);closeModal();saveAndPush(entry?"edit":"create");render()}
-function deleteRow(r){if(!confirm("Supprimer cette variable ?"))return;if(r.source==="conges"){leaves=leaves.filter(x=>x.id!==r.id);markDraft(r.agentRefId);pushLeaves("variables-delete-absence");render();return}const e=state.entries.find(x=>x.id===r.id);if(e){e.deleted=true;e.updatedAt=isoNow();markDraft(e.agentRefId);saveAndPush("delete");render()}}
-function deleteCurrent(){const id=$("editId").value,source=$("editSource").value;if(!id)return;const r=source==="conges"?{id,source,agentRefId:$("formAgent").value}:{id,source,agentRefId:$("formAgent").value};closeModal();deleteRow(r)}
-function mergeState(remote,local){const r=cleanState(remote),l=cleanState(local),map=new Map();[...(r.entries||[]),...(l.entries||[])].forEach(e=>{if(!e?.id)return;const prev=map.get(e.id);if(!prev||String(e.updatedAt||"")>=String(prev.updatedAt||""))map.set(e.id,e)});const status={...(r.monthStatus||{})};Object.entries(l.monthStatus||{}).forEach(([k,v])=>{if(!status[k]||String(v?.updatedAt||"")>=String(status[k]?.updatedAt||""))status[k]=v});return{version:1,entries:[...map.values()],monthStatus:status,meta:{...(r.meta||{}),...(l.meta||{})}}}
-async function saveAndPush(reason){saveLocal();if(!docRef||!user)return;try{await docRef.set({moduleSyncV1:{variables:{payload:JSON.stringify(state),updatedAtMs:Date.now(),client:"variables_"+user.uid.slice(0,6),reason,version:1}}},{merge:true})}catch(e){console.warn("Variables Firebase",e)}}
-async function pushLeaves(reason){saveLeavesLocal();if(!docRef||!user)return;try{await docRef.set({moduleSyncV1:{conges:{payload:JSON.stringify(leaves),updatedAtMs:Date.now(),client:"variables_"+user.uid.slice(0,6),reason,version:1}}},{merge:true})}catch(e){console.warn("Absences Firebase",e)}}
-function bindHub(){const h=hub();if(!h){setTimeout(bindHub,250);return}agents=Array.from(h.agents||[]);chantiers=Array.from(h.chantiers||[]);if(!selectedAgentId&&agents.length)selectedAgentId=agents[0].id;render();maybeMigrateLegacyHours();hubUnsub=h.subscribe(d=>{agents=Array.from(d.agents||[]);chantiers=Array.from(d.chantiers||[]);if(!selectedAgentId&&agents.length)selectedAgentId=agents[0].id;render();maybeMigrateLegacyHours()})}
-function maybeMigrateLegacyHours(){if(state.meta?.legacyHoursMigrated||!agents.length||!variablesReady)return;const old=parse(localStorage.getItem(LEGACY_HOURS_KEY)||"{}",{}),rows=Array.isArray(old?.entries)?old.entries:[];let added=0;rows.forEach(x=>{if(state.entries.some(e=>e.legacyHourId&&String(e.legacyHourId)===String(x.id)))return;const a=agents.find(z=>norm(displayAgent(z))===norm(x.employee));if(!a)return;state.entries.push({id:uid("legacyhs"),legacyHourId:x.id||"",agentRefId:a.id,agentName:displayAgent(a),type:"heures_supplementaires",date:x.date||"",minutes:Number(x.minutes)||0,siteId:"",siteName:x.site||"",note:x.note||x.type||"Reprise ancienne page Heures sup.",createdAt:isoNow(),updatedAt:isoNow(),deleted:false});added++});state.meta.legacyHoursMigrated=true;state.meta.legacyHoursMigratedAt=isoNow();saveAndPush(added?"migrate-legacy-hours":"mark-legacy-hours-migrated");render()}
-function bindFirebase(){const f=fb();if(!f){variablesReady=true;maybeMigrateLegacyHours();return}f.auth().onAuthStateChanged(u=>{user=u||null;if(unsub){try{unsub()}catch{}unsub=null}if(!user){docRef=null;$("loginBox").classList.add("open");variablesReady=true;maybeMigrateLegacyHours();return}$("loginBox").classList.remove("open");docRef=f.firestore().collection("kanban").doc(user.uid);unsub=docRef.onSnapshot(s=>{const d=s.exists?(s.data()||{}):{},ve=d?.moduleSyncV1?.variables,ce=d?.moduleSyncV1?.conges;if(ve?.payload){state=mergeState(parse(ve.payload,{}),state);saveLocal()}else if(state.entries.length||Object.keys(state.monthStatus).length)saveAndPush("migration");if(ce?.payload){const r=parse(ce.payload,[]);if(Array.isArray(r)){leaves=r;saveLeavesLocal()}}else if(leaves.length)pushLeaves("migration");variablesReady=true;render();maybeMigrateLegacyHours()},e=>{console.warn("Variables lecture Firebase",e);variablesReady=true;maybeMigrateLegacyHours()})})}
-function mondayFromIsoWeek(key){const m=String(key||"").match(/^(\d{4})-W(\d{2})$/);if(!m)return null;const y=+m[1],w=+m[2],jan4=new Date(y,0,4),offset=(jan4.getDay()+6)%7,mon=new Date(y,0,4-offset);mon.setDate(mon.getDate()+(w-1)*7);return mon}function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}function timeMin(s){const m=String(s||"").match(/(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m[2]:0}
-function easterSunday(year){const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=(h+l-7*m+114)%31+1;return new Date(year,month-1,day)}
-function holidays(year){const map=new Map(),put=(d,n)=>map.set(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,n),fixed=[[1,1,"Jour de l’An"],[5,1,"Fête du Travail"],[5,8,"Victoire 1945"],[7,14,"Fête nationale"],[8,15,"Assomption"],[11,1,"Toussaint"],[11,11,"Armistice"],[12,25,"Noël"]];fixed.forEach(([m,d,n])=>put(new Date(year,m-1,d),n));const eas=easterSunday(year);put(addDays(eas,1),"Lundi de Pâques");put(addDays(eas,39),"Ascension");put(addDays(eas,50),"Lundi de Pentecôte");return map}
+function renderAgents(){
+  const q=norm($("searchAgent").value),list=agents.filter(a=>!q||norm(displayAgent(a)).includes(q));
+  $("agentCount").textContent=list.length;const box=$("agentList");box.innerHTML="";
+  if(!list.length){box.innerHTML='<div class="empty">Aucun agent trouvé.</div>';return}
+  list.forEach(a=>{
+    const b=document.createElement("button");b.type="button";b.className="agent-btn"+(String(a.id)===String(selectedAgentId)?" active":"");
+    const st=getStatus(a.id);b.innerHTML=`<span class="avatar">${initials(displayAgent(a))}</span><span class="agent-copy"><strong></strong><small>${agentMeta(a)}</small></span><span class="status-dot ${st}"></span>`;
+    b.querySelector("strong").textContent=displayAgent(a);b.onclick=()=>{selectedAgentId=a.id;render()};box.appendChild(b);
+  });
+}
+function renderDetail(){
+  const a=selectedAgent();
+  if(!a){
+    $("agentName").textContent="Sélectionnez un agent";$("agentMeta").textContent="Les agents viennent automatiquement du Classeur agents.";
+    $("summaryGrid").innerHTML="";$("entries").innerHTML='<div class="empty">Aucun agent sélectionné.</div>';
+    $("verifyBtn").disabled=true;$("transmitBtn").disabled=true;return;
+  }
+  $("verifyBtn").disabled=false;$("transmitBtn").disabled=false;$("agentName").textContent=displayAgent(a);
+  $("agentMeta").textContent=agentMeta(a)+` · ${statusLabel(getStatus(a.id))}`;
+  const s=summary(a.id),cards=[["Complémentaires",s.heures_complementaires],["Supplémentaires",s.heures_supplementaires],["Dimanche",s.dimanche],["Jour férié",s.ferie],["Nuit",s.nuit],["Absences",null]];
+  $("summaryGrid").innerHTML=cards.map(([l,v])=>`<div class="metric"><small>${l}</small><strong>${v===null?`${String(s.absences).replace(".5",",5")} j`:formatMinutes(v)}</strong></div>`).join("");
+  const rows=entryRows(a.id),box=$("entries");box.innerHTML="";
+  if(!rows.length){box.innerHTML='<div class="empty">Aucune variable pour ce mois. Utilisez « Ajouter » ou « Détecter planning ».</div>';return}
+  rows.forEach(r=>{
+    const row=document.createElement("div");row.className="entry";const label=TYPE_LABELS[r.type]||r.type;
+    const amount=r.kind==="hours"?formatMinutes(r.minutes):`${String(leaveUnitsInMonth(r)).replace(".5",",5")} j`;
+    const meta=r.kind==="hours"?[r.siteName,r.note].filter(Boolean).join(" · "):[r.status==="pending"?"À valider dans Congés & absences":"Validée",r.note,documentRequired(r.type)?(r.doc?"📎 Justificatif reçu":"⚠ Justificatif manquant"):""].filter(Boolean).join(" · ");
+    row.innerHTML=`<div class="entry-date">${r.kind==="hours"?fmtDate(r.date):(r.startDate===r.endDate?fmtDate(r.startDate):fmtDate(r.startDate)+" → "+fmtDate(r.endDate))}</div><div class="entry-main"><strong>${label} · ${amount}</strong><small></small><div style="margin-top:5px"><span class="tag ${r.kind==="hours"?"hours":"abs"}">${r.kind==="hours"?"Variable":"Congés & absences"}</span></div></div><div class="entry-actions"><button class="mini edit" type="button">Modifier</button><button class="mini delete" type="button">Supprimer</button></div>`;
+    row.querySelector("small").textContent=meta;row.querySelector(".edit").onclick=()=>openEdit(r);row.querySelector(".delete").onclick=()=>deleteRow(r);box.appendChild(row);
+  });
+}
+function renderRecap(){
+  const body=$("recapBody");body.innerHTML="";
+  agents.forEach(a=>{const s=summary(a.id),tr=document.createElement("tr"),st=getStatus(a.id);tr.innerHTML=`<td><strong></strong></td><td>${formatMinutes(s.heures_complementaires)}</td><td>${formatMinutes(s.heures_supplementaires)}</td><td>${formatMinutes(s.dimanche)}</td><td>${formatMinutes(s.ferie)}</td><td>${formatMinutes(s.nuit)}</td><td>${s.absences?String(s.absences).replace(".5",",5")+" j":"—"}</td><td><span class="tag">${statusLabel(st)}</span></td>`;tr.querySelector("strong").textContent=displayAgent(a);body.appendChild(tr)});
+}
+function renderKpis(){
+  const m=currentMonth();$("kpiAgents").textContent=agents.length;
+  const hourCount=state.entries.filter(e=>!e.deleted&&String(e.date||"").startsWith(m)).length,leaveCount=leaves.filter(l=>leaveInMonth(l,m)).length;
+  $("kpiEntries").textContent=hourCount+leaveCount;$("kpiReview").textContent=agents.filter(a=>getStatus(a.id)==="draft").length;
+  $("kpiDocs").textContent=leaves.filter(l=>leaveInMonth(l,m)&&l.status==="approved"&&documentRequired(typeFromLeave(l))&&!l.payrollMeta?.justificatif).length;
+}
+function buildFormOptions(){
+  const sel=$("formAgent"),v=sel.value;sel.innerHTML='<option value="">Choisir un agent…</option>';
+  agents.forEach(a=>{const o=document.createElement("option");o.value=a.id;o.textContent=displayAgent(a);sel.appendChild(o)});
+  if([...sel.options].some(o=>o.value===v))sel.value=v;else if(selectedAgentId)sel.value=selectedAgentId;
+  const site=$("formSite"),sv=site.value;site.innerHTML='<option value="">Aucun / non renseigné</option>';
+  chantiers.forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.nom||c.adresse||"Chantier";site.appendChild(o)});
+  if([...site.options].some(o=>o.value===sv))site.value=sv;
+}
+function toggleForm(){
+  const abs=ABS_TYPES.has($("formType").value);document.querySelectorAll(".absence-only").forEach(x=>x.hidden=!abs);
+  $("dateField").hidden=abs;$("durationField").hidden=abs;$("siteField").hidden=abs;
+  const a=agents.find(x=>String(x.id)===String($("formAgent").value)),h=Number(a?.job?.contractHoursWeekly);
+  $("formHint").textContent=abs?"Cette absence sera enregistrée dans le module Congés & absences afin de rester liée au planning.":Number.isFinite(h)&&h>0?`Contrat détecté : ${String(h).replace(".",",")} h/semaine. Le type reste modifiable avant enregistrement.`:"Le type reste modifiable. Renseignez les heures contractuelles dans le Classeur agents pour faciliter le choix complémentaire / supplémentaire.";
+}
+function resetForm(){
+  const a=selectedAgent();$("editId").value="";$("editSource").value="";$("modalTitle").textContent="Ajouter une variable";
+  $("formAgent").value=a?.id||"";$("formType").value=defaultType(a);
+  const d=new Date(),iso=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  $("formDate").value=iso;$("formDuration").value="";$("formSite").value="";$("formStart").value=iso;$("formEnd").value=iso;
+  $("formStartPart").value="full";$("formEndPart").value="full";$("formDoc").checked=false;$("formNote").value="";$("deleteVariable").hidden=true;toggleForm();
+}
+function openModal(){resetForm();$("variableModal").classList.add("open");$("variableModal").setAttribute("aria-hidden","false");setTimeout(()=>$("formType").focus(),30)}
+function closeModal(){$("variableModal").classList.remove("open");$("variableModal").setAttribute("aria-hidden","true")}
+function openEdit(r){
+  buildFormOptions();$("editId").value=r.id;$("editSource").value=r.source;$("modalTitle").textContent="Modifier la variable";
+  $("formAgent").value=r.agentRefId||"";$("formType").value=r.type;$("formDate").value=r.date||"";
+  $("formDuration").value=r.minutes?`${Math.floor(r.minutes/60)}:${pad(r.minutes%60)}`:"";$("formSite").value=r.siteId||"";
+  $("formStart").value=r.startDate||"";$("formEnd").value=r.endDate||"";$("formStartPart").value=r.startPart||"full";$("formEndPart").value=r.endPart||"full";
+  $("formDoc").checked=!!r.doc;$("formNote").value=r.note||"";$("deleteVariable").hidden=false;toggleForm();
+  $("variableModal").classList.add("open");$("variableModal").setAttribute("aria-hidden","false");
+}
+async function onSubmit(e){
+  e.preventDefault();const agentId=$("formAgent").value,a=agents.find(x=>String(x.id)===String(agentId));if(!a)return alert("Choisissez un agent.");
+  const type=$("formType").value,id=$("editId").value,source=$("editSource").value,wantsAbs=ABS_TYPES.has(type);
+  if(id&&source==="conges"&&!wantsAbs)return alert("Pour remplacer une absence par une variable horaire, supprimez d’abord l’absence puis ajoutez la nouvelle variable.");
+  if(id&&source==="variables"&&wantsAbs)return alert("Pour remplacer une variable horaire par une absence, supprimez d’abord la ligne puis ajoutez l’absence.");
+  if(wantsAbs){
+    const start=$("formStart").value,end=$("formEnd").value;if(!start||!end||end<start)return alert("Vérifiez les dates de début et de fin.");
+    let l=source==="conges"?leaves.find(x=>x.id===id):null;
+    const rec={id:l?.id||uid("leave"),agentRefId:agentId,agentName:displayAgent(a),sourceType:l?.sourceType||"absence",type:TYPE_TO_LEAVE[type]||"Autre absence",startDate:start,endDate:end,startPart:$("formStartPart").value,endPart:$("formEndPart").value,comment:$("formNote").value.trim(),status:l?.status||"approved",payrollMeta:{...(l?.payrollMeta||{}),justificatif:$("formDoc").checked,updatedFrom:"variables",updatedAt:isoNow()},createdAt:l?.createdAt||isoNow(),updatedAt:isoNow()};
+    if(l)Object.assign(l,rec);else leaves.push(rec);markDraft(agentId);closeModal();await pushLeaves(id?"variables-edit-absence":"variables-create-absence");render();return;
+  }
+  const minutes=parseDuration($("formDuration").value);if(!minutes)return alert("Indiquez une durée valide, par exemple 2:30 ou 2,5.");
+  const date=$("formDate").value;if(!date)return alert("Indiquez la date.");
+  const siteId=$("formSite").value,c=chantiers.find(x=>String(x.id)===String(siteId));let entry=source==="variables"?state.entries.find(x=>x.id===id):null;
+  const rec={id:entry?.id||uid("var"),agentRefId:agentId,agentName:displayAgent(a),type,date,minutes,siteId:siteId||"",siteName:c?(c.nom||c.adresse||""):"",note:$("formNote").value.trim(),createdAt:entry?.createdAt||isoNow(),updatedAt:isoNow(),deleted:false};
+  if(entry)Object.assign(entry,rec);else state.entries.push(rec);markDraft(agentId);closeModal();saveAndPush(entry?"edit":"create");render();
+}
+function deleteRow(r){
+  if(!confirm("Supprimer cette variable ?"))return;
+  if(r.source==="conges"){leaves=leaves.filter(x=>x.id!==r.id);markDraft(r.agentRefId);pushLeaves("variables-delete-absence");render();return}
+  const e=state.entries.find(x=>x.id===r.id);if(e){e.deleted=true;e.updatedAt=isoNow();markDraft(e.agentRefId);saveAndPush("delete");render()}
+}
+function deleteCurrent(){const id=$("editId").value,source=$("editSource").value;if(!id)return;closeModal();deleteRow({id,source,agentRefId:$("formAgent").value})}
+function mergeState(remote,local){
+  const r=cleanState(remote),l=cleanState(local),map=new Map();
+  [...r.entries,...l.entries].forEach(e=>{if(!e?.id)return;const prev=map.get(e.id);if(!prev||String(e.updatedAt||"")>=String(prev.updatedAt||""))map.set(e.id,e)});
+  const status={...(r.monthStatus||{})};Object.entries(l.monthStatus||{}).forEach(([k,v])=>{if(!status[k]||String(v?.updatedAt||"")>=String(status[k]?.updatedAt||""))status[k]=v});
+  return{version:1,entries:[...map.values()],monthStatus:status,meta:{...(r.meta||{}),...(l.meta||{})}};
+}
+async function saveAndPush(reason){
+  saveLocal();if(!docRef||!user)return;
+  try{await docRef.set({moduleSyncV1:{variables:{payload:JSON.stringify(state),updatedAtMs:Date.now(),client:"variables_"+user.uid.slice(0,6),reason,version:1}}},{merge:true})}catch(e){console.warn("Variables Firebase",e)}
+}
+async function pushLeaves(reason){
+  saveLeavesLocal();if(!docRef||!user)return;
+  try{await docRef.set({moduleSyncV1:{conges:{payload:JSON.stringify(leaves),updatedAtMs:Date.now(),client:"variables_"+user.uid.slice(0,6),reason,version:1}}},{merge:true})}catch(e){console.warn("Absences Firebase",e)}
+}
+function bindHub(){
+  const h=hub();if(!h){setTimeout(bindHub,250);return}
+  const apply=d=>{agents=Array.from(d?.agents||h.agents||[]);chantiers=Array.from(d?.chantiers||h.chantiers||[]);if(!selectedAgentId&&agents.length)selectedAgentId=agents[0].id;if(selectedAgentId&&!agents.some(a=>String(a.id)===String(selectedAgentId)))selectedAgentId=agents[0]?.id||"";render();maybeMigrateLegacyHours()};
+  apply({agents:h.agents,chantiers:h.chantiers});hubUnsub=h.subscribe(apply);
+}
+function maybeMigrateLegacyHours(){
+  if(state.meta?.legacyHoursMigrated||!agents.length||!variablesReady||!legacyHoursResolved)return;
+  const localOld=parse(localStorage.getItem(LEGACY_HOURS_KEY)||"{}",{}),localRows=Array.isArray(localOld?.entries)?localOld.entries:[];
+  const rows=legacyHoursCloud.length?legacyHoursCloud:localRows;let added=0;
+  rows.forEach(x=>{
+    if(state.entries.some(e=>e.legacyHourId&&String(e.legacyHourId)===String(x.id)))return;
+    const a=agents.find(z=>norm(displayAgent(z))===norm(x.employee));if(!a)return;
+    state.entries.push({id:uid("legacyhs"),legacyHourId:x.id||"",agentRefId:a.id,agentName:displayAgent(a),type:"heures_supplementaires",date:x.date||"",minutes:Number(x.minutes)||0,siteId:"",siteName:x.site||"",note:x.note||x.type||"Reprise ancienne page Heures sup.",createdAt:isoNow(),updatedAt:isoNow(),deleted:false});added++;
+  });
+  state.meta.legacyHoursMigrated=true;state.meta.legacyHoursMigratedAt=isoNow();state.meta.legacyHoursMigratedCount=added;
+  saveAndPush(added?"migrate-legacy-hours":"mark-legacy-hours-migrated");render();
+}
+function bindFirebase(){
+  const f=fb();
+  if(!f){variablesReady=true;legacyHoursResolved=true;maybeMigrateLegacyHours();return}
+  f.auth().onAuthStateChanged(u=>{
+    user=u||null;if(unsub){try{unsub()}catch{}unsub=null}
+    if(!user){docRef=null;$("loginBox").classList.add("open");variablesReady=true;legacyHoursResolved=true;maybeMigrateLegacyHours();return}
+    $("loginBox").classList.remove("open");docRef=f.firestore().collection("kanban").doc(user.uid);
+    unsub=docRef.onSnapshot(s=>{
+      const d=s.exists?(s.data()||{}):{},ve=d?.moduleSyncV1?.variables,ce=d?.moduleSyncV1?.conges,he=d?.moduleSyncV1?.heures;
+      if(ve?.payload){state=mergeState(parse(ve.payload,{}),state);saveLocal()}else if(state.entries.length||Object.keys(state.monthStatus).length)saveAndPush("migration");
+      if(ce?.payload){const r=parse(ce.payload,[]);if(Array.isArray(r)){leaves=r;saveLeavesLocal()}}else if(leaves.length)pushLeaves("migration");
+      const old=parse(he?.payload||"{}",{});legacyHoursCloud=Array.isArray(old?.entries)?old.entries:[];legacyHoursResolved=true;variablesReady=true;render();maybeMigrateLegacyHours();
+    },e=>{console.warn("Variables lecture Firebase",e);variablesReady=true;legacyHoursResolved=true;maybeMigrateLegacyHours()});
+  });
+}
+function mondayFromIsoWeek(key){const m=String(key||"").match(/^(\d{4})-W(\d{2})$/);if(!m)return null;const y=+m[1],w=+m[2],jan4=new Date(y,0,4),offset=(jan4.getDay()+6)%7,mon=new Date(y,0,4-offset);mon.setDate(mon.getDate()+(w-1)*7);return mon}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function timeMin(s){const m=String(s||"").match(/(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m[2]:0}
+function easterSunday(year){
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=(h+l-7*m+114)%31+1;
+  return new Date(year,month-1,day);
+}
+function holidays(year){
+  const map=new Map(),put=(d,n)=>map.set(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,n);
+  [[1,1,"Jour de l’An"],[5,1,"Fête du Travail"],[5,8,"Victoire 1945"],[7,14,"Fête nationale"],[8,15,"Assomption"],[11,1,"Toussaint"],[11,11,"Armistice"],[12,25,"Noël"]].forEach(([m,d,n])=>put(new Date(year,m-1,d),n));
+  const eas=easterSunday(year);put(addDays(eas,1),"Lundi de Pâques");put(addDays(eas,39),"Ascension");put(addDays(eas,50),"Lundi de Pentecôte");return map;
+}
 function planningState(){const p=parse(localStorage.getItem(PLANNING_KEY)||"{}",{});return p&&p.weeks?p:{agents:[],weeks:{}}}
-function detectPlanning(){const a=selectedAgent();if(!a)return alert("Sélectionnez d’abord un agent.");const p=planningState(),pa=(p.agents||[]).find(x=>String(x.refId||"")===String(a.id)||norm(x.name)===norm(displayAgent(a)));if(!pa)return alert("Cet agent n’a pas encore été retrouvé dans le Planning.");const [year,month]=currentMonth().split("-").map(Number),hol=holidays(year),found=[];Object.entries(p.weeks||{}).forEach(([wk,rows])=>{const mon=mondayFromIsoWeek(wk);if(!mon)return;(rows||[]).filter(e=>String(e.agentId)===String(pa.id)).forEach(e=>{const date=addDays(mon,Math.max(0,Math.min(6,Number(e.day)||0))),iso=`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;if(date.getFullYear()!==year||date.getMonth()+1!==month)return;const minutes=Math.max(0,timeMin(e.end)-timeMin(e.start));if(!minutes)return;const types=[];if(date.getDay()===0)types.push(["dimanche","Dimanche"]);if(hol.has(iso))types.push(["ferie",hol.get(iso)]);types.forEach(([type,why])=>{const dup=state.entries.some(x=>!x.deleted&&String(x.agentRefId)===String(a.id)&&x.type===type&&x.date===iso&&Number(x.minutes)===minutes);if(!dup)found.push({id:uid("suggest"),agentRefId:a.id,agentName:displayAgent(a),type,date:iso,minutes,siteName:e.site||"",note:`Détecté depuis le planning · ${why}`,why,checked:true})})})});planningSuggestions=found;$("planningSummary").textContent=found.length?`${found.length} suggestion(s) trouvée(s) pour ${displayAgent(a)}. Rien n’est ajouté sans votre validation.`:"Aucun dimanche ou jour férié travaillé non enregistré n’a été détecté pour ce mois.";const box=$("planningSuggestions");box.innerHTML="";found.forEach((s,i)=>{const row=document.createElement("label");row.className="suggestion";row.innerHTML=`<span><strong>${TYPE_LABELS[s.type]} · ${formatMinutes(s.minutes)}</strong><small>${fmtDate(s.date)}${s.siteName?" · "+s.siteName:""}</small></span><input type="checkbox" data-i="${i}" checked>`;box.appendChild(row)});$("addPlanningSuggestions").disabled=!found.length;$("planningModal").classList.add("open");$("planningModal").setAttribute("aria-hidden","false")}
-function addSuggestions(){const checks=[...$("planningSuggestions").querySelectorAll('input[type="checkbox"]')],chosen=checks.filter(x=>x.checked).map(x=>planningSuggestions[+x.dataset.i]).filter(Boolean);chosen.forEach(s=>state.entries.push({id:uid("var"),agentRefId:s.agentRefId,agentName:s.agentName,type:s.type,date:s.date,minutes:s.minutes,siteId:"",siteName:s.siteName,note:s.note,createdAt:isoNow(),updatedAt:isoNow(),deleted:false,detectedFromPlanning:true}));if(chosen.length){markDraft(selectedAgentId);saveAndPush("planning-detection")}closePlanning();render()}
+function detectPlanning(){
+  const a=selectedAgent();if(!a)return alert("Sélectionnez d’abord un agent.");
+  const p=planningState(),pa=(p.agents||[]).find(x=>String(x.refId||"")===String(a.id)||norm(x.name)===norm(displayAgent(a)));
+  if(!pa)return alert("Cet agent n’a pas encore été retrouvé dans le Planning.");
+  const [year,month]=currentMonth().split("-").map(Number),hol=holidays(year),found=[];
+  Object.entries(p.weeks||{}).forEach(([wk,rows])=>{
+    const mon=mondayFromIsoWeek(wk);if(!mon)return;
+    (rows||[]).filter(e=>String(e.agentId)===String(pa.id)).forEach(e=>{
+      const date=addDays(mon,Math.max(0,Math.min(6,Number(e.day)||0))),iso=`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+      if(date.getFullYear()!==year||date.getMonth()+1!==month)return;
+      const minutes=Math.max(0,timeMin(e.end)-timeMin(e.start));if(!minutes)return;
+      const types=[];if(date.getDay()===0)types.push(["dimanche","Dimanche"]);if(hol.has(iso))types.push(["ferie",hol.get(iso)]);
+      types.forEach(([type,why])=>{
+        const dup=state.entries.some(x=>!x.deleted&&String(x.agentRefId)===String(a.id)&&x.type===type&&x.date===iso&&Number(x.minutes)===minutes&&norm(x.siteName)===norm(e.site||""));
+        if(!dup)found.push({id:uid("suggest"),agentRefId:a.id,agentName:displayAgent(a),type,date:iso,minutes,siteName:e.site||"",note:`Détecté depuis le planning · ${why}`,why});
+      });
+    });
+  });
+  planningSuggestions=found;$("planningSummary").textContent=found.length?`${found.length} suggestion(s) trouvée(s) pour ${displayAgent(a)}. Rien n’est ajouté sans votre validation.`:"Aucun dimanche ou jour férié travaillé non enregistré n’a été détecté pour ce mois.";
+  const box=$("planningSuggestions");box.innerHTML="";
+  found.forEach((s,i)=>{const row=document.createElement("label");row.className="suggestion";row.innerHTML=`<span><strong>${TYPE_LABELS[s.type]} · ${formatMinutes(s.minutes)}</strong><small>${fmtDate(s.date)}${s.siteName?" · "+s.siteName:""}</small></span><input type="checkbox" data-i="${i}" checked>`;box.appendChild(row)});
+  $("addPlanningSuggestions").disabled=!found.length;$("planningModal").classList.add("open");$("planningModal").setAttribute("aria-hidden","false");
+}
+function addSuggestions(){
+  const checks=[...$("planningSuggestions").querySelectorAll('input[type="checkbox"]')],chosen=checks.filter(x=>x.checked).map(x=>planningSuggestions[+x.dataset.i]).filter(Boolean);
+  chosen.forEach(s=>state.entries.push({id:uid("var"),agentRefId:s.agentRefId,agentName:s.agentName,type:s.type,date:s.date,minutes:s.minutes,siteId:"",siteName:s.siteName,note:s.note,createdAt:isoNow(),updatedAt:isoNow(),deleted:false,detectedFromPlanning:true}));
+  if(chosen.length){markDraft(selectedAgentId);saveAndPush("planning-detection")}closePlanning();render();
+}
 function closePlanning(){$("planningModal").classList.remove("open");$("planningModal").setAttribute("aria-hidden","true")}
-function exportCsv(){const rows=[["Mois","Agent","Heures complémentaires","Heures supplémentaires","Dimanche","Jour férié","Nuit","Absences (jours)","Statut"]];agents.forEach(a=>{const s=summary(a.id);rows.push([currentMonth(),displayAgent(a),(s.heures_complementaires/60).toFixed(2),(s.heures_supplementaires/60).toFixed(2),(s.dimanche/60).toFixed(2),(s.ferie/60).toFixed(2),(s.nuit/60).toFixed(2),String(s.absences).replace(".",","),statusLabel(getStatus(a.id))])});const esc=v=>'"'+String(v??"").replace(/"/g,'""')+'"',csv='\ufeff'+rows.map(r=>r.map(esc).join(';')).join('\r\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`Variables_${currentMonth()}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function bind(){loadLocal();$("monthPick").value=todayMonth();$("searchAgent").addEventListener("input",renderAgents);$("monthPick").addEventListener("change",render);$("newVariable").onclick=openModal;$("quickAdd").onclick=openModal;$("closeVariable").onclick=closeModal;$("cancelVariable").onclick=closeModal;$("variableForm").addEventListener("submit",onSubmit);$("formType").onchange=toggleForm;$("formAgent").onchange=()=>{if(!$("editId").value)$("formType").value=defaultType(agents.find(a=>String(a.id)===String($("formAgent").value)));toggleForm()};$("deleteVariable").onclick=deleteCurrent;$("verifyBtn").onclick=()=>{const a=selectedAgent();if(a)setStatus(a.id,"verified")};$("transmitBtn").onclick=()=>{const a=selectedAgent();if(a)setStatus(a.id,"transmitted")};document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");$("journalTab").hidden=b.dataset.tab!=="journal";$("recapTab").hidden=b.dataset.tab!=="recap"});$("detectPlanning").onclick=detectPlanning;$("closePlanning").onclick=closePlanning;$("cancelPlanning").onclick=closePlanning;$("addPlanningSuggestions").onclick=addSuggestions;$("exportCsv").onclick=exportCsv;$("loginForm").addEventListener("submit",async e=>{e.preventDefault();const f=fb(),err=$("loginError");err.textContent="";if(!f)return err.textContent="Firebase indisponible.";try{try{await f.auth().setPersistence(f.auth.Auth.Persistence.LOCAL)}catch{}await f.auth().signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value)}catch(ex){err.textContent="Connexion impossible : "+(ex?.message||"vérifiez les identifiants.")}});render();bindHub();bindFirebase()}
+function exportCsv(){
+  const rows=[["Mois","Agent","Heures complémentaires","Heures supplémentaires","Dimanche","Jour férié","Nuit","Absences (jours)","Statut"]];
+  agents.forEach(a=>{const s=summary(a.id);rows.push([currentMonth(),displayAgent(a),(s.heures_complementaires/60).toFixed(2),(s.heures_supplementaires/60).toFixed(2),(s.dimanche/60).toFixed(2),(s.ferie/60).toFixed(2),(s.nuit/60).toFixed(2),String(s.absences).replace(".",","),statusLabel(getStatus(a.id))])});
+  const esc=v=>'"'+String(v??"").replace(/"/g,'""')+'"',csv='\ufeff'+rows.map(r=>r.map(esc).join(';')).join('\r\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`Variables_${currentMonth()}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function bind(){
+  loadLocal();$("monthPick").value=todayMonth();$("searchAgent").addEventListener("input",renderAgents);$("monthPick").addEventListener("change",render);
+  $("newVariable").onclick=openModal;$("quickAdd").onclick=openModal;$("closeVariable").onclick=closeModal;$("cancelVariable").onclick=closeModal;$("variableForm").addEventListener("submit",onSubmit);
+  $("formType").onchange=toggleForm;$("formAgent").onchange=()=>{if(!$("editId").value)$("formType").value=defaultType(agents.find(a=>String(a.id)===String($("formAgent").value)));toggleForm()};
+  $("deleteVariable").onclick=deleteCurrent;$("verifyBtn").onclick=()=>{const a=selectedAgent();if(a)setStatus(a.id,"verified")};$("transmitBtn").onclick=()=>{const a=selectedAgent();if(a)setStatus(a.id,"transmitted")};
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");$("journalTab").hidden=b.dataset.tab!=="journal";$("recapTab").hidden=b.dataset.tab!=="recap"});
+  $("detectPlanning").onclick=detectPlanning;$("closePlanning").onclick=closePlanning;$("cancelPlanning").onclick=closePlanning;$("addPlanningSuggestions").onclick=addSuggestions;$("exportCsv").onclick=exportCsv;
+  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const f=fb(),err=$("loginError");err.textContent="";if(!f)return err.textContent="Firebase indisponible.";try{try{await f.auth().setPersistence(f.auth.Auth.Persistence.LOCAL)}catch{}await f.auth().signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value)}catch(ex){err.textContent="Connexion impossible : "+(ex?.message||"vérifiez les identifiants.")}});
+  render();bindHub();bindFirebase();
+}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind);else bind();
 })();
