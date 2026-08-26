@@ -39,8 +39,8 @@ function normalizeDiscipline(data){if(Array.isArray(data?.recordsV9))return data
 async function loadMetrics(user){
   try{
     const db=firebase.firestore();
-    const snap=await db.collection("chantiers").get();
-    const sites=snap.docs.map(d=>d.data()||{}).filter(x=>x._type!=="disciplinePhotoChunk"&&x._hidden!==true);
+    const snap=await db.collection("chantiers").orderBy("nom").get();
+    const sites=snap.docs.map(d=>d.data()||{}).filter(x=>x._hidden!==true);
     $("kpiSites").textContent=String(sites.length);
     const agents=new Set(sites.map(x=>String(x.agentNom||"").trim()).filter(Boolean).map(x=>x.toLocaleLowerCase("fr")));
     $("kpiAgents").textContent=String(agents.size);
