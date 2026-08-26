@@ -66,7 +66,9 @@ jobs:
             variables.js \
             discipline-firestore-bridge.js \
             kontrol-cloud.js \
-            inovtec-kontrol-shared-archive.js; do
+            inovtec-kontrol-shared-archive.js \
+            dashboard-index.js \
+            inovtec-contract-reminders.js; do
             node --check "$file"
           done
 
@@ -82,9 +84,11 @@ jobs:
           grep -Fq 'agents:"kontrol_agents_classeur_v2"' inovtec-cloud-sync.js
           grep -Fq 'heures:"HSUPP_DUR_APP_V1"' inovtec-cloud-sync.js
 
-          # Référentiels agents + chantiers.
+          # Référentiels agents + chantiers. Les documents techniques cachés ne sont plus téléchargés avec la liste métier.
           grep -Fq 'collection("kanban").doc(user.uid)' inovtec-data-hub.js
-          grep -Fq 'collection("chantiers").onSnapshot' inovtec-data-hub.js
+          grep -Fq 'collection("chantiers").orderBy("nom").onSnapshot' inovtec-data-hub.js
+          grep -Fq 'collection("chantiers").orderBy("nom").get' dashboard-index.js
+          grep -Fq 'collection("chantiers").orderBy("nom").onSnapshot' inovtec-contract-reminders.js
 
           # Congés et Variables : données Firebase métier.
           grep -Fq 'moduleSyncV1:{conges:' conges.js
