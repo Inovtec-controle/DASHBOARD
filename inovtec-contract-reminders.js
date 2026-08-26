@@ -40,7 +40,7 @@ function statusLabel(date){
 }
 function render(sites){
   const box=ensureBox();if(!box)return;
-  const rows=(sites||[]).filter(x=>x&&x._type!=="disciplinePhotoChunk"&&x._hidden!==true&&String(x.dateFinContrat||"").trim()).sort((a,b)=>String(a.dateFinContrat||"9999").localeCompare(String(b.dateFinContrat||"9999"))||String(a.nom||"").localeCompare(String(b.nom||""),"fr",{sensitivity:"base"}));
+  const rows=(sites||[]).filter(x=>x&&x._hidden!==true&&String(x.dateFinContrat||"").trim()).sort((a,b)=>String(a.dateFinContrat||"9999").localeCompare(String(b.dateFinContrat||"9999"))||String(a.nom||"").localeCompare(String(b.nom||""),"fr",{sensitivity:"base"}));
   if(!rows.length){box.hidden=true;box.classList.remove("open");const list=box.querySelector("#ivContractReminderList");list.hidden=true;box.querySelector("#ivContractReminderToggle").setAttribute("aria-expanded","false");return;}
   box.hidden=false;box.querySelector("#ivContractReminderCount").textContent=String(rows.length);
   const list=box.querySelector("#ivContractReminderList");
@@ -62,6 +62,6 @@ auth.onAuthStateChanged(user=>{
   if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null;}
   const box=ensureBox();
   if(!user){if(box)box.hidden=true;return;}
-  unsubscribe=db.collection("chantiers").onSnapshot(snap=>render(snap.docs.map(d=>({id:d.id,...(d.data()||{})}))),err=>{console.warn("Rappels fins de contrat",err);if(box)box.hidden=true;});
+  unsubscribe=db.collection("chantiers").orderBy("nom").onSnapshot(snap=>render(snap.docs.map(d=>({id:d.id,...(d.data()||{})}))),err=>{console.warn("Rappels fins de contrat",err);if(box)box.hidden=true;});
 });
 })();
