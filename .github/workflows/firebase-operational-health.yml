@@ -1,0 +1,124 @@
+name: Firebase operational health
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-firebase-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Vérifier les fichiers Firebase indispensables
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            firebase-config.js
+            firestore.rules
+            storage.rules
+            inovtec-firebase-operational-guard.js
+            inovtec-cloud-sync.js
+            inovtec-data-hub.js
+            inovtec-shared-workspace.js
+            inovtec-cross-page-data.js
+            conges.js
+            variables.js
+            ORGA-LEGACY.html
+            inovtec-info-persistence-stable.js
+            discipline-firestore-bridge.js
+            kontrol-cloud.js
+            inovtec-kontrol-shared-archive.js
+            AGENTS-LEGACY.html
+            PLANNINGS.html
+            AGENTS.html
+            CONGES.html
+            VARIABLES.html
+            ORGA.html
+            INFOCHANTIERS-V2.html
+            DISCIPLINE-V9.html
+            KONTROL-CLOUD.html
+          )
+          for file in "${files[@]}"; do
+            test -s "$file" || { echo "::error file=$file::Fichier Firebase absent ou vide"; exit 1; }
+          done
+
+      - name: Vérifier la syntaxe JavaScript Firebase
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            firebase-config.js \
+            inovtec-firebase-operational-guard.js \
+            inovtec-cloud-sync.js \
+            inovtec-data-hub.js \
+            inovtec-shared-workspace.js \
+            inovtec-cross-page-data.js \
+            conges.js \
+            variables.js \
+            discipline-firestore-bridge.js \
+            kontrol-cloud.js \
+            inovtec-kontrol-shared-archive.js; do
+            node --check "$file"
+          done
+
+      - name: Vérifier le contrat de synchronisation
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'projectId: "inovtec-chantiers"' firebase-config.js
+          grep -Fq 'inovtec-firebase-operational-guard.js?v=20260826-1' firebase-config.js
+
+          # Planning / agents / anciennes heures supplémentaires : synchronisation personnelle Firebase.
+          grep -Fq 'planning:"inovtec_plannings_v2"' inovtec-cloud-sync.js
+          grep -Fq 'agents:"kontrol_agents_classeur_v2"' inovtec-cloud-sync.js
+          grep -Fq 'heures:"HSUPP_DUR_APP_V1"' inovtec-cloud-sync.js
+
+          # Référentiels agents + chantiers.
+          grep -Fq 'collection("kanban").doc(user.uid)' inovtec-data-hub.js
+          grep -Fq 'collection("chantiers").onSnapshot' inovtec-data-hub.js
+
+          # Congés et Variables : données Firebase métier.
+          grep -Fq 'moduleSyncV1:{conges:' conges.js
+          grep -Fq 'moduleSyncV1:{variables:' variables.js
+          grep -Fq 'const VARIABLE_MODE="variables"' inovtec-firebase-operational-guard.js
+          grep -Fq '__inovtec_shared_workspace_v1__' inovtec-firebase-operational-guard.js
+
+          # Classeur agents : les pièces jointes ne doivent plus dépendre seulement du navigateur.
+          grep -Fq 'agentBinaryChunk' inovtec-firebase-operational-guard.js
+          grep -Fq 'ivBinaryV1' inovtec-firebase-operational-guard.js
+
+          # Organisation et Infos chantier.
+          grep -Fq 'db.collection("kanban").doc(currentUser.uid)' ORGA-LEGACY.html
+          grep -Fq 'db.collection("chantiers").doc(String(site.id)).set' inovtec-info-persistence-stable.js
+
+          # Discipline et KONTROL : données / archives partagées.
+          grep -Fq '__inovtec_shared_discipline_v1__' inovtec-shared-workspace.js
+          grep -Fq 'kontrol/${user.uid}/pdfs' kontrol-cloud.js
+          grep -Fq 'kontrolPdfMeta' inovtec-kontrol-shared-archive.js
+
+          # Règles nécessaires aux chemins utilisés par l'application.
+          grep -Fq 'match /kanban/{userId}' firestore.rules
+          grep -Fq 'match /chantiers/{chantierId}' firestore.rules
+          grep -Fq 'match /kontrol/{userId}/pdfs/{fileName}' storage.rules
+
+      - name: Vérifier que les modules critiques sont accessibles
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'mode=conges' CONGES.html
+          grep -Fq 'mode=variables' VARIABLES.html
+          grep -Fq 'CONGES.html' inovtec-navigation-order.js
+          grep -Fq 'VARIABLES.html' inovtec-navigation-order.js
+          grep -Fq 'inovtec-conges-nav.js' inovtec-page-shell.html
+
+      - name: Résumé
+        run: echo "Contrat Firebase complet vérifié : planning, agents, pièces agents, congés, variables, organisation, chantiers, discipline et KONTROL."
