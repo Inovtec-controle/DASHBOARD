@@ -1,21 +1,29 @@
 (()=>{
 "use strict";
+if(window.__INOVTEC_CDC_OPERATIONAL_FIX_V3__)return;
+window.__INOVTEC_CDC_OPERATIONAL_FIX_V3__=true;
 if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()!=="infos")return;
-const frame=document.getElementById("legacyFrame"),fb=window.firebase,db=fb?.firestore?.(),auth=fb?.auth?.();
+const frame=document.getElementById("legacyFrame"),fb=window.firebase;
+let db=fb?.firestore?.(),auth=fb?.auth?.();
+function refreshFirebase(){db=db||fb?.firestore?.();auth=auth||fb?.auth?.();return db}
 const DAYS=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 let patchedDoc=null,suggestionSiteId="",suggestionRows=[];
 const txt=v=>String(v??"").trim(),uid=()=>"cdc_"+Date.now()+"_"+Math.random().toString(16).slice(2),norm=v=>txt(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 function D(){try{return frame?.contentDocument||null}catch{return null}}
 async function site(d){
+ refreshFirebase();
  let s=null;try{s=await window.InovtecCdcImport?.resolveSite?.()}catch(e){console.warn("CDC resolve",e)}
  if(s?.id){const f=d.getElementById("siteForm");if(f)f.dataset.ivChantierId=String(s.id);return s}
- const id=txt(d.getElementById("siteForm")?.dataset.ivChantierId);if(id){try{const snap=await db.collection("chantiers").doc(id).get();if(snap.exists)return{id:snap.id,...snap.data()}}catch{}}
+ const id=txt(d.getElementById("siteForm")?.dataset.ivChantierId);
+ if(id&&db){try{const snap=await db.collection("chantiers").doc(id).get();if(snap.exists)return{id:snap.id,...snap.data()}}catch(e){console.warn("CDC site id",e)}}
+ const nom=txt(d.getElementById("nom")?.value),adresse=txt(d.getElementById("adresse")?.value);
+ if(db&&nom){try{const q=await db.collection("chantiers").where("nom","==",nom).limit(12).get(),found=q.docs.map(x=>({id:x.id,...x.data()})),hit=found.find(x=>!adresse||norm(x.adresse)===norm(adresse))||found[0];if(hit?.id){const f=d.getElementById("siteForm");if(f)f.dataset.ivChantierId=String(hit.id);return hit}}catch(e){console.warn("CDC site fallback",e)}}
  return null;
 }
 function ensureStyle(d){
  if(d.getElementById("ivCdcManualErgoStyle"))return;
  const s=d.createElement("style");s.id="ivCdcManualErgoStyle";s.textContent=`
-#ivCdcOverlay .iv-cdc-modal{width:min(950px,calc(100vw - 24px))!important;max-height:94vh!important}
+#ivCdcOverlay .iv-cdc-modal{width:min(950px,calc(100vw - 24px))!important;max-height:none!important;overflow:visible!important}
 #ivCdcOverlay .iv-cdc-form-grid{gap:14px!important}
 #ivCdcOverlay .iv-cdc-suggest-field{position:relative}
 #ivCdcOverlay .iv-cdc-suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:120;background:#fff;border:1px solid #cfe0d7;border-radius:11px;box-shadow:0 14px 35px rgba(15,50,38,.16);max-height:220px;overflow:auto;padding:5px}
@@ -56,7 +64,7 @@ function applyManualUi(d){
  ensureSuggestionUi(d,"ivCdcZone","ivCdcZoneSuggestions","Clique dans la liste pour reprendre une zone déjà saisie.");ensureSuggestionUi(d,"ivCdcPrestation","ivCdcPrestationSuggestions","Les prestations de la zone choisie sont proposées en premier.");bindSuggestions(d);
 }
 async function loadSuggestions(d,target){
- if(!target?.id)return;suggestionSiteId=String(target.id);try{const snap=await db.collection("chantiers").doc(suggestionSiteId).get(),rows=snap.data()?.cahierDesChargesV1?.rows;suggestionRows=Array.isArray(rows)?rows:[]}catch(e){console.warn("CDC suggestions",e);suggestionRows=[]}applyManualUi(d);
+ refreshFirebase();if(!target?.id||!db)return;suggestionSiteId=String(target.id);try{const snap=await db.collection("chantiers").doc(suggestionSiteId).get(),rows=snap.data()?.cahierDesChargesV1?.rows;suggestionRows=Array.isArray(rows)?rows:[]}catch(e){console.warn("CDC suggestions",e);suggestionRows=[]}applyManualUi(d);
 }
 function resetModal(d){
  const o=d.getElementById("ivCdcOverlay");if(!o)return;o.dataset.rowId="";
@@ -66,23 +74,36 @@ function resetModal(d){
  const title=d.getElementById("ivCdcModalTitle");if(title)title.textContent="Saisir le cahier des charges";
  applyManualUi(d);o.hidden=false;setTimeout(()=>{const z=d.getElementById("ivCdcZone");z?.focus();renderSuggestions(d,"zone",true)},20);
 }
+async function writeManual(targetId,rowId,payload){
+ refreshFirebase();if(!db)throw Error("Firebase indisponible");
+ const run=()=>db.runTransaction(async tx=>{
+  const ref=db.collection("chantiers").doc(String(targetId)),snap=await tx.get(ref);if(!snap.exists)throw Error("Chantier introuvable");
+  const block=snap.data()?.cahierDesChargesV1||{},rows=Array.isArray(block.rows)?block.rows.map(r=>({...r})):[];
+  if(rowId){const i=rows.findIndex(r=>String(r.id)===rowId);if(i>=0)rows[i]={...rows[i],...payload};else rows.push({id:rowId,...payload,ordre:Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10,sourceType:"manual",createdAtMs:Date.now()})}
+  else{const ordre=Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10;rows.push({id:uid(),...payload,ordre,sourceType:"manual",createdAtMs:Date.now()})}
+  const now=Date.now();
+  tx.set(ref,{cahierDesChargesV1:{...block,schemaVersion:2,structuredSchedule:true,rows,updatedAtMs:now,updatedBy:auth?.currentUser?.uid||""}},{merge:true});
+ });
+ try{return await run()}catch(e){if(["aborted","unavailable","deadline-exceeded"].includes(String(e?.code||"").toLowerCase())){await new Promise(r=>setTimeout(r,250));return run()}throw e}
+}
 async function save(d){
  const target=await site(d);if(!target?.id){alert("Sélectionne et enregistre d’abord le chantier.");return}
  const o=d.getElementById("ivCdcOverlay"),rowId=txt(o?.dataset.rowId),prestation=txt(d.getElementById("ivCdcPrestation")?.value);if(!prestation){d.getElementById("ivCdcPrestation")?.focus();return}
  const jours=[...d.querySelectorAll("[data-iv-cdc-day]:checked")].map(x=>x.dataset.ivCdcDay).filter(x=>DAYS.includes(x));
  const payload={zone:txt(d.getElementById("ivCdcZone")?.value),prestation,frequenceType:d.getElementById("ivCdcFrequenceType")?.value||"jours",jours,observations:txt(d.getElementById("ivCdcObservations")?.value),updatedAtMs:Date.now()};
- const btn=d.querySelector("#ivCdcForm button[type=submit]");if(btn){btn.disabled=true;btn.textContent="Enregistrement…"}
+ const btn=d.querySelector("#ivCdcForm button[type=submit]");if(btn?.dataset.ivSaving==="1")return;if(btn){btn.dataset.ivSaving="1";btn.disabled=true;btn.textContent="Enregistrement…"}
  try{
-  await db.runTransaction(async tx=>{const ref=db.collection("chantiers").doc(String(target.id)),snap=await tx.get(ref);if(!snap.exists)throw Error("Chantier introuvable");const block=snap.data()?.cahierDesChargesV1||{},rows=Array.isArray(block.rows)?block.rows.map(r=>({...r})):[];if(rowId){const i=rows.findIndex(r=>String(r.id)===rowId);if(i>=0)rows[i]={...rows[i],...payload}}else{const ordre=Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10;rows.push({id:uid(),...payload,ordre,sourceType:"manual",createdAtMs:Date.now()})}tx.update(ref,{"cahierDesChargesV1.schemaVersion":2,"cahierDesChargesV1.structuredSchedule":true,"cahierDesChargesV1.rows":rows,"cahierDesChargesV1.updatedAtMs":Date.now(),"cahierDesChargesV1.updatedBy":auth?.currentUser?.uid||""})});
-  suggestionRows.push({zone:payload.zone,prestation:payload.prestation});if(o){o.hidden=true;o.dataset.rowId=""}
- }catch(e){console.error("CDC manual save",e);alert("Impossible d’enregistrer le cahier des charges. Vérifie la connexion Firebase.")}
- finally{if(btn){btn.disabled=false;btn.textContent="Enregistrer"}}
+  await writeManual(target.id,rowId,payload);
+  suggestionRows=suggestionRows.filter(r=>!(norm(r.zone)===norm(payload.zone)&&norm(r.prestation)===norm(payload.prestation)));suggestionRows.push({zone:payload.zone,prestation:payload.prestation});
+  if(o){o.hidden=true;o.dataset.rowId=""}
+ }catch(e){console.error("CDC manual save",e);alert("Impossible d’enregistrer le cahier des charges. Vérifie la connexion Firebase puis réessaie.")}
+ finally{if(btn){delete btn.dataset.ivSaving;btn.disabled=false;btn.textContent="Enregistrer"}}
 }
 function patchManual(d){
  const o=d.getElementById("ivCdcOverlay"),old=d.getElementById("ivCdcForm");if(!o||!old)return;applyManualUi(d);
  if(old.dataset.ivOperationalFix!=="1"){
-  const form=old.cloneNode(true);form.dataset.ivOperationalFix="1";old.replaceWith(form);applyManualUi(d);
-  const close=()=>{o.hidden=true;o.dataset.rowId=""};d.getElementById("ivCdcClose")?.addEventListener("click",close);d.getElementById("ivCdcCancel")?.addEventListener("click",close);form.addEventListener("submit",e=>{e.preventDefault();save(d)});
+  const form=old.cloneNode(true);form.dataset.ivOperationalFix="1";delete form.dataset.ivStructuredSave;old.replaceWith(form);applyManualUi(d);
+  const close=()=>{o.hidden=true;o.dataset.rowId=""};d.getElementById("ivCdcClose")?.addEventListener("click",close);d.getElementById("ivCdcCancel")?.addEventListener("click",close);form.addEventListener("submit",e=>{e.preventDefault();e.stopImmediatePropagation();save(d)},true);
  }
  let add=d.getElementById("ivCdcAdd");if(add&&add.dataset.ivOperationalFix!=="1"){const n=add.cloneNode(true);n.dataset.ivOperationalFix="1";n.textContent="✍️ Saisir manuellement";n.disabled=false;n.addEventListener("click",async e=>{e.preventDefault();const target=await site(d);if(!target?.id){alert("Sélectionne et enregistre d’abord le chantier.");return}await loadSuggestions(d,target);resetModal(d)});add.replaceWith(n)}
  if(o.dataset.ivSuggestionObserver!=="1"){o.dataset.ivSuggestionObserver="1";new MutationObserver(async()=>{if(o.hidden)return;const target=await site(d);if(target?.id)await loadSuggestions(d,target);applyManualUi(d)}).observe(o,{attributes:true,attributeFilter:["hidden"]})}
@@ -93,6 +114,7 @@ function patchPdf(d){
  const n=b.cloneNode(true);n.dataset.ivOperationalFix="1";n.dataset.ivRealImport="1";n.textContent="📄 Importer un PDF";n.disabled=false;n.title="Importer le cahier des charges PDF de ce chantier";
  n.addEventListener("click",async e=>{e.preventDefault();const target=await site(d);if(!target?.id){alert("Sélectionne et enregistre d’abord le chantier.");return}input.accept="application/pdf,.pdf";input.click()});b.replaceWith(n);
 }
-function install(){const d=D();if(!d?.body)return;if(d!==patchedDoc)patchedDoc=d;patchManual(d);patchPdf(d)}
+window.InovtecCdcOperationalSave=d=>save(d);
+function install(){refreshFirebase();const d=D();if(!d?.body)return;if(d!==patchedDoc)patchedDoc=d;patchManual(d);patchPdf(d)}
 frame?.addEventListener("load",()=>{setTimeout(install,300);setTimeout(install,900);setTimeout(install,1700)});setTimeout(install,600);setInterval(install,900);
 })();
