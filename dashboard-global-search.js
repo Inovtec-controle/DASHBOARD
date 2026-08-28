@@ -20,6 +20,13 @@ function agentsFrom(data){
   if(Array.isArray(p))return p;
   return Array.isArray(data?.referentialAgents)?data.referentialAgents:[];
 }
+function agentDeletionState(...lists){
+  const ids=new Set(),names=new Set(),activeNames=new Set();
+  for(const list of lists)for(const a of(Array.isArray(list)?list:[])){if(a?._deleted!==true)continue;if(a.id)ids.add(String(a.id));const n=norm(agentName(a));if(n)names.add(n)}
+  for(const list of lists)for(const a of(Array.isArray(list)?list:[])){if(!a||a._deleted===true||ids.has(String(a.id||"")))continue;const n=norm(agentName(a));if(n)activeNames.add(n)}
+  return{ids,names,activeNames};
+}
+function activeAgent(a,d){const n=norm(agentName(a));return a&&a._deleted!==true&&!d.ids.has(String(a.id||""))&&!(d.names.has(n)&&!d.activeNames.has(n))}
 function unique(items,keyFn){
   const out=[],seen=new Set();
   for(const item of items){
@@ -83,11 +90,8 @@ async function load(user){
       :[];
     const shared=sourceData(result[1]),personal=sourceData(result[2]);
     const localAgents=localJson("kontrol_agents_classeur_v2",[]);
-    const agents=unique([
-      ...agentsFrom(shared),
-      ...agentsFrom(personal),
-      ...(Array.isArray(localAgents)?localAgents:[])
-    ],a=>String(a.id||agentName(a)));
+    const agentLists=[agentsFrom(shared),agentsFrom(personal),Array.isArray(localAgents)?localAgents:[]],deletedAgents=agentDeletionState(...agentLists);
+    const agents=unique(agentLists.flat().filter(a=>activeAgent(a,deletedAgents)),a=>String(a.id||agentName(a)));
     buildRows(sites,agents,moduleTasks(shared,personal));
     ready=true;
     if(input.value.trim())render();

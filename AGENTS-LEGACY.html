@@ -745,9 +745,19 @@ function load(){
 function save(){
   localStorage.setItem(STORE_KEY, JSON.stringify(state.agents));
 }
+function isDeletedAgent(agent){
+  return !!(agent && agent._deleted === true);
+}
+function activeAgents(){
+  return state.agents.filter(function(agent){return !isDeletedAgent(agent);});
+}
+function agentSortKey(agent){
+  var i = agent && agent.identity || {};
+  return (safeText(i.nom)+" "+safeText(i.prenom)).trim().toLowerCase();
+}
 function getSelectedAgent(){
   for(var i=0;i<state.agents.length;i++){
-    if(state.agents[i].id === state.selectedId) return state.agents[i];
+    if(state.agents[i].id === state.selectedId && !isDeletedAgent(state.agents[i])) return state.agents[i];
   }
   return null;
 }
@@ -792,10 +802,28 @@ function deleteAgent(){
   var agent = getSelectedAgent();
   if(!agent) return;
   var label = (safeText(agent.identity.prenom)+" "+safeText(agent.identity.nom)).trim() || "cet agent";
-  if(confirm("Supprimer la fiche de "+label+" ? Cette action est irréversible.")){
-    state.agents = state.agents.filter(function(a){return a.id !== agent.id;});
-    state.selectedId = state.agents.length ? state.agents[0].id : null;
+  if(confirm("Supprimer définitivement la fiche de "+label+" ?\n\nLa suppression sera synchronisée afin que cette fiche ne réapparaisse plus.")){
+    var now = new Date().toISOString();
+    var tombstone = {
+      id: agent.id,
+      _deleted: true,
+      deletedAt: now,
+      updatedAt: now,
+      createdAt: agent.createdAt || now,
+      deletedDisplayName: label,
+      identity: {
+        prenom: safeText(agent.identity && agent.identity.prenom),
+        nom: safeText(agent.identity && agent.identity.nom)
+      },
+      job: {},
+      docs: [],
+      incidents: []
+    };
+    state.agents = state.agents.map(function(a){return a.id === agent.id ? tombstone : a;});
+    var remaining = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr");});
+    state.selectedId = remaining.length ? remaining[0].id : null;
     save();
+    try{window.dispatchEvent(new CustomEvent("inovtec:agent-deleted",{detail:{id:agent.id,name:label,deletedAt:now}}));}catch(e){}
     renderAll();
   }
 }
@@ -1120,11 +1148,9 @@ function addIncidentFromForm(){
 /* ===== List & Details ===== */
 function filteredAgents(){
   var q = safeText(state.search).toLowerCase();
-  var arr = state.agents.slice();
+  var arr = activeAgents().slice();
   arr.sort(function(a,b){
-    var an = (safeText(a.identity.nom)+" "+safeText(a.identity.prenom)).toLowerCase();
-    var bn = (safeText(b.identity.nom)+" "+safeText(b.identity.prenom)).toLowerCase();
-    return an.localeCompare(bn);
+    return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});
   });
   if(!q) return arr;
   return arr.filter(function(a){
@@ -1245,7 +1271,7 @@ function exportJSON(){
   var payload = {
     version: 2,
     exportedAt: new Date().toISOString(),
-    agents: state.agents
+    agents: activeAgents()
   };
   var blob = new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
   var url = URL.createObjectURL(blob);
@@ -1268,8 +1294,11 @@ function importJSONFile(file){
         alert("Format JSON non reconnu.");
         return;
       }
-      state.agents = agents;
-      state.selectedId = state.agents.length ? state.agents[0].id : null;
+      var existingDeleted = state.agents.filter(isDeletedAgent);
+      var deletedIds = new Set(existingDeleted.map(function(a){return String(a.id||"");}));
+      state.agents = existingDeleted.concat(agents.filter(function(a){return !deletedIds.has(String(a && a.id || ""));}));
+      var visible = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});});
+      state.selectedId = visible.length ? visible[0].id : null;
       save();
       renderAll();
       alert("Import terminé ✅");
@@ -1282,12 +1311,26 @@ function importJSONFile(file){
 }
 
 function resetAll(){
-  if(confirm("Réinitialiser toute l’application ?\n\nCela efface toutes les fiches sur CET appareil uniquement.")){
-    localStorage.removeItem(STORE_KEY);
-    state.agents = [];
+  if(confirm("Supprimer toutes les fiches agents ?\n\nLa suppression sera synchronisée afin que les anciennes fiches ne reviennent pas.")){
+    var now = new Date().toISOString();
+    state.agents = state.agents.map(function(agent){
+      if(isDeletedAgent(agent)) return agent;
+      var i = agent.identity || {};
+      return {
+        id: agent.id,
+        _deleted: true,
+        deletedAt: now,
+        updatedAt: now,
+        createdAt: agent.createdAt || now,
+        deletedDisplayName: (safeText(i.prenom)+" "+safeText(i.nom)).trim(),
+        identity:{prenom:safeText(i.prenom),nom:safeText(i.nom)},
+        job:{},docs:[],incidents:[]
+      };
+    });
     state.selectedId = null;
     state.search = "";
     $("#search").value = "";
+    save();
     renderAll();
   }
 }
@@ -1365,8 +1408,9 @@ document.addEventListener("DOMContentLoaded", function(){
 
   // load + render
   load();
-  if(state.agents.length){
-    state.selectedId = state.agents[0].id;
+  var initialAgents = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});});
+  if(initialAgents.length){
+    state.selectedId = initialAgents[0].id;
   }
   renderAll();
 });

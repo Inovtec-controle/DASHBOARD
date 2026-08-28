@@ -36,10 +36,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'inovtec-cross-page-data.js?v=20260823-crosspage1' inovtec-page-shell.html
+          grep -q 'inovtec-cross-page-data.js?v=20260828-agentdelete1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' inovtec-info-shell-stable.html
           grep -q 'inovtec-kontrol-ref-metadata.js?v=20260823-crosspage1' KONTROL-CLOUD-LEGACY.html
-          grep -q 'dashboard-index-shared.js?v=20260828-kpi1' index.html
+          grep -q 'dashboard-index-shared.js?v=20260828-agentdelete1' index.html
 
       - name: Vérifier le modèle commun
         shell: bash
@@ -49,6 +49,8 @@ jobs:
           grep -q 'chantierId' inovtec-cross-page-data.js
           grep -q 'referentialLinks' inovtec-cross-page-data.js
           grep -q 'referentialAgents' inovtec-cross-page-data.js
+          grep -q 'deletionState' inovtec-cross-page-data.js
+          grep -q '_deleted' dashboard-index-shared.js
           grep -q 'Classeur agents' DATA_SHARING_MAP.md
           grep -q 'Infos chantier' DATA_SHARING_MAP.md
           grep -q 'kontrolPdfMeta' dashboard-index-shared.js

@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'inovtec-shared-workspace.js?v=20260823-shared1' inovtec-page-shell.html
+          grep -q 'inovtec-shared-workspace.js?v=20260828-agentdelete1' inovtec-page-shell.html
           grep -q 'firebase-firestore-compat.js' KONTROL-CLOUD-LEGACY.html
           grep -q 'inovtec-kontrol-shared-archive.js?v=20260823-shared1' KONTROL-CLOUD-LEGACY.html
           grep -q 'inovtec-firebase-operational-guard.js?v=20260826-1' firebase-config.js
@@ -44,6 +44,7 @@ jobs:
           grep -q 'agentBinaryChunk' inovtec-firebase-operational-guard.js
           grep -q 'ivBinaryV1' inovtec-firebase-operational-guard.js
           grep -q '_hidden:true' inovtec-shared-workspace.js
+          grep -q '_deleted===true' inovtec-shared-workspace.js
           grep -q '_hidden:true' inovtec-kontrol-shared-archive.js
 
       - name: Vérifier la compatibilité avec les règles Firebase actuelles

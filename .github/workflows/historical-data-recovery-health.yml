@@ -21,6 +21,7 @@ jobs:
         run: |
           grep -q 'inovtec_plannings_v2' inovtec-historical-data-recovery.js
           grep -q 'kontrol_agents_classeur_v2' inovtec-historical-data-recovery.js
+          grep -q '_deleted===true' inovtec-historical-data-recovery.js
           grep -q 'HSUPP_DUR_APP_V1' inovtec-historical-data-recovery.js
           grep -q 'inovtec_absences_v1' inovtec-historical-data-recovery.js
           grep -q 'orga_task_board_v2' inovtec-historical-data-recovery.js

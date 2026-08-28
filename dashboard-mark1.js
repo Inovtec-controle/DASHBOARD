@@ -4,7 +4,7 @@ if(window.__INOVTEC_DASHBOARD_MARK1_V2__)return;
 window.__INOVTEC_DASHBOARD_MARK1_V2__=true;
 
 const recovery=document.createElement("script");
-recovery.src="inovtec-historical-data-recovery.js?v=20260828-kpi1";
+recovery.src="inovtec-historical-data-recovery.js?v=20260828-agentdelete1";
 recovery.async=false;
 document.head.appendChild(recovery);
 

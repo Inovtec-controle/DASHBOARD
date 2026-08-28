@@ -75,7 +75,12 @@ jobs:
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
           grep -q 'inovtec-agents-list-fit.js?v=20260828-agentfit1' AGENTS-LEGACY.html
-          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260828-agentfit1' AGENTS.html
+          grep -q '_deleted: true' AGENTS-LEGACY.html
+          grep -q 'inovtec-cloud-sync.js?v=20260828-agentdelete1' inovtec-page-shell.html
+          grep -q 'inovtec-data-hub.js?v=20260828-agentdelete1' inovtec-page-shell.html
+          grep -q 'inovtec-referential.js?v=20260828-agentdelete1' inovtec-page-shell.html
+          grep -q 'inovtec-alphabetical-lists.js?v=20260828-alpha2' inovtec-page-shell.html
+          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260828-agentdelete1' AGENTS.html
           grep -q 'inovtec-info-auth-bridge.js?v=20260820-info-operational1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' INFOCHANTIERS.html
           grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' INFOCHANTIERS-V2.html
@@ -89,7 +94,7 @@ jobs:
           grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css
           grep -q 'planning-calendar.js?v=' PLANNINGS-LEGACY.html
           grep -q 'id="globalSearch"' index.html
-          grep -q 'dashboard-global-search.js?v=20260828-search1' index.html
+          grep -q 'dashboard-global-search.js?v=20260828-agentdelete1' index.html
           grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' inovtec-info-shell-stable.html
           if grep -q 'sera activée ultérieurement' index.html; then
@@ -113,6 +118,11 @@ jobs:
           node --check inovtec-search-handoff.js
           node --check inovtec-shell.js
           node --check inovtec-cloud-sync.js
+          node --check inovtec-data-hub.js
+          node --check inovtec-shared-workspace.js
+          node --check inovtec-referential.js
+          node --check inovtec-cross-page-data.js
+          node --check inovtec-historical-data-recovery.js
           node --check inovtec-referential.js
           node --check inovtec-visual-runtime.js
           node --check inovtec-agent-contract-hours.js
@@ -137,7 +147,7 @@ jobs:
           pages = [
               'index.html','INFOCHANTIERS.html','ORGA.html','DISCIPLINE.html',
               'PLANNINGS.html','PLANNINGS-LEGACY.html','KONTROL.html','KONTROL-CLOUD-LEGACY.html','HEURE-SUP.html','TEMPS.html',
-              'SALAIRE.html','AGENTS.html','inovtec-page-shell.html'
+              'SALAIRE.html','AGENTS.html','AGENTS-LEGACY.html','inovtec-page-shell.html'
           ]
 
           class ScriptParser(HTMLParser):
