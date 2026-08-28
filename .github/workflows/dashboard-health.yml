@@ -74,6 +74,18 @@ jobs:
           grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js
           grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css
           grep -q 'planning-calendar.js?v=' PLANNINGS-LEGACY.html
+          grep -q 'id="globalSearch"' index.html
+          grep -q 'dashboard-global-search.js?v=20260828-search1' index.html
+          grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-page-shell.html
+          grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-info-shell-stable.html
+          if grep -q 'sera activée ultérieurement' index.html; then
+            echo "::error file=index.html::Une fonctionnalité visible du dashboard est encore annoncée comme inactive."
+            exit 1
+          fi
+          if grep -Eq 'id="globalSearch"[^>]*disabled' index.html; then
+            echo "::error file=index.html::La recherche globale est de nouveau désactivée."
+            exit 1
+          fi
 
       - name: Vérifier la syntaxe JavaScript
         shell: bash
@@ -83,6 +95,8 @@ jobs:
           node --check dashboard-index.js
           node --check dashboard-index-shared.js
           node --check dashboard-mark1.js
+          node --check dashboard-global-search.js
+          node --check inovtec-search-handoff.js
           node --check inovtec-shell.js
           node --check inovtec-cloud-sync.js
           node --check inovtec-referential.js
