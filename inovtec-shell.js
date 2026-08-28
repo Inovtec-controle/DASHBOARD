@@ -50,7 +50,45 @@ function buildTools(){tools.innerHTML="";
  if(mode==="essence"){addTool("Calculer","=",()=>clickTarget("#calculateBtn",["calculer"]),true);addTool("Réinitialiser","↻",()=>clickTarget("#resetBtn",["réinitialiser"]));}
  const spacer=document.createElement("span");spacer.className="iv-spacer";tools.appendChild(spacer);const live=document.createElement("span");live.className="iv-live";live.id="liveMirror";live.textContent="Fonctions d’origine conservées";tools.appendChild(live)
 }
+let agentsResizeObserver=null,agentsMutationObserver=null;
+function fitAgentsFullPage(doc){
+  if(mode!=="agents"||!doc?.body)return;
+  document.body.classList.add("iv-agents-full-page");
+  try{
+    doc.documentElement.style.height="auto";
+    doc.body.style.height="auto";
+    doc.body.style.overflow="visible";
+    const app=doc.querySelector(".app");
+    if(app)app.style.minHeight="0";
+    const list=doc.getElementById("agentList");
+    if(list){list.style.maxHeight="none";list.style.overflow="visible"}
+  }catch{}
+  const resize=()=>{
+    try{
+      const h=Math.max(
+        doc.documentElement?.scrollHeight||0,
+        doc.body?.scrollHeight||0,
+        doc.querySelector?.(".app")?.scrollHeight||0,
+        700
+      )+12;
+      document.body.style.setProperty("--iv-agents-frame-height",h+"px");
+      frame.style.height=h+"px";
+    }catch{}
+  };
+  try{agentsResizeObserver?.disconnect()}catch{}
+  try{agentsMutationObserver?.disconnect()}catch{}
+  if(window.ResizeObserver){
+    agentsResizeObserver=new ResizeObserver(()=>requestAnimationFrame(resize));
+    agentsResizeObserver.observe(doc.body);
+  }
+  agentsMutationObserver=new MutationObserver(()=>requestAnimationFrame(resize));
+  agentsMutationObserver.observe(doc.body,{childList:true,subtree:true,attributes:true});
+  resize();
+  setTimeout(resize,120);
+  setTimeout(resize,500);
+  setTimeout(resize,1200);
+}
 function mirrorStatus(){const doc=targetDoc();if(!doc)return;const src=doc.querySelector("#syncStatus,.status.ok,.status.warning");if(src&&src.textContent.trim())$("syncMirror").textContent=src.textContent.trim().slice(0,70);const live=$("liveMirror");if(!live)return;let count="";if(mode==="planning")count=doc.querySelector("#count")?.textContent||"";else if(mode==="infos")count=(doc.querySelector("#count")?.textContent||"")+" chantier(s)";else if(mode==="discipline")count=doc.querySelector("#count")?.textContent||"";else if(mode==="organisation")count=`${doc.querySelectorAll(".task").length} tâche(s)`;else if(mode==="heures")count=`${doc.querySelectorAll("tbody tr").length} ligne(s) affichée(s)`;else if(mode==="essence")count=doc.querySelector("#totalCost")?.textContent||"";live.textContent=count||"Fonctions d’origine conservées"}
-function prepareFrame(){const doc=targetDoc();if(!doc)return;addTheme(doc,mode==="kontrol"?"kontrol-cloud":mode);if(mode==="kontrol"){const nested=doc.getElementById("kontrolFrame");if(nested){const inject=()=>addTheme(nestedKontrolDoc(),"kontrol");nested.addEventListener("load",()=>setTimeout(inject,60));setTimeout(inject,300);setTimeout(inject,1100)}}buildTools();mirrorStatus();setInterval(mirrorStatus,1200);loading.classList.add("hidden")}
+function prepareFrame(){const doc=targetDoc();if(!doc)return;addTheme(doc,mode==="kontrol"?"kontrol-cloud":mode);if(mode==="agents")fitAgentsFullPage(doc);if(mode==="kontrol"){const nested=doc.getElementById("kontrolFrame");if(nested){const inject=()=>addTheme(nestedKontrolDoc(),"kontrol");nested.addEventListener("load",()=>setTimeout(inject,60));setTimeout(inject,300);setTimeout(inject,1100)}}buildTools();mirrorStatus();setInterval(mirrorStatus,1200);loading.classList.add("hidden")}
 frame.addEventListener("load",()=>setTimeout(prepareFrame,80));
 })();

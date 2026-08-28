@@ -30,3 +30,15 @@ body{overflow:hidden}
 .iv-mobile-nav{display:none}
 @media(max-width:1050px){.iv-shell{grid-template-columns:82px minmax(0,1fr)}.iv-sidebar{padding:16px 9px}.iv-brand{justify-content:center}.iv-brand-copy,.iv-sidebar-note,.iv-nav a span:not(.iv-ico){display:none}.iv-nav a{justify-content:center;padding:10px}.iv-hero{margin-left:12px;margin-right:12px}.iv-toolbar,.iv-stage{margin-left:12px;margin-right:12px}}
 @media(max-width:760px){body{overflow:auto}.iv-shell{display:block;height:auto;min-height:100dvh}.iv-sidebar{display:none}.iv-main{height:100dvh;grid-template-rows:52px auto auto minmax(0,1fr);padding-bottom:64px}.iv-topbar{height:52px;padding:0 11px}.iv-top-left strong{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iv-small-btn .iv-hide-mobile{display:none}.iv-hero{margin:8px 8px 0;min-height:142px;padding:20px 18px;align-items:flex-start}.iv-hero h1{font-size:25px;max-width:330px}.iv-hero p{font-size:11px;max-width:320px}.iv-date{right:9px;top:auto;bottom:9px;min-width:145px;padding:7px 10px}.iv-geometry{inset:0 0 0 24%}.iv-toolbar{margin:0 8px;min-height:49px;padding:7px 0}.iv-stage{margin:0 8px 8px;border-radius:14px}.iv-mobile-nav{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;height:64px;background:#064e3b;z-index:50;padding:5px;gap:3px}.iv-mobile-nav a{color:#eaf7f1;text-decoration:none;display:grid;place-items:center;align-content:center;font-size:8px;font-weight:800;border-radius:9px}.iv-mobile-nav a.active{background:#0d8a5c}.iv-mobile-nav span:first-child{font-size:16px;line-height:1.05}}
+
+body.iv-agents-full-page{overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none}
+body.iv-agents-full-page::-webkit-scrollbar{display:none;width:0;height:0}
+body.iv-agents-full-page .iv-shell{height:auto;min-height:100dvh;align-items:start}
+body.iv-agents-full-page .iv-sidebar{position:sticky;top:0;align-self:start}
+body.iv-agents-full-page .iv-main{height:auto;min-height:100dvh;overflow:visible;grid-template-rows:auto auto auto auto auto}
+body.iv-agents-full-page .iv-stage{min-height:0;overflow:visible}
+body.iv-agents-full-page .iv-frame{height:var(--iv-agents-frame-height,900px);overflow:hidden}
+@media(max-width:760px){
+  body.iv-agents-full-page .iv-main{height:auto;min-height:100dvh;padding-bottom:64px}
+  body.iv-agents-full-page .iv-stage{overflow:visible}
+}
