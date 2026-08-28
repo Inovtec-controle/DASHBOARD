@@ -82,6 +82,8 @@ jobs:
           # Planning / agents / anciennes heures supplémentaires : synchronisation personnelle Firebase.
           grep -Fq 'planning:"inovtec_plannings_v2"' inovtec-cloud-sync.js
           grep -Fq 'agents:"kontrol_agents_classeur_v2"' inovtec-cloud-sync.js
+          grep -Fq 'isDeletedAgent' inovtec-cloud-sync.js
+          grep -Fq '_deleted:true' inovtec-data-hub.js
           grep -Fq 'heures:"HSUPP_DUR_APP_V1"' inovtec-cloud-sync.js
 
           # Référentiels agents + chantiers. Les documents techniques cachés ne sont plus téléchargés avec la liste métier.
