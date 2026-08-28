@@ -36,22 +36,47 @@ function mergeRows(a=[],b=[]){
   return out;
 }
 
+const isDeletedAgent=a=>!!(a&&a._deleted===true);
+const agentStamp=a=>Date.parse(a?.deletedAt||a?.updatedAt||a?.createdAt||0)||Number(a?.updatedAtMs)||0;
+function agentTombstone(...rows){
+  const valid=rows.filter(Boolean);
+  if(!valid.length)return null;
+  const latest=valid.slice().sort((a,b)=>agentStamp(b)-agentStamp(a))[0]||valid[0];
+  const named=valid.find(a=>a?.deletedDisplayName)||latest;
+  const identity=valid.reduce((o,a)=>({...o,...(a?.identity||{})}),{});
+  const deletedAt=valid.map(a=>a?.deletedAt||a?.updatedAt||"").filter(Boolean).sort().pop()||new Date().toISOString();
+  return {
+    id:String(latest.id||valid[0].id||""),
+    _deleted:true,
+    deletedAt,
+    updatedAt:deletedAt,
+    createdAt:latest.createdAt||valid[0].createdAt||deletedAt,
+    deletedDisplayName:named?.deletedDisplayName||[identity.prenom,identity.nom].filter(Boolean).join(" ").trim(),
+    identity:{prenom:identity.prenom||"",nom:identity.nom||""},
+    job:{},docs:[],incidents:[]
+  };
+}
 function mergeAgentRecords(remoteAgents=[],localAgents=[]){
-  const merged=mergeRows(remoteAgents,localAgents);
-  return merged.map(agent=>{
-    const r=remoteAgents.find(x=>x?.id===agent.id)||{};
-    const l=localAgents.find(x=>x?.id===agent.id)||{};
-    const out={...r,...l,...agent};
-    out.identity={...(r.identity||{}),...(l.identity||{})};
-    out.job={...(r.job||{}),...(l.job||{})};
-    out.docs=mergeRows(r.docs||[],l.docs||[]);
-    out.incidents=mergeRows(r.incidents||[],l.incidents||[]).map(inc=>{
-      const ri=(r.incidents||[]).find(x=>x?.id===inc.id)||{};
-      const li=(l.incidents||[]).find(x=>x?.id===inc.id)||{};
+  const ids=new Set([...remoteAgents,...localAgents].map(a=>String(a?.id||"")).filter(Boolean));
+  const out=[];
+  ids.forEach(id=>{
+    const r=remoteAgents.find(x=>String(x?.id||"")===id)||null;
+    const l=localAgents.find(x=>String(x?.id||"")===id)||null;
+    if(isDeletedAgent(r)||isDeletedAgent(l)){out.push(agentTombstone(r,l));return}
+    const agent=mergeRows(r?[r]:[],l?[l]:[])[0]||r||l;
+    if(!agent)return;
+    const rr=r||{},ll=l||{},z={...rr,...ll,...agent};
+    z.identity={...(rr.identity||{}),...(ll.identity||{}),...(agent.identity||{})};
+    z.job={...(rr.job||{}),...(ll.job||{}),...(agent.job||{})};
+    z.docs=mergeRows(rr.docs||[],ll.docs||[]);
+    z.incidents=mergeRows(rr.incidents||[],ll.incidents||[]).map(inc=>{
+      const ri=(rr.incidents||[]).find(x=>x?.id===inc.id)||{};
+      const li=(ll.incidents||[]).find(x=>x?.id===inc.id)||{};
       return {...ri,...li,...inc,photos:mergeRows(ri.photos||[],li.photos||[])};
     });
-    return out;
+    out.push(z);
   });
+  return out;
 }
 
 function merge(remote,local){
@@ -88,6 +113,7 @@ function compactAgents(raw){
   const arr=parse(raw);
   if(!Array.isArray(arr))return raw;
   const clean=arr.map(a=>{
+    if(isDeletedAgent(a))return agentTombstone(a);
     const out={...a};
     out.docs=(a.docs||[]).map(d=>{const x={...d};delete x.dataUrl;return x});
     out.incidents=(a.incidents||[]).map(i=>{
@@ -121,8 +147,9 @@ function restoreBinary(cloud,local){
   if(!c||!l)return cloud;
   if(mode==="agents"&&Array.isArray(c)&&Array.isArray(l)){
     const out=c.map(agent=>{
+      if(isDeletedAgent(agent))return agentTombstone(agent);
       const localAgent=l.find(x=>x?.id===agent?.id);
-      if(!localAgent)return agent;
+      if(!localAgent||isDeletedAgent(localAgent))return agent;
       const a={...agent};
       a.docs=(agent.docs||[]).map(d=>{
         const ld=(localAgent.docs||[]).find(x=>x?.id===d?.id);
