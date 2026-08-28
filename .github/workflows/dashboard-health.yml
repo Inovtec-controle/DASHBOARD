@@ -59,6 +59,7 @@ jobs:
             inovtec-firebase-indicator.css
             inovtec-firebase-indicator.js
             inovtec-page-shell.html
+            inovtec-info-auth-bridge.js
           )
           for file in "${files[@]}"; do
             if [[ ! -s "$file" ]]; then
@@ -71,6 +72,13 @@ jobs:
           grep -q 'inovtec-firebase-indicator.js' index.html
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
+          grep -q 'inovtec-info-auth-bridge.js?v=20260820-info-operational1' inovtec-page-shell.html
+          grep -q 'inovtec-page-shell.html?build=20260828-infos-common1&amp;mode=infos' INFOCHANTIERS.html
+          grep -q 'inovtec-page-shell.html?build=20260828-infos-common1&amp;mode=infos' INFOCHANTIERS-V2.html
+          if grep -q 'inovtec-info-shell-stable.html' INFOCHANTIERS.html INFOCHANTIERS-V2.html; then
+            echo "::error::Infos chantier utilise encore son ancien menu spécial."
+            exit 1
+          fi
           grep -q 'planning-editor-stability.js' PLANNINGS-LEGACY.html
           grep -q 'planning-pdf.js?v=20260815-3' PLANNINGS-LEGACY.html
           grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js
@@ -106,6 +114,7 @@ jobs:
           node --check inovtec-agent-contract-hours.js
           node --check inovtec-alphabetical-lists.js
           node --check inovtec-firebase-indicator.js
+          node --check inovtec-info-auth-bridge.js
           node --check inovtec-empty-initial-selection.js
           node --check inovtec-planning-launch-selection.js
           node --check inovtec-info-agent-planning.js
