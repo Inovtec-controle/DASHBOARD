@@ -63,5 +63,6 @@ jobs:
           git config user.name 'Inovtec Bot'
           git config user.email 'inovtec-bot@users.noreply.github.com'
           git add inovtec-alphabetical-lists.js inovtec-page-shell.html
+          git diff --cached --quiet && exit 0
           git commit -m 'Corrige le tri des listes sans détacher les composants'
           git push
