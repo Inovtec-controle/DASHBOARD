@@ -58,6 +58,8 @@ function fitAgentsFullPage(doc){
     doc.documentElement.style.height="auto";
     doc.body.style.height="auto";
     doc.body.style.overflow="visible";
+    const app=doc.querySelector(".app");
+    if(app)app.style.minHeight="0";
     const list=doc.getElementById("agentList");
     if(list){list.style.maxHeight="none";list.style.overflow="visible"}
   }catch{}
