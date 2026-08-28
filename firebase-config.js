@@ -46,7 +46,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
     if (window.top !== window) return;
     if (document.querySelector('script[data-inovtec-firebase-operational="1"]')) return;
     const script = document.createElement("script");
-    script.src = "inovtec-firebase-operational-guard.js?v=20260826-1";
+    script.src = "inovtec-firebase-operational-guard.js?v=20260829-operational1";
     script.dataset.inovtecFirebaseOperational = "1";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
