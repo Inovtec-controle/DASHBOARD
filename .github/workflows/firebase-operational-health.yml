@@ -77,7 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'projectId: "inovtec-chantiers"' firebase-config.js
-          grep -Fq 'inovtec-firebase-operational-guard.js?v=20260826-1' firebase-config.js
+          grep -Fq 'inovtec-firebase-operational-guard.js?v=20260829-operational1' firebase-config.js
 
           # Planning / agents / anciennes heures supplémentaires : synchronisation personnelle Firebase.
           grep -Fq 'planning:"inovtec_plannings_v2"' inovtec-cloud-sync.js
@@ -125,6 +125,10 @@ jobs:
           grep -Fq 'CONGES.html' inovtec-navigation-order.js
           grep -Fq 'VARIABLES.html' inovtec-navigation-order.js
           grep -Fq 'inovtec-conges-nav.js' inovtec-page-shell.html
+          grep -Fq 'firebase-config.js?v=20260829-operational1' inovtec-page-shell.html
+          for page in PLANNINGS.html AGENTS.html CONGES.html VARIABLES.html ORGA.html INFOCHANTIERS-V2.html DISCIPLINE-V9.html KONTROL-CLOUD.html; do
+            grep -Fq 'build=20260829-operational1' "$page" || { echo "::error file=$page::Build Firebase opérationnel absent"; exit 1; }
+          done
 
       - name: Résumé
         run: echo "Contrat Firebase complet vérifié : planning, agents, pièces agents, congés, variables, organisation, chantiers, discipline et KONTROL."
