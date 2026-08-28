@@ -47,6 +47,9 @@ jobs:
             HEURE-SUP.html
             TEMPS.html
             SALAIRE.html
+            ESSENCE.html
+            CONGES.html
+            VARIABLES.html
             AGENTS.html
             AGENTS-LEGACY.html
             firebase-config.js
@@ -54,6 +57,14 @@ jobs:
             inovtec-shell.js
             inovtec-cloud-sync.js
             inovtec-cahier-des-charges.js
+            inovtec-cdc-source-formats.js
+            inovtec-cdc-schedule-fields.js
+            inovtec-cdc-operational-fix.js
+            inovtec-cdc-ui-hard-fix.js
+            inovtec-firebase-operational-guard.js
+            inovtec-info-contact-mode.js
+            inovtec-info-contract-fields.js
+            inovtec-info-persistence-stable.js
             inovtec-referential.js
             inovtec-visual-runtime.js
             inovtec-agent-contract-hours.js
@@ -74,9 +85,25 @@ jobs:
           grep -q 'inovtec-firebase-indicator.js' index.html
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
-          grep -q 'inovtec-cahier-des-charges.js?v=20260829-manualfit1' inovtec-page-shell.html
+          grep -q 'inovtec-cahier-des-charges.js?v=20260829-operational1' inovtec-page-shell.html
           grep -q 'max-height:none;overflow:visible' inovtec-cahier-des-charges.js
           grep -q 'iv-cdc-overlay.*overflow:hidden' inovtec-cahier-des-charges.js
+          grep -q '__INOVTEC_CDC_OPERATIONAL_FIX_V3__' inovtec-cdc-operational-fix.js
+          grep -q 'InovtecCdcOperationalSave' inovtec-cdc-operational-fix.js
+          grep -q 'ivOperationalFix.*InovtecCdcOperationalSave' inovtec-cdc-schedule-fields.js
+          grep -q 'max-height:none!important;overflow:visible!important' inovtec-cdc-operational-fix.js
+          grep -q 'max-height:none!important;overflow:visible!important' inovtec-cdc-ui-hard-fix.js
+          grep -q 'correctif opérationnel est chargé une seule fois' inovtec-cdc-source-formats.js
+          if grep -q 'createElement("script").*operational-fix\|data-iv-cdc-operational-fix' inovtec-cdc-source-formats.js; then
+            echo "::error::Le correctif CDC est de nouveau chargé deux fois."
+            exit 1
+          fi
+          grep -q 'inovtec-cdc-operational-fix.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -q 'inovtec-cdc-schedule-fields.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -q 'inovtec-cdc-ui-hard-fix.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -q 'inovtec-info-contact-mode.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -q 'inovtec-info-contract-fields.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -q 'firebase-config.js?v=20260829-operational1' inovtec-page-shell.html
           if grep -q 'iv-cdc-modal{[^}]*overflow:auto' inovtec-cahier-des-charges.js; then
             echo "::error::La fenêtre de saisie manuelle contient encore une scrollbar interne."
             exit 1
@@ -105,14 +132,14 @@ jobs:
           grep -q 'inovtec-data-hub.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-referential.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js?v=20260829-agentstable1' inovtec-page-shell.html
-          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260829-agentstable1' AGENTS.html
+          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260829-operational1' AGENTS.html
           if grep -q 'inovtec-agents-list-fit.js' AGENTS-LEGACY.html; then
             echo "::error::Le Classeur agents utilise encore l'affichage compact adaptatif."
             exit 1
           fi
           grep -q 'inovtec-info-auth-bridge.js?v=20260820-info-operational1' inovtec-page-shell.html
-          grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' INFOCHANTIERS.html
-          grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' INFOCHANTIERS-V2.html
+          grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' INFOCHANTIERS.html
+          grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' INFOCHANTIERS-V2.html
           if grep -q 'inovtec-info-shell-stable.html' INFOCHANTIERS.html INFOCHANTIERS-V2.html; then
             echo "::error::Infos chantier utilise encore son ancien menu spécial."
             exit 1
@@ -125,7 +152,12 @@ jobs:
           grep -q 'id="globalSearch"' index.html
           grep -q 'dashboard-global-search.js?v=20260829-agentclean1' index.html
           grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-page-shell.html
-          grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' inovtec-info-shell-stable.html
+          grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' inovtec-info-shell-stable.html
+          # Toutes les pages doivent charger le même build opérationnel sans cache navigateur.
+          for page in INFOCHANTIERS.html INFOCHANTIERS-V2.html AGENTS.html PLANNINGS.html CONGES.html VARIABLES.html ORGA.html HEURE-SUP.html TEMPS.html SALAIRE.html ESSENCE.html DISCIPLINE-V9.html KONTROL-CLOUD.html; do
+            grep -q 'build=20260829-operational1' "$page" || { echo "::error file=$page::Build opérationnel absent"; exit 1; }
+            grep -qi 'http-equiv="cache-control"' "$page" || { echo "::error file=$page::Protection anti-cache absente"; exit 1; }
+          done
           if grep -q 'sera activée ultérieurement' index.html; then
             echo "::error file=index.html::Une fonctionnalité visible du dashboard est encore annoncée comme inactive."
             exit 1
@@ -148,6 +180,14 @@ jobs:
           node --check inovtec-shell.js
           node --check inovtec-cloud-sync.js
           node --check inovtec-cahier-des-charges.js
+          node --check inovtec-cdc-source-formats.js
+          node --check inovtec-cdc-schedule-fields.js
+          node --check inovtec-cdc-operational-fix.js
+          node --check inovtec-cdc-ui-hard-fix.js
+          node --check inovtec-firebase-operational-guard.js
+          node --check inovtec-info-contact-mode.js
+          node --check inovtec-info-contract-fields.js
+          node --check inovtec-info-persistence-stable.js
           node --check inovtec-data-hub.js
           node --check inovtec-shared-workspace.js
           node --check inovtec-referential.js
@@ -177,7 +217,7 @@ jobs:
           pages = [
               'index.html','INFOCHANTIERS.html','ORGA.html','DISCIPLINE.html',
               'PLANNINGS.html','PLANNINGS-LEGACY.html','KONTROL.html','KONTROL-CLOUD-LEGACY.html','HEURE-SUP.html','TEMPS.html',
-              'SALAIRE.html','AGENTS.html','AGENTS-LEGACY.html','inovtec-page-shell.html'
+              'SALAIRE.html','ESSENCE.html','CONGES.html','VARIABLES.html','AGENTS.html','AGENTS-LEGACY.html','inovtec-page-shell.html'
           ]
 
           class ScriptParser(HTMLParser):
@@ -270,7 +310,7 @@ jobs:
             echo '::error::Le site public ne contient pas encore le tri alphabétique global.'
             exit 1
           }
-          for page in INFOCHANTIERS.html ORGA.html DISCIPLINE.html PLANNINGS.html KONTROL-CLOUD.html AGENTS.html HEURE-SUP.html TEMPS.html SALAIRE.html; do
+          for page in INFOCHANTIERS.html ORGA.html DISCIPLINE.html PLANNINGS.html KONTROL-CLOUD.html AGENTS.html CONGES.html VARIABLES.html HEURE-SUP.html TEMPS.html SALAIRE.html ESSENCE.html; do
             curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null
           done
           echo 'Site public accessible et version attendue détectée.'
