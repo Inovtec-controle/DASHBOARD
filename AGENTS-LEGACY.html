@@ -910,6 +910,7 @@ function saveAgentForm(){
 
   delete agent._draft;
   touchAgent(agent);
+  rememberSelectedAgent(agent.id);
   save();
   renderAll();
 }
@@ -926,6 +927,7 @@ function duplicateAgent(){
   copy.identity.nom = safeText(copy.identity.nom) ? (safeText(copy.identity.nom)+" (copie)") : "Copie";
   state.agents.push(copy);
   state.selectedId = copy.id;
+  rememberSelectedAgent(copy.id);
   save();
   renderAll();
 }
