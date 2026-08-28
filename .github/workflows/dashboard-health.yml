@@ -80,6 +80,9 @@ jobs:
         run: |
           set -euo pipefail
           node --check firebase-config.js
+          node --check dashboard-index.js
+          node --check dashboard-index-shared.js
+          node --check dashboard-mark1.js
           node --check inovtec-shell.js
           node --check inovtec-cloud-sync.js
           node --check inovtec-referential.js
