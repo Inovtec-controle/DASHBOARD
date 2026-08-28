@@ -74,13 +74,18 @@ jobs:
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
           grep -q 'inovtec-shell.css?v=20260829-agentfull1' inovtec-page-shell.html
-          grep -q 'inovtec-shell.js?v=20260829-agentfull1' inovtec-page-shell.html
+          grep -q 'inovtec-shell.js?v=20260829-agentstable1' inovtec-page-shell.html
           grep -q 'max-height:none' AGENTS-LEGACY.html
           grep -q 'overflow:visible' AGENTS-LEGACY.html
           grep -q 'fitAgentsFullPage' inovtec-shell.js
           grep -q '_deleted: true' AGENTS-LEGACY.html
           grep -q 'function agentHasName' AGENTS-LEGACY.html
           grep -q 'function cleanupAgentState' AGENTS-LEGACY.html
+          grep -q 'function selectAgentById' AGENTS-LEGACY.html
+          grep -q 'data-agent-id' AGENTS-LEGACY.html
+          grep -q 'ivInternalSort' AGENTS-LEGACY.html
+          grep -q 'ivInternalSort' inovtec-alphabetical-lists.js
+          grep -q 'inovtec-agents-archive.js?v=20260829-agentstable1' inovtec-page-shell.html
           grep -q 'nettoyage-fiche-sans-nom' AGENTS-LEGACY.html
           grep -q 'max-height:none' AGENTS-LEGACY.html
           grep -q 'overflow:visible' AGENTS-LEGACY.html
@@ -91,8 +96,8 @@ jobs:
           grep -q 'inovtec-cloud-sync.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-data-hub.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-referential.js?v=20260829-agentclean1' inovtec-page-shell.html
-          grep -q 'inovtec-alphabetical-lists.js?v=20260828-alpha2' inovtec-page-shell.html
-          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260829-agentclean1' AGENTS.html
+          grep -q 'inovtec-alphabetical-lists.js?v=20260829-agentstable1' inovtec-page-shell.html
+          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260829-agentstable1' AGENTS.html
           if grep -q 'inovtec-agents-list-fit.js' AGENTS-LEGACY.html; then
             echo "::error::Le Classeur agents utilise encore l'affichage compact adaptatif."
             exit 1
