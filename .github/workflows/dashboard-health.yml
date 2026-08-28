@@ -28,6 +28,8 @@ jobs:
           set -euo pipefail
           files=(
             index.html
+            dashboard-global-search.js
+            inovtec-search-handoff.js
             INFOCHANTIERS.html
             ORGA.html
             DISCIPLINE.html
