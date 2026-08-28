@@ -13,6 +13,8 @@ Identifiant commun : `agentRefId` / `agentId` = ID du Classeur agents.
 
 Données maîtres : identité, coordonnées, contrat, poste, date d'entrée, disponibilité, informations administratives et documents agent.
 
+Une suppression crée une trace technique `_deleted` datée dans le module `agents`. Cette trace n'est jamais affichée comme un agent, mais elle est synchronisée afin d'empêcher une ancienne copie personnelle, partagée ou historique de restaurer la fiche supprimée.
+
 ### Chantiers — Infos chantier
 Source canonique : collection Firestore `chantiers` (documents métier non `_hidden`).
 
@@ -68,3 +70,4 @@ Une tâche peut être reliée à un agent et/ou un chantier via le référentiel
 5. Les liens inter-pages sont stockés dans le référentiel partagé, pas seulement dans le navigateur ou dans l'UID d'un utilisateur.
 6. Les documents techniques `_hidden` de la collection `chantiers` ne sont jamais comptés comme des chantiers métier.
 7. Les absences affichées dans Variables agents ne doivent pas être dupliquées : leur source reste `conges`.
+8. Une trace de suppression d'agent (`_deleted:true`) est prioritaire sur toute ancienne copie portant le même ID ; elle ne doit jamais être réinjectée dans les listes ou référentiels visibles.
