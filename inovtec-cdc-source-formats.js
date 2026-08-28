@@ -19,5 +19,5 @@ function apply(){
  card.dataset.supportedSources="manual,excel,pdf";
 }
 if(frame){frame.addEventListener("load",()=>{setTimeout(apply,200);setTimeout(apply,800)});setTimeout(apply,500)}
-if(!document.querySelector('script[data-iv-cdc-operational-fix]')){const s=document.createElement("script");s.src="inovtec-cdc-operational-fix.js?v=20260819-1";s.dataset.ivCdcOperationalFix="1";document.head.appendChild(s)}
+/* Le correctif opérationnel est chargé une seule fois par inovtec-page-shell.html. */
 })();
