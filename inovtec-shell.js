@@ -82,7 +82,7 @@ function fitAgentsFullPage(doc){
     agentsResizeObserver.observe(doc.body);
   }
   agentsMutationObserver=new MutationObserver(()=>requestAnimationFrame(resize));
-  agentsMutationObserver.observe(doc.body,{childList:true,subtree:true,attributes:true});
+  agentsMutationObserver.observe(doc.body,{childList:true,subtree:true});
   resize();
   setTimeout(resize,120);
   setTimeout(resize,500);

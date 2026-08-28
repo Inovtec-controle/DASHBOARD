@@ -869,6 +869,7 @@ function deleteAgent(){
     }
     var remaining = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr");});
     state.selectedId = remaining.length ? remaining[0].id : null;
+    rememberSelectedAgent(state.selectedId);
     save();
     try{window.dispatchEvent(new CustomEvent("inovtec:agent-deleted",{detail:{id:agent.id,name:label,deletedAt:new Date().toISOString()}}));}catch(e){}
     renderAll();
@@ -909,6 +910,7 @@ function saveAgentForm(){
 
   delete agent._draft;
   touchAgent(agent);
+  rememberSelectedAgent(agent.id);
   save();
   renderAll();
 }
@@ -925,6 +927,7 @@ function duplicateAgent(){
   copy.identity.nom = safeText(copy.identity.nom) ? (safeText(copy.identity.nom)+" (copie)") : "Copie";
   state.agents.push(copy);
   state.selectedId = copy.id;
+  rememberSelectedAgent(copy.id);
   save();
   renderAll();
 }
@@ -1221,9 +1224,41 @@ function filteredAgents(){
   });
 }
 
+function selectedStorageKey(){ return "inovtec_agents_selected_v1"; }
+function rememberSelectedAgent(id){
+  try{
+    if(id) sessionStorage.setItem(selectedStorageKey(), String(id));
+    else sessionStorage.removeItem(selectedStorageKey());
+  }catch(e){}
+}
+function restoreSelectedAgent(){
+  var saved = "";
+  try{ saved = sessionStorage.getItem(selectedStorageKey()) || ""; }catch(e){}
+  if(saved && activeAgents().some(function(a){return String(a.id)===String(saved);})){
+    state.selectedId = saved;
+    return;
+  }
+  var first = activeAgents().slice().sort(function(a,b){
+    return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});
+  })[0];
+  state.selectedId = first ? first.id : null;
+  rememberSelectedAgent(state.selectedId);
+}
+function selectAgentById(id){
+  id = String(id||"");
+  var agent = state.agents.find(function(a){
+    return a && String(a.id)===id && !isDeletedAgent(a) && agentHasName(a) && !a.archivedAt;
+  });
+  if(!agent) return false;
+  state.selectedId = agent.id;
+  rememberSelectedAgent(agent.id);
+  renderAll();
+  return true;
+}
 function renderList(){
   var list = $("#agentList");
   var empty = $("#emptyList");
+  list.dataset.ivInternalSort = "1";
   list.innerHTML = "";
 
   var agents = filteredAgents();
@@ -1245,6 +1280,10 @@ function renderList(){
 
     var item = document.createElement("div");
     item.className = "listItem"+(a.id===state.selectedId ? " active" : "");
+    item.setAttribute("data-agent-id", String(a.id||""));
+    item.setAttribute("role","button");
+    item.setAttribute("tabindex","0");
+    item.setAttribute("aria-label","Ouvrir la fiche de "+fullName);
 
     var html = '';
     html += '<div class="liMain">';
@@ -1256,19 +1295,16 @@ function renderList(){
     html += '<div class="badge '+(openCount>0?"orange":"green")+'">'+openCount+' incident'+(openCount>1?"s":"")+'</div>';
 
     item.innerHTML = html;
-    (function(id){
-      item.onclick = function(){
-        state.selectedId = id;
-        renderAll();
-      };
-    })(a.id);
-
     list.appendChild(item);
   }
 }
 
 function renderDetails(){
   var agent = getSelectedAgent();
+  if((!agent || agent.archivedAt || !agentHasName(agent)) && activeAgents().length){
+    restoreSelectedAgent();
+    agent = getSelectedAgent();
+  }
   var noMsg = $("#noAgentMessage");
   var form = $("#agentForm");
   var chip = $("#selectedChip");
@@ -1356,6 +1392,7 @@ function importJSONFile(file){
       cleanupAgentState();
       var visible = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});});
       state.selectedId = visible.length ? visible[0].id : null;
+      rememberSelectedAgent(state.selectedId);
       save();
       renderAll();
       alert("Import terminé ✅");
@@ -1385,6 +1422,7 @@ function resetAll(){
       };
     });
     state.selectedId = null;
+    rememberSelectedAgent(null);
     state.search = "";
     $("#search").value = "";
     save();
@@ -1465,10 +1503,26 @@ document.addEventListener("DOMContentLoaded", function(){
 
   // load + render
   load();
-  var initialAgents = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});});
-  if(initialAgents.length){
-    state.selectedId = initialAgents[0].id;
+  restoreSelectedAgent();
+
+  var agentList = $("#agentList");
+  if(agentList && agentList.dataset.ivStableClicks !== "1"){
+    agentList.dataset.ivStableClicks = "1";
+    agentList.addEventListener("click", function(e){
+      var row = e.target && e.target.closest ? e.target.closest(".listItem[data-agent-id]") : null;
+      if(!row || !agentList.contains(row)) return;
+      e.preventDefault();
+      selectAgentById(row.getAttribute("data-agent-id"));
+    });
+    agentList.addEventListener("keydown", function(e){
+      if(e.key!=="Enter" && e.key!==" ") return;
+      var row = e.target && e.target.closest ? e.target.closest(".listItem[data-agent-id]") : null;
+      if(!row || !agentList.contains(row)) return;
+      e.preventDefault();
+      selectAgentById(row.getAttribute("data-agent-id"));
+    });
   }
+
   renderAll();
 });
 </script>

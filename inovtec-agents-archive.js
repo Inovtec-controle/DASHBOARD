@@ -65,6 +65,7 @@ function install(){
       const current=w.state.agents.find(a=>a?.id===w.state.selectedId&&validAgent(a)&&!a?.archivedAt);
       if(current)return;
       w.state.selectedId=activeAgents()[0]?.id||null;
+      try{w.rememberSelectedAgent?.(w.state.selectedId)}catch{}
     };
 
     function renderArchives(){
@@ -93,6 +94,7 @@ function install(){
           agent.archivedAt="";
           agent.updatedAt=new Date().toISOString();
           w.state.selectedId=agent.id;
+          try{w.rememberSelectedAgent?.(agent.id)}catch{}
           w.save();
           w.renderAll();
           renderArchives();
