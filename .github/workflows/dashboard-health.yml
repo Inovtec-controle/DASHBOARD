@@ -147,7 +147,7 @@ jobs:
           pages = [
               'index.html','INFOCHANTIERS.html','ORGA.html','DISCIPLINE.html',
               'PLANNINGS.html','PLANNINGS-LEGACY.html','KONTROL.html','KONTROL-CLOUD-LEGACY.html','HEURE-SUP.html','TEMPS.html',
-              'SALAIRE.html','AGENTS.html','inovtec-page-shell.html'
+              'SALAIRE.html','AGENTS.html','AGENTS-LEGACY.html','inovtec-page-shell.html'
           ]
 
           class ScriptParser(HTMLParser):
