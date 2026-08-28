@@ -73,8 +73,8 @@ jobs:
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
           grep -q 'inovtec-info-auth-bridge.js?v=20260820-info-operational1' inovtec-page-shell.html
-          grep -q 'inovtec-page-shell.html?build=20260828-infos-common1&amp;mode=infos' INFOCHANTIERS.html
-          grep -q 'inovtec-page-shell.html?build=20260828-infos-common1&amp;mode=infos' INFOCHANTIERS-V2.html
+          grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' INFOCHANTIERS.html
+          grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' INFOCHANTIERS-V2.html
           if grep -q 'inovtec-info-shell-stable.html' INFOCHANTIERS.html INFOCHANTIERS-V2.html; then
             echo "::error::Infos chantier utilise encore son ancien menu spécial."
             exit 1
@@ -87,7 +87,7 @@ jobs:
           grep -q 'id="globalSearch"' index.html
           grep -q 'dashboard-global-search.js?v=20260828-search1' index.html
           grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-page-shell.html
-          grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-info-shell-stable.html
+          grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' inovtec-info-shell-stable.html
           if grep -q 'sera activée ultérieurement' index.html; then
             echo "::error file=index.html::Une fonctionnalité visible du dashboard est encore annoncée comme inactive."
             exit 1

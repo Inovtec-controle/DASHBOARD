@@ -2,105 +2,17 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#064e3b">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
-<title>Infos chantier — Inovtec Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="inovtec-shell.css?v=20260828-nosidebar1">
-<link rel="stylesheet" href="inovtec-shell-v2.css?v=20260815-2">
-<link rel="stylesheet" href="inovtec-toolbar-align.css?v=20260814-2">
-<link rel="stylesheet" href="inovtec-firebase-indicator.css?v=20260815-1">
-<style>
-.iv-context{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 18px 10px}.iv-ref-label{font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#73847b}.iv-ref-chip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:6px 10px;border:1px solid #dfeae4;border-radius:999px;background:#fff;font-size:11px;font-weight:750;color:#214438;box-shadow:0 3px 10px rgba(15,23,42,.04)}.iv-ref-chip:before{content:"";width:7px;height:7px;border-radius:50%;background:#047857}.iv-info-home{color:#eaf7f1;text-decoration:none;display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:11px;font-size:12px;font-weight:750}.iv-info-home:hover{background:rgba(255,255,255,.08)}.iv-info-active{background:linear-gradient(135deg,#059669,#16a34a);color:#fff!important}.iv-mobile-nav{grid-template-columns:repeat(5,1fr)!important}@media(max-width:760px){.iv-context{padding:0 10px 8px}.iv-ref-chip{font-size:9px;min-height:27px;padding:5px 8px}.iv-hero{min-height:112px!important;padding:16px!important}.iv-hero p{max-width:250px!important}.iv-summary{margin-top:7px!important}.iv-stage{margin-bottom:8px!important}}
-</style>
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="0">
+<meta http-equiv="refresh" content="0; url=inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos&amp;page=INFOCHANTIERS-V2-LEGACY.html%3Fv%3D20260820-info-operational1">
+<title>Infos chantier — Inovtec</title>
 </head>
 <body>
-<div class="iv-shell">
-  <aside class="iv-sidebar">
-    <a class="iv-brand" href="index.html"><span class="iv-brand-mark"></span><span class="iv-brand-copy"><strong>INOVTEC</strong><span>DASHBOARD</span></span></a>
-    <nav class="iv-nav" aria-label="Navigation principale">
-      <a href="index.html"><span class="iv-ico">⌂</span><span>Accueil</span></a>
-      <a href="PLANNINGS.html"><span class="iv-ico">▦</span><span>Planning</span></a>
-      <a href="KONTROL-CLOUD.html"><span class="iv-ico">✓</span><span>KONTROL</span></a>
-      <a href="DISCIPLINE-V9.html"><span class="iv-ico">⚑</span><span>Discipline</span></a>
-      <a class="active iv-info-active" href="INFOCHANTIERS-V2.html"><span class="iv-ico">ⓘ</span><span>Infos chantier</span></a>
-      <a href="AGENTS.html"><span class="iv-ico">♙</span><span>Classeur agents</span></a>
-      <a href="ORGA.html"><span class="iv-ico">◎</span><span>Organisation</span></a>
-    </nav>
-    <div class="iv-sidebar-note"><strong>Inovtec Construction</strong><br>Infos chantier connecté à Firebase.</div>
-  </aside>
-  <section class="iv-main">
-    <header class="iv-topbar">
-      <div class="iv-top-left"><span class="iv-status-dot"></span><strong>Infos chantier</strong><span id="syncMirror">Connexion Firebase…</span></div>
-      <div class="iv-top-actions"><button id="refreshPage" class="iv-small-btn" type="button">↻ <span class="iv-hide-mobile">Actualiser</span></button><span class="iv-avatar">IN</span></div>
-    </header>
-    <section class="iv-hero">
-      <div class="iv-hero-copy"><div class="iv-eyebrow">INFOS CHANTIER</div><h1>Informations <em>chantiers</em></h1><p>Accès, contacts, planning, consignes et cahiers des charges synchronisés entre ordinateur et téléphone.</p></div>
-      <div class="iv-date"><strong id="dateLabel">—</strong><span id="timeLabel">—</span></div>
-      <div class="iv-geometry" aria-hidden="true"><span class="iv-dots"></span><span class="iv-circle a"></span><span class="iv-circle b"></span><span class="iv-rect a"></span><span class="iv-diag one"></span><span class="iv-diag two"></span></div>
-    </section>
-    <section id="pageSummary" class="iv-summary" aria-label="Synthèse de la page"></section>
-    <section class="iv-stage"><div id="loading" class="iv-loading">Connexion à Infos chantier…</div><iframe id="legacyFrame" class="iv-frame" title="Infos chantier" allow="camera; geolocation"></iframe></section>
-  </section>
-</div>
-<nav class="iv-mobile-nav" aria-label="Navigation mobile">
-  <a href="index.html"><span>⌂</span><span>Accueil</span></a>
-  <a href="PLANNINGS.html"><span>▦</span><span>Planning</span></a>
-  <a href="KONTROL-CLOUD.html"><span>✓</span><span>KONTROL</span></a>
-  <a href="DISCIPLINE-V9.html"><span>⚑</span><span>Discipline</span></a>
-  <a class="active" href="INFOCHANTIERS-V2.html"><span>ⓘ</span><span>Infos</span></a>
-</nav>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=20260828-sync1"></script>
-<script src="inovtec-firebase-indicator.js?v=20260820-info-operational1"></script>
-<script src="inovtec-info-auth-bridge.js?v=20260820-info-operational1"></script>
-<script src="inovtec-data-hub.js?v=20260820-info-operational1"></script>
+<p>Ouverture d’Infos chantier avec le menu commun… <a href="inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos&amp;page=INFOCHANTIERS-V2-LEGACY.html%3Fv%3D20260820-info-operational1">Continuer</a></p>
 <script>
-(()=>{
-  const frame=document.getElementById("legacyFrame"),loading=document.getElementById("loading");
-  const page="INFOCHANTIERS-V2-LEGACY.html?v=20260820-info-operational1";
-  const df=new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}),tf=new Intl.DateTimeFormat("fr-FR",{hour:"2-digit",minute:"2-digit"});
-  function tick(){const d=new Date();document.getElementById("dateLabel").textContent=df.format(d).replace(/^./,c=>c.toUpperCase());document.getElementById("timeLabel").textContent=tf.format(d)}
-  function theme(){try{const d=frame.contentDocument;if(!d?.head||!d.body)return;d.body.classList.add("iv-embedded","iv-mode-infos");if(!d.querySelector('link[data-inovtec-modern="1"]')){const l=d.createElement("link");l.rel="stylesheet";l.href="inovtec-embedded.css?v=20260820-info-operational1";l.dataset.inovtecModern="1";d.head.appendChild(l)}loading.classList.add("hidden")}catch{loading.classList.add("hidden")}}
-  tick();setInterval(tick,30000);frame.src=page;frame.addEventListener("load",()=>{setTimeout(theme,70);setTimeout(theme,350)});document.getElementById("refreshPage").onclick=()=>{loading.classList.remove("hidden");frame.src=page+"&r="+Date.now()};
-})();
+location.replace("inovtec-page-shell.html?build=20260828-infos-common2&mode=infos&page=INFOCHANTIERS-V2-LEGACY.html%3Fv%3D20260820-info-operational1");
 </script>
-<script src="inovtec-referential.js?v=20260815-stable2"></script>
-<script src="inovtec-cross-page-data.js?v=20260823-crosspage1"></script>
-<script src="inovtec-visual-runtime.js?v=20260820-info-operational1"></script>
-<script src="inovtec-info-actions-stable.js?v=20260818-stable2"></script>
-<script src="inovtec-hide-legacy-headers.js?v=20260814-2"></script>
-<script src="inovtec-alphabetical-lists.js?v=20260815-stable3"></script>
-<script src="inovtec-empty-initial-selection.js?v=20260816-4"></script>
-<script src="inovtec-info-agent-planning.js?v=20260816-3"></script>
-<script src="inovtec-site-management-layout.js?v=20260818-4"></script>
-<script src="inovtec-consommables-checklist.js?v=20260819-1"></script>
-<script src="inovtec-ampoules-checklist.js?v=20260819-1"></script>
-<script src="inovtec-container-schedule.js?v=20260817-freq1"></script>
-<script src="inovtec-container-planning-link.js?v=20260817-freq1"></script>
-<script src="inovtec-cahier-des-charges.js?v=20260815-1"></script>
-<script src="inovtec-cdc-source-formats.js?v=20260818-2"></script>
-<script src="inovtec-cdc-schedule-fields.js?v=20260819-3"></script>
-<script src="inovtec-cdc-import-excel.js?v=20260815-1"></script>
-<script src="inovtec-cdc-import-pdf.js?v=20260815-1"></script>
-<script src="inovtec-cdc-importer.js?v=20260817-importfix1"></script>
-<script src="inovtec-cdc-compact-columns.js?v=20260818-2"></script>
-<script src="inovtec-cdc-operational-fix.js?v=20260819-2"></script>
-<script src="inovtec-cdc-ui-hard-fix.js?v=20260819-1"></script>
-<script src="inovtec-kontrol-cdc-link.js?v=20260816-2"></script>
-<script src="inovtec-info-save-placement.js?v=20260818-2"></script>
-<script src="inovtec-info-contact-mode.js?v=20260818-3"></script>
-<script src="inovtec-info-contract-fields.js?v=20260818-3"></script>
-<script src="inovtec-info-top-layout.js?v=20260818-4"></script>
-<script src="inovtec-info-persistence-stable.js?v=20260819-1"></script>
-<script src="inovtec-info-agent-pdf.js?v=20260816-2"></script>
-<script src="inovtec-pdf-cdc-header-white.js?v=20260819-3"></script>
-<script src="inovtec-info-agent-pdf-v8.js?v=20260819-4"></script>
-<script src="inovtec-search-handoff.js?v=20260828-search1"></script>
 </body>
 </html>
