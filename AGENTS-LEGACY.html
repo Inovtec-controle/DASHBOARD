@@ -729,6 +729,55 @@ var state = {
   search: ""
 };
 
+function agentHasName(agent){
+  var i = agent && agent.identity || {};
+  return !!((safeText(i.prenom)+" "+safeText(i.nom)).trim());
+}
+function makeAgentTombstone(agent, reason){
+  if(!agent || !agent.id) return null;
+  var now = new Date().toISOString();
+  var i = agent.identity || {};
+  var label = (safeText(i.prenom)+" "+safeText(i.nom)).trim() || safeText(agent.deletedDisplayName) || "Ancienne fiche sans nom";
+  return {
+    id: agent.id,
+    _deleted: true,
+    deletedAt: agent.deletedAt || now,
+    updatedAt: now,
+    createdAt: agent.createdAt || now,
+    deletedDisplayName: label,
+    deletedReason: reason || agent.deletedReason || "suppression",
+    identity: {prenom:safeText(i.prenom),nom:safeText(i.nom)},
+    job: {},
+    docs: [],
+    incidents: []
+  };
+}
+function cleanupAgentState(){
+  var changed = false;
+  var byId = new Map();
+  state.agents.forEach(function(agent){
+    if(!agent || typeof agent !== "object"){ changed = true; return; }
+    var id = safeText(agent.id);
+    if(!id){ changed = true; return; }
+    var normalized = agent;
+    if(!isDeletedAgent(agent) && !agentHasName(agent)){
+      normalized = makeAgentTombstone(agent,"nettoyage-fiche-sans-nom");
+      changed = true;
+    }
+    var previous = byId.get(id);
+    if(!previous){ byId.set(id,normalized); return; }
+    changed = true;
+    if(isDeletedAgent(previous) || isDeletedAgent(normalized)){
+      byId.set(id, makeAgentTombstone(isDeletedAgent(normalized)?normalized:previous,"dedoublonnage-suppression"));
+      return;
+    }
+    var pt = Date.parse(previous.updatedAt||previous.createdAt||0)||0;
+    var nt = Date.parse(normalized.updatedAt||normalized.createdAt||0)||0;
+    byId.set(id, nt>=pt ? normalized : previous);
+  });
+  state.agents = Array.from(byId.values());
+  return changed;
+}
 function load(){
   try{
     var raw = localStorage.getItem(STORE_KEY);
@@ -738,18 +787,24 @@ function load(){
         state.agents = data;
       }
     }
+    if(cleanupAgentState()){
+      localStorage.setItem(STORE_KEY, JSON.stringify(state.agents));
+    }
   }catch(e){
     console.warn("Erreur load",e);
   }
 }
 function save(){
-  localStorage.setItem(STORE_KEY, JSON.stringify(state.agents));
+  var persisted = state.agents.filter(function(agent){
+    return !(agent && agent._draft === true && !agentHasName(agent));
+  });
+  localStorage.setItem(STORE_KEY, JSON.stringify(persisted));
 }
 function isDeletedAgent(agent){
   return !!(agent && agent._deleted === true);
 }
 function activeAgents(){
-  return state.agents.filter(function(agent){return !isDeletedAgent(agent);});
+  return state.agents.filter(function(agent){return !isDeletedAgent(agent) && agentHasName(agent);});
 }
 function agentSortKey(agent){
   var i = agent && agent.identity || {};
@@ -770,6 +825,7 @@ function createEmptyAgent(){
   var now = new Date().toISOString();
   return {
     id: uid("agent"),
+    _draft: true,
     createdAt: now,
     updatedAt: now,
     identity: {
@@ -787,10 +843,12 @@ function createEmptyAgent(){
 }
 
 function newAgent(){
+  state.agents = state.agents.filter(function(agent){
+    return !(agent && agent._draft === true && !agentHasName(agent));
+  });
   var a = createEmptyAgent();
   state.agents.push(a);
   state.selectedId = a.id;
-  save();
   renderAll();
   setTimeout(function(){
     var el = $("#f_prenom");
@@ -801,29 +859,18 @@ function newAgent(){
 function deleteAgent(){
   var agent = getSelectedAgent();
   if(!agent) return;
-  var label = (safeText(agent.identity.prenom)+" "+safeText(agent.identity.nom)).trim() || "cet agent";
+  var label = (safeText(agent.identity.prenom)+" "+safeText(agent.identity.nom)).trim() || "ce brouillon";
   if(confirm("Supprimer définitivement la fiche de "+label+" ?\n\nLa suppression sera synchronisée afin que cette fiche ne réapparaisse plus.")){
-    var now = new Date().toISOString();
-    var tombstone = {
-      id: agent.id,
-      _deleted: true,
-      deletedAt: now,
-      updatedAt: now,
-      createdAt: agent.createdAt || now,
-      deletedDisplayName: label,
-      identity: {
-        prenom: safeText(agent.identity && agent.identity.prenom),
-        nom: safeText(agent.identity && agent.identity.nom)
-      },
-      job: {},
-      docs: [],
-      incidents: []
-    };
-    state.agents = state.agents.map(function(a){return a.id === agent.id ? tombstone : a;});
+    if(agent._draft === true && !agentHasName(agent)){
+      state.agents = state.agents.filter(function(a){return a.id !== agent.id;});
+    }else{
+      var tombstone = makeAgentTombstone(agent,"suppression-utilisateur");
+      state.agents = state.agents.map(function(a){return a.id === agent.id ? tombstone : a;});
+    }
     var remaining = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr");});
     state.selectedId = remaining.length ? remaining[0].id : null;
     save();
-    try{window.dispatchEvent(new CustomEvent("inovtec:agent-deleted",{detail:{id:agent.id,name:label,deletedAt:now}}));}catch(e){}
+    try{window.dispatchEvent(new CustomEvent("inovtec:agent-deleted",{detail:{id:agent.id,name:label,deletedAt:new Date().toISOString()}}));}catch(e){}
     renderAll();
   }
 }
@@ -832,11 +879,19 @@ function saveAgentForm(){
   var agent = getSelectedAgent();
   if(!agent) return;
 
+  var prenom = safeText($("#f_prenom").value);
+  var nom = safeText($("#f_nom").value);
+  if(!(prenom+" "+nom).trim()){
+    alert("Renseigne au moins le prénom ou le nom de l’agent avant d’enregistrer.");
+    $("#f_prenom").focus();
+    return;
+  }
+
   var i = agent.identity;
   var j = agent.job;
 
-  i.prenom = safeText($("#f_prenom").value);
-  i.nom = safeText($("#f_nom").value);
+  i.prenom = prenom;
+  i.nom = nom;
   i.telephone = safeText($("#f_tel").value);
   i.email = safeText($("#f_email").value);
   i.adresse = safeText($("#f_adresse").value);
@@ -852,6 +907,7 @@ function saveAgentForm(){
   j.disponibilites = safeText($("#f_dispo").value);
   j.notes = safeText($("#f_notes").value);
 
+  delete agent._draft;
   touchAgent(agent);
   save();
   renderAll();
@@ -1297,6 +1353,7 @@ function importJSONFile(file){
       var existingDeleted = state.agents.filter(isDeletedAgent);
       var deletedIds = new Set(existingDeleted.map(function(a){return String(a.id||"");}));
       state.agents = existingDeleted.concat(agents.filter(function(a){return !deletedIds.has(String(a && a.id || ""));}));
+      cleanupAgentState();
       var visible = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});});
       state.selectedId = visible.length ? visible[0].id : null;
       save();

@@ -45,13 +45,14 @@ function agentsFrom(data){
   return Array.isArray(data?.referentialAgents)?data.referentialAgents:[];
 }
 function agentName(a){return a?.deletedDisplayName||a?.name||a?.displayName||[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ")||"Agent"}
+function agentHasName(a){const n=norm(a?.name||a?.displayName||[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" "));return !!n&&!["agent","sans nom","agent sans nom"].includes(n)}
 function agentDeletionState(...lists){
   const ids=new Set(),names=new Set(),activeNames=new Set();
   for(const list of lists)for(const a of(Array.isArray(list)?list:[])){if(a?._deleted!==true)continue;if(a.id)ids.add(String(a.id));const n=norm(agentName(a));if(n)names.add(n)}
-  for(const list of lists)for(const a of(Array.isArray(list)?list:[])){if(!a||a._deleted===true||ids.has(String(a.id||"")))continue;const n=norm(agentName(a));if(n)activeNames.add(n)}
+  for(const list of lists)for(const a of(Array.isArray(list)?list:[])){if(!a||a._deleted===true||ids.has(String(a.id||""))||!agentHasName(a))continue;const n=norm(agentName(a));if(n)activeNames.add(n)}
   return{ids,names,activeNames};
 }
-function activeAgent(a,d){const n=norm(agentName(a));return a&&a._deleted!==true&&!d.ids.has(String(a.id||""))&&!(d.names.has(n)&&!d.activeNames.has(n))}
+function activeAgent(a,d){if(!agentHasName(a))return false;const n=norm(agentName(a));return a&&a._deleted!==true&&!d.ids.has(String(a.id||""))&&!(d.names.has(n)&&!d.activeNames.has(n))}
 function disciplineFrom(data){
   if(Array.isArray(data?.recordsV9))return data.recordsV9;
   if(Array.isArray(data?.recordsV8))return data.recordsV8;

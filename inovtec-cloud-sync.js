@@ -37,6 +37,7 @@ function mergeRows(a=[],b=[]){
 }
 
 const isDeletedAgent=a=>!!(a&&a._deleted===true);
+const agentHasName=a=>!!([a?.identity?.prenom,a?.identity?.nom].map(v=>String(v||"").trim()).filter(Boolean).join(" "));
 const agentStamp=a=>Date.parse(a?.deletedAt||a?.updatedAt||a?.createdAt||0)||Number(a?.updatedAtMs)||0;
 function agentTombstone(...rows){
   const valid=rows.filter(Boolean);
@@ -56,7 +57,29 @@ function agentTombstone(...rows){
     job:{},docs:[],incidents:[]
   };
 }
+function normalizeAgentList(list=[]){
+  const map=new Map();
+  for(const row of(Array.isArray(list)?list:[])){
+    if(!row||typeof row!=="object")continue;
+    const id=String(row.id||"").trim();
+    if(!id)continue;
+    let agent=row;
+    if(isDeletedAgent(agent))agent=agentTombstone(agent);
+    else if(!agentHasName(agent))agent=agentTombstone({...agent,deletedDisplayName:agent.deletedDisplayName||"Ancienne fiche sans nom",deletedReason:"nettoyage-fiche-sans-nom"});
+    const old=map.get(id);
+    if(!old){map.set(id,agent);continue}
+    if(isDeletedAgent(old)||isDeletedAgent(agent)){map.set(id,agentTombstone(old,agent));continue}
+    map.set(id,agentStamp(agent)>=agentStamp(old)?agent:old);
+  }
+  return[...map.values()];
+}
+function normalizeAgentsRaw(raw){
+  const arr=parse(raw);
+  return Array.isArray(arr)?JSON.stringify(normalizeAgentList(arr)):raw;
+}
 function mergeAgentRecords(remoteAgents=[],localAgents=[]){
+  remoteAgents=normalizeAgentList(remoteAgents);
+  localAgents=normalizeAgentList(localAgents);
   const ids=new Set([...remoteAgents,...localAgents].map(a=>String(a?.id||"")).filter(Boolean));
   const out=[];
   ids.forEach(id=>{
@@ -112,7 +135,7 @@ function merge(remote,local){
 function compactAgents(raw){
   const arr=parse(raw);
   if(!Array.isArray(arr))return raw;
-  const clean=arr.map(a=>{
+  const clean=normalizeAgentList(arr).map(a=>{
     if(isDeletedAgent(a))return agentTombstone(a);
     const out={...a};
     out.docs=(a.docs||[]).map(d=>{const x={...d};delete x.dataUrl;return x});
@@ -134,8 +157,16 @@ function compactKontrol(raw){
 }
 
 function prepared(){
-  const local=rawLocal();
+  let local=rawLocal();
   if(!local)return {payload:"",compact:false};
+  if(mode==="agents"){
+    const normalized=normalizeAgentsRaw(local);
+    if(normalized!==local){
+      remoteApply=true;
+      try{localStorage.setItem(key,normalized)}finally{remoteApply=false}
+      local=normalized;
+    }
+  }
   if(byteSize(local)<=CLOUD_LIMIT)return {payload:local,compact:false};
   if(mode==="agents")return {payload:compactAgents(local),compact:true};
   if(mode==="kontrol")return {payload:compactKontrol(local),compact:true};
@@ -143,9 +174,11 @@ function prepared(){
 }
 
 function restoreBinary(cloud,local){
-  const c=parse(cloud),l=parse(local);
+  let c=parse(cloud),l=parse(local);
   if(!c||!l)return cloud;
   if(mode==="agents"&&Array.isArray(c)&&Array.isArray(l)){
+    c=normalizeAgentList(c);
+    l=normalizeAgentList(l);
     const out=c.map(agent=>{
       if(isDeletedAgent(agent))return agentTombstone(agent);
       const localAgent=l.find(x=>x?.id===agent?.id);
@@ -238,7 +271,7 @@ async function push(reason){
   if(!ref||!user||remoteApply)return;
   const p=prepared(),value=p.payload,t=Date.now();
   try{
-    await ref.set({moduleSyncV1:{[mode]:{payload:value,updatedAtMs:t,client,reason,compact:!!p.compact,version:2}}},{merge:true});
+    await ref.set({moduleSyncV1:{[mode]:{payload:value,updatedAtMs:t,client,reason,compact:!!p.compact,version:4}}},{merge:true});
     const h=sig(value);setMeta({ts:t,hash:h,compact:!!p.compact});last=h;
     updateLegacyStatus(p.compact?"Firebase — données synchronisées":"Firebase — synchronisé","ok",p.compact);
   }catch(e){
