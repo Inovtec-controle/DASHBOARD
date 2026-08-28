@@ -50,8 +50,9 @@ function install(){
     </div>`;
     d.body.appendChild(archiveModal);
 
-    const archiveCount=()=>w.state.agents.filter(a=>a?.archivedAt).length;
-    const activeAgents=()=>w.state.agents.filter(a=>!a?.archivedAt);
+    const validAgent=a=>a&&a._deleted!==true&&(typeof w.agentHasName==="function"?w.agentHasName(a):!!`${String(a?.identity?.prenom||"").trim()} ${String(a?.identity?.nom||"").trim()}`.trim());
+    const archiveCount=()=>w.state.agents.filter(a=>validAgent(a)&&a?.archivedAt).length;
+    const activeAgents=()=>w.state.agents.filter(a=>validAgent(a)&&!a?.archivedAt);
     const label=a=>{
       const i=a?.identity||{};
       return `${String(i.prenom||"").trim()} ${String(i.nom||"").trim()}`.trim()||"Agent sans nom";
@@ -61,7 +62,7 @@ function install(){
       if(c)c.textContent=String(archiveCount());
     };
     const selectFirstActive=()=>{
-      const current=w.state.agents.find(a=>a?.id===w.state.selectedId&&!a?.archivedAt);
+      const current=w.state.agents.find(a=>a?.id===w.state.selectedId&&validAgent(a)&&!a?.archivedAt);
       if(current)return;
       w.state.selectedId=activeAgents()[0]?.id||null;
     };
@@ -69,7 +70,7 @@ function install(){
     function renderArchives(){
       const body=d.getElementById("ivArchiveBody");
       if(!body)return;
-      const archived=w.state.agents.filter(a=>a?.archivedAt).sort((a,b)=>{
+      const archived=w.state.agents.filter(a=>validAgent(a)&&a?.archivedAt).sort((a,b)=>{
         const ad=String(a.archivedAt||""),bd=String(b.archivedAt||"");
         return bd.localeCompare(ad);
       });
@@ -88,6 +89,7 @@ function install(){
         const actions=d.createElement("div");actions.className="ivArchiveActions";
         const restore=d.createElement("button");restore.type="button";restore.className="ivRestoreBtn";restore.textContent="Restaurer";
         restore.onclick=()=>{
+          if(!validAgent(agent))return;
           agent.archivedAt="";
           agent.updatedAt=new Date().toISOString();
           w.state.selectedId=agent.id;
@@ -97,10 +99,14 @@ function install(){
         };
         const del=d.createElement("button");del.type="button";del.className="ivDeleteArchivedBtn";del.textContent="Supprimer définitivement";
         del.onclick=()=>{
-          if(!w.confirm(`Supprimer définitivement la fiche de ${label(agent)} ? Cette action est irréversible.`))return;
-          w.state.agents=w.state.agents.filter(a=>a?.id!==agent.id);
+          if(!w.confirm(`Supprimer définitivement la fiche de ${label(agent)} ? La suppression sera synchronisée et ne pourra plus être restaurée.`))return;
+          const tombstone=typeof w.makeAgentTombstone==="function"
+            ?w.makeAgentTombstone(agent,"suppression-archives")
+            :{id:agent.id,_deleted:true,deletedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdAt:agent.createdAt||new Date().toISOString(),deletedDisplayName:label(agent),identity:{prenom:String(agent?.identity?.prenom||""),nom:String(agent?.identity?.nom||"")},job:{},docs:[],incidents:[]};
+          w.state.agents=w.state.agents.map(a=>a?.id===agent.id?tombstone:a);
           selectFirstActive();
           w.save();
+          try{w.dispatchEvent(new CustomEvent("inovtec:agent-deleted",{detail:{id:agent.id,name:label(agent),deletedAt:new Date().toISOString(),source:"archives"}}))}catch{}
           w.renderAll();
           renderArchives();
         };
@@ -123,7 +129,7 @@ function install(){
       const archiveBtn=d.createElement("button");archiveBtn.type="button";archiveBtn.id="btnArchiveAgent";archiveBtn.className="miniBtn ivArchiveBtn";archiveBtn.textContent="Archiver l’agent";
       archiveBtn.onclick=()=>{
         const agent=w.getSelectedAgent?.();
-        if(!agent)return;
+        if(!validAgent(agent))return;
         if(!w.confirm(`Archiver ${label(agent)} ? La fiche restera conservée et pourra être restaurée depuis « Agents archivés ».`))return;
         agent.archivedAt=new Date().toISOString();
         agent.updatedAt=agent.archivedAt;
