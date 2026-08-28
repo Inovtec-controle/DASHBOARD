@@ -18,13 +18,13 @@ function displayName(a){const i=a?.identity||{};return [i.prenom,i.nom].filter(B
 function compactAgent(a){return{id:String(a.id||""),createdAt:a.createdAt||iso(),updatedAt:a.updatedAt||iso(),identity:clone(a.identity||{}),job:clone(a.job||{}),displayName:displayName(a),source:a.source||"classeur"};}
 function deletionState(){
   let arr=[];try{const x=JSON.parse(localStorage.getItem(AGENTS_KEY)||"[]");if(Array.isArray(x))arr=x}catch{}
-  const ids=new Set(),names=new Set();
-  arr.forEach(a=>{if(a?._deleted!==true)return;if(a.id)ids.add(String(a.id));const n=norm(a.deletedDisplayName||displayName(a));if(n)names.add(n)});
-  return{ids,names};
+  const ids=new Set(),names=new Set(),activeNames=new Set();
+  arr.forEach(a=>{if(a?._deleted===true){if(a.id)ids.add(String(a.id));const n=norm(a.deletedDisplayName||displayName(a));if(n)names.add(n);return}const n=norm(displayName(a));if(n)activeNames.add(n)});
+  return{ids,names,activeNames};
 }
 function isDeletedReference(agentOrId,label=""){
   const d=deletionState(),id=typeof agentOrId==="object"?String(agentOrId?.id||""):String(agentOrId||""),name=norm(label||(typeof agentOrId==="object"?displayName(agentOrId):""));
-  return(!!id&&d.ids.has(id))||(!!name&&d.names.has(name));
+  return(!!id&&d.ids.has(id))||(!!name&&d.names.has(name)&&!d.activeNames.has(name));
 }
 function splitName(label){const parts=String(label||"").trim().split(/\s+/).filter(Boolean);if(!parts.length)return{prenom:"",nom:""};return{prenom:parts[0]||"",nom:parts.slice(1).join(" ")||""};}
 function mergeAgent(agent){if(!agent?.id||agent?._deleted===true||isDeletedReference(agent))return null;const clean=compactAgent(agent),idx=registry.agents.findIndex(x=>x.id===clean.id);if(idx<0){registry.agents.push(clean);return clean;}const old=registry.agents[idx],oldT=Date.parse(old.updatedAt||0)||0,newT=Date.parse(clean.updatedAt||0)||0;if(newT>=oldT)registry.agents[idx]=Object.assign({},old,clean);return registry.agents[idx];}
