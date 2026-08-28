@@ -47,7 +47,7 @@ function sortDatalist(dl){
   if(arr.some((n,i)=>n!==sorted[i]))sorted.forEach(n=>dl.appendChild(n));
 }
 function sortChildren(container,selector,labelSelector){
-  if(!container||interactive(container.ownerDocument))return;
+  if(!container||container.dataset.ivInternalSort==="1"||interactive(container.ownerDocument))return;
   const arr=[...container.children].filter(n=>n.matches(selector));if(arr.length<2)return;
   const key=n=>text(labelSelector?n.querySelector(labelSelector):n),sorted=[...arr].sort((a,b)=>collator.compare(key(a),key(b)));
   if(arr.some((n,i)=>n!==sorted[i]))sorted.forEach(n=>container.appendChild(n));
