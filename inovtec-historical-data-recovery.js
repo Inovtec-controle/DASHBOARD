@@ -56,6 +56,11 @@ function mergeAgents(...lists){
   return rows.map(agent=>{
     if(!agent||typeof agent!=="object")return agent;
     const sources=lists.flatMap(x=>Array.isArray(x)?x:[]).filter(x=>x&&String(x.id||"")===String(agent.id||""));
+    const deleted=sources.filter(x=>x?._deleted===true);
+    if(deleted.length){
+      const identity=sources.reduce((o,x)=>({...o,...(x.identity||{})}),{}),deletedAt=deleted.map(x=>x.deletedAt||x.updatedAt||"").filter(Boolean).sort().pop()||new Date().toISOString(),named=deleted.find(x=>x.deletedDisplayName)||deleted[0];
+      return{id:String(agent.id||deleted[0].id||""),_deleted:true,deletedAt,updatedAt:deletedAt,createdAt:agent.createdAt||deleted[0].createdAt||deletedAt,deletedDisplayName:named?.deletedDisplayName||[identity.prenom,identity.nom].filter(Boolean).join(" ").trim(),identity:{prenom:identity.prenom||"",nom:identity.nom||""},job:{},docs:[],incidents:[]};
+    }
     let out=clone(agent),docs=[],incidents=[];
     for(const s of sources){out=mergeObjectConservative(out,s);docs=mergeRows(docs,s.docs||[]);incidents=mergeRows(incidents,s.incidents||[])}
     out.docs=docs;
@@ -103,7 +108,7 @@ async function recoverWorkspace(user){
     if(merged==null)continue;
     const full=JSON.stringify(merged),cloud=JSON.stringify(stripBinary(merged));setLocalPayload(cfg.key,full);
     mergedModules[mode]={...(moduleEntry(S,mode)||{}),...(moduleEntry(P,mode)||{}),payload:cloud,updatedAtMs:Math.max(Number(moduleEntry(S,mode)?.updatedAtMs)||0,Number(moduleEntry(P,mode)?.updatedAtMs)||0,now),client:"historical-recovery",reason:"restore-all-sources",recoveryVersion:1,version:2};
-    counts[mode]=mode==="agents"?(Array.isArray(merged)?merged.length:0):mode==="conges"?(Array.isArray(merged)?merged.length:0):mode==="heures"?(merged.entries||[]).length:Object.values(merged.weeks||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
+    counts[mode]=mode==="agents"?(Array.isArray(merged)?merged.filter(a=>a?._deleted!==true).length:0):mode==="conges"?(Array.isArray(merged)?merged.length:0):mode==="heures"?(merged.entries||[]).length:Object.values(merged.weeks||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
   }
   const localTasks=parse(localPayload(ORGA_KEY),[]),tasks=mergeRows(S.tasks||[],P.tasks||[],Array.isArray(localTasks)?localTasks:[]);if(tasks.length||Array.isArray(S.tasks)||Array.isArray(P.tasks)){setLocalPayload(ORGA_KEY,JSON.stringify(tasks));counts.organisation=tasks.length}
   const sharedPatch={_hidden:true,_type:"inovtecSharedWorkspace",sharedVersion:1,moduleSyncV1:mergedModules,_ivHistoricalRecoveryV1:{atIso:new Date().toISOString(),byUid:user.uid,counts}};
