@@ -48,6 +48,8 @@ jobs:
             TEMPS.html
             SALAIRE.html
             AGENTS.html
+            AGENTS-LEGACY.html
+            inovtec-agents-list-fit.js
             firebase-config.js
             inovtec-common.css
             inovtec-shell.js
@@ -72,6 +74,8 @@ jobs:
           grep -q 'inovtec-firebase-indicator.js' index.html
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
+          grep -q 'inovtec-agents-list-fit.js?v=20260828-agentfit1' AGENTS-LEGACY.html
+          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260828-agentfit1' AGENTS.html
           grep -q 'inovtec-info-auth-bridge.js?v=20260820-info-operational1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' INFOCHANTIERS.html
           grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' INFOCHANTIERS-V2.html
@@ -112,6 +116,7 @@ jobs:
           node --check inovtec-referential.js
           node --check inovtec-visual-runtime.js
           node --check inovtec-agent-contract-hours.js
+          node --check inovtec-agents-list-fit.js
           node --check inovtec-alphabetical-lists.js
           node --check inovtec-firebase-indicator.js
           node --check inovtec-info-auth-bridge.js
