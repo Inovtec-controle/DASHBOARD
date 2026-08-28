@@ -11,7 +11,7 @@ function apply(){
     style=d.createElement("style");
     style.id="ivCdcUiHardFixStyle";
     style.textContent=`
-      #ivCdcOverlay .iv-cdc-modal{width:min(950px,calc(100vw - 24px))!important;max-width:950px!important;max-height:94vh!important}
+      #ivCdcOverlay .iv-cdc-modal{width:min(950px,calc(100vw - 24px))!important;max-width:950px!important;max-height:none!important;overflow:visible!important}
       #ivCdcOverlay .field.iv-cdc-force-hidden{display:none!important}
       @media(max-width:780px){#ivCdcOverlay .iv-cdc-modal{width:calc(100vw - 18px)!important;max-width:calc(100vw - 18px)!important}}
     `;
