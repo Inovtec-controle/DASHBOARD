@@ -61,6 +61,7 @@ function ensureUi(d){
   if(form&&form.dataset.ivContractFieldsBound!=="1"){
     form.dataset.ivContractFieldsBound="1";
     form.addEventListener("submit",()=>{
+      if(form.dataset.ivUnifiedPersistence==="1")return;
       const wasNew=/nouveau/i.test(d.getElementById("recordState")?.textContent||"");
       saveAfterBase(d,collect(d),wasNew);
     });
