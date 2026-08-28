@@ -21,11 +21,12 @@ function agentsFrom(data){
   return Array.isArray(data?.referentialAgents)?data.referentialAgents:[];
 }
 function agentDeletionState(...lists){
-  const ids=new Set(),names=new Set();
+  const ids=new Set(),names=new Set(),activeNames=new Set();
   for(const list of lists)for(const a of(Array.isArray(list)?list:[])){if(a?._deleted!==true)continue;if(a.id)ids.add(String(a.id));const n=norm(agentName(a));if(n)names.add(n)}
-  return{ids,names};
+  for(const list of lists)for(const a of(Array.isArray(list)?list:[])){if(!a||a._deleted===true||ids.has(String(a.id||"")))continue;const n=norm(agentName(a));if(n)activeNames.add(n)}
+  return{ids,names,activeNames};
 }
-function activeAgent(a,d){return a&&a._deleted!==true&&!d.ids.has(String(a.id||""))&&!d.names.has(norm(agentName(a)))}
+function activeAgent(a,d){const n=norm(agentName(a));return a&&a._deleted!==true&&!d.ids.has(String(a.id||""))&&!(d.names.has(n)&&!d.activeNames.has(n))}
 function unique(items,keyFn){
   const out=[],seen=new Set();
   for(const item of items){
