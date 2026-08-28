@@ -45,7 +45,7 @@
 
   <section class="m1-main">
     <header class="m1-topbar">
-      <div class="m1-search"><input type="search" placeholder="Rechercher un agent, un chantier, une tâche…" aria-label="Recherche rapide" disabled title="La recherche globale sera activée ultérieurement"></div>
+      <div class="m1-search"><input id="globalSearch" type="search" placeholder="Rechercher un agent, un chantier, une tâche…" aria-label="Recherche globale" autocomplete="off"><div id="globalSearchResults" class="m1-search-results" hidden></div></div>
       <div class="m1-top-status">
         <div class="m1-system"><span class="m1-system-badge">✓</span><span><strong>Système opérationnel</strong><br><span id="sharedStatus">Connexion Firebase…</span></span><span id="cloudDot" class="status-dot"></span></div>
         <span id="weatherIcon" class="weather-icon" title="Météo locale">◌</span>
@@ -180,6 +180,7 @@
 <script src="dashboard-index.js?v=20260828-kpi1"></script>
 <script src="dashboard-index-shared.js?v=20260828-kpi1"></script>
 <script src="dashboard-mark1.js?v=20260828-kpi1"></script>
+<script src="dashboard-global-search.js?v=20260828-search1"></script>
 <script src="inovtec-contract-reminders.js?v=20260816-1"></script>
 <script src="inovtec-firebase-indicator.js?v=20260815-1"></script>
 <script src="inovtec-conges-nav.js?v=20260815-1"></script>
