@@ -82,6 +82,7 @@ function ensureUi(d){
   if(form&&form.dataset.ivContactModeBound!=="1"){
     form.dataset.ivContactModeBound="1";
     form.addEventListener("submit",()=>{
+      if(form.dataset.ivUnifiedPersistence==="1")return;
       const wasNew=/nouveau/i.test(d.getElementById("recordState")?.textContent||"");
       const payload=collect(d);
       saveAfterBase(d,payload,wasNew);
