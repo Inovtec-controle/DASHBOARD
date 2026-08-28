@@ -53,6 +53,7 @@ jobs:
             inovtec-common.css
             inovtec-shell.js
             inovtec-cloud-sync.js
+            inovtec-cahier-des-charges.js
             inovtec-referential.js
             inovtec-visual-runtime.js
             inovtec-agent-contract-hours.js
@@ -73,6 +74,13 @@ jobs:
           grep -q 'inovtec-firebase-indicator.js' index.html
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
+          grep -q 'inovtec-cahier-des-charges.js?v=20260829-manualfit1' inovtec-page-shell.html
+          grep -q 'max-height:none;overflow:visible' inovtec-cahier-des-charges.js
+          grep -q 'iv-cdc-overlay.*overflow:hidden' inovtec-cahier-des-charges.js
+          if grep -q 'iv-cdc-modal{[^}]*overflow:auto' inovtec-cahier-des-charges.js; then
+            echo "::error::La fenêtre de saisie manuelle contient encore une scrollbar interne."
+            exit 1
+          fi
           grep -q 'inovtec-shell.css?v=20260829-agentfull1' inovtec-page-shell.html
           grep -q 'inovtec-shell.js?v=20260829-agentstable1' inovtec-page-shell.html
           grep -q 'max-height:none' AGENTS-LEGACY.html
@@ -139,6 +147,7 @@ jobs:
           node --check inovtec-search-handoff.js
           node --check inovtec-shell.js
           node --check inovtec-cloud-sync.js
+          node --check inovtec-cahier-des-charges.js
           node --check inovtec-data-hub.js
           node --check inovtec-shared-workspace.js
           node --check inovtec-referential.js
