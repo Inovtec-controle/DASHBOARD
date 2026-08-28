@@ -44,6 +44,13 @@ function agentsFrom(data){
   if(Array.isArray(rows))return rows;
   return Array.isArray(data?.referentialAgents)?data.referentialAgents:[];
 }
+function agentName(a){return a?.deletedDisplayName||a?.name||a?.displayName||[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ")||"Agent"}
+function agentDeletionState(...lists){
+  const ids=new Set(),names=new Set();
+  for(const list of lists)for(const a of(Array.isArray(list)?list:[])){if(a?._deleted!==true)continue;if(a.id)ids.add(String(a.id));const n=norm(agentName(a));if(n)names.add(n)}
+  return{ids,names};
+}
+function activeAgent(a,d){return a&&a._deleted!==true&&!d.ids.has(String(a.id||""))&&!d.names.has(norm(agentName(a)))}
 function disciplineFrom(data){
   if(Array.isArray(data?.recordsV9))return data.recordsV9;
   if(Array.isArray(data?.recordsV8))return data.recordsV8;
@@ -127,7 +134,8 @@ async function refresh(user){
 
   const shared=dataOf(sharedR),personal=dataOf(personalR);
   const localAgents=localJson("kontrol_agents_classeur_v2",[]);
-  const agents=mergeRows(agentsFrom(shared),agentsFrom(personal),Array.isArray(localAgents)?localAgents:[]);
+  const agentLists=[agentsFrom(shared),agentsFrom(personal),Array.isArray(localAgents)?localAgents:[]],deletedAgents=agentDeletionState(...agentLists);
+  const agents=mergeRows(...agentLists).filter(a=>activeAgent(a,deletedAgents));
   if(agents.length||sharedR.status==="fulfilled"||personalR.status==="fulfilled"){
     set("kpiAgents",agents.length);
     set("kpiAgentsSub","Synchronisé");
