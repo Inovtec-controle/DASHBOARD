@@ -56,7 +56,7 @@ function apply(doc){
   if(!doc?.body||interactive(doc))return;
   doc.querySelectorAll("select").forEach(sortSelect);
   doc.querySelectorAll("datalist").forEach(sortDatalist);
-  sortChildren(doc.getElementById("agentList"),".agent-row, .agent-item, li, button",".agent-name, strong, .name");
+  sortChildren(doc.getElementById("agentList"),".listItem, .agent-row, .agent-item, li, button",".agent-name, strong, .name");
   sortChildren(doc.getElementById("siteList"),".site-item, li, button","strong, .site-name, .name");
   sortChildren(doc.getElementById("chantierList"),".site-item, .chantier-item, li, button","strong, .name");
   sortChildren(doc.getElementById("employeeList"),"li, button, .item",".name, strong");
