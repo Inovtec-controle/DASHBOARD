@@ -79,11 +79,20 @@ jobs:
           grep -q 'overflow:visible' AGENTS-LEGACY.html
           grep -q 'fitAgentsFullPage' inovtec-shell.js
           grep -q '_deleted: true' AGENTS-LEGACY.html
-          grep -q 'inovtec-cloud-sync.js?v=20260828-agentdelete1' inovtec-page-shell.html
-          grep -q 'inovtec-data-hub.js?v=20260828-agentdelete1' inovtec-page-shell.html
-          grep -q 'inovtec-referential.js?v=20260828-agentdelete1' inovtec-page-shell.html
+          grep -q 'function agentHasName' AGENTS-LEGACY.html
+          grep -q 'function cleanupAgentState' AGENTS-LEGACY.html
+          grep -q 'nettoyage-fiche-sans-nom' AGENTS-LEGACY.html
+          grep -q 'max-height:none' AGENTS-LEGACY.html
+          grep -q 'overflow:visible' AGENTS-LEGACY.html
+          if grep -q 'inovtec-agents-list-fit.js' AGENTS-LEGACY.html; then
+            echo "::error::L'affichage actuel de la liste agents a été modifié."
+            exit 1
+          fi
+          grep -q 'inovtec-cloud-sync.js?v=20260829-agentclean1' inovtec-page-shell.html
+          grep -q 'inovtec-data-hub.js?v=20260829-agentclean1' inovtec-page-shell.html
+          grep -q 'inovtec-referential.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js?v=20260828-alpha2' inovtec-page-shell.html
-          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260829-oldviewfull1' AGENTS.html
+          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260829-agentclean1' AGENTS.html
           if grep -q 'inovtec-agents-list-fit.js' AGENTS-LEGACY.html; then
             echo "::error::Le Classeur agents utilise encore l'affichage compact adaptatif."
             exit 1
@@ -101,7 +110,7 @@ jobs:
           grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css
           grep -q 'planning-calendar.js?v=' PLANNINGS-LEGACY.html
           grep -q 'id="globalSearch"' index.html
-          grep -q 'dashboard-global-search.js?v=20260828-agentdelete1' index.html
+          grep -q 'dashboard-global-search.js?v=20260829-agentclean1' index.html
           grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260828-infos-common2&amp;mode=infos' inovtec-info-shell-stable.html
           if grep -q 'sera activée ultérieurement' index.html; then
@@ -134,6 +143,7 @@ jobs:
           node --check inovtec-visual-runtime.js
           node --check inovtec-agent-contract-hours.js
           node --check inovtec-alphabetical-lists.js
+          node --check inovtec-agents-archive.js
           node --check inovtec-firebase-indicator.js
           node --check inovtec-info-auth-bridge.js
           node --check inovtec-empty-initial-selection.js
