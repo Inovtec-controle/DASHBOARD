@@ -51,11 +51,31 @@ function valuesFor(d,kind){
  const sort=v=>unique(v).sort((a,b)=>a.localeCompare(b,"fr",{sensitivity:"base"}));
  return sort(same).concat(sort(other).filter(p=>!same.some(x=>norm(x)===norm(p))));
 }
+function suggestionRank(value,query){
+ const v=norm(value),q=norm(query);
+ if(!q)return 50;
+ if(v===q)return 0;
+ if(v.startsWith(q))return 1;
+ const words=v.split(/\s+/).filter(Boolean);
+ if(words.some(w=>w.startsWith(q)))return 2;
+ if(v.includes(q))return 3;
+ const tokens=q.split(/\s+/).filter(Boolean);
+ if(tokens.length>1&&tokens.every(t=>v.includes(t)))return 4;
+ return 99;
+}
+function smartMatches(values,query){
+ const q=norm(query);
+ return values
+   .map((value,index)=>({value,index,rank:suggestionRank(value,q)}))
+   .filter(x=>!q||x.rank<99)
+   .sort((a,b)=>a.rank-b.rank||a.index-b.index||a.value.localeCompare(b.value,"fr",{sensitivity:"base"}))
+   .map(x=>x.value);
+}
 function renderSuggestions(d,kind,force=false){
- const cfg=kind==="zone"?{inputId:"ivCdcZone",boxId:"ivCdcZoneSuggestions"}:{inputId:"ivCdcPrestation",boxId:"ivCdcPrestationSuggestions"},ui=ensureSuggestionUi(d,cfg.inputId,cfg.boxId,kind==="zone"?"Clique dans la liste pour reprendre une zone déjà saisie.":"Les prestations de la zone choisie sont proposées en premier.");if(!ui)return;
- const q=norm(ui.input.value),all=valuesFor(d,kind),matches=all.filter(v=>!q||norm(v).includes(q)).slice(0,10);ui.box.innerHTML="";
+ const cfg=kind==="zone"?{inputId:"ivCdcZone",boxId:"ivCdcZoneSuggestions"}:{inputId:"ivCdcPrestation",boxId:"ivCdcPrestationSuggestions"},ui=ensureSuggestionUi(d,cfg.inputId,cfg.boxId,kind==="zone"?"Tape quelques lettres : les zones déjà saisies sur tous les chantiers sont proposées.":"Tape quelques lettres : les prestations les plus proches sont proposées en premier.");if(!ui)return;
+ const q=norm(ui.input.value),all=valuesFor(d,kind),matches=smartMatches(all,q).slice(0,10);ui.box.innerHTML="";
  if(!force&&!q){ui.box.hidden=true;return}
- if(!matches.length){const e=d.createElement("div");e.className="iv-cdc-suggest-empty";e.textContent="Aucune suggestion enregistrée";ui.box.appendChild(e);ui.box.hidden=false;return}
+ if(!matches.length){const e=d.createElement("div");e.className="iv-cdc-suggest-empty";e.textContent="Aucune suggestion correspondante";ui.box.appendChild(e);ui.box.hidden=false;return}
  matches.forEach(v=>{const b=d.createElement("button");b.type="button";b.textContent=v;b.addEventListener("mousedown",e=>e.preventDefault());b.addEventListener("click",()=>{ui.input.value=v;ui.box.hidden=true;ui.input.dispatchEvent(new Event("change",{bubbles:true}));if(kind==="zone"){const p=d.getElementById("ivCdcPrestation");if(p){p.focus();renderSuggestions(d,"prestation",true)}}});ui.box.appendChild(b)});ui.box.hidden=false;
 }
 function bindSuggestions(d){
@@ -65,7 +85,7 @@ function bindSuggestions(d){
 function applyManualUi(d){
  ensureStyle(d);hideField(d,"ivCdcFrequence");hideField(d,"ivCdcControle");hideField(d,"ivCdcMethode");
  const title=d.getElementById("ivCdcModalTitle");if(title&&!d.getElementById("ivCdcOverlay")?.dataset.rowId)title.textContent="Saisir le cahier des charges";
- ensureSuggestionUi(d,"ivCdcZone","ivCdcZoneSuggestions","Clique dans la liste pour reprendre une zone déjà saisie.");ensureSuggestionUi(d,"ivCdcPrestation","ivCdcPrestationSuggestions","Les prestations de la zone choisie sont proposées en premier.");bindSuggestions(d);
+ ensureSuggestionUi(d,"ivCdcZone","ivCdcZoneSuggestions","Tape quelques lettres : les zones déjà saisies sur tous les chantiers sont proposées.");ensureSuggestionUi(d,"ivCdcPrestation","ivCdcPrestationSuggestions","Tape quelques lettres : les prestations les plus proches sont proposées en premier.");bindSuggestions(d);
 }
 function suggestionRowsFromSites(sites=[]){
  const out=[];
