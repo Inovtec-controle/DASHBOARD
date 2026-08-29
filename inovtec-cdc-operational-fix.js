@@ -144,7 +144,7 @@ async function save(d){
  const btn=d.querySelector("#ivCdcForm button[type=submit]");if(btn?.dataset.ivSaving==="1")return;if(btn){btn.dataset.ivSaving="1";btn.disabled=true;btn.textContent="Enregistrement…"}
  try{
   await writeManual(target.id,rowId,payload);
-  suggestionRows=suggestionRows.filter(r=>!(String(r._suggestionSiteId||"")===String(target.id)&&norm(r.zone)===norm(payload.zone)&&norm(r.prestation)===norm(payload.prestation)));suggestionRows.push({zone:payload.zone,prestation:payload.prestation,_suggestionSiteId:String(target.id)});suggestionLoadedAt=Date.now();
+  suggestionRows=suggestionRows.filter(r=>!(String(r._suggestionSiteId||"")===String(target.id)&&(rowId?String(r.id||"")===String(rowId):norm(r.zone)===norm(payload.zone)&&norm(r.prestation)===norm(payload.prestation))));suggestionRows.push({id:rowId||"",zone:payload.zone,prestation:payload.prestation,_suggestionSiteId:String(target.id)});suggestionLoadedAt=Date.now();
   if(o){o.hidden=true;o.dataset.rowId=""}
  }catch(e){console.error("CDC manual save",e);alert("Impossible d’enregistrer le cahier des charges. Vérifie la connexion Firebase puis réessaie.")}
  finally{if(btn){delete btn.dataset.ivSaving;btn.disabled=false;btn.textContent="Enregistrer"}}
