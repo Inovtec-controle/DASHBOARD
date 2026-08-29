@@ -133,6 +133,12 @@ jobs:
           grep -q 'iv:chantier-saved' inovtec-visual-runtime.js
           grep -q 'iv:chantier-saved' INFOCHANTIERS-V2-LEGACY.html
           grep -q 'inovtec-visual-runtime.js?v=20260829-kontrolcdc1' inovtec-page-shell.html
+          grep -q 'inovtec-kontrol-cdc-link.js?v=20260829-site-names1' inovtec-page-shell.html
+          grep -Fq 'o.label=lost?' inovtec-kontrol-cdc-link.js
+          if grep -Fq 'o.label=[siteAddressOf(c)' inovtec-kontrol-cdc-link.js; then
+            echo "::error file=inovtec-kontrol-cdc-link.js::Les adresses sont encore affichées dans la liste KONTROL."
+            exit 1
+          fi
           grep -q 'kontrolSelectedChantier' inovtec-visual-runtime.js
           grep -q 'kontrolCdcCount' inovtec-visual-runtime.js
           grep -q 'cahierDesChargesV1' inovtec-visual-runtime.js
