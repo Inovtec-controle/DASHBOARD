@@ -27,6 +27,37 @@ function ensureStyle(){
     #ivControlHistoryCard .iv-control-history-meta{font-size:10px;line-height:1.45;color:#708078;margin-top:3px;overflow-wrap:anywhere}
     #ivControlHistoryCard .iv-control-history-empty{padding:14px;border:1px dashed #cedbd5;border-radius:12px;background:#f8fbf9;color:#6f7f77;font-size:11px;text-align:center}
     #ivControlHistoryCard .iv-control-history-open{flex:0 0 auto;white-space:nowrap}
+    #ivControlHistoryCard .iv-control-history-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    #ivControlViewer{position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.58);padding:24px;overflow:auto}
+    #ivControlViewer[hidden]{display:none!important}
+    #ivControlViewer .iv-control-viewer-panel{max-width:1080px;margin:0 auto;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(15,23,42,.28);overflow:hidden}
+    #ivControlViewer .iv-control-viewer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:20px 22px;border-bottom:1px solid #e5ece8;background:#f7fbf9}
+    #ivControlViewer .iv-control-viewer-title{margin:0;font-size:20px;color:#17392d}
+    #ivControlViewer .iv-control-viewer-sub{margin-top:5px;font-size:12px;color:#6f7f77}
+    #ivControlViewer .iv-control-viewer-body{padding:20px 22px;display:grid;gap:18px}
+    #ivControlViewer .iv-control-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    #ivControlViewer .iv-control-summary-card{padding:11px 12px;border:1px solid #dce8e2;border-radius:12px;background:#fbfdfc}
+    #ivControlViewer .iv-control-summary-card small{display:block;color:#78887f;font-size:10px;margin-bottom:4px}
+    #ivControlViewer .iv-control-summary-card strong{display:block;color:#17392d;font-size:13px;overflow-wrap:anywhere}
+    #ivControlViewer .iv-control-section h3{margin:0 0 10px;font-size:14px;color:#17392d}
+    #ivControlViewer .iv-control-task-list{display:grid;gap:7px}
+    #ivControlViewer .iv-control-task{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 12px;border:1px solid #e3ebe7;border-radius:11px;background:#fff}
+    #ivControlViewer .iv-control-task-title{font-size:12px;font-weight:800;color:#263d34}
+    #ivControlViewer .iv-control-task-comment{font-size:10px;color:#74837c;margin-top:4px;white-space:pre-wrap}
+    #ivControlViewer .iv-status-chip{align-self:start;padding:5px 8px;border-radius:999px;font-size:9px;font-weight:800;white-space:nowrap;background:#eef2f0;color:#5e6f66}
+    #ivControlViewer .iv-status-chip.ok{background:#e8f7ee;color:#087a40}
+    #ivControlViewer .iv-status-chip.mid{background:#fff7db;color:#8b6a00}
+    #ivControlViewer .iv-status-chip.bad{background:#fff0ee;color:#b13d2a}
+    #ivControlViewer .iv-status-chip.na{background:#edf0f2;color:#35434c}
+    #ivControlViewer .iv-control-observations{padding:12px;border-radius:12px;background:#f8fbf9;border:1px solid #dfe9e4;font-size:11px;color:#40574d;white-space:pre-wrap}
+    #ivControlViewer .iv-control-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    #ivControlViewer .iv-control-photo{margin:0;border:1px solid #dfe8e4;border-radius:12px;overflow:hidden;background:#f8fbf9;min-width:0}
+    #ivControlViewer .iv-control-photo img{display:block;width:100%;height:180px;object-fit:cover;cursor:zoom-in}
+    #ivControlViewer .iv-control-photo img.iv-control-photo-expanded{height:auto;max-height:none;object-fit:contain;cursor:zoom-out}
+    #ivControlViewer .iv-control-photo figcaption{padding:8px 9px;font-size:10px;color:#5f7068;overflow-wrap:anywhere}
+    #ivControlViewer .iv-control-photo-loading{padding:14px;border:1px dashed #cedbd5;border-radius:12px;color:#6f7f77;font-size:11px}
+    #ivControlViewer .iv-control-close{flex:0 0 auto}
+    @media(max-width:760px){#ivControlViewer{padding:8px}#ivControlViewer .iv-control-viewer-head{padding:16px}#ivControlViewer .iv-control-viewer-body{padding:14px}#ivControlViewer .iv-control-summary{grid-template-columns:1fr 1fr}#ivControlViewer .iv-control-photos{grid-template-columns:1fr 1fr}#ivControlViewer .iv-control-photo img{height:150px}}
     @media(max-width:620px){
       #ivControlHistoryCard .iv-control-history-row{align-items:stretch;flex-direction:column}
       #ivControlHistoryCard .iv-control-history-open{width:100%}
@@ -97,6 +128,93 @@ async function openPdf(meta,button){
   }finally{
     if(button){button.disabled=false;button.textContent="Consulter le PDF"}
   }
+}
+function statusLabel(value){
+  return ({ok:"Bien fait",mid:"Passable",bad:"Mal fait",na:"Pas faits"})[String(value||"")]||"Non renseigné";
+}
+async function readControlPhoto(ref){
+  const ids=Array.isArray(ref?.chunkIds)?ref.chunkIds.map(String).filter(Boolean):[];
+  if(!ids.length)throw new Error("Photo sans contenu partagé");
+  const snaps=[];
+  for(let start=0;start<ids.length;start+=20){
+    const part=await Promise.all(ids.slice(start,start+20).map(id=>db.collection("chantiers").doc(id).get()));
+    snaps.push(...part);
+  }
+  const pieces=snaps.map(s=>{if(!s.exists)throw new Error("Une partie de la photo est manquante");return s.data()||{}})
+    .sort((a,b)=>(Number(a.chunkIndex)||0)-(Number(b.chunkIndex)||0));
+  const dataUrl=pieces.map(x=>String(x.data||"")).join("");
+  if(!dataUrl.startsWith("data:image/"))throw new Error("Photo invalide");
+  return dataUrl;
+}
+function ensureViewer(){
+  let viewer=d.getElementById("ivControlViewer");
+  if(viewer)return viewer;
+  viewer=d.createElement("div");
+  viewer.id="ivControlViewer";
+  viewer.hidden=true;
+  viewer.innerHTML='<section class="iv-control-viewer-panel" role="dialog" aria-modal="true" aria-labelledby="ivControlViewerTitle"><div class="iv-control-viewer-head"><div><h2 id="ivControlViewerTitle" class="iv-control-viewer-title">Contrôle qualité</h2><div id="ivControlViewerSub" class="iv-control-viewer-sub"></div></div><button id="ivControlViewerClose" class="btn btn-secondary iv-control-close" type="button">Fermer</button></div><div id="ivControlViewerBody" class="iv-control-viewer-body"></div></section>';
+  d.body.appendChild(viewer);
+  viewer.querySelector("#ivControlViewerClose")?.addEventListener("click",()=>{viewer.hidden=true});
+  viewer.addEventListener("click",event=>{if(event.target===viewer)viewer.hidden=true});
+  d.addEventListener("keydown",event=>{if(event.key==="Escape"&&!viewer.hidden)viewer.hidden=true});
+  return viewer;
+}
+function summaryCard(label,value){
+  const card=d.createElement("div");card.className="iv-control-summary-card";
+  const small=d.createElement("small");small.textContent=label;
+  const strong=d.createElement("strong");strong.textContent=String(value||"—");
+  card.append(small,strong);return card;
+}
+async function openControlViewer(item,button){
+  const viewer=ensureViewer(),body=viewer.querySelector("#ivControlViewerBody"),title=viewer.querySelector("#ivControlViewerTitle"),sub=viewer.querySelector("#ivControlViewerSub");
+  viewer.hidden=false;
+  title.textContent="Contrôle qualité — "+(item.site||selectedSiteName()||"Chantier");
+  sub.textContent=[formatControlDate(item.controlDate),item.controlTime,item.createdByEmail?("Enregistré par "+item.createdByEmail):""].filter(Boolean).join(" • ");
+  body.innerHTML="";
+  const summary=d.createElement("div");summary.className="iv-control-summary";
+  summary.append(summaryCard("Note",item.score||"—"),summaryCard("Contrôleur",item.controller||"—"),summaryCard("Agent(s)",item.agents||"—"),summaryCard("Photos",String(Number(item.photoCount)||0)));
+  body.appendChild(summary);
+
+  const taskSection=d.createElement("section");taskSection.className="iv-control-section";
+  const taskTitle=d.createElement("h3");taskTitle.textContent="Détail du contrôle";taskSection.appendChild(taskTitle);
+  const taskList=d.createElement("div");taskList.className="iv-control-task-list";
+  const tasks=Array.isArray(item.tasks)?item.tasks:[];
+  if(!tasks.length){const empty=d.createElement("div");empty.className="iv-control-photo-loading";empty.textContent="Aucun détail de tâche enregistré pour ce contrôle.";taskList.appendChild(empty)}
+  tasks.forEach(task=>{
+    const row=d.createElement("div");row.className="iv-control-task";
+    const copy=d.createElement("div"),name=d.createElement("div");name.className="iv-control-task-title";name.textContent=String(task.title||"Prestation");copy.appendChild(name);
+    if(task.comment){const comment=d.createElement("div");comment.className="iv-control-task-comment";comment.textContent=String(task.comment);copy.appendChild(comment)}
+    const chip=d.createElement("span");chip.className="iv-status-chip "+String(task.status||"");chip.textContent=statusLabel(task.status);
+    row.append(copy,chip);taskList.appendChild(row);
+  });
+  taskSection.appendChild(taskList);body.appendChild(taskSection);
+
+  const obsSection=d.createElement("section");obsSection.className="iv-control-section";
+  const obsTitle=d.createElement("h3");obsTitle.textContent="Observations";obsSection.appendChild(obsTitle);
+  const obs=d.createElement("div");obs.className="iv-control-observations";obs.textContent=item.observations||"Aucune observation.";obsSection.appendChild(obs);body.appendChild(obsSection);
+
+  const photosSection=d.createElement("section");photosSection.className="iv-control-section";
+  const photosTitle=d.createElement("h3");photosTitle.textContent="Photos du contrôle";photosSection.appendChild(photosTitle);
+  const grid=d.createElement("div");grid.className="iv-control-photos";photosSection.appendChild(grid);body.appendChild(photosSection);
+  const refs=Array.isArray(item.photoRefs)?item.photoRefs:[];
+  if(!refs.length){const empty=d.createElement("div");empty.className="iv-control-photo-loading";empty.textContent="Aucune photo enregistrée pour ce contrôle.";grid.appendChild(empty);return}
+  if(button){button.disabled=true;button.textContent="Chargement…"}
+  for(let i=0;i<refs.length;i++){
+    const ref=refs[i],figure=d.createElement("figure");figure.className="iv-control-photo";
+    const loading=d.createElement("div");loading.className="iv-control-photo-loading";loading.textContent="Chargement de la photo "+(i+1)+"…";figure.appendChild(loading);grid.appendChild(figure);
+    try{
+      const dataUrl=await readControlPhoto(ref);
+      figure.innerHTML="";
+      const img=d.createElement("img");img.src=dataUrl;img.alt=ref.caption||("Photo du contrôle "+(i+1));
+      img.addEventListener("click",()=>img.classList.toggle("iv-control-photo-expanded"));
+      figure.appendChild(img);
+      const caption=String(ref.caption||ref.name||"").trim();
+      if(caption){const figcaption=d.createElement("figcaption");figcaption.textContent=caption;figure.appendChild(figcaption)}
+    }catch(error){
+      loading.textContent="Photo indisponible.";console.warn("Photo historique KONTROL",error);
+    }
+  }
+  if(button){button.disabled=false;button.textContent="Visualiser le contrôle"}
 }
 function upsertMetas(rows){
   const map=new Map(metas.map(x=>[String(x.__docId||""),x]));
@@ -194,10 +312,12 @@ function render(){
         obs.textContent="Observations : "+item.observations;
         copy.appendChild(obs);
       }
-      const badge=d.createElement("span");
-      badge.className="status ok";
-      badge.textContent="Contrôle enregistré";
-      row.append(copy,badge);
+      const actions=d.createElement("div");actions.className="iv-control-history-actions";
+      const badge=d.createElement("span");badge.className="status ok";badge.textContent=(Number(item.photoCount)||0)?((Number(item.photoCount)||0)+" photo"+((Number(item.photoCount)||0)>1?"s":"")):"Contrôle enregistré";
+      const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Visualiser le contrôle";
+      button.addEventListener("click",()=>openControlViewer(item,button));
+      actions.append(badge,button);
+      row.append(copy,actions);
     }else{
       const custom=item.customMetadata||{};
       title.textContent=formatControlDate(custom.controlDate||item.controlDate)||"Contrôle qualité";
