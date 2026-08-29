@@ -83,7 +83,7 @@ jobs:
           grep -qi '<!DOCTYPE html>' index.html
           grep -q 'Classeur agents' index.html
           grep -q 'dashboard-concept3.css?v=20260829-c3-1' index.html
-          grep -q 'dashboard-concept3.js?v=20260829-c3-1' index.html
+          grep -q 'dashboard-concept3.js?v=20260829-c3-2' index.html
           grep -q 'Centre de pilotage' index.html
           grep -q 'Raccourcis quotidiens' index.html
           grep -q 'Planning du jour' index.html
