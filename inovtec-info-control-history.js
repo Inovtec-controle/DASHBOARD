@@ -376,8 +376,11 @@ function render(){
     const details=d.createElement("div");details.className="iv-control-history-meta";
 
     if(item.__kind==="record"){
-      title.textContent=formatControlDate(item.controlDate)||"Contrôle qualité";
+      title.textContent="Contrôle qualité";
       const bits=[];
+      const fallbackDate=item.timeCreated||(item.createdAtMs?new Date(Number(item.createdAtMs)).toISOString():"");
+      const displayDate=formatControlDate(item.controlDate||fallbackDate);
+      if(displayDate)bits.push(displayDate);
       if(item.controlTime)bits.push(item.controlTime);
       if(item.score)bits.push("Note : "+item.score);
       if(item.controller)bits.push("Contrôleur : "+item.controller);
