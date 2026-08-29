@@ -100,23 +100,29 @@ function mirror(){
   pairs.forEach(([a,b])=>{const x=$(a),y=$(b);if(x&&y)y.textContent=x.textContent||"0"});
 }
 async function kontrolCount(user){
-  const counts=[];
+  let directCount=0,pdfMetaCount=0,storageCount=0,hasSource=false;
+  try{
+    const snap=await db.collection("chantiers").where("_type","==","kontrolControlRecord").get();
+    directCount=snap.size;hasSource=true;
+  }catch(e){
+    console.warn("Compteur contrôles KONTROL directs",e);
+  }
   try{
     const snap=await db.collection("chantiers").where("_type","==","kontrolPdfMeta").get();
-    counts.push(snap.size);
+    pdfMetaCount=snap.size;hasSource=true;
   }catch(e){
-    console.warn("Compteur KONTROL partagé",e);
+    console.warn("Compteur anciens PDF KONTROL",e);
   }
   if(storage){
     try{
       const list=await storage.ref().child("kontrol/"+user.uid+"/pdfs").listAll();
-      counts.push(list.items.length);
+      storageCount=list.items.length;hasSource=true;
     }catch(e){
       console.warn("Compteur KONTROL Storage",e);
     }
   }
-  if(!counts.length)throw new Error("Aucune source KONTROL accessible");
-  return Math.max(...counts);
+  if(!hasSource)throw new Error("Aucune source KONTROL accessible");
+  return directCount+Math.max(pdfMetaCount,storageCount);
 }
 
 let refreshSeq=0;
@@ -182,7 +188,7 @@ async function refresh(user){
     const count=await kontrolCount(user);
     if(seq!==refreshSeq)return;
     set("kpiKontrol",count);
-    set("kpiKontrolSub",count?(count+" PDF archivés"):"Aucun PDF archivé");
+    set("kpiKontrolSub",count?(count+" contrôle"+(count>1?"s":"")+" enregistré"+(count>1?"s":"")):"Aucun contrôle enregistré");
   }catch(e){
     console.warn("Indicateur KONTROL",e);
     set("kpiKontrolSub","Synchronisation en cours");
@@ -191,7 +197,25 @@ async function refresh(user){
   mirror();
 }
 
+let kontrolLiveUnsubs=[],kontrolLiveTimer=null;
+function bindKontrolRealtime(user){
+  kontrolLiveUnsubs.forEach(fn=>{try{fn()}catch{}});
+  kontrolLiveUnsubs=[];
+  clearTimeout(kontrolLiveTimer);
+  if(!user)return;
+  const trigger=()=>{
+    clearTimeout(kontrolLiveTimer);
+    kontrolLiveTimer=setTimeout(()=>{if(auth.currentUser)refresh(auth.currentUser)},180);
+  };
+  ["kontrolControlRecord","kontrolPdfMeta"].forEach(type=>{
+    try{
+      const unsub=db.collection("chantiers").where("_type","==",type).onSnapshot(trigger,error=>console.warn("Suivi temps réel KONTROL",type,error));
+      kontrolLiveUnsubs.push(unsub);
+    }catch(error){console.warn("Abonnement KONTROL impossible",type,error)}
+  });
+}
 function schedule(user){
+  bindKontrolRealtime(user);
   if(!user)return;
   setTimeout(()=>refresh(user),100);
   setTimeout(()=>refresh(user),1200);
