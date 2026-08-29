@@ -33,7 +33,10 @@ jobs:
             conges.js
             variables.js
             ORGA-LEGACY.html
+            INFOCHANTIERS-V2-LEGACY.html
             inovtec-info-persistence-stable.js
+            inovtec-site-management-layout.js
+            inovtec-container-schedule.js
             discipline-firestore-bridge.js
             kontrol-cloud.js
             inovtec-kontrol-shared-archive.js
@@ -62,6 +65,9 @@ jobs:
             inovtec-data-hub.js \
             inovtec-shared-workspace.js \
             inovtec-cross-page-data.js \
+            inovtec-info-persistence-stable.js \
+            inovtec-site-management-layout.js \
+            inovtec-container-schedule.js \
             conges.js \
             variables.js \
             discipline-firestore-bridge.js \
@@ -106,6 +112,20 @@ jobs:
           grep -Fq 'db.collection("kanban").doc(currentUser.uid)' ORGA-LEGACY.html
           grep -Fq 'db.collection("chantiers").doc(String(site.id)).set' inovtec-info-persistence-stable.js
 
+          # Infos chantier : tous les champs ajoutés doivent partir avec la sauvegarde principale,
+          # et la sauvegarde de sécurité doit démarrer immédiatement (pas après un délai).
+          grep -Fq 'const supplementalFieldMap=' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq 'collectSupplementalFields(data)' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq 'data-iv-chantier-id' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq 'persist(d,wasNew,token,snapshot)' inovtec-info-persistence-stable.js
+          if grep -Fq 'setTimeout(()=>persist(d,wasNew,token),80)' inovtec-info-persistence-stable.js; then
+            echo "::error file=inovtec-info-persistence-stable.js::La sauvegarde Infos chantier est redevenue différée."
+            exit 1
+          fi
+          grep -Fq 'if(x==="Copropriétés")return"Copropriété"' inovtec-info-persistence-stable.js
+          grep -Fq 'dirty=true;saveExtras(doc)' inovtec-site-management-layout.js
+          grep -Fq 'dirty=true;persist(d)' inovtec-container-schedule.js
+
           # Discipline et KONTROL : données / archives partagées.
           grep -Fq '__inovtec_shared_discipline_v1__' inovtec-shared-workspace.js
           grep -Fq 'kontrol/${user.uid}/pdfs' kontrol-cloud.js
@@ -129,6 +149,26 @@ jobs:
           for page in PLANNINGS.html AGENTS.html CONGES.html VARIABLES.html ORGA.html INFOCHANTIERS-V2.html DISCIPLINE-V9.html KONTROL-CLOUD.html; do
             grep -Fq 'build=20260829-operational1' "$page" || { echo "::error file=$page::Build Firebase opérationnel absent"; exit 1; }
           done
+
+      - name: Vérifier la couverture de persistance des pages métier
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Pages synchronisées par le socle commun.
+          for token in \
+            'planning:"inovtec_plannings_v2"' \
+            'agents:"kontrol_agents_classeur_v2"' \
+            'heures:"HSUPP_DUR_APP_V1"'; do
+            grep -Fq "$token" inovtec-cloud-sync.js
+          done
+
+          # Pages avec leur propre persistance Firebase.
+          grep -Fq 'moduleSyncV1:{conges:' conges.js
+          grep -Fq 'moduleSyncV1:{variables:' variables.js
+          grep -Fq 'db.collection("kanban").doc(currentUser.uid)' ORGA-LEGACY.html
+          grep -Fq 'collection("chantiers")' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq '__inovtec_shared_discipline_v1__' inovtec-shared-workspace.js
+          grep -Fq 'kontrol/${user.uid}/pdfs' kontrol-cloud.js
 
       - name: Résumé
         run: echo "Contrat Firebase complet vérifié : planning, agents, pièces agents, congés, variables, organisation, chantiers, discipline et KONTROL."
