@@ -104,8 +104,10 @@
   function readKontrolMetadata() {
     try {
       const doc = frame.contentDocument;
+      const siteField = doc.getElementById("site");
       return {
-        site: doc.getElementById("site")?.value?.trim() || "",
+        site: siteField?.value?.trim() || "",
+        chantierId: siteField?.dataset?.ivChantierId?.trim() || "",
         controlDate: doc.getElementById("date")?.value || "",
         controller: doc.getElementById("controleur")?.value?.trim() || "",
         agents: doc.getElementById("agents")?.value?.trim() || "",
@@ -113,7 +115,7 @@
       };
     } catch (error) {
       console.warn("Métadonnées KONTROL non lisibles", error);
-      return { site:"", controlDate:"", controller:"", agents:"", category:"" };
+      return { site:"", chantierId:"", controlDate:"", controller:"", agents:"", category:"" };
     }
   }
 
@@ -130,6 +132,7 @@
       customMetadata: {
         originalName: cleanName,
         site: String(details.site || "").slice(0, 220),
+        chantierId: String(details.chantierId || "").slice(0, 120),
         controlDate: String(details.controlDate || "").slice(0, 30),
         controller: String(details.controller || "").slice(0, 160),
         agents: String(details.agents || "").slice(0, 220),
@@ -138,6 +141,11 @@
     };
     showToast("Archivage du PDF en ligne…");
     await ref.put(blob, metadata);
+    try {
+      window.dispatchEvent(new CustomEvent("inovtec:kontrol-pdf-archived", {
+        detail: { path, chantierId: String(details.chantierId || "") }
+      }));
+    } catch {}
     showToast("PDF téléchargé et archivé en ligne.");
   }
 
