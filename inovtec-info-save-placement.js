@@ -36,10 +36,11 @@ function ensureStyle(d){
 function place(){
   const d=doc();if(!d?.body)return;
   ensureStyle(d);
-  const form=d.getElementById("siteForm"),cdc=d.getElementById("ivCdcCard");
+  const form=d.getElementById("siteForm"),cdc=d.getElementById("ivCdcCard"),history=d.getElementById("ivControlHistoryCard");
   const bar=form?.querySelector(":scope > .sticky-save")||form?.querySelector(".sticky-save");
-  if(!form||!cdc||!bar)return;
-  if(cdc.nextElementSibling!==bar)cdc.insertAdjacentElement("afterend",bar);
+  if(!form||!bar)return;
+  const anchor=history||cdc;
+  if(anchor&&anchor.nextElementSibling!==bar)anchor.insertAdjacentElement("afterend",bar);
   bar.classList.add("iv-after-cdc");
 }
 function install(){
