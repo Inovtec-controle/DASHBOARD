@@ -13,6 +13,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script src="firebase-config.js?v=20260829-operational1"></script>
   <style>
     .layout{display:grid;grid-template-columns:330px minmax(0,1fr);gap:14px;align-items:start}.sidebar{position:sticky;top:82px;max-height:calc(100vh - 98px);overflow:auto}
@@ -73,6 +74,8 @@ $("logoutBtn").addEventListener("click",()=>auth.signOut());$("loginForm").addEv
 auth.onAuthStateChanged(user=>{if(user){$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");displayForm(false);startRealtime();}else{if(unsubscribe){unsubscribe();unsubscribe=null;}sites=[];currentId=null;$("app").classList.add("hidden");$("loginScreen").classList.remove("hidden");}});
 })();
 </script>
-<script src="inovtec-info-control-history.js?v=20260829-sitehistory3"></script>
+<script src="inovtec-kontrol-shared-archive.js?v=20260829-sitehistory5"></script>
+<script src="inovtec-kontrol-ref-metadata.js?v=20260829-sitehistory5"></script>
+<script src="inovtec-info-control-history.js?v=20260829-sitehistory4"></script>
 </body>
 </html>
