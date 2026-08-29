@@ -110,7 +110,9 @@ jobs:
 
           # Organisation et Infos chantier.
           grep -Fq 'db.collection("kanban").doc(currentUser.uid)' ORGA-LEGACY.html
-          grep -Fq 'db.collection("chantiers").doc(String(site.id)).set' inovtec-info-persistence-stable.js
+          grep -Fq 'const ref=db.collection("chantiers").doc(String(site.id))' inovtec-info-persistence-stable.js
+          grep -Fq 'await ref.set(data,{merge:true})' inovtec-info-persistence-stable.js
+          grep -Fq 'await ref.get({source:"server"})' inovtec-info-persistence-stable.js
 
           # Infos chantier : tous les champs ajoutés doivent partir avec la sauvegarde principale,
           # et la sauvegarde de sécurité doit démarrer immédiatement (pas après un délai).
