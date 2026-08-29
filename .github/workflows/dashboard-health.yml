@@ -308,21 +308,25 @@ jobs:
             echo '::error::Le site public répond mais ne contient pas encore la nouvelle version du dashboard.'
             exit 1
           }
-          live_ready=0
-          for attempt in $(seq 1 15); do
-            curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260829-saveverify1" -o /tmp/shell.html
-            curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/INFOCHANTIERS-V2-LEGACY.html?v=20260829-persistence5" -o /tmp/infos.html
-            if grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence5' /tmp/shell.html \
-              && grep -q 'Enregistrer ✓' /tmp/infos.html \
-              && grep -q 'get({source:"server"})' /tmp/infos.html; then
-              live_ready=1
-              break
+          if [ '${{ github.event_name }}' = 'push' ]; then
+            live_ready=0
+            for attempt in $(seq 1 15); do
+              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260829-operational1&mode=infos&sv=20260829-saveverify1" -o /tmp/shell.html
+              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/INFOCHANTIERS-V2-LEGACY.html?v=20260829-persistence5" -o /tmp/infos.html
+              if grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence5' /tmp/shell.html \
+                && grep -q 'Enregistrer ✓' /tmp/infos.html \
+                && grep -q 'get({source:"server"})' /tmp/infos.html; then
+                live_ready=1
+                break
+              fi
+              sleep 4
+            done
+            if [ "$live_ready" -ne 1 ]; then
+              echo '::error::La version publique Infos chantier ne contient pas encore la confirmation Firebase attendue.'
+              exit 1
             fi
-            sleep 4
-          done
-          if [ "$live_ready" -ne 1 ]; then
-            echo '::error::La version publique Infos chantier ne contient pas encore la confirmation Firebase attendue.'
-            exit 1
+          else
+            curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors "$base/inovtec-page-shell.html" -o /tmp/shell.html
           fi
           grep -q 'inovtec-alphabetical-lists.js' /tmp/shell.html || {
             echo '::error::Le site public ne contient pas encore le tri alphabétique global.'
