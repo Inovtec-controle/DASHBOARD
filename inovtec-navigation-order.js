@@ -5,7 +5,7 @@ const mode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
 // Référence unique : menu gauche visible sur la page Accueil (MARK 1).
 const HOME_MAIN=[
   ["index.html","Accueil","⌂","home"],
-  ["PLANNINGS.html?v=20260829-planningstable1","Planning","▦","planning"],
+  ["PLANNINGS.html?v=20260829-planningstable2","Planning","▦","planning"],
   ["KONTROL-CLOUD.html","KONTROL","✓","kontrol"],
   ["DISCIPLINE-V9.html","Discipline","⚠","discipline"],
   ["INFOCHANTIERS-V2.html","Infos chantier","▥","infos"],
@@ -28,7 +28,7 @@ const MOBILE_PAGES=[
   ["index.html","Accueil","⌂","home"],
   ["INFOCHANTIERS-V2.html","Infos chantier","ⓘ","infos"],
   ["AGENTS.html","Classeur agents","♙","agents"],
-  ["PLANNINGS.html?v=20260829-planningstable1","Planning","▦","planning"],
+  ["PLANNINGS.html?v=20260829-planningstable2","Planning","▦","planning"],
   ["CONGES.html","Congés & absences","☼","conges"],
   ["VARIABLES.html","Variables agents","◷","variables"],
   ["ORGA.html","Organisation","◎","organisation"]
