@@ -150,7 +150,7 @@ if(window.firebase&&window.INOVTEC_FIREBASE_CONFIG){
 })();
 /* Synchronisation du texte du bandeau avec l’état partagé du Dashboard. */
 (()=>{
-  const src=$("sharedStatus"),dst=$("heroSyncText");
+  const src=document.getElementById("sharedStatus"),dst=document.getElementById("heroSyncText");
   if(!src||!dst)return;
   const sync=()=>{const t=String(src.textContent||"").trim();if(t)dst.textContent=t};
   new MutationObserver(sync).observe(src,{childList:true,subtree:true,characterData:true});
