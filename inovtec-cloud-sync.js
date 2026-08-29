@@ -265,7 +265,7 @@ let lastFrameActivity=0;
 function markFrameActivity(){lastFrameActivity=Date.now()}
 function bindFrameActivity(d){if(!d?.body||d.body.dataset.ivCloudActivity==="1")return;d.body.dataset.ivCloudActivity="1";["pointerdown","mousedown","touchstart","keydown","input","change","focusin"].forEach(type=>d.addEventListener(type,markFrameActivity,true));const nested=d.getElementById("kontrolFrame");if(nested){nested.addEventListener("load",()=>{try{bindFrameActivity(nested.contentDocument)}catch{}});try{bindFrameActivity(nested.contentDocument)}catch{}}}
 function frameIsBusy(){try{for(const d of [frameDoc(),nestedKontrolDoc()].filter(Boolean)){const a=d.activeElement;if(a&&(/^(SELECT|INPUT|TEXTAREA)$/i.test(a.tagName)||a.isContentEditable))return true;if(d.querySelector?.('.editor-popover.open,.modal.open,.modal.show,[role="dialog"][open],dialog[open]'))return true}}catch{}return false}
-function reload(){clearTimeout(reloadTimer);bindFrameActivity(frameDoc());const attempt=()=>{const idle=Date.now()-lastFrameActivity;if(frameIsBusy()||idle<5000){reloadTimer=setTimeout(attempt,Math.max(800,5000-idle));return}try{frame?.contentWindow?.location.reload()}catch{}};reloadTimer=setTimeout(attempt,1000)}
+function reload(){clearTimeout(reloadTimer);bindFrameActivity(frameDoc());const attempt=()=>{const idle=Date.now()-lastFrameActivity;if(frameIsBusy()||idle<5000){reloadTimer=setTimeout(attempt,Math.max(800,5000-idle));return}try{if(mode==="planning"){frame?.contentWindow?.dispatchEvent(new CustomEvent("inovtec:planning-cloud-updated"));return}frame?.contentWindow?.location.reload()}catch{}};reloadTimer=setTimeout(attempt,mode==="planning"?250:1000)}
 
 async function push(reason){
   if(!ref||!user||remoteApply)return;
