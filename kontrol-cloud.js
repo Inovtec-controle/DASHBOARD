@@ -98,9 +98,13 @@
       const saveControlBtn = doc.getElementById("pdfBtn");
       if (saveControlBtn && saveControlBtn.dataset.ivDirectHistoryBound !== "1") {
         saveControlBtn.dataset.ivDirectHistoryBound = "1";
-        saveControlBtn.textContent = "Enregistrer le contrôle";
-        saveControlBtn.title = "Enregistrer ce contrôle dans l’historique du chantier";
+        saveControlBtn.textContent = "Enregistrer + PDF";
+        saveControlBtn.title = "Enregistrer ce contrôle dans l’historique du chantier puis générer le PDF";
         saveControlBtn.addEventListener("click", async event => {
+          if (saveControlBtn.dataset.ivAllowOriginalPdfOnce === "1") {
+            delete saveControlBtn.dataset.ivAllowOriginalPdfOnce;
+            return;
+          }
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -111,11 +115,18 @@
           showToast("Enregistrement du contrôle dans le chantier…");
           try {
             await saveControlDirect();
-            saveControlBtn.textContent = "Contrôle enregistré ✓";
-            showToast("Contrôle enregistré dans l’historique du chantier.");
+            saveControlBtn.textContent = "Génération du PDF…";
+            showToast("Contrôle enregistré. Génération du PDF…");
+            const child = frame.contentWindow;
+            if (!child) throw new Error("La fenêtre KONTROL n’est pas disponible pour générer le PDF");
+            child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ = true;
+            saveControlBtn.dataset.ivAllowOriginalPdfOnce = "1";
+            saveControlBtn.dispatchEvent(new child.MouseEvent("click", { bubbles:true, cancelable:true, view:child }));
+            saveControlBtn.textContent = "Enregistré + PDF ✓";
+            showToast("Contrôle enregistré dans l’historique et PDF généré.");
             setTimeout(() => {
               if (saveControlBtn.isConnected) saveControlBtn.textContent = oldText;
-            }, 1800);
+            }, 2200);
           } catch (error) {
             console.error("Enregistrement direct KONTROL impossible", error);
             saveControlBtn.textContent = "Réessayer";
@@ -493,6 +504,10 @@
 
     api.save = function(filename, options) {
       const pdf = this;
+      if (child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ === true) {
+        child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ = false;
+        return originalSave.call(pdf, filename, options);
+      }
       let blob = null;
       try { blob = pdf.output("blob"); } catch (error) { console.warn("Création du PDF pour archivage impossible", error); }
       const details = readKontrolMetadata();
