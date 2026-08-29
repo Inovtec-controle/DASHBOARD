@@ -101,7 +101,7 @@ function mergedTasks(shared,personal){
 }
 function updateMirror(){
   const pairs=[
-    ["kpiSites","opSites"],["kpiAgents","opAgents"],["kpiKontrol","opKontrol"],["kpiDiscipline","opDiscipline"],
+    ["kpiSites","opSites"],["kpiAgents","opAgents"],["kpiKontrol","opKontrol"],
     ["hsLines","hsLines2"],["taskLate","taskLateAlert"]
   ];
   pairs.forEach(([src,dst])=>{
@@ -164,7 +164,7 @@ async function refresh(user){
   }
 }
 function observeKpis(){
-  ["kpiSites","kpiAgents","kpiKontrol","kpiDiscipline"].forEach(id=>{
+  ["kpiSites","kpiAgents","kpiKontrol","kpiIncidents"].forEach(id=>{
     const e=$(id);
     if(e)new MutationObserver(updateMirror).observe(e,{childList:true,subtree:true,characterData:true});
   });
