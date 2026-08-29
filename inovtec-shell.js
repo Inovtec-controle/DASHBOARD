@@ -39,7 +39,7 @@ function addTool(label,icon,handler,primary=false){const b=document.createElemen
 function buildTools(){tools.innerHTML="";
  addTool("Rechercher","⌕",()=>focusTarget('input[type="search"],#search,input[placeholder*="Recher"]'));
  if(mode==="planning"){addTool("Ajouter un agent","＋",()=>clickTarget("#addAgent",["ajouter"]),true);addTool("Exporter","⇩",()=>clickTarget("#exportBtn",["exporter"]));addTool("Imprimer","▤",()=>clickTarget("#printBtn",["imprimer"]));}
- if(mode==="kontrol"){addTool("Archives PDF","☁",()=>clickTarget("#archiveBtn",["archives pdf"]),true);addTool("Générer le PDF","▤",()=>clickTarget(null,["générer le pdf","générer pdf"],true));}
+ if(mode==="kontrol"){addTool("Archives PDF","☁",()=>clickTarget("#archiveBtn",["archives pdf"]));addTool("Enregistrer + PDF","▤",()=>clickTarget("#pdfBtn",["enregistrer + pdf","enregistrer le contrôle"],true));}
  if(mode==="discipline"){addTool("Nouveau dossier","＋",()=>{const d=targetDoc();d?.getElementById("recordForm")?.scrollIntoView({behavior:"smooth",block:"start"});d?.getElementById("agent")?.focus()},true);addTool("Exporter JSON","⇩",()=>clickTarget("#exportBtn",["exporter json"]));addTool("Actualiser données","↻",()=>clickTarget("#syncBtn",["actualiser"]));}
  if(mode==="infos"){addTool("Nouveau chantier","＋",()=>clickTarget("#newBtn",["nouveau"]),true);addTool("Fiche PDF","▤",()=>clickTarget("#pdfBtn",["pdf"]));addTool("Ma position","⌖",()=>clickTarget("#gpsBtn",["position"]));}
  if(mode==="agents"){addTool("Rechercher un agent","⌕",()=>focusTarget('input[type="search"],input[placeholder*="Recher"]'),true);addTool("Exporter","⇩",()=>clickTarget(null,["exporter"]));}
