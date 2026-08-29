@@ -116,13 +116,15 @@ jobs:
           # et la sauvegarde de sécurité doit démarrer immédiatement (pas après un délai).
           grep -Fq 'const supplementalFieldMap=' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'collectSupplementalFields(data)' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq 'applySupplementalFields(site)' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq 'const snap=await collection.doc(id).get()' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'data-iv-chantier-id' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'persist(d,wasNew,token,snapshot)' inovtec-info-persistence-stable.js
           if grep -Fq 'setTimeout(()=>persist(d,wasNew,token),80)' inovtec-info-persistence-stable.js; then
             echo "::error file=inovtec-info-persistence-stable.js::La sauvegarde Infos chantier est redevenue différée."
             exit 1
           fi
-          grep -Fq 'if(x==="Copropriétés")return"Copropriété"' inovtec-info-persistence-stable.js
+          grep -Fq 'if(x==="Copropriété")return"Copropriétés"' inovtec-info-persistence-stable.js
           grep -Fq 'dirty=true;saveExtras(doc)' inovtec-site-management-layout.js
           grep -Fq 'dirty=true;persist(d)' inovtec-container-schedule.js
 
