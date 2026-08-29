@@ -195,7 +195,7 @@ jobs:
             exit 1
           fi
           grep -q 'inovtec-shell.css?v=20260829-agentfull1' inovtec-page-shell.html
-          grep -q 'inovtec-shell.js?v=20260829-planningstable2' inovtec-page-shell.html
+          grep -q 'inovtec-shell.js?v=20260829-planningstable3' inovtec-page-shell.html
           grep -q 'stripRemovedDisciplineNavigation' inovtec-page-shell.html
           grep -q 'href.includes("discipline")' inovtec-page-shell.html
           grep -q 'max-height:none' AGENTS-LEGACY.html
@@ -220,7 +220,7 @@ jobs:
             echo "::error::L'affichage actuel de la liste agents a été modifié."
             exit 1
           fi
-          grep -q 'inovtec-cloud-sync.js?v=20260829-planningstable2' inovtec-page-shell.html
+          grep -q 'inovtec-cloud-sync.js?v=20260829-planningstable3' inovtec-page-shell.html
           grep -q 'inovtec-data-hub.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-referential.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js?v=20260829-agentstable1' inovtec-page-shell.html
@@ -236,15 +236,20 @@ jobs:
             echo "::error::Infos chantier utilise encore son ancien menu spécial."
             exit 1
           fi
-          grep -q 'planning-editor-stability.js' PLANNINGS-LEGACY.html
           grep -q 'planning-pdf.js?v=20260815-3' PLANNINGS-LEGACY.html
           grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js
           grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css
           grep -q 'planning-calendar.js?v=' PLANNINGS-LEGACY.html
-          grep -q 'planning-calendar.js?v=20260829-planningstable2' PLANNINGS-LEGACY.html
-          grep -q 'planning-autoheight.js?v=20260829-planningstable2' PLANNINGS-LEGACY.html
-          grep -q 'inovtec-planning-coverage.js?v=20260829-planningstable2' PLANNINGS-LEGACY.html
+          grep -q 'planning-calendar.js?v=20260829-planningstable3' PLANNINGS-LEGACY.html
+          grep -q 'planning-autoheight.js?v=20260829-planningstable3' PLANNINGS-LEGACY.html
+          grep -q 'inovtec-planning-coverage.js?v=20260829-planningstable3' PLANNINGS-LEGACY.html
           grep -q 'sanitizePlanningState' planning-calendar.js
+          grep -q 'isSameLocation' planning-calendar.js
+          grep -q 'e.site=\$("edSite").value.trim()' planning-calendar.js
+          if grep -q 'planning-editor-stability.js' PLANNINGS-LEGACY.html; then
+            echo "::error::Le script conflictuel de sélection chantier est encore chargé."
+            exit 1
+          fi
           grep -q '__INOVTEC_PLANNING_AUTOHEIGHT_STABLE__' planning-autoheight.js
           if grep -q 'attributes:true' planning-autoheight.js; then
             echo "::error::Le Planning ne doit plus observer ses propres changements de style."
