@@ -101,11 +101,11 @@ jobs:
             echo "::error::Le correctif CDC est de nouveau chargé deux fois."
             exit 1
           fi
-          grep -q 'inovtec-cdc-operational-fix.js?v=20260829-cdcglobal1' inovtec-page-shell.html
+          grep -q 'inovtec-cdc-operational-fix.js?v=20260829-idlock1' inovtec-page-shell.html
           grep -q 'inovtec-cdc-schedule-fields.js?v=20260829-operational1' inovtec-page-shell.html
           grep -q 'inovtec-cdc-ui-hard-fix.js?v=20260829-operational1' inovtec-page-shell.html
-          grep -q 'inovtec-info-contact-mode.js?v=20260829-operational1' inovtec-page-shell.html
-          grep -q 'inovtec-info-contract-fields.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -q 'inovtec-info-contact-mode.js?v=20260829-idlock1' inovtec-page-shell.html
+          grep -q 'inovtec-info-contract-fields.js?v=20260829-idlock1' inovtec-page-shell.html
           grep -q 'firebase-config.js?v=20260829-operational1' inovtec-page-shell.html
           if grep -q 'iv-cdc-modal{[^}]*overflow:auto' inovtec-cahier-des-charges.js; then
             echo "::error::La fenêtre de saisie manuelle contient encore une scrollbar interne."
