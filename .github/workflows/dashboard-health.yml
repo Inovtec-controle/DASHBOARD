@@ -92,6 +92,18 @@ jobs:
           grep -q 'resolveChantierId(details)' kontrol-cloud.js
           grep -q '_type: "kontrolPdfMeta"' kontrol-cloud.js
           grep -q 'kontrol-cloud.js?v=20260829-sitehistory5' KONTROL-CLOUD-LEGACY.html
+          grep -q 'Variables agents' index.html
+          grep -q 'VARIABLES.html?v=20260829-variables-dashboard1' index.html
+          grep -q 'id="kpiVariables"' index.html
+          grep -q 'id="varEntries2"' index.html
+          grep -q 'id="varReview"' index.html
+          grep -q 'mergedVariables(shared,personal)' dashboard-mark1.js
+          grep -q 'mergedConges(shared,personal)' dashboard-mark1.js
+          grep -q 'configs.variables' inovtec-shell.js
+          if grep -qi 'HEURE-SUP.html\|Heures sup\.' index.html inovtec-shell.js; then
+            echo "::error::Variables agents doit remplacer l’ancien module Heures sup dans l’interface."
+            exit 1
+          fi
           grep -q 'id="kpiIncidents"' index.html
           grep -q 'Incidents ouverts' index.html
           grep -q 'openIncidentCount' dashboard-index-shared.js
@@ -160,7 +172,7 @@ jobs:
             exit 1
           fi
           grep -q 'inovtec-shell.css?v=20260829-agentfull1' inovtec-page-shell.html
-          grep -q 'inovtec-shell.js?v=20260829-sitehistory6' inovtec-page-shell.html
+          grep -q 'inovtec-shell.js?v=20260829-variables-dashboard1' inovtec-page-shell.html
           grep -q 'stripRemovedDisciplineNavigation' inovtec-page-shell.html
           grep -q 'href.includes("discipline")' inovtec-page-shell.html
           grep -q 'max-height:none' AGENTS-LEGACY.html
