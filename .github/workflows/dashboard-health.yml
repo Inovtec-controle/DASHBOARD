@@ -201,7 +201,7 @@ jobs:
             exit 1
           fi
           grep -q 'inovtec-shell.css?v=20260829-agentfull1' inovtec-page-shell.html
-          grep -q 'inovtec-shell.js?v=20260829-planningstable3' inovtec-page-shell.html
+          grep -q 'inovtec-shell.js?v=20260829-history6' inovtec-page-shell.html
           grep -q 'stripRemovedDisciplineNavigation' inovtec-page-shell.html
           grep -q 'href.includes("discipline")' inovtec-page-shell.html
           grep -q 'max-height:none' AGENTS-LEGACY.html
