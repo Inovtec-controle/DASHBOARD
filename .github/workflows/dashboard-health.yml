@@ -32,7 +32,6 @@ jobs:
             inovtec-search-handoff.js
             INFOCHANTIERS.html
             ORGA.html
-            DISCIPLINE.html
             PLANNINGS.html
             PLANNINGS-LEGACY.html
             planning-calendar.css
@@ -82,6 +81,16 @@ jobs:
           done
           grep -qi '<!DOCTYPE html>' index.html
           grep -q 'Classeur agents' index.html
+          if grep -qi 'DISCIPLINE-V9.html\|>Discipline<\|Dossiers Discipline' index.html; then
+            echo "::error file=index.html::Discipline ne doit plus apparaître dans le Dashboard."
+            exit 1
+          fi
+          if grep -Eq 'const nav=.*configs\.discipline|const mobileItems=.*configs\.discipline' inovtec-shell.js; then
+            echo "::error file=inovtec-shell.js::Discipline est encore présente dans la navigation commune."
+            exit 1
+          fi
+          grep -Fq 'window.location.replace("index.html")' DISCIPLINE.html
+          grep -Fq 'window.location.replace("index.html")' DISCIPLINE-V9.html
           grep -q 'inovtec-firebase-indicator.js' index.html
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
@@ -166,7 +175,7 @@ jobs:
           grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' inovtec-info-shell-stable.html
           # Toutes les pages doivent charger le même build opérationnel sans cache navigateur.
-          for page in INFOCHANTIERS.html INFOCHANTIERS-V2.html AGENTS.html PLANNINGS.html CONGES.html VARIABLES.html ORGA.html HEURE-SUP.html TEMPS.html SALAIRE.html ESSENCE.html DISCIPLINE-V9.html KONTROL-CLOUD.html; do
+          for page in INFOCHANTIERS.html INFOCHANTIERS-V2.html AGENTS.html PLANNINGS.html CONGES.html VARIABLES.html ORGA.html HEURE-SUP.html TEMPS.html SALAIRE.html ESSENCE.html KONTROL-CLOUD.html; do
             grep -q 'build=20260829-operational1' "$page" || { echo "::error file=$page::Build opérationnel absent"; exit 1; }
             grep -qi 'http-equiv="cache-control"' "$page" || { echo "::error file=$page::Protection anti-cache absente"; exit 1; }
           done
@@ -344,7 +353,7 @@ jobs:
             echo '::error::Le site public ne contient pas encore le tri alphabétique global.'
             exit 1
           }
-          for page in INFOCHANTIERS.html ORGA.html DISCIPLINE.html PLANNINGS.html KONTROL-CLOUD.html AGENTS.html CONGES.html VARIABLES.html HEURE-SUP.html TEMPS.html SALAIRE.html ESSENCE.html; do
+          for page in INFOCHANTIERS.html ORGA.html PLANNINGS.html KONTROL-CLOUD.html AGENTS.html CONGES.html VARIABLES.html HEURE-SUP.html TEMPS.html SALAIRE.html ESSENCE.html; do
             curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null
           done
           echo 'Site public accessible et version attendue détectée.'
