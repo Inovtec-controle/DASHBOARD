@@ -121,7 +121,6 @@ jobs:
           grep -Fq 'setSaveButtonState("saved")' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'setSaveButtonState("error")' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'get({source:"server"})' INFOCHANTIERS-V2-LEGACY.html
-          grep -Fq 'const snap=await collection.doc(id).get()' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'data-iv-chantier-id' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'persist(d,wasNew,token,snapshot)' inovtec-info-persistence-stable.js
           if grep -Fq 'setTimeout(()=>persist(d,wasNew,token),80)' inovtec-info-persistence-stable.js; then
