@@ -106,9 +106,11 @@ jobs:
           grep -q 'inovtec-cdc-ui-hard-fix.js?v=20260829-operational1' inovtec-page-shell.html
           grep -q 'inovtec-info-contact-mode.js?v=20260829-idlock1' inovtec-page-shell.html
           grep -q 'inovtec-info-contract-fields.js?v=20260829-idlock1' inovtec-page-shell.html
-          grep -q 'inovtec-info-agent-planning.js?v=20260829-agentassign1' inovtec-page-shell.html
+          grep -q 'inovtec-info-agent-planning.js?v=20260829-agentdropdown1' inovtec-page-shell.html
           grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' inovtec-page-shell.html
           grep -q 'agentsAffectes' inovtec-info-agent-planning.js
+          grep -q 'ivAgentPickerButton' inovtec-info-agent-planning.js
+          grep -q 'ivAgentPickerPanel' inovtec-info-agent-planning.js
           grep -q 'firebase-config.js?v=20260829-operational1' inovtec-page-shell.html
           if grep -q 'iv-cdc-modal{[^}]*overflow:auto' inovtec-cahier-des-charges.js; then
             echo "::error::La fenêtre de saisie manuelle contient encore une scrollbar interne."
@@ -314,14 +316,14 @@ jobs:
           if [ '${{ github.event_name }}' = 'push' ]; then
             live_ready=0
             for attempt in $(seq 1 15); do
-              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260829-operational1&mode=infos&sv=20260829-agentassign1" -o /tmp/shell.html
+              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260829-operational1&mode=infos&sv=20260829-agentdropdown1" -o /tmp/shell.html
               curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/INFOCHANTIERS-V2-LEGACY.html?v=20260829-persistence7" -o /tmp/infos.html
               if grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' /tmp/shell.html \
                 && grep -q 'Enregistrer ✓' /tmp/infos.html \
                 && grep -q 'get({source:"server"})' /tmp/infos.html \
                 && grep -q 'button.dataset.ivChantierId' /tmp/infos.html \
                 && grep -q 'data.agentsAffectes=' /tmp/infos.html \
-                && grep -q 'inovtec-info-agent-planning.js?v=20260829-agentassign1' /tmp/shell.html; then
+                && grep -q 'inovtec-info-agent-planning.js?v=20260829-agentdropdown1' /tmp/shell.html; then
                 live_ready=1
                 break
               fi
