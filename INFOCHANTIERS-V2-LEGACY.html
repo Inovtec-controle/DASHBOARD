@@ -73,6 +73,6 @@ $("logoutBtn").addEventListener("click",()=>auth.signOut());$("loginForm").addEv
 auth.onAuthStateChanged(user=>{if(user){$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");displayForm(false);startRealtime();}else{if(unsubscribe){unsubscribe();unsubscribe=null;}sites=[];currentId=null;$("app").classList.add("hidden");$("loginScreen").classList.remove("hidden");}});
 })();
 </script>
-<script src="inovtec-info-control-history.js?v=20260829-sitehistory2"></script>
+<script src="inovtec-info-control-history.js?v=20260829-sitehistory3"></script>
 </body>
 </html>
