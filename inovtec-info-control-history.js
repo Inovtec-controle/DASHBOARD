@@ -28,6 +28,7 @@ function ensureStyle(){
     #ivControlHistoryCard .iv-control-history-empty{padding:14px;border:1px dashed #cedbd5;border-radius:12px;background:#f8fbf9;color:#6f7f77;font-size:11px;text-align:center}
     #ivControlHistoryCard .iv-control-history-open{flex:0 0 auto;white-space:nowrap}
     #ivControlHistoryCard .iv-control-history-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    #ivControlHistoryCard .iv-control-history-delete{flex:0 0 auto;white-space:nowrap}
     #ivControlViewer{position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.58);padding:24px;overflow:auto}
     #ivControlViewer[hidden]{display:none!important}
     #ivControlViewer .iv-control-viewer-panel{max-width:1080px;margin:0 auto;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(15,23,42,.28);overflow:hidden}
@@ -216,6 +217,72 @@ async function openControlViewer(item,button){
   }
   if(button){button.disabled=false;button.textContent="Visualiser le contrôle"}
 }
+async function deleteDocsByIds(ids){
+  const clean=[...new Set((ids||[]).map(String).filter(Boolean))];
+  for(let start=0;start<clean.length;start+=200){
+    const batch=db.batch();
+    clean.slice(start,start+200).forEach(id=>batch.delete(db.collection("chantiers").doc(id)));
+    await batch.commit();
+  }
+}
+async function deleteControlRecord(item,button){
+  const recordId=String(item?.__docId||item?.recordId||"").trim();
+  const chantierId=String(item?.chantierId||selectedSiteId()||"").trim();
+  if(!recordId||!chantierId)return;
+  const label=[formatControlDate(item.controlDate),item.controlTime].filter(Boolean).join(" à ");
+  if(!confirm("Supprimer définitivement ce contrôle"+(label?" du "+label:"")+" ?\n\nLe contrôle et ses photos seront supprimés de l’historique."))return;
+  if(button){button.disabled=true;button.textContent="Suppression…"}
+  try{
+    const photoChunkIds=[];
+    (Array.isArray(item.photoRefs)?item.photoRefs:[]).forEach(ref=>{
+      (Array.isArray(ref?.chunkIds)?ref.chunkIds:[]).forEach(id=>photoChunkIds.push(String(id)));
+    });
+    await deleteDocsByIds(photoChunkIds);
+    const batch=db.batch();
+    batch.delete(db.collection("chantiers").doc(recordId));
+    batch.set(db.collection("chantiers").doc(chantierId),{
+      kontrolHistoryRecordIds:firebase.firestore.FieldValue.arrayRemove(recordId),
+      kontrolHistoryUpdatedAtMs:Date.now()
+    },{merge:true});
+    await batch.commit();
+    records=records.filter(x=>String(x.__docId||x.recordId||"")!==recordId);
+    const viewer=d.getElementById("ivControlViewer");if(viewer&&!viewer.hidden)viewer.hidden=true;
+    scheduleRender(0);
+  }catch(error){
+    console.error("Suppression contrôle KONTROL impossible",error);
+    alert("Impossible de supprimer ce contrôle pour le moment.");
+    if(button){button.disabled=false;button.textContent="Supprimer"}
+  }
+}
+async function deletePdfHistory(item,button){
+  const metaId=String(item?.__docId||"").trim();
+  const chantierId=String(item?.chantierId||item?.customMetadata?.chantierId||selectedSiteId()||"").trim();
+  if(!metaId||!chantierId)return;
+  const custom=item.customMetadata||{};
+  const label=formatControlDate(custom.controlDate||item.controlDate);
+  if(!confirm("Supprimer définitivement ce contrôle PDF"+(label?" du "+label:"")+" de l’historique ?"))return;
+  if(button){button.disabled=true;button.textContent="Suppression…"}
+  try{
+    await deleteDocsByIds(Array.isArray(item.chunkIds)?item.chunkIds:[]);
+    const batch=db.batch();
+    batch.delete(db.collection("chantiers").doc(metaId));
+    batch.set(db.collection("chantiers").doc(chantierId),{
+      kontrolHistoryMetaIds:firebase.firestore.FieldValue.arrayRemove(metaId),
+      kontrolHistoryUpdatedAtMs:Date.now()
+    },{merge:true});
+    await batch.commit();
+    try{
+      const path=String(item.storagePath||"").trim();
+      if(path&&firebase.storage){await firebase.storage().ref().child(path).delete()}
+    }catch(storageError){console.warn("PDF Storage conservé faute de droit",storageError)}
+    metas=metas.filter(x=>String(x.__docId||"")!==metaId);
+    scheduleRender(0);
+  }catch(error){
+    console.error("Suppression historique PDF KONTROL impossible",error);
+    alert("Impossible de supprimer ce contrôle PDF pour le moment.");
+    if(button){button.disabled=false;button.textContent="Supprimer"}
+  }
+}
 function upsertMetas(rows){
   const map=new Map(metas.map(x=>[String(x.__docId||""),x]));
   (rows||[]).forEach(x=>{if(x?.__docId)map.set(String(x.__docId),x)});
@@ -316,7 +383,9 @@ function render(){
       const badge=d.createElement("span");badge.className="status ok";badge.textContent=(Number(item.photoCount)||0)?((Number(item.photoCount)||0)+" photo"+((Number(item.photoCount)||0)>1?"s":"")):"Contrôle enregistré";
       const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Visualiser le contrôle";
       button.addEventListener("click",()=>openControlViewer(item,button));
-      actions.append(badge,button);
+      const del=d.createElement("button");del.type="button";del.className="btn btn-danger iv-control-history-delete";del.textContent="Supprimer";
+      del.addEventListener("click",()=>deleteControlRecord(item,del));
+      actions.append(badge,button,del);
       row.append(copy,actions);
     }else{
       const custom=item.customMetadata||{};
@@ -326,9 +395,13 @@ function render(){
       if(custom.agents)bits.push("Agent(s) : "+custom.agents);
       if(item.createdByEmail)bits.push("Enregistré par "+item.createdByEmail);
       details.textContent=bits.join(" • ")||String(item.originalName||custom.originalName||"PDF KONTROL");
+      const actions=d.createElement("div");actions.className="iv-control-history-actions";
       const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Consulter le PDF";
       button.addEventListener("click",()=>openPdf(item,button));
-      copy.append(title,details);row.append(copy,button);
+      const del=d.createElement("button");del.type="button";del.className="btn btn-danger iv-control-history-delete";del.textContent="Supprimer";
+      del.addEventListener("click",()=>deletePdfHistory(item,del));
+      actions.append(button,del);
+      copy.append(title,details);row.append(copy,actions);
     }
     list.appendChild(row);
   });
