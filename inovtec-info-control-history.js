@@ -4,12 +4,12 @@ if(window.__INOVTEC_INFO_CONTROL_HISTORY_V2__)return;
 window.__INOVTEC_INFO_CONTROL_HISTORY_V2__=true;
 if(!window.firebase||!firebase.firestore)return;
 if(!firebase.apps.length&&window.INOVTEC_FIREBASE_CONFIG)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
-const db=firebase.firestore(),META_TYPE="kontrolPdfMeta";
+const db=firebase.firestore(),auth=firebase.auth?.(),META_TYPE="kontrolPdfMeta";
 const d=document;
 const form=d.getElementById("siteForm");
 if(!form)return;
 
-let metas=[],unsubMeta=null,lastSiteId="",migrationBusy=false,renderTimer=null;
+let metas=[],unsubMeta=null,unsubSite=null,lastSiteId="",migrationBusy=false,renderTimer=null,authUser=null,retryTimer=null;
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 
 function selectedSiteId(){return String(form.dataset.ivChantierId||"").trim()}
@@ -98,6 +98,36 @@ async function openPdf(meta,button){
     if(button){button.disabled=false;button.textContent="Consulter le PDF"}
   }
 }
+function upsertMetas(rows){
+  const map=new Map(metas.map(x=>[String(x.__docId||""),x]));
+  (rows||[]).forEach(x=>{if(x?.__docId)map.set(String(x.__docId),x)});
+  metas=[...map.values()];
+}
+async function loadIndexedMetas(siteId,siteData){
+  const ids=Array.isArray(siteData?.kontrolHistoryMetaIds)?siteData.kontrolHistoryMetaIds.map(String).filter(Boolean):[];
+  if(!ids.length)return;
+  const rows=[];
+  for(let start=0;start<ids.length;start+=20){
+    const part=await Promise.all(ids.slice(start,start+20).map(async id=>{
+      try{
+        const snap=await db.collection("chantiers").doc(id).get();
+        return snap.exists?{__docId:snap.id,...(snap.data()||{})}:null;
+      }catch{return null}
+    }));
+    rows.push(...part.filter(Boolean));
+  }
+  upsertMetas(rows);
+}
+function bindSelectedSiteIndex(){
+  const siteId=selectedSiteId();
+  if(unsubSite){try{unsubSite()}catch{}unsubSite=null}
+  if(!siteId||!authUser)return;
+  unsubSite=db.collection("chantiers").doc(siteId).onSnapshot(async snap=>{
+    if(!snap.exists)return;
+    try{await loadIndexedMetas(siteId,snap.data()||{})}catch(error){console.warn("Index historique KONTROL",error)}
+    scheduleRender(0);
+  },error=>console.warn("Lecture index historique KONTROL",error));
+}
 function matchingRows(siteId){
   return metas.filter(meta=>String(meta?.chantierId||meta?.customMetadata?.chantierId||"").trim()===siteId)
     .sort((a,b)=>createdMs(b)-createdMs(a));
@@ -146,38 +176,73 @@ async function migrateExactLegacyLinks(){
     const siteSnap=await db.collection("chantiers").doc(siteId).get();
     const savedName=siteSnap.exists?String(siteSnap.data()?.nom||"").trim():"";
     if(!savedName||norm(savedName)!==norm(name))return;
+    const ids=[];
     for(const meta of candidates){
-      await db.collection("chantiers").doc(String(meta.__docId)).set({
+      const metaId=String(meta.__docId||"");
+      if(!metaId)continue;
+      ids.push(metaId);
+      await db.collection("chantiers").doc(metaId).set({
         chantierId:siteId,
         customMetadata:{...(meta.customMetadata||{}),chantierId:siteId},
-        referenceVersion:1
+        referenceVersion:2
+      },{merge:true});
+    }
+    if(ids.length){
+      await db.collection("chantiers").doc(siteId).set({
+        kontrolHistoryMetaIds:firebase.firestore.FieldValue.arrayUnion(...ids),
+        kontrolHistoryUpdatedAtMs:Date.now()
       },{merge:true});
     }
   }catch(error){console.warn("Rattachement ancien contrôle KONTROL",error)}
   finally{migrationBusy=false}
 }
 function subscribeMeta(){
-  if(unsubMeta)return;
+  if(unsubMeta||!authUser)return;
+  clearTimeout(retryTimer);
   unsubMeta=db.collection("chantiers").where("_type","==",META_TYPE).onSnapshot(snapshot=>{
-    metas=snapshot.docs.map(x=>({__docId:x.id,...(x.data()||{})}));
-    scheduleRender(0);setTimeout(migrateExactLegacyLinks,60);
+    upsertMetas(snapshot.docs.map(x=>({__docId:x.id,...(x.data()||{})})));
+    scheduleRender(0);
+    setTimeout(migrateExactLegacyLinks,60);
   },error=>{
     console.error("Historique des contrôles indisponible",error);
+    try{unsubMeta?.()}catch{}
+    unsubMeta=null;
     const list=d.getElementById("ivControlHistoryList");
-    if(list)list.innerHTML='<div class="iv-control-history-empty">Impossible de charger l’historique des contrôles.</div>';
+    if(list)list.innerHTML='<div class="iv-control-history-empty">Reconnexion à l’historique des contrôles…</div>';
+    if(auth.currentUser)retryTimer=setTimeout(()=>subscribeMeta(),1500);
   });
 }
 ensureCard();
 const observer=new MutationObserver(muts=>{
   if(muts.some(m=>m.type==="attributes"&&(m.attributeName==="data-iv-chantier-id"||m.attributeName==="class"))){
     const id=selectedSiteId();
-    if(id!==lastSiteId){lastSiteId=id;scheduleRender(0);setTimeout(migrateExactLegacyLinks,70)}
+    if(id!==lastSiteId){lastSiteId=id;bindSelectedSiteIndex();scheduleRender(0);setTimeout(migrateExactLegacyLinks,70)}
   }
 });
 observer.observe(form,{attributes:true,attributeFilter:["data-iv-chantier-id","class"]});
 d.addEventListener("click",event=>{
-  if(event.target?.closest?.(".site-item"))setTimeout(()=>{lastSiteId=selectedSiteId();scheduleRender(0);migrateExactLegacyLinks()},50);
+  if(event.target?.closest?.(".site-item"))setTimeout(()=>{lastSiteId=selectedSiteId();bindSelectedSiteIndex();scheduleRender(0);migrateExactLegacyLinks()},50);
 },true);
-d.addEventListener("iv:chantier-saved",()=>setTimeout(()=>{lastSiteId=selectedSiteId();scheduleRender(0);migrateExactLegacyLinks()},70));
-subscribeMeta();scheduleRender(0);
+d.addEventListener("iv:chantier-saved",()=>setTimeout(()=>{lastSiteId=selectedSiteId();bindSelectedSiteIndex();scheduleRender(0);migrateExactLegacyLinks()},70));
+if(auth){
+  auth.onAuthStateChanged(user=>{
+    authUser=user||null;
+    clearTimeout(retryTimer);
+    if(unsubMeta){try{unsubMeta()}catch{}unsubMeta=null}
+    if(unsubSite){try{unsubSite()}catch{}unsubSite=null}
+    if(!user){
+      metas=[];
+      scheduleRender(0);
+      return;
+    }
+    subscribeMeta();
+    bindSelectedSiteIndex();
+    setTimeout(()=>{if(auth.currentUser&&!unsubMeta)subscribeMeta()},700);
+  });
+}else{
+  authUser={uid:"compat"};
+  subscribeMeta();
+  bindSelectedSiteIndex();
+}
+scheduleRender(0);
 })();
