@@ -43,13 +43,14 @@ function collect(d){
   try{const parse=window.InovtecContainerSchedule?.parseDays;if(typeof parse==="function")schedules[id]=parse(formValue(d,id))}catch{}
  });
  if(Object.keys(schedules).length){const now=Date.now(),uid=auth?.currentUser?.uid||"";data.conteneursPlanningV1={schemaVersion:2,...schedules,frequences:freqs,updatedAtMs:now,updatedBy:uid};data.conteneursFrequencesV1={schemaVersion:1,...freqs,updatedAtMs:now,updatedBy:uid}}
+ const assignedSelect=d.getElementById("ivSiteAgentSelect");let assigned=null;try{const raw=form.dataset.ivAgentsAffectes;if(raw!==undefined){const parsed=JSON.parse(raw);if(Array.isArray(parsed))assigned=parsed}}catch{}if(!assigned&&assignedSelect)assigned=[...assignedSelect.selectedOptions].map(o=>o.value);if(Array.isArray(assigned))data.agentsAffectes=[...new Set(assigned.map(v=>String(v||"").trim()).filter(Boolean))];
  data.infoUnifiedSaveVersion=1;data.infoUnifiedUpdatedAtMs=Date.now();data.infoUnifiedUpdatedBy=auth?.currentUser?.uid||"";
  return data;
 }
 function setStatus(d,text,ok=false){const s=d?.getElementById("recordState");if(!s)return;s.textContent=text;s.className="status"+(ok?" ok":"")}
 function saveButton(d){return d?.querySelector('#siteForm .sticky-save button[type="submit"]')||d?.querySelector('#siteForm button[type="submit"]')||null}
 function setSaveState(d,state){const b=saveButton(d);if(!b)return;const states={idle:["Enregistrer","Aucune sauvegarde en cours"],dirty:["Enregistrer •","Modifications non sauvegardées"],saving:["Enregistrer ⏳","Enregistrement Firebase en cours"],saved:["Enregistrer ✓","Sauvegarde confirmée par Firebase"],error:["Enregistrer ⚠","Échec de la sauvegarde Firebase"]},cfg=states[state]||states.idle;b.textContent=cfg[0];b.title=cfg[1];b.setAttribute("aria-label",cfg[1]);b.dataset.firebaseSaveState=state;b.disabled=state==="saving"}
-function primitiveMismatch(expected,actual){return Object.entries(expected).find(([key,value])=>{if(value!==null&&typeof value==="object")return false;return String(actual?.[key]??"")!==String(value??"")})||null}
+function primitiveMismatch(expected,actual){return Object.entries(expected).find(([key,value])=>{if(Array.isArray(value))return JSON.stringify(value.map(v=>String(v??"")))!==JSON.stringify((Array.isArray(actual?.[key])?actual[key]:[]).map(v=>String(v??"")));if(value!==null&&typeof value==="object")return false;return String(actual?.[key]??"")!==String(value??"")})||null}
 async function persist(d,wasNew,token,dataSnapshot=null){
  const data=dataSnapshot&&typeof dataSnapshot==="object"?dataSnapshot:collect(d);if(!data.nom)return;
  setSaveState(d,"saving");
@@ -70,7 +71,7 @@ async function persist(d,wasNew,token,dataSnapshot=null){
 function normalizedType(v){const x=String(v||"").trim();if(x==="Copropriété")return"Copropriétés";if(x==="Industriel")return"Industriels";return x}
 function applyContactUi(d,type){const block=d.getElementById("ivContactTypeBlock");if(!block)return;const t=String(type||"");block.dataset.contactType=t;block.querySelectorAll(".iv-contact-choice").forEach(b=>{const on=b.dataset.type===t;b.classList.toggle("active",on);b.setAttribute("aria-pressed",on?"true":"false")});const s=d.getElementById("ivSyndicContactFields"),c=d.getElementById("ivClientContactFields");if(s)s.hidden=t!=="syndic_cs";if(c)c.hidden=t!=="client"}
 function applyExtras(d,site){
- const form=d.getElementById("siteForm");if(!form||!site)return;form.dataset.ivChantierId=String(site.id||form.dataset.ivChantierId||"");
+ const form=d.getElementById("siteForm");if(!form||!site)return;form.dataset.ivChantierId=String(site.id||form.dataset.ivChantierId||"");if(Array.isArray(site.agentsAffectes)&&form.dataset.ivInfoDirty!=="1"){form.dataset.ivAgentsAffectes=JSON.stringify([...new Set(site.agentsAffectes.map(v=>String(v||"").trim()).filter(Boolean))]);form.removeAttribute("data-iv-agents-draft");}
  const values={ivTypeChantier:normalizedType(site.typeChantier),ivDateDebutPrestation:site.dateDebutPrestation||"",ivDateFinContrat:site.dateFinContrat||"",ivClientNom:site.clientNom||"",ivClientTelephone:site.clientTelephone||"",ivClientEmail:site.clientEmail||"",accesLocalNettoyage:site.accesLocalNettoyage||"",observationsTechniques:site.observationsTechniques||"",airePresentation:site.airePresentation||""};
  Object.entries(values).forEach(([id,v])=>{const e=d.getElementById(id);if(!e)return;if(id==="ivTypeChantier"&&v&&![...e.options].some(o=>o.value===v)){const o=d.createElement("option");o.value=v;o.textContent=v;e.appendChild(o)}e.value=String(v??"")});
  applyContactUi(d,site.contactType||"");
