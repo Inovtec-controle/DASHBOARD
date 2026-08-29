@@ -17,9 +17,11 @@ async function resolveSite(d,{waitForNew=false,retries=24}={}){
  const form=d?.getElementById("siteForm");
  for(let i=0;i<retries;i++){
   const exact=String(form?.dataset.ivChantierId||"").trim();
-  if(exact){try{const s=await db.collection("chantiers").doc(exact).get();if(s.exists)return{id:s.id,...s.data()}}catch{}}
-  if(!waitForNew||i>2){const h=activeHubSite(d);if(h?.id)return h}
-  if(!waitForNew||i>6){const n=formValue(d,"nom"),a=formValue(d,"adresse");if(n){try{const q=await db.collection("chantiers").where("nom","==",n).limit(12).get(),rows=q.docs.map(x=>({id:x.id,...x.data()}));const hit=rows.find(x=>!a||norm(x.adresse)===norm(a))||rows[0];if(hit)return hit}catch{}}}
+  if(exact)return{id:exact};
+  if(waitForNew){await wait(160);continue}
+  const h=activeHubSite(d);if(h?.id)return h;
+  const n=formValue(d,"nom"),a=formValue(d,"adresse");
+  if(n){try{const q=await db.collection("chantiers").where("nom","==",n).limit(12).get(),rows=q.docs.map(x=>({id:x.id,...x.data()}));const exactAddress=rows.filter(x=>a&&norm(x.adresse)===norm(a));if(exactAddress.length===1)return exactAddress[0];if(rows.length===1)return rows[0]}catch{}}
   await wait(160);
  }
  return null;
