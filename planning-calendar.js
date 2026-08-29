@@ -138,5 +138,18 @@ $("exportBtn").onclick=exportData;$("importFile").onchange=e=>{const f=e.target.
 document.addEventListener("mousedown",e=>{if(!e.target.closest("#contextMenu"))closeContext();if(!e.target.closest("#editorPopover")&&!e.target.closest(".event-card")&&!e.target.closest(".month-event")&&!e.target.closest(".list-item"))closeEditor()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeContext();closeEditor()}});
 window.addEventListener("resize",()=>{closeContext();if($("editorPopover").classList.contains("open"))closeEditor()});
-render();bindHub();setInterval(()=>{if(view==="week"||view==="day")render()},60000);
+let cloudRefreshTimer=0;
+function refreshFromCloud(){
+  clearTimeout(cloudRefreshTimer);
+  const attempt=()=>{
+    const pop=$("editorPopover"),active=document.activeElement;
+    const busy=pop?.classList.contains("open")||(active&&/^(INPUT|TEXTAREA|SELECT)$/i.test(active.tagName));
+    if(busy){cloudRefreshTimer=setTimeout(attempt,1200);return}
+    load();render();
+  };
+  cloudRefreshTimer=setTimeout(attempt,80);
+}
+window.addEventListener("inovtec:planning-cloud-updated",refreshFromCloud);
+window.addEventListener("storage",e=>{if(e.key===KEY)refreshFromCloud()});
+render();bindHub();setInterval(()=>{if(!document.hidden&&(view==="week"||view==="day"))render()},60000);
 })();
