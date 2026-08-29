@@ -276,7 +276,7 @@
       appShell.classList.remove("hidden");
       if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) {
         clearWorkingDraft();
-        frame.src = "KONTROL.html?v=20260816-blank1";
+        frame.src = "KONTROL.html?v=20260829-no-category1";
       }
     } else {
       hideArchive();
