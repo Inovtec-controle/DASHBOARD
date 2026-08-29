@@ -88,6 +88,6 @@ function refresh(force=false){const sig=signature();if(!force&&sig===lastSignatu
 function schedule(force=false){clearTimeout(timer);timer=setTimeout(()=>refresh(force),100)}
 frame?.addEventListener("load",()=>{setTimeout(()=>schedule(true),250);setTimeout(()=>schedule(true),900)});
 try{hubUnsub=window.InovtecDataHub?.subscribe?.(()=>schedule(true))||null}catch{}
-setInterval(()=>refresh(false),1200);window.addEventListener("focus",()=>schedule(true));document.addEventListener("visibilitychange",()=>{if(!document.hidden)schedule(true)});
-setTimeout(()=>schedule(true),500);
+setInterval(()=>{if(!document.hidden)refresh(false)},8000);window.addEventListener("focus",()=>schedule(true));document.addEventListener("visibilitychange",()=>{if(!document.hidden)schedule(true)});
+setTimeout(()=>schedule(true),1200);
 })();
