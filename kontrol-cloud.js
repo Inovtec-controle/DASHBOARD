@@ -22,6 +22,7 @@
   const db = firebase.firestore();
   const storage = firebase.storage();
   const SHARED_CHUNK_SIZE = 180000;
+  const DIRECT_CONTROL_TYPE = "kontrolControlRecord";
 
   function showToast(message, isError = false) {
     clearTimeout(toastTimer);
@@ -89,6 +90,37 @@
       doc.getElementById("importFile")?.addEventListener("change", () => {
         setTimeout(() => updateControlWorkspaceVisibility(doc), 120);
       });
+
+      const saveControlBtn = doc.getElementById("pdfBtn");
+      if (saveControlBtn && saveControlBtn.dataset.ivDirectHistoryBound !== "1") {
+        saveControlBtn.dataset.ivDirectHistoryBound = "1";
+        saveControlBtn.textContent = "Enregistrer le contrôle";
+        saveControlBtn.title = "Enregistrer ce contrôle dans l’historique du chantier";
+        saveControlBtn.addEventListener("click", async event => {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          if (saveControlBtn.disabled) return;
+          saveControlBtn.disabled = true;
+          const oldText = saveControlBtn.textContent;
+          saveControlBtn.textContent = "Enregistrement…";
+          showToast("Enregistrement du contrôle dans le chantier…");
+          try {
+            await saveControlDirect();
+            saveControlBtn.textContent = "Contrôle enregistré ✓";
+            showToast("Contrôle enregistré dans l’historique du chantier.");
+            setTimeout(() => {
+              if (saveControlBtn.isConnected) saveControlBtn.textContent = oldText;
+            }, 1800);
+          } catch (error) {
+            console.error("Enregistrement direct KONTROL impossible", error);
+            saveControlBtn.textContent = "Réessayer";
+            showToast(error?.message || "Impossible d’enregistrer le contrôle.", true);
+          } finally {
+            saveControlBtn.disabled = false;
+          }
+        }, true);
+      }
 
       updateControlWorkspaceVisibility(doc);
     } catch (error) {
@@ -229,14 +261,76 @@
         site: siteField?.value?.trim() || "",
         chantierId: siteField?.dataset?.ivChantierId?.trim() || "",
         controlDate: doc.getElementById("date")?.value || "",
+        controlTime: doc.getElementById("heure")?.value || "",
         controller: doc.getElementById("controleur")?.value?.trim() || "",
         agents: doc.getElementById("agents")?.value?.trim() || "",
-        category: (doc.getElementById("activeCategoryPill")?.textContent || "").replace(/^Actif\s*:\s*/i, "").trim()
+        category: (doc.getElementById("activeCategoryPill")?.textContent || "").replace(/^Actif\s*:\s*/i, "").trim(),
+        score: doc.getElementById("score")?.textContent?.trim() || "",
+        observations: doc.getElementById("obs")?.value?.trim() || ""
       };
     } catch (error) {
       console.warn("Métadonnées KONTROL non lisibles", error);
-      return { site:"", chantierId:"", controlDate:"", controller:"", agents:"", category:"" };
+      return { site:"", chantierId:"", controlDate:"", controlTime:"", controller:"", agents:"", category:"", score:"", observations:"" };
     }
+  }
+
+  function readKontrolTasks() {
+    try {
+      const doc = frame.contentDocument;
+      return [...doc.querySelectorAll("#tasksBody tr[data-task-id]")].map(row => {
+        const taskId = String(row.dataset.taskId || "");
+        const title = row.querySelector(".task-title")?.textContent?.trim() || "";
+        const status = row.querySelector('input[type="radio"]:checked')?.value || "";
+        const commentRow = row.nextElementSibling?.classList?.contains("comment-row") ? row.nextElementSibling : null;
+        const comment = commentRow?.querySelector("textarea")?.value?.trim() || "";
+        return { taskId, title, status, comment };
+      }).filter(x => x.title);
+    } catch (error) {
+      console.warn("Lecture des tâches KONTROL impossible", error);
+      return [];
+    }
+  }
+
+  async function saveControlDirect() {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Connexion Firebase requise");
+    const details = readKontrolMetadata();
+    const chantierId = await resolveChantierId(details);
+    if (!chantierId) throw new Error("Choisis un chantier enregistré avant d’enregistrer le contrôle");
+    const tasks = readKontrolTasks();
+    const now = Date.now();
+    const recordId = "__kontrol_control__" + hash([user.uid, chantierId, now, details.controlDate, details.controlTime].join("|"));
+    const record = {
+      _hidden: true,
+      _type: DIRECT_CONTROL_TYPE,
+      recordId,
+      chantierId,
+      site: String(details.site || "").slice(0,220),
+      controlDate: String(details.controlDate || "").slice(0,30),
+      controlTime: String(details.controlTime || "").slice(0,20),
+      controller: String(details.controller || "").slice(0,160),
+      agents: String(details.agents || "").slice(0,220),
+      category: String(details.category || "").slice(0,80),
+      score: String(details.score || "").slice(0,40),
+      observations: String(details.observations || "").slice(0,4000),
+      tasks: tasks.slice(0,250),
+      createdAtMs: now,
+      timeCreated: new Date(now).toISOString(),
+      createdByUid: user.uid,
+      createdByEmail: user.email || "",
+      source: "kontrol-direct-history-v1"
+    };
+    const batch = db.batch();
+    batch.set(db.collection("chantiers").doc(recordId), record, { merge: true });
+    batch.set(db.collection("chantiers").doc(chantierId), {
+      kontrolHistoryRecordIds: firebase.firestore.FieldValue.arrayUnion(recordId),
+      kontrolHistoryUpdatedAtMs: now
+    }, { merge: true });
+    await batch.commit();
+    try {
+      window.dispatchEvent(new CustomEvent("inovtec:kontrol-control-saved", { detail: { chantierId, recordId } }));
+    } catch {}
+    return { chantierId, recordId };
   }
 
   async function archivePdfBlob(blob, filename, details) {
