@@ -91,9 +91,6 @@ jobs:
           grep -q '__INOVTEC_CDC_OPERATIONAL_FIX_V3__' inovtec-cdc-operational-fix.js
           grep -q 'function suggestionRowsFromSites' inovtec-cdc-operational-fix.js
           grep -q 'GLOBAL_SUGGESTION_TTL' inovtec-cdc-operational-fix.js
-          grep -q 'function suggestionRank' inovtec-cdc-operational-fix.js
-          grep -q 'function smartMatches' inovtec-cdc-operational-fix.js
-          grep -q 'v.startsWith(q)' inovtec-cdc-operational-fix.js
           grep -Fq 'collection("chantiers").orderBy("nom").get()' inovtec-cdc-operational-fix.js
           grep -q 'InovtecCdcOperationalSave' inovtec-cdc-operational-fix.js
           grep -q 'ivOperationalFix.*InovtecCdcOperationalSave' inovtec-cdc-schedule-fields.js
@@ -104,7 +101,7 @@ jobs:
             echo "::error::Le correctif CDC est de nouveau chargé deux fois."
             exit 1
           fi
-          grep -q 'inovtec-cdc-operational-fix.js?v=20260829-cdcsmart1' inovtec-page-shell.html
+          grep -q 'inovtec-cdc-operational-fix.js?v=20260829-cdcglobal1' inovtec-page-shell.html
           grep -q 'inovtec-cdc-schedule-fields.js?v=20260829-operational1' inovtec-page-shell.html
           grep -q 'inovtec-cdc-ui-hard-fix.js?v=20260829-operational1' inovtec-page-shell.html
           grep -q 'inovtec-info-contact-mode.js?v=20260829-operational1' inovtec-page-shell.html
