@@ -17,10 +17,10 @@ const configs={
  essence:{label:"Dépense carburant",eyebrow:"DÉPLACEMENTS",title:"Dépense <em>carburant</em>",subtitle:"Calculez rapidement le coût réel du carburant d’un agent à partir de ses trajets et de son véhicule.",route:"ESSENCE.html",icon:"⛽"}
 };
 const cfg=configs[mode]||configs.planning;
-const nav=[configs.planning,configs.kontrol,configs.discipline,configs.infos,configs.agents,configs.organisation,configs.heures,configs.temps,configs.salaire,configs.essence];
+const nav=[configs.planning,configs.kontrol,configs.infos,configs.agents,configs.organisation,configs.heures,configs.temps,configs.salaire,configs.essence];
 function makeNav(target,mobile=false){target.innerHTML="";const home=document.createElement("a");home.href="index.html";home.innerHTML=mobile?'<span>⌂</span><span>Accueil</span>':'<span class="iv-ico">⌂</span><span>Accueil</span>';target.appendChild(home);nav.forEach(item=>{const a=document.createElement("a");a.href=item.route;a.classList.toggle("active",item===cfg);a.innerHTML=mobile?`<span>${item.icon}</span><span>${item.label.replace("Classeur ","")}</span>`:`<span class="iv-ico">${item.icon}</span><span>${item.label}</span>`;target.appendChild(a)})}
 makeNav($("desktopNav"));
-const mobileItems=[configs.planning,configs.kontrol,configs.discipline,configs.infos,configs.agents];
+const mobileItems=[configs.planning,configs.kontrol,configs.infos,configs.agents];
 $("mobileNav").innerHTML='<a href="index.html"><span>⌂</span><span>Accueil</span></a>'+mobileItems.map(item=>`<a href="${item.route}" class="${item===cfg?"active":""}"><span>${item.icon}</span><span>${item.label.replace("Classeur ","")}</span></a>`).join("");
 $("eyebrow").textContent=cfg.eyebrow;$("pageTitle").innerHTML=cfg.title;$("pageSubtitle").textContent=cfg.subtitle;$("topTitle").textContent=cfg.label;document.title=`${cfg.label} — Inovtec Dashboard`;
 const df=new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}),tf=new Intl.DateTimeFormat("fr-FR",{hour:"2-digit",minute:"2-digit"});
