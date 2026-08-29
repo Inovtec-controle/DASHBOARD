@@ -128,7 +128,7 @@ function resetSelectionState(d){currentSiteId="";lastSignature="";dirty=false;cl
 function bind(d){
  if(d.documentElement.dataset.ivContainerDaysBound==="1")return;d.documentElement.dataset.ivContainerDaysBound="1";
  d.addEventListener("click",e=>{if(!e.target.closest?.(".iv-container-picker"))closeMenus(d);const target=e.target.closest?.(".site-item,#newBtn,#deleteBtn");if(!target)return;if(dirty)persist(d);if(target.matches("#newBtn,#deleteBtn"))resetSelectionState(d);setTimeout(()=>refresh(d,true),140);setTimeout(()=>refresh(d,true),650)},true);
- d.getElementById("siteForm")?.addEventListener("submit",()=>{FIELDS.forEach(f=>updateDays(d,f.id,fieldState(d,f.id),false));dirty=true;setTimeout(()=>persist(d),600);setTimeout(()=>persist(d),1500)},true);
+ d.getElementById("siteForm")?.addEventListener("submit",()=>{FIELDS.forEach(f=>updateDays(d,f.id,fieldState(d,f.id),false));dirty=true;persist(d);setTimeout(()=>{if(dirty)persist(d)},900)},true);
 }
 function install(){const d=doc();if(!d?.body)return;installPickers(d);bind(d);refresh(d)}
 frame?.addEventListener("load",()=>{setTimeout(install,180);setTimeout(install,750);setTimeout(install,1500)});setTimeout(install,650);try{window.InovtecDataHub?.subscribe?.(()=>{const d=doc();if(d)refresh(d)})}catch{}window.addEventListener("inovtec:container-schedule-updated",()=>{const d=doc();if(d&&!dirty)refresh(d,true)});
