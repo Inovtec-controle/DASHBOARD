@@ -45,16 +45,25 @@ function collect(d){
  return data;
 }
 function setStatus(d,text,ok=false){const s=d?.getElementById("recordState");if(!s)return;s.textContent=text;s.className="status"+(ok?" ok":"")}
+function saveButton(d){return d?.querySelector('#siteForm .sticky-save button[type="submit"]')||d?.querySelector('#siteForm button[type="submit"]')||null}
+function setSaveState(d,state){const b=saveButton(d);if(!b)return;const states={idle:["Enregistrer","Aucune sauvegarde en cours"],dirty:["Enregistrer •","Modifications non sauvegardées"],saving:["Enregistrer ⏳","Enregistrement Firebase en cours"],saved:["Enregistrer ✓","Sauvegarde confirmée par Firebase"],error:["Enregistrer ⚠","Échec de la sauvegarde Firebase"]},cfg=states[state]||states.idle;b.textContent=cfg[0];b.title=cfg[1];b.setAttribute("aria-label",cfg[1]);b.dataset.firebaseSaveState=state;b.disabled=state==="saving"}
+function primitiveMismatch(expected,actual){return Object.entries(expected).find(([key,value])=>{if(value!==null&&typeof value==="object")return false;return String(actual?.[key]??"")!==String(value??"")})||null}
 async function persist(d,wasNew,token,dataSnapshot=null){
  const data=dataSnapshot&&typeof dataSnapshot==="object"?dataSnapshot:collect(d);if(!data.nom)return;
+ setSaveState(d,"saving");
  try{
   const site=await resolveSite(d,{waitForNew:wasNew,retries:wasNew?55:20});if(token!==saveToken)return;
   if(!site?.id)throw new Error("ID chantier introuvable");
-  await db.collection("chantiers").doc(String(site.id)).set(data,{merge:true});if(token!==saveToken)return;
+  const ref=db.collection("chantiers").doc(String(site.id));
+  await ref.set(data,{merge:true});if(token!==saveToken)return;
+  const snap=await ref.get({source:"server"});if(token!==saveToken)return;
+  if(!snap.exists)throw new Error("Firebase n'a pas retrouvé le chantier après sauvegarde");
+  const saved={id:snap.id,...snap.data()},mismatch=primitiveMismatch(data,saved);
+  if(mismatch)throw new Error("Firebase n'a pas confirmé le champ "+mismatch[0]);
   d.getElementById("siteForm")?.setAttribute("data-iv-chantier-id",String(site.id));
   d.getElementById("siteForm")?.removeAttribute("data-iv-info-dirty");
-  setStatus(d,"Enregistré",true);
- }catch(e){console.error("Sauvegarde unifiée Infos chantier impossible",e);if(token===saveToken){setStatus(d,"À réenregistrer",false);try{d.defaultView?.alert("Certaines informations du chantier n'ont pas pu être enregistrées. Réessaie avec Enregistrer.")}catch{}}}
+  setStatus(d,"Enregistré",true);setSaveState(d,"saved");
+ }catch(e){console.error("Sauvegarde unifiée Infos chantier impossible",e);if(token===saveToken){setStatus(d,"À réenregistrer",false);setSaveState(d,"error");try{d.defaultView?.alert("Certaines informations du chantier n'ont pas pu être confirmées par Firebase. Réessaie avec Enregistrer.")}catch{}}}
 }
 function normalizedType(v){const x=String(v||"").trim();if(x==="Copropriété")return"Copropriétés";if(x==="Industriel")return"Industriels";return x}
 function applyContactUi(d,type){const block=d.getElementById("ivContactTypeBlock");if(!block)return;const t=String(type||"");block.dataset.contactType=t;block.querySelectorAll(".iv-contact-choice").forEach(b=>{const on=b.dataset.type===t;b.classList.toggle("active",on);b.setAttribute("aria-pressed",on?"true":"false")});const s=d.getElementById("ivSyndicContactFields"),c=d.getElementById("ivClientContactFields");if(s)s.hidden=t!=="syndic_cs";if(c)c.hidden=t!=="client"}
@@ -68,12 +77,12 @@ async function loadSelected(d,force=false){
  const form=d?.getElementById("siteForm");if(!form||form.classList.contains("hidden"))return;if(!force&&form.dataset.ivInfoDirty==="1")return;
  const state=d.getElementById("recordState")?.textContent||"";if(/nouveau/i.test(state))return;
  const token=++loadToken,site=await resolveSite(d,{retries:18});if(token!==loadToken||!site?.id)return;
- try{const snap=await db.collection("chantiers").doc(String(site.id)).get();if(token!==loadToken||!snap.exists)return;applyExtras(d,{id:snap.id,...snap.data()})}catch(e){console.warn("Rechargement unifié Infos chantier",e)}
+ try{const snap=await db.collection("chantiers").doc(String(site.id)).get({source:"server"});if(token!==loadToken||!snap.exists)return;applyExtras(d,{id:snap.id,...snap.data()});setSaveState(d,"saved")}catch(e){console.warn("Rechargement unifié Infos chantier",e)}
 }
 function bind(d){
  const form=d.getElementById("siteForm");if(!form||form.dataset.ivUnifiedPersistence==="1")return;form.dataset.ivUnifiedPersistence="1";
- form.addEventListener("input",()=>{form.dataset.ivInfoDirty="1"},true);form.addEventListener("change",()=>{form.dataset.ivInfoDirty="1"},true);
- form.addEventListener("submit",()=>{const wasNew=/nouveau/i.test(d.getElementById("recordState")?.textContent||"");const token=++saveToken,snapshot=collect(d);persist(d,wasNew,token,snapshot);setTimeout(()=>{if(token===saveToken&&form.dataset.ivInfoDirty==="1")persist(d,wasNew,token,snapshot)},900)},true);
+ form.addEventListener("input",()=>{form.dataset.ivInfoDirty="1";setSaveState(d,"dirty")},true);form.addEventListener("change",()=>{form.dataset.ivInfoDirty="1";setSaveState(d,"dirty")},true);
+ form.addEventListener("submit",()=>{const wasNew=/nouveau/i.test(d.getElementById("recordState")?.textContent||"");const token=++saveToken,snapshot=collect(d);setSaveState(d,"saving");persist(d,wasNew,token,snapshot);setTimeout(()=>{if(token===saveToken&&form.dataset.ivInfoDirty==="1")persist(d,wasNew,token,snapshot)},900)},true);
  d.addEventListener("click",e=>{const site=e.target?.closest?.(".site-item"),fresh=e.target?.closest?.("#newBtn"),del=e.target?.closest?.("#deleteBtn");if(site){loadToken++;form.removeAttribute("data-iv-info-dirty");setTimeout(()=>loadSelected(d,true),180);setTimeout(()=>loadSelected(d,true),700)}else if(fresh||del){loadToken++;form.removeAttribute("data-iv-info-dirty");if(fresh)form.removeAttribute("data-iv-chantier-id")}},true);
 }
 function install(){const d=doc();if(!d?.body)return;if(d!==lastDoc){lastDoc=d;try{observer?.disconnect()}catch{}observer=new MutationObserver(()=>{bind(d)});observer.observe(d.body,{childList:true,subtree:true})}bind(d);setTimeout(()=>loadSelected(d,false),120)}
