@@ -101,10 +101,6 @@
         saveControlBtn.textContent = "Enregistrer + PDF";
         saveControlBtn.title = "Enregistrer ce contrôle dans l’historique du chantier puis générer le PDF";
         saveControlBtn.addEventListener("click", async event => {
-          if (saveControlBtn.dataset.ivAllowOriginalPdfOnce === "1") {
-            delete saveControlBtn.dataset.ivAllowOriginalPdfOnce;
-            return;
-          }
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
@@ -119,11 +115,13 @@
             showToast("Contrôle enregistré. Génération du PDF…");
             const child = frame.contentWindow;
             if (!child) throw new Error("La fenêtre KONTROL n’est pas disponible pour générer le PDF");
+            const generate = child.InovtecGenerateControlPdf;
+            if (typeof generate !== "function") throw new Error("La fonction PDF KONTROL n’est pas prête. Recharge KONTROL et réessaie.");
             child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ = true;
-            saveControlBtn.dataset.ivAllowOriginalPdfOnce = "1";
-            saveControlBtn.dispatchEvent(new child.MouseEvent("click", { bubbles:true, cancelable:true, view:child }));
+            const pdfResult = await generate();
+            if (!pdfResult?.ok) throw new Error("Le PDF KONTROL n’a pas pu être généré correctement");
             saveControlBtn.textContent = "Enregistré + PDF ✓";
-            showToast("Contrôle enregistré dans l’historique et PDF généré.");
+            showToast("Contrôle enregistré et PDF généré avec "+String(pdfResult.photoCount||0)+" photo"+((pdfResult.photoCount||0)>1?"s":"")+".");
             setTimeout(() => {
               if (saveControlBtn.isConnected) saveControlBtn.textContent = oldText;
             }, 2200);
@@ -641,7 +639,7 @@
       appShell.classList.remove("hidden");
       if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) {
         clearWorkingDraft();
-        frame.src = "KONTROL.html?v=20260829-no-category1";
+        frame.src = "KONTROL.html?v=20260830-pdfphotos1";
       }
     } else {
       hideArchive();
