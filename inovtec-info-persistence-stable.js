@@ -56,7 +56,7 @@ async function persist(d,wasNew,token,dataSnapshot=null){
   setStatus(d,"Enregistré",true);
  }catch(e){console.error("Sauvegarde unifiée Infos chantier impossible",e);if(token===saveToken){setStatus(d,"À réenregistrer",false);try{d.defaultView?.alert("Certaines informations du chantier n'ont pas pu être enregistrées. Réessaie avec Enregistrer.")}catch{}}}
 }
-function normalizedType(v){const x=String(v||"").trim();if(x==="Copropriétés")return"Copropriété";if(x==="Industriels")return"Industriel";return x}
+function normalizedType(v){const x=String(v||"").trim();if(x==="Copropriété")return"Copropriétés";if(x==="Industriel")return"Industriels";return x}
 function applyContactUi(d,type){const block=d.getElementById("ivContactTypeBlock");if(!block)return;const t=String(type||"");block.dataset.contactType=t;block.querySelectorAll(".iv-contact-choice").forEach(b=>{const on=b.dataset.type===t;b.classList.toggle("active",on);b.setAttribute("aria-pressed",on?"true":"false")});const s=d.getElementById("ivSyndicContactFields"),c=d.getElementById("ivClientContactFields");if(s)s.hidden=t!=="syndic_cs";if(c)c.hidden=t!=="client"}
 function applyExtras(d,site){
  const form=d.getElementById("siteForm");if(!form||!site)return;form.dataset.ivChantierId=String(site.id||form.dataset.ivChantierId||"");
