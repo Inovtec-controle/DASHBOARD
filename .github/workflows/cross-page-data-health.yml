@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           grep -q 'inovtec-cross-page-data.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' inovtec-info-shell-stable.html
-          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260830-controlviewer1' KONTROL-CLOUD-LEGACY.html
+          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260830-historydelete1' KONTROL-CLOUD-LEGACY.html
           grep -q 'dashboard-index-shared.js?v=20260829-agentclean1' index.html
 
       - name: Vérifier le modèle commun
@@ -62,6 +62,8 @@ jobs:
           grep -q 'kontrolHistoryRecordIds' inovtec-info-control-history.js
           grep -q 'photoRefs' kontrol-cloud.js
           grep -q 'readControlPhoto' inovtec-info-control-history.js
+          grep -q 'deleteControlRecord' inovtec-info-control-history.js
+          grep -q 'arrayRemove(recordId)' inovtec-info-control-history.js
           grep -q 'kontrolHistoryMetaIds' inovtec-kontrol-ref-metadata.js
           grep -q 'referenceVersion:2' inovtec-kontrol-ref-metadata.js
 
