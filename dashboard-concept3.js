@@ -33,7 +33,8 @@ async function refresh(user){
  const res=await Promise.allSettled([
    db.collection("chantiers").doc(SHARED_ID).get(),
    db.collection("kanban").doc(user.uid).get(),
-   db.collection("chantiers").where("_type","==","kontrolPdfMeta").get()
+   db.collection("chantiers").where("_type","==","kontrolPdfMeta").get(),
+   db.collection("chantiers").where("_type","==","kontrolControlRecord").get()
  ]);
  const shared=dataOf(res[0]),personal=dataOf(res[1]);
  const localAgents=localJson("kontrol_agents_classeur_v2",[]);
@@ -70,7 +71,9 @@ async function refresh(user){
  ].join("");
  showList("c3Alerts",alertHtml);
  const controlDocs=res[2].status==="fulfilled"?res[2].value.docs.map(d=>d.data()||{}):[];
+ const directControls=res[3].status==="fulfilled"?res[3].value.docs.map(d=>d.data()||{}):[];
  const recent=[];
+ directControls.forEach(x=>recent.push({ts:Number(x.createdAtMs)||Date.parse(x.timeCreated||"")||0,icon:"✓",title:"Contrôle KONTROL enregistré",sub:x.site||"Contrôle qualité",who:x.createdByEmail?.split("@")[0]||""}));
  controlDocs.forEach(x=>recent.push({ts:Number(x.createdAtMs)||Date.parse(x.timeCreated||"")||0,icon:"✓",title:"Contrôle KONTROL archivé",sub:x.customMetadata?.site||x.originalName||"Contrôle qualité",who:x.createdByEmail?.split("@")[0]||""}));
  tasks.forEach(x=>recent.push({ts:Date.parse(x.updatedAt||x.createdAt||"")||0,icon:"◎",title:"Tâche mise à jour",sub:x.title||"Organisation",who:""}));
  variables.forEach(x=>recent.push({ts:Date.parse(x.updatedAt||x.createdAt||"")||0,icon:"◷",title:"Variable agent saisie",sub:[x.agentName,x.siteName].filter(Boolean).join(" • ")||"Variables agents",who:""}));
