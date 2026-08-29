@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="dashboard-concept3.css?v=20260829-bubbles20-1">
+<link rel="stylesheet" href="dashboard-concept3.css?v=20260829-readability20-2">
 <link rel="stylesheet" href="inovtec-firebase-indicator.css?v=20260815-1">
 </head>
 <body>
@@ -36,7 +36,10 @@
 
     <div class="c3-side-spacer"></div>
     <div class="c3-sync-card">
-      <strong>☁ Synchronisation des données</strong>
+      <div class="c3-sync-card-title"><span class="c3-side-sync-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7.5 18.5h8.3a4.2 4.2 0 0 0 .8-8.3A6.2 6.2 0 0 0 5 8.5a5 5 0 0 0 2.5 10Z"/>
+  <path d="m9.4 13.2 1.7 1.7 3.7-3.8"/>
+</svg></span><strong>Synchronisation des données</strong></div>
       <span id="sharedStatus">Connexion Firebase…</span>
     </div>
     <div class="c3-side-foot">Inovtec · Pilotage opérationnel</div>
@@ -49,10 +52,13 @@
         <div id="globalSearchResults" class="m1-search-results" hidden></div>
       </div>
 
-      <span id="weatherIcon" class="weather-icon" title="Météo locale">◌</span>
+      <span id="weatherIcon" class="weather-icon" title="Météo locale" aria-label="Météo locale"></span>
       <div class="c3-status">
-        <span id="cloudDot" class="c3-status-dot">✓</span>
-        <span><strong>Synchronisé</strong><span id="timeLabel">—</span></span>
+        <span id="cloudDot" class="c3-status-dot"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7.5 18.5h8.3a4.2 4.2 0 0 0 .8-8.3A6.2 6.2 0 0 0 5 8.5a5 5 0 0 0 2.5 10Z"/>
+  <path d="m9.4 13.2 1.7 1.7 3.7-3.8"/>
+</svg></span>
+        <span class="c3-status-copy"><strong>Synchronisé</strong><span id="timeLabel">—</span></span>
       </div>
       <div class="c3-account">
         <div id="avatar" class="c3-avatar">IN</div>
@@ -73,11 +79,14 @@
               <div><small>Aujourd’hui</small><strong id="heroDateLabel">—</strong></div>
             </div>
             <div class="c3-hero-meta-card">
-              <span id="heroWeatherIcon" class="c3-hero-meta-icon">◌</span>
+              <span id="heroWeatherIcon" class="c3-hero-meta-icon"></span>
               <div><small>Météo locale</small><strong id="heroWeatherText">Chargement…</strong></div>
             </div>
             <div class="c3-hero-meta-card">
-              <span class="c3-hero-meta-icon">↻</span>
+              <span class="c3-hero-meta-icon c3-sync-meta-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7.5 18.5h8.3a4.2 4.2 0 0 0 .8-8.3A6.2 6.2 0 0 0 5 8.5a5 5 0 0 0 2.5 10Z"/>
+  <path d="m9.4 13.2 1.7 1.7 3.7-3.8"/>
+</svg></span>
               <div><small>Synchronisation</small><strong id="heroSyncText">Connexion…</strong></div>
             </div>
           </div>
@@ -194,7 +203,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="firebase-config.js?v=20260829-operational1"></script>
-<script src="dashboard-index.js?v=20260829-hero1"></script>
+<script src="dashboard-index.js?v=20260829-icons2"></script>
 <script src="dashboard-index-shared.js?v=20260829-agentclean1"></script>
 <script src="dashboard-mark1.js?v=20260829-variables-dashboard1"></script>
 <script src="dashboard-concept3.js?v=20260829-c3-2"></script>
