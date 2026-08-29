@@ -186,7 +186,10 @@
       await batch.commit();
     }
     const now = new Date().toISOString();
-    await db.collection("chantiers").doc("__kontrol_pdf_meta__" + pdfId).set({
+    const createdAtMs = Date.now();
+    const metaDocId = "__kontrol_pdf_meta__" + pdfId;
+    const batch = db.batch();
+    batch.set(db.collection("chantiers").doc(metaDocId), {
       _hidden: true,
       _type: "kontrolPdfMeta",
       pdfId,
@@ -195,7 +198,7 @@
       size: Number(blob.size) || 0,
       contentType: "application/pdf",
       timeCreated: now,
-      createdAtMs: Date.now(),
+      createdAtMs,
       createdByUid: user.uid,
       createdByEmail: user.email || "",
       chantierId,
@@ -210,7 +213,12 @@
         category: String(details.category || "").slice(0, 80)
       }
     }, { merge: true });
-    return { pdfId, chantierId };
+    batch.set(db.collection("chantiers").doc(chantierId), {
+      kontrolHistoryMetaIds: firebase.firestore.FieldValue.arrayUnion(metaDocId),
+      kontrolHistoryUpdatedAtMs: createdAtMs
+    }, { merge: true });
+    await batch.commit();
+    return { pdfId, chantierId, metaDocId };
   }
 
   function readKontrolMetadata() {
@@ -256,9 +264,18 @@
     showToast("Archivage du PDF et de l’historique…");
     await ref.put(blob, metadata);
     let shared = null;
+    let sharedError = null;
+    for (let attempt = 1; attempt <= 3 && !shared; attempt++) {
+      try {
+        shared = await writeSharedHistory(blob, path, cleanName, resolvedDetails, user);
+      } catch (error) {
+        sharedError = error;
+        console.warn("Création historique KONTROL tentative " + attempt, error);
+        if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 350 * attempt));
+      }
+    }
     try {
-      shared = await writeSharedHistory(blob, path, cleanName, resolvedDetails, user);
-      await ref.updateMetadata({
+      if (shared) await ref.updateMetadata({
         customMetadata: {
           ...metadata.customMetadata,
           chantierId: shared.chantierId,
@@ -266,7 +283,10 @@
         }
       });
     } catch (error) {
-      console.error("Création directe de l’historique KONTROL impossible", error);
+      console.error("Mise à jour des métadonnées KONTROL impossible", error);
+    }
+    if (!shared && sharedError) {
+      console.error("Création directe de l’historique KONTROL impossible après 3 tentatives", sharedError);
     }
     try {
       window.dispatchEvent(new CustomEvent("inovtec:kontrol-pdf-archived", {
@@ -275,7 +295,7 @@
       if (shared) window.dispatchEvent(new CustomEvent("inovtec:kontrol-shared-archive-synced"));
     } catch {}
     if (shared) showToast("PDF archivé et ajouté à l’historique du chantier.");
-    else showToast("PDF archivé. Synchronisation de l’historique en cours…");
+    else showToast("PDF archivé, mais l’historique chantier n’a pas pu être confirmé.", true);
   }
 
   function hookPdfSave() {
