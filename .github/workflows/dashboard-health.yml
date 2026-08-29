@@ -129,7 +129,7 @@ jobs:
           grep -q 'inovtec-info-contract-fields.js?v=20260829-idlock1' inovtec-page-shell.html
           grep -q 'inovtec-info-agent-planning.js?v=20260829-agentdropdown1' inovtec-page-shell.html
           grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' inovtec-page-shell.html
-          grep -q 'inovtec-info-control-history.js?v=20260829-sitehistory2' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-info-control-history.js?v=20260829-sitehistory3' INFOCHANTIERS-V2-LEGACY.html
           grep -q 'id="ivControlHistoryCard"' INFOCHANTIERS-V2-LEGACY.html
           grep -q 'chantierId' inovtec-info-control-history.js
           grep -q 'agentsAffectes' inovtec-info-agent-planning.js
