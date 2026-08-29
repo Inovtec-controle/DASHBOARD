@@ -5,11 +5,13 @@ if(mode!=="infos")return;
 const PLAN_KEY="inovtec_plannings_v2",frame=document.getElementById("legacyFrame");
 let planning={agents:[],weeks:{}},unsubPlanning=null;
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+const nameKey=v=>norm(v).split(/\s+/).filter(Boolean).sort().join(" ");
 const parse=(s,f)=>{try{return JSON.parse(s)||f}catch{return f}};
 const uniq=arr=>[...new Set((Array.isArray(arr)?arr:[]).map(v=>String(v||"").trim()).filter(Boolean))];
 function currentWeekKey(){const d=new Date(),x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()+3-((x.getDay()+6)%7));const y=new Date(x.getFullYear(),0,4),yi=(y.getDay()+6)%7,w=1+Math.round(((x-y)/86400000-3+yi)/7);return`${x.getFullYear()}-W${String(w).padStart(2,"0")}`}
 function masterSites(){try{return Array.from(window.InovtecDataHub?.chantiers||[])}catch{return[]}}
 function masterAgents(){try{return Array.from(window.InovtecDataHub?.agents||[])}catch{return[]}}
+function agentsReady(){try{return !!window.InovtecDataHub?.readyAgents}catch{return false}}
 function agentName(a){const i=a?.identity||{};return[i.prenom,i.nom].filter(Boolean).join(" ").trim()||a?.displayName||a?.name||"Agent sans nom"}
 function agentPhone(a){return String(a?.identity?.telephone||a?.telephone||"").trim()}
 function selectedSiteId(doc){return String(doc?.getElementById("siteForm")?.dataset.ivChantierId||"").trim()}
@@ -38,7 +40,7 @@ function planningMasterId(e){
  const eventId=String(e?.agentId||"").trim();if(eventId&&masterIds.has(eventId))return eventId;
  const pa=(planning.agents||[]).find(a=>String(a.id)===eventId||String(a.refId||"")===direct);
  const ref=String(pa?.refId||pa?.id||"").trim();if(ref&&masterIds.has(ref))return ref;
- const pname=norm(pa?.name||"");if(pname){const matches=masters.filter(a=>norm(agentName(a))===pname);if(matches.length===1)return String(matches[0].id)}
+ const pname=String(pa?.name||"").trim();if(pname){const matches=masters.filter(a=>norm(agentName(a))===norm(pname)||nameKey(agentName(a))===nameKey(pname));if(matches.length===1)return String(matches[0].id)}
  return "";
 }
 function inferFromPlanning(doc,site){
@@ -49,8 +51,8 @@ function inferFromPlanning(doc,site){
  return uniq(pool.map(x=>planningMasterId(x.event)));
 }
 function inferAssignments(doc,site){
- const agents=masterAgents(),legacy=norm(site?.agentNom||"");
- if(legacy){const matches=agents.filter(a=>norm(agentName(a))===legacy);if(matches.length===1)return[String(matches[0].id)]}
+ const agents=masterAgents(),legacy=String(site?.agentNom||"").trim();
+ if(legacy){const matches=agents.filter(a=>norm(agentName(a))===norm(legacy)||nameKey(agentName(a))===nameKey(legacy));if(matches.length===1)return[String(matches[0].id)]}
  return inferFromPlanning(doc,site);
 }
 function explicitIds(site){return Array.isArray(site?.agentsAffectes)?uniq(site.agentsAffectes):null}
@@ -63,7 +65,8 @@ function assignmentIds(doc,site){
    return draft;
  }
  if(saved){if(form)form.dataset.ivAgentsAffectes=JSON.stringify(saved);return saved}
- const inferred=site?inferAssignments(doc,site):[];
+ if(!site||!agentsReady())return[];
+ const inferred=inferAssignments(doc,site);
  if(form)form.dataset.ivAgentsAffectes=JSON.stringify(inferred);
  return inferred;
 }
