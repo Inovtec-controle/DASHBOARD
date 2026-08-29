@@ -3,181 +3,180 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#087a3e">
 <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
-<title>Inovtec Dashboard — MARK 1</title>
+<title>Inovtec Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="dashboard-mark1.css?v=20260828-sidebar1">
+<link rel="stylesheet" href="dashboard-concept3.css?v=20260829-c3-1">
 <link rel="stylesheet" href="inovtec-firebase-indicator.css?v=20260815-1">
 </head>
 <body>
-<div class="m1-dashboard">
-  <aside class="m1-sidebar">
-    <a class="m1-brand" href="index.html"><span class="m1-brand-mark"></span><strong>INOVTEC</strong></a>
-    <nav class="m1-nav" aria-label="Navigation principale">
+<div class="c3-app">
+  <aside class="c3-sidebar">
+    <a class="c3-brand" href="index.html">
+      <span class="c3-logo" aria-hidden="true"></span>
+      <span><strong>INOVTEC</strong><small>DASHBOARD</small></span>
+    </a>
+
+    <nav class="c3-nav" aria-label="Navigation principale">
       <a class="active" href="index.html"><span class="ico">⌂</span><span>Accueil</span></a>
       <a href="PLANNINGS.html?v=20260820-auth-recovery1"><span class="ico">▦</span><span>Planning</span></a>
       <a href="KONTROL-CLOUD.html?v=20260829-sitehistory5"><span class="ico">✓</span><span>KONTROL</span></a>
       <a href="INFOCHANTIERS-V2.html?v=20260829-sitehistory4"><span class="ico">▥</span><span>Infos chantier</span></a>
       <a href="AGENTS.html?v=20260820-auth-recovery1"><span class="ico">♙</span><span>Classeur agents</span></a>
+      <a href="CONGES.html"><span class="ico">☂</span><span>Congés & absences</span></a>
+      <a href="VARIABLES.html?v=20260829-variables-dashboard1"><span class="ico">☷</span><span>Variables agents</span></a>
       <a href="ORGA.html?v=20260820-auth-recovery1"><span class="ico">◎</span><span>Organisation</span></a>
-      <a href="VARIABLES.html?v=20260829-variables-dashboard1"><span class="ico">◷</span><span>Variables agents</span></a>
-    </nav>
-    <div class="m1-nav-group">Outils</div>
-    <nav class="m1-nav">
-      <a href="TEMPS.html"><span class="ico">⇄</span><span>Conversion temps</span></a>
+      <a href="TEMPS.html"><span class="ico">◷</span><span>Conversion temps</span></a>
       <a href="SALAIRE.html"><span class="ico">▱</span><span>Salaire</span></a>
       <a href="ESSENCE.html"><span class="ico">⛽</span><span>Dépense carburant</span></a>
     </nav>
-    <div class="m1-nav-group">Données</div>
-    <nav class="m1-nav">
-      <a href="INFOCHANTIERS-V2.html?v=20260829-sitehistory4"><span class="ico">▤</span><span>Chantiers</span></a>
-      <a href="AGENTS.html?v=20260820-auth-recovery1"><span class="ico">◉</span><span>Agents</span></a>
-    </nav>
-    <div class="m1-profile">
-      <div id="avatar" class="m1-avatar">IN</div>
-      <div class="m1-profile-copy"><strong id="accountName">Inovtec</strong><span id="accountStatus">Dashboard</span></div>
+
+    <div class="c3-side-spacer"></div>
+    <div class="c3-sync-card">
+      <strong>☁ Synchronisation des données</strong>
+      <span id="sharedStatus">Connexion Firebase…</span>
     </div>
+    <div class="c3-side-foot">Inovtec · Pilotage opérationnel</div>
   </aside>
 
-  <section class="m1-main">
-    <header class="m1-topbar">
-      <div class="m1-search"><input id="globalSearch" type="search" placeholder="Rechercher un agent, un chantier, une tâche…" aria-label="Recherche globale" autocomplete="off"><div id="globalSearchResults" class="m1-search-results" hidden></div></div>
-      <div class="m1-top-status">
-        <div class="m1-system"><span class="m1-system-badge">✓</span><span><strong>Système opérationnel</strong><br><span id="sharedStatus">Connexion Firebase…</span></span><span id="cloudDot" class="status-dot"></span></div>
-        <span id="weatherIcon" class="weather-icon" title="Météo locale">◌</span>
-        <div class="m1-clock"><strong id="dateLabel">—</strong><span id="timeLabel">—</span></div>
-        <div class="m1-top-account"><div class="m1-avatar">IN</div><div><strong>Compte Inovtec</strong><br><span>Connecté</span></div></div>
+  <section class="c3-main">
+    <header class="c3-topbar">
+      <div class="c3-greeting">
+        <strong>Bonjour 👋</strong>
+        <span>Voici la situation opérationnelle en temps réel.</span>
       </div>
+
+      <div class="m1-search">
+        <input id="globalSearch" type="search" placeholder="Rechercher un chantier, un agent, une tâche…" aria-label="Recherche globale" autocomplete="off">
+        <div id="globalSearchResults" class="m1-search-results" hidden></div>
+      </div>
+
+      <span id="weatherIcon" class="weather-icon" title="Météo locale">◌</span>
+      <div class="c3-status">
+        <span id="cloudDot" class="c3-status-dot">✓</span>
+        <span><strong>Synchronisé</strong><span id="timeLabel">—</span></span>
+      </div>
+      <div class="c3-account">
+        <div id="avatar" class="c3-avatar">IN</div>
+        <div><strong id="accountName">Compte Inovtec</strong><span id="accountStatus">Dashboard</span></div>
+      </div>
+      <span id="dateLabel" class="c3-compat">—</span>
     </header>
 
-    <main class="m1-content">
-      <section class="m1-hero">
-        <div class="m1-welcome">
-          <span class="m1-mark">MARK 1</span>
-          <h1>Bienvenue sur Inovtec Dashboard</h1>
-          <p>Pilotez vos chantiers, vos équipes et vos outils depuis un seul espace.</p>
-          <div class="m1-sync-note">✓ <span>Les indicateurs ci-contre utilisent les données partagées du Dashboard.</span></div>
-          <div class="m1-radar" aria-hidden="true"></div>
-        </div>
-        <div class="m1-kpis" aria-label="Indicateurs principaux">
-          <div class="m1-kpi"><div class="icon">▥</div><small>Chantiers enregistrés</small><b id="kpiSites">—</b><div id="kpiSitesSub" class="sub">Firebase</div><div class="spark"></div></div>
-          <div class="m1-kpi"><div class="icon">♙</div><small>Agents référencés</small><b id="kpiAgents">—</b><div id="kpiAgentsSub" class="sub">Classeur agents</div><div class="spark"></div></div>
-          <div class="m1-kpi"><div class="icon">✓</div><small>Contrôles KONTROL archivés</small><b id="kpiKontrol">—</b><div id="kpiKontrolSub" class="sub">PDF partagés</div><div class="spark"></div></div>
-          <div class="m1-kpi warn"><div class="icon">⚠</div><small>Incidents ouverts</small><b id="kpiIncidents">—</b><div id="kpiIncidentsSub" class="sub">Classeur agents</div><div class="spark"></div></div>
-          <div class="m1-kpi"><div class="icon">◷</div><small>Variables du mois</small><b id="kpiVariables">—</b><div id="kpiVariablesSub" class="sub">Variables agents</div><div class="spark"></div></div>
-          <div class="m1-kpi"><div class="icon">◎</div><small>Tâches Organisation actives</small><b id="kpiTasks">—</b><div id="kpiTasksSub" class="sub">Organisation</div><div class="spark"></div></div>
-        </div>
+    <main class="c3-content">
+      <section class="kpis c3-kpis" aria-label="Indicateurs principaux">
+        <article class="c3-kpi">
+          <div class="c3-kpi-top"><span class="c3-kpi-icon">▥</span><div><small>Chantiers</small><b id="kpiSites">—</b></div></div>
+          <div id="kpiSitesSub" class="sub">Firebase</div>
+        </article>
+        <article class="c3-kpi">
+          <div class="c3-kpi-top"><span class="c3-kpi-icon">♙</span><div><small>Agents</small><b id="kpiAgents">—</b></div></div>
+          <div id="kpiAgentsSub" class="sub">Classeur agents</div>
+        </article>
+        <article class="c3-kpi warn">
+          <div class="c3-kpi-top"><span class="c3-kpi-icon">⚠</span><div><small>Incidents ouverts</small><b id="kpiIncidents">—</b></div></div>
+          <div id="kpiIncidentsSub" class="sub">À traiter</div>
+        </article>
+        <article class="c3-kpi">
+          <div class="c3-kpi-top"><span class="c3-kpi-icon">✓</span><div><small>Contrôles archivés</small><b id="kpiKontrol">—</b></div></div>
+          <div id="kpiKontrolSub" class="sub">KONTROL</div>
+        </article>
+        <article class="c3-kpi">
+          <div class="c3-kpi-top"><span class="c3-kpi-icon">☷</span><div><small>Variables du mois</small><b id="kpiVariables">—</b></div></div>
+          <div id="kpiVariablesSub" class="sub">Variables agents</div>
+        </article>
       </section>
 
-      <section class="m1-panel m1-modules-panel">
-        <div class="m1-panel-title"><h2>Mes modules</h2><button id="printBtn" class="m1-print" type="button">▤ Imprimer le dashboard</button></div>
-        <div class="m1-modules">
-          <a class="m1-module" href="PLANNINGS.html?v=20260820-auth-recovery1"><span class="micon">▦</span><strong>Planning</strong><p>Gérez les plannings, les agents et les affectations par chantier.</p><span class="arrow">→</span></a>
-          <a class="m1-module" href="KONTROL-CLOUD.html?v=20260829-sitehistory5"><span class="micon">✓</span><strong>KONTROL</strong><p>Réalisez les contrôles qualité et retrouvez les PDF archivés.</p><span class="arrow">→</span></a>
-          <a class="m1-module" href="INFOCHANTIERS-V2.html?v=20260829-sitehistory4"><span class="micon">▥</span><strong>Infos chantier</strong><p>Contacts, accès, consignes, conteneurs et cahiers des charges.</p><span class="arrow">→</span></a>
-          <a class="m1-module" href="AGENTS.html?v=20260820-auth-recovery1"><span class="micon">♙</span><strong>Classeur agents</strong><p>Fiches agents, contrats, documents, informations et suivi.</p><span class="arrow">→</span></a>
-          <a class="m1-module" href="ORGA.html?v=20260820-auth-recovery1"><span class="micon">◎</span><strong>Organisation</strong><p>Centralisez les tâches, priorités, échéances et avancement.</p><span class="arrow">→</span></a>
-          <a class="m1-module" href="VARIABLES.html?v=20260829-variables-dashboard1"><span class="micon">◷</span><strong>Variables agents</strong><p>Centralisez heures complémentaires, supplémentaires, dimanches, jours fériés, nuits et absences.</p><span class="arrow">→</span></a>
-          <a class="m1-module" href="ESSENCE.html"><span class="micon">⛽</span><strong>Dépense carburant</strong><p>Calculez le coût des trajets d'un agent selon la distance, la consommation et le prix du carburant.</p><span class="arrow">→</span></a>
-        </div>
-      </section>
-
-      <section class="m1-body-grid">
-        <div class="m1-panel">
-          <div class="m1-panel-title"><h2>Suivi opérationnel</h2><a href="index.html">Actualiser</a></div>
-          <div class="m1-list">
-            <div class="m1-row"><span class="dot"></span><div><strong>Infos chantier</strong><small>Chantiers accessibles à tous les comptes connectés</small></div><span id="opSites" class="value">—</span></div>
-            <div class="m1-row"><span class="dot"></span><div><strong>Classeur agents</strong><small>Référentiel commun des agents</small></div><span id="opAgents" class="value">—</span></div>
-            <div class="m1-row"><span class="dot"></span><div><strong>KONTROL</strong><small>PDF de contrôles partagés</small></div><span id="opKontrol" class="value">—</span></div>
-            <div class="m1-row"><span class="dot blue"></span><div><strong>Variables agents</strong><small>Variables et absences du mois</small></div><span id="varEntries" class="value">—</span></div>
-          </div>
-        </div>
-
-        <div class="m1-panel">
-          <div class="m1-panel-title"><h2>Données partagées</h2><a href="AGENTS.html?v=20260820-auth-recovery1">Voir les agents</a></div>
-          <div class="m1-donut-wrap"><div class="m1-donut-box"><div class="m1-donut"></div><div class="m1-donut-label"><b id="opAgentsDonut">SYNC</b><span>Firebase commun</span></div></div></div>
-        </div>
-
-        <div class="m1-stack">
-          <div class="m1-panel">
-            <div class="m1-panel-title"><h2>Variables agents</h2><a href="VARIABLES.html?v=20260829-variables-dashboard1">Ouvrir</a></div>
-            <div class="m1-list">
-              <div class="m1-row"><span class="dot blue"></span><div><strong>Variables du mois</strong><small>Heures + absences enregistrées</small></div><span id="varEntries2" class="value">—</span></div>
-              <div class="m1-row"><span class="dot"></span><div><strong>À vérifier</strong><small>Avant transmission paie</small></div><span id="varReview" class="value">—</span></div>
+      <section class="c3-grid-main">
+        <article class="c3-panel">
+          <div class="c3-panel-head"><h2>Centre de pilotage</h2><a href="index.html">Actualiser ↻</a></div>
+          <div class="c3-pilot">
+            <div class="c3-ring"><div class="c3-ring-copy"><b>LIVE</b><span>Données synchronisées</span></div></div>
+            <div class="c3-pilot-list">
+              <div class="c3-pilot-row"><span>Chantiers enregistrés</span><b id="c3PilotSites">—</b></div>
+              <div class="c3-pilot-row"><span>Agents référencés</span><b id="c3PilotAgents">—</b></div>
+              <div class="c3-pilot-row"><span>Contrôles archivés</span><b id="c3PilotKontrol">—</b></div>
+              <div class="c3-pilot-row"><span>Variables du mois</span><b id="c3PilotVariables">—</b></div>
             </div>
           </div>
-          <div class="m1-panel">
-            <div class="m1-panel-title"><h2>Organisation</h2><a href="ORGA.html?v=20260820-auth-recovery1">Voir les tâches</a></div>
-            <div class="m1-list">
-              <div class="m1-row"><span class="dot orange"></span><div><strong>À faire</strong></div><span id="taskTodo" class="value">—</span></div>
-              <div class="m1-row"><span class="dot blue"></span><div><strong>En cours</strong></div><span id="taskDoing" class="value">—</span></div>
-              <div class="m1-row"><span class="dot"></span><div><strong>Terminées</strong></div><span id="taskDone" class="value">—</span></div>
-              <div class="m1-row"><span class="dot red"></span><div><strong>En retard</strong></div><span id="taskLate" class="value">—</span></div>
-            </div>
+          <div class="c3-mini-stats">
+            <div class="c3-mini"><b id="c3PilotTasks">—</b><span>Tâches actives</span></div>
+            <div class="c3-mini"><b id="c3PilotLate">—</b><span>Tâches en retard</span></div>
+            <div class="c3-mini"><b id="planningAgents">—</b><span>Agents planning</span></div>
+            <div class="c3-mini"><b id="planningEntries">—</b><span>Affectations</span></div>
           </div>
-        </div>
+        </article>
 
-        <div class="m1-stack">
-          <div class="m1-panel">
-            <div class="m1-panel-title"><h2>Actions rapides</h2></div>
-            <div class="m1-quick">
-              <a href="PLANNINGS.html?v=20260820-auth-recovery1"><span>▦</span>Ouvrir le planning<span class="chev">›</span></a>
-              <a href="KONTROL-CLOUD.html?v=20260829-sitehistory5"><span>✓</span>Nouveau contrôle<span class="chev">›</span></a>
-              <a href="INFOCHANTIERS-V2.html?v=20260829-sitehistory4"><span>▥</span>Créer / modifier un chantier<span class="chev">›</span></a>
-              <a href="ORGA.html?v=20260820-auth-recovery1"><span>◎</span>Ajouter une tâche<span class="chev">›</span></a>
-              <a href="VARIABLES.html?v=20260829-variables-dashboard1"><span>◷</span>Ajouter une variable agent<span class="chev">›</span></a>
-              <a href="ESSENCE.html"><span>⛽</span>Calculer une dépense carburant<span class="chev">›</span></a>
-            </div>
+        <article class="c3-panel">
+          <div class="c3-panel-head"><h2>Alertes et incidents</h2><a href="AGENTS.html?v=20260820-auth-recovery1">Voir les agents →</a></div>
+          <div id="c3Alerts" class="c3-alert-list"><div class="c3-empty">Chargement des alertes…</div></div>
+        </article>
+
+        <article class="c3-panel">
+          <div class="c3-panel-head"><h2>Raccourcis quotidiens</h2></div>
+          <div class="c3-shortcuts">
+            <a class="c3-shortcut" href="INFOCHANTIERS-V2.html?v=20260829-sitehistory4"><span class="ico">＋</span><span>Nouveau chantier</span></a>
+            <a class="c3-shortcut" href="KONTROL-CLOUD.html?v=20260829-sitehistory5"><span class="ico">✓</span><span>Nouveau contrôle</span></a>
+            <a class="c3-shortcut" href="AGENTS.html?v=20260820-auth-recovery1"><span class="ico">♙</span><span>Classeur agents</span></a>
+            <a class="c3-shortcut" href="CONGES.html"><span class="ico">☂</span><span>Déclarer une absence</span></a>
+            <a class="c3-shortcut" href="VARIABLES.html?v=20260829-variables-dashboard1"><span class="ico">☷</span><span>Saisir une variable</span></a>
+            <a class="c3-shortcut" href="PLANNINGS.html?v=20260820-auth-recovery1"><span class="ico">▦</span><span>Ouvrir le planning</span></a>
           </div>
-          <div class="m1-panel m1-alerts">
-            <div class="m1-panel-title"><h2>Points d'attention</h2></div>
-            <div class="m1-list">
-              <div class="m1-row"><span class="dot red"></span><div><strong>Tâches en retard</strong><small>Issues des échéances de la page Organisation.</small></div><span id="taskLateAlert" class="value">—</span></div>
-            </div>
-          </div>
-        </div>
+        </article>
       </section>
 
-      <section class="m1-bottom-grid">
-        <div class="m1-panel">
-          <div class="m1-panel-title"><h2>Synthèse Dashboard</h2><a href="INFOCHANTIERS-V2.html?v=20260829-sitehistory4">Voir les chantiers</a></div>
-          <div class="m1-summary">
-            <div class="m1-stat"><b id="summarySites">—</b><small>Chantiers</small></div>
-            <div class="m1-stat"><b id="summaryAgents">—</b><small>Agents</small></div>
-            <div class="m1-stat"><b id="summaryKontrol">—</b><small>PDF KONTROL</small></div>
+      <section class="c3-grid-bottom">
+        <article class="c3-panel">
+          <div class="c3-panel-head"><h2>État des modules</h2><a href="VARIABLES.html?v=20260829-variables-dashboard1">Données réelles</a></div>
+          <div class="c3-module-state">
+            <div class="c3-module-ring"></div>
+            <div class="c3-module-list">
+              <div class="c3-module-line"><span>Infos chantier</span><b id="opSites">—</b></div>
+              <div class="c3-module-line"><span>Classeur agents</span><b id="opAgents">—</b></div>
+              <div class="c3-module-line"><span>KONTROL</span><b id="opKontrol">—</b></div>
+              <div class="c3-module-line"><span>Variables agents</span><b id="varEntries2">—</b></div>
+            </div>
           </div>
-        </div>
-        <div class="m1-panel">
-          <div class="m1-panel-title"><h2>Planning</h2><a href="PLANNINGS.html?v=20260820-auth-recovery1">Voir le planning</a></div>
-          <div class="m1-planning"><div class="m1-planning-grid"><div class="m1-planning-chip"><strong id="planningAgents">—</strong><span>Agents dans le planning</span></div><div class="m1-planning-chip"><strong id="planningEntries">—</strong><span>Affectations enregistrées</span></div><div class="m1-planning-chip"><strong id="planningSummary">Synchronisation…</strong><span>Données partagées</span></div></div></div>
-        </div>
+        </article>
+
+        <article class="c3-panel">
+          <div class="c3-panel-head"><h2>Dernières actions</h2><a href="ORGA.html?v=20260820-auth-recovery1">Voir l’activité →</a></div>
+          <div id="c3Recent" class="c3-feed"><div class="c3-empty">Chargement de l’activité…</div></div>
+        </article>
+
+        <article class="c3-panel">
+          <div class="c3-panel-head"><h2>Planning du jour</h2><a href="PLANNINGS.html?v=20260820-auth-recovery1"><span id="c3TodayCount">—</span> intervention(s) →</a></div>
+          <div id="c3Today" class="c3-day"><div class="c3-empty">Chargement du planning…</div></div>
+        </article>
       </section>
 
-      <section class="m1-panel m1-footer">
-        <div class="m1-footer-item"><span class="ico">⟳</span><div><strong>Synchronisation</strong><span>Firebase partagé</span></div></div>
-        <div class="m1-footer-item"><span class="ico">☁</span><div><strong>Sauvegarde</strong><span>Automatique selon les modules</span></div></div>
-        <div class="m1-footer-item"><span class="ico">⚙</span><div><strong>Référentiels</strong><span>Agents + chantiers communs</span></div></div>
-        <div class="m1-footer-item"><span class="ico">✓</span><div><strong>MARK 1</strong><span>Accueil Dashboard</span></div></div>
-      </section>
+      <div class="c3-compat" aria-hidden="true">
+        <span id="varEntries">—</span><span id="varReview">—</span>
+        <span id="taskTodo">—</span><span id="taskDoing">—</span><span id="taskDone">—</span><span id="taskLate">—</span><span id="taskLateAlert">—</span>
+        <span id="kpiTasks">—</span><span id="kpiTasksSub">—</span>
+        <span id="planningSummary">—</span>
+        <span id="summarySites">—</span><span id="summaryAgents">—</span><span id="summaryKontrol">—</span>
+        <span id="c3AlertIncidentCount">—</span><span id="c3AlertTaskCount">—</span><span id="c3AlertVariableCount">—</span><span id="c3AlertAbsenceCount">—</span>
+      </div>
     </main>
   </section>
 </div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="firebase-config.js?v=20260829-operational1"></script>
-<script src="dashboard-index.js?v=20260828-kpi1"></script>
+<script src="dashboard-index.js?v=20260829-c3-1"></script>
 <script src="dashboard-index-shared.js?v=20260829-agentclean1"></script>
 <script src="dashboard-mark1.js?v=20260829-variables-dashboard1"></script>
+<script src="dashboard-concept3.js?v=20260829-c3-1"></script>
 <script src="dashboard-global-search.js?v=20260829-agentclean1"></script>
 <script src="inovtec-contract-reminders.js?v=20260816-1"></script>
 <script src="inovtec-firebase-indicator.js?v=20260815-1"></script>
 <script src="inovtec-conges-nav.js?v=20260815-1"></script>
-<script>
-</script>
 </body>
 </html>
