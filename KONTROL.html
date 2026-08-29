@@ -383,22 +383,12 @@
 <body>
 
 <header class="hero">
-  <h1>Contrôle Qualité – Résidence / Bureau</h1>
+  <h1>Contrôle Qualité</h1>
   <div class="tagline">Bloc “Note + Graphique” fixe et placé sous la liste des tâches • PDF • Photos • Export/Import</div>
 </header>
 
 <main>
-  <!-- Catégorie -->
-  <section class="card">
-    <div class="category">
-      <label class="lbl" id="catLbl">Catégorie de contrôle</label>
-      <div class="segmented" role="tablist" aria-labelledby="catLbl">
-        <button id="btnResidence" class="active" role="tab" aria-selected="true">Résidence</button>
-        <button id="btnBureau" role="tab" aria-selected="false">Bureau</button>
-      </div>
-      <span class="activePill" id="activeCategoryPill" aria-live="polite">Actif : Résidence</span>
-    </div>
-  </section>
+  <span id="activeCategoryPill" hidden aria-hidden="true">Actif : Chantier</span>
 
   <!-- Infos générales -->
   <section class="card" aria-labelledby="infosLbl">
@@ -568,7 +558,7 @@
   /* ===== DOM helpers ===== */
   const $ = id => document.getElementById(id);
   const els = {
-    btnResidence: $('btnResidence'), btnBureau: $('btnBureau'), activePill: $('activeCategoryPill'),
+    activePill: $('activeCategoryPill'),
     date: $('date'), heure: $('heure'), site: $('site'), agents: $('agents'), controleur: $('controleur'), obs: $('obs'), ctrlNotes: $('ctrlNotes'),
 
     // résumé/graph
@@ -652,10 +642,6 @@
     els.obs.value        = state.form?.obs || '';
     els.ctrlNotes.value  = state.form?.ctrlNotes || '';
 
-    // Catégorie
-    els.btnResidence.addEventListener('click', ()=>switchCategory('Residence'));
-    els.btnBureau.addEventListener('click', ()=>switchCategory('Bureau'));
-
     // Tâches
     els.addTaskBtn.addEventListener('click', addTaskFromInput);
     els.newTaskInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addTaskFromInput(); }});
@@ -710,12 +696,9 @@
   function setTasks(tasks){ state.dataByCategory[state.category] = tasks; saveState(); }
 
   function switchCategory(cat){
-    state.category = cat; saveState();
-    els.btnResidence.classList.toggle('active', cat==='Residence');
-    els.btnResidence.setAttribute('aria-selected', cat==='Residence');
-    els.btnBureau.classList.toggle('active', cat==='Bureau');
-    els.btnBureau.setAttribute('aria-selected', cat==='Bureau');
-    $('activeCategoryPill').textContent = `Actif : ${cat==='Residence'?'Résidence':'Bureau'}`;
+    state.category = (cat && state.dataByCategory?.[cat]) ? cat : 'Residence';
+    if(els.activePill) els.activePill.textContent = 'Actif : Chantier';
+    saveState();
     renderTasks();
     updateScoreAndVisuals();
   }
