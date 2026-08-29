@@ -1097,12 +1097,71 @@
   }
 
   /* ===== PDF ===== */
+  function preparePhotoForPdf(photo,index){
+    return new Promise((resolve,reject)=>{
+      const source=String(photo?.dataUrl||"");
+      if(!source.startsWith("data:image/")){
+        reject(new Error("Photo "+(index+1)+" invalide"));
+        return;
+      }
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const maxDim=1800;
+          let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+          if(!w||!h)throw new Error("dimensions invalides");
+          const ratio=Math.min(1,maxDim/Math.max(w,h));
+          w=Math.max(1,Math.round(w*ratio));h=Math.max(1,Math.round(h*ratio));
+          const canvas=document.createElement("canvas");
+          canvas.width=w;canvas.height=h;
+          const ctx=canvas.getContext("2d");
+          if(!ctx)throw new Error("canvas indisponible");
+          ctx.fillStyle="#ffffff";ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+          const jpeg=canvas.toDataURL("image/jpeg",0.9);
+          if(!jpeg.startsWith("data:image/jpeg"))throw new Error("conversion impossible");
+          resolve({
+            ...photo,
+            dataUrl:jpeg,
+            width:w,
+            height:h
+          });
+        }catch(error){
+          reject(new Error("Photo "+(index+1)+" impossible à préparer : "+(error?.message||error)));
+        }
+      };
+      img.onerror=()=>reject(new Error("Photo "+(index+1)+" impossible à décoder"));
+      img.src=source;
+    });
+  }
+
+  async function prepareAllPhotosForPdf(){
+    const source=Array.isArray(state.photos)?state.photos:[];
+    const prepared=[];
+    for(let i=0;i<source.length;i++)prepared.push(await preparePhotoForPdf(source[i],i));
+    if(prepared.length!==source.length)throw new Error("Toutes les photos n’ont pas pu être préparées");
+    return prepared;
+  }
+
   async function generatePDF(){
     const { jsPDF } = window.jspdf || {};
     if(!jsPDF || !window.jspdf || !('autoTable' in (jsPDF.API||{}))){
       alert("Erreur: librairies PDF non chargées (jsPDF / AutoTable). Vérifiez le réseau.");
       return;
     }
+    let pdfPhotos=[];
+    try{
+      pdfPhotos=await prepareAllPhotosForPdf();
+    }catch(error){
+      console.error("Préparation des photos PDF impossible",error);
+      alert("PDF non généré : toutes les photos du contrôle doivent pouvoir être intégrées.\n\n"+(error?.message||"Photo invalide"));
+      throw error;
+    }
+    if(pdfPhotos.length!==(Array.isArray(state.photos)?state.photos.length:0)){
+      const error=new Error("Le nombre de photos préparées ne correspond pas au contrôle");
+      alert("PDF non généré : une photo du contrôle est manquante.");
+      throw error;
+    }
+
     const data = {
       date: els.date.value || '', heure: els.heure.value || '', site: els.site.value || '',
       agents: els.agents.value || '', controleur: els.controleur.value || '',
@@ -1180,31 +1239,42 @@
        Elles restent visibles seulement dans l’application pour ton usage interne.
     */
 
-    /* ===== Page Photos ===== */
-    if(state.photos.length){
+    /* ===== Page Photos =====
+       Le PDF doit contenir TOUTES les photos du contrôle.
+       Une erreur d'insertion bloque l'export au lieu de produire un PDF incomplet. */
+    if(pdfPhotos.length){
       doc.addPage();
       doc.setFont('helvetica','bold'); doc.setFontSize(14);
-      doc.text('Photos du chantier', margin, 42);
+      doc.text('Photos du contrôle', margin, 42);
+      doc.setFont('helvetica','normal');doc.setFontSize(9);
+      doc.text(pdfPhotos.length+" photo"+(pdfPhotos.length>1?"s":"")+" intégrée"+(pdfPhotos.length>1?"s":""),margin,56);
       const cols = 2, gap = 14;
       const cellW = Math.floor((pageW - margin*2 - gap*(cols-1)) / cols);
-      const imgH = Math.round(cellW * 0.75); // 4:3
-      const capH = 40;
+      const maxImgH = 245;
+      const capH = 46;
+      let cx = margin, cy = 72;
 
-      let cx = margin, cy = 64;
-
-      for(let i=0; i<state.photos.length; i++){
-        const ph = state.photos[i];
+      for(let i=0; i<pdfPhotos.length; i++){
+        const ph = pdfPhotos[i];
+        const ratio=(Number(ph.height)||1)/(Number(ph.width)||1);
+        const imgH=Math.min(maxImgH,Math.max(120,Math.round(cellW*ratio)));
         if(cy + imgH + capH > pageH - margin){
           doc.addPage(); cx = margin; cy = 42;
         }
         try{
-          doc.addImage(ph.dataUrl, 'JPEG', cx, cy, cellW, imgH);
-        }catch(e){}
-        doc.setFont('helvetica','normal'); doc.setFontSize(10);
-        const cap = ph.caption ? `${ph.caption}` : '';
+          doc.addImage(ph.dataUrl,'JPEG',cx,cy,cellW,imgH,undefined,'FAST');
+        }catch(error){
+          console.error("Insertion photo PDF impossible",i+1,error);
+          alert("PDF non généré : la photo "+(i+1)+" n'a pas pu être intégrée.");
+          throw error;
+        }
+        doc.setFont('helvetica','bold'); doc.setFontSize(9);
+        doc.text("Photo "+(i+1)+" / "+pdfPhotos.length,cx,cy+imgH+12);
+        const cap=String(ph.caption||"").trim();
         if(cap){
-          const capLines = doc.splitTextToSize(cap, cellW);
-          doc.text(capLines, cx, cy + imgH + 14);
+          doc.setFont('helvetica','normal');doc.setFontSize(9);
+          const capLines=doc.splitTextToSize(cap,cellW);
+          doc.text(capLines,cx,cy+imgH+24);
         }
         if((i % cols) === cols-1){ cx = margin; cy += imgH + capH; }
         else { cx += cellW + gap; }
@@ -1214,7 +1284,9 @@
     const safeSite = (data.site || 'site').replace(/[^a-z0-9\- _]/gi,'_');
     const filename = `Controle_Qualite_${data.category}_${safeSite}_${data.date||''}.pdf`.replace(/\s+/g,'_');
     doc.save(filename);
+    return {ok:true,filename,photoCount:pdfPhotos.length};
   }
+  window.InovtecGenerateControlPdf=generatePDF;
 
 })();
 </script>
