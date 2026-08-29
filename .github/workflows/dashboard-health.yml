@@ -82,7 +82,7 @@ jobs:
           done
           grep -qi '<!DOCTYPE html>' index.html
           grep -q 'Classeur agents' index.html
-          grep -q 'dashboard-concept3.css?v=20260829-bubbles20-1' index.html
+          grep -q 'dashboard-concept3.css?v=20260829-readability20-2' index.html
           grep -q 'INOVTEC_READABILITY_15' dashboard-concept3.css
           grep -q 'READABILITY_BUBBLES_20' dashboard-concept3.css
           grep -q 'dashboard-concept3.js?v=20260829-c3-2' index.html
@@ -92,6 +92,12 @@ jobs:
           grep -q 'id="heroWeatherText"' index.html
           grep -q 'id="heroSyncText"' index.html
           grep -q 'connectedName(user)' dashboard-index.js
+          grep -q 'dashboard-index.js?v=20260829-icons2' index.html
+          grep -q 'READABILITY_ALL_BUBBLES_20' dashboard-concept3.css
+          grep -q 'MODERN_STATUS_WEATHER_ICONS' dashboard-concept3.css
+          grep -q 'function weatherSvg' dashboard-index.js
+          grep -q 'setWeatherIcon' dashboard-index.js
+          grep -q 'id="heroSyncIcon"' index.html
           if grep -q 'Bonjour 👋' index.html; then
             echo "::error::L’ancien petit bloc Bonjour ne doit plus apparaître."
             exit 1
