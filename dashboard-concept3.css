@@ -81,7 +81,7 @@ a{color:inherit}.c3-app{min-height:100vh;display:grid;grid-template-columns:236p
 .weather-icon{width:42px;height:42px;display:grid;place-items:center;border:1px solid #dfe9e3;border-radius:13px;background:#fff;color:#17794a;box-shadow:0 5px 16px rgba(15,70,43,.04)}
 .weather-icon svg{width:23px;height:23px;stroke-width:1.8}
 .c3-hero-meta-icon svg{width:23px;height:23px;stroke-width:1.8}
-.c3-sync-meta-icon{color:#0b8f49}
+.c3-sync-meta-icon{color:#7b9187}.c3-sync-meta-icon.online{color:#0b8f49;background:#e6f7ed;box-shadow:inset 0 0 0 1px #d2eddd}
 .c3-weather-sun{color:#d28b14}
 .c3-weather-moon{color:#5369a8}
 .c3-weather-cloud{color:#5d7b70}
