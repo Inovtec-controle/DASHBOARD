@@ -53,44 +53,49 @@ function mergePlanning(...items){
   for(const week of weeks)out.weeks[week]=mergeRows(...valid.map(v=>v.weeks?.[week]||[]));
   return out;
 }
-function variablesEntries(data){
+function variablesState(data){
   const v=modulePayload(data,"variables",{});
-  return Array.isArray(v?.entries)?v.entries:[];
+  return v&&typeof v==="object"&&!Array.isArray(v)?v:{entries:[],monthStatus:{}};
 }
-function legacyHoursEntries(data){
-  const h=modulePayload(data,"heures",{});
-  return Array.isArray(h?.entries)?h.entries:[];
+function variablesEntries(data){
+  const v=variablesState(data);
+  return Array.isArray(v.entries)?v.entries:[];
 }
-function mergedHours(shared,personal){
-  const legacy=mergeRows(
-    legacyHoursEntries(shared),
-    legacyHoursEntries(personal),
-    localJson("HSUPP_DUR_APP_V1",{})?.entries||[]
-  );
-  const vars=mergeRows(
+function congesEntries(data){
+  const v=modulePayload(data,"conges",[]);
+  return Array.isArray(v)?v:[];
+}
+function monthBounds(key){
+  const m=String(key||"").match(/^(\d{4})-(\d{2})$/);
+  if(!m)return{start:"",end:""};
+  const y=Number(m[1]),mo=Number(m[2]),last=new Date(y,mo,0).getDate();
+  return{start:`${m[1]}-${m[2]}-01`,end:`${m[1]}-${m[2]}-${String(last).padStart(2,"0")}`};
+}
+function leaveInMonth(leave,key){
+  if(!leave||leave.status==="rejected"||leave.status==="cancelled")return false;
+  const b=monthBounds(key),start=String(leave.startDate||""),end=String(leave.endDate||"");
+  return !!(start&&end&&start<=b.end&&end>=b.start);
+}
+function mergedVariables(shared,personal){
+  return mergeRows(
     variablesEntries(shared),
     variablesEntries(personal),
     localJson("inovtec_variables_v1",{})?.entries||[]
-  ).filter(e=>e&&e.deleted!==true&&e.type==="heures_supplementaires");
-
-  const claimedLegacy=new Set(vars.map(e=>String(e.legacyHourId||"")).filter(Boolean));
-  const rows=[];
-  for(const e of vars){
-    rows.push({
-      id:"var:"+String(e.id||e.legacyHourId||Math.random()),
-      date:e.date||"",
-      minutes:Number(e.minutes)||0
-    });
-  }
-  for(const e of legacy){
-    if(e?.id&&claimedLegacy.has(String(e.id)))continue;
-    rows.push({
-      id:"legacy:"+String(e.id||[e.employee,e.date,e.minutes,e.site].join("|")),
-      date:e.date||"",
-      minutes:Number(e.minutes)||0
-    });
-  }
-  return rows;
+  ).filter(e=>e&&e.deleted!==true);
+}
+function mergedConges(shared,personal){
+  return mergeRows(
+    congesEntries(shared),
+    congesEntries(personal),
+    localJson("inovtec_absences_v1",[])
+  ).filter(e=>e&&e.deleted!==true&&e.status!=="rejected"&&e.status!=="cancelled");
+}
+function mergedVariableStatuses(shared,personal){
+  return{
+    ...(variablesState(shared).monthStatus||{}),
+    ...(variablesState(personal).monthStatus||{}),
+    ...(localJson("inovtec_variables_v1",{})?.monthStatus||{})
+  };
 }
 function mergedTasks(shared,personal){
   return mergeRows(
@@ -102,7 +107,7 @@ function mergedTasks(shared,personal){
 function updateMirror(){
   const pairs=[
     ["kpiSites","opSites"],["kpiAgents","opAgents"],["kpiKontrol","opKontrol"],
-    ["hsLines","hsLines2"],["taskLate","taskLateAlert"]
+    ["varEntries","varEntries2"],["taskLate","taskLateAlert"]
   ];
   pairs.forEach(([src,dst])=>{
     const s=$(src),d=$(dst);
@@ -123,14 +128,22 @@ async function refresh(user){
     if(seq!==refreshSeq)return;
     const shared=dataOf(results[0]),personal=dataOf(results[1]);
 
-    const hours=mergedHours(shared,personal);
     const now=new Date(),mk=monthKey(now);
-    const monthEntries=hours.filter(e=>String(e?.date||"").slice(0,7)===mk);
-    const monthMin=monthEntries.reduce((a,e)=>a+(Number(e?.minutes)||0),0);
-    set("kpiHours",minutesLabel(monthMin));
-    set("kpiHoursSub",monthEntries.length+" ligne"+(monthEntries.length>1?"s":"")+" ce mois");
-    set("hsLines",monthEntries.length);
-    set("hsHours",minutesLabel(monthMin));
+    const variableRows=mergedVariables(shared,personal);
+    const leaves=mergedConges(shared,personal);
+    const monthVariableRows=variableRows.filter(e=>String(e?.date||"").slice(0,7)===mk);
+    const monthLeaves=leaves.filter(e=>leaveInMonth(e,mk));
+    const variableCount=monthVariableRows.length+monthLeaves.length;
+    const statusMap=mergedVariableStatuses(shared,personal);
+    const relevantAgents=[...new Set([...monthVariableRows,...monthLeaves].map(e=>String(e?.agentRefId||"").trim()).filter(Boolean))];
+    const reviewCount=relevantAgents.filter(id=>{
+      const status=String(statusMap[mk+"|"+id]?.status||"draft");
+      return status!=="verified"&&status!=="transmitted";
+    }).length;
+    set("kpiVariables",variableCount);
+    set("kpiVariablesSub",reviewCount?(reviewCount+" agent"+(reviewCount>1?"s":"")+" à vérifier"):"Variables agents à jour");
+    set("varEntries",variableCount);
+    set("varReview",reviewCount);
 
     const tasks=mergedTasks(shared,personal);
     const active=tasks.filter(t=>!t?.archived&&t?.status!=="done");
