@@ -134,7 +134,9 @@ jobs:
             exit 1
           fi
           grep -q 'inovtec-shell.css?v=20260829-agentfull1' inovtec-page-shell.html
-          grep -q 'inovtec-shell.js?v=20260829-agentstable1' inovtec-page-shell.html
+          grep -q 'inovtec-shell.js?v=20260829-nodiscipline2' inovtec-page-shell.html
+          grep -q 'stripRemovedDisciplineNavigation' inovtec-page-shell.html
+          grep -q 'href.includes("discipline")' inovtec-page-shell.html
           grep -q 'max-height:none' AGENTS-LEGACY.html
           grep -q 'overflow:visible' AGENTS-LEGACY.html
           grep -q 'fitAgentsFullPage' inovtec-shell.js
