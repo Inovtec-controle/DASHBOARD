@@ -132,7 +132,11 @@ jobs:
           grep -q 'infoAssignedAgents' inovtec-visual-runtime.js
           grep -q 'iv:chantier-saved' inovtec-visual-runtime.js
           grep -q 'iv:chantier-saved' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-visual-runtime.js?v=20260829-agentbubble1' inovtec-page-shell.html
+          grep -q 'inovtec-visual-runtime.js?v=20260829-kontrolcdc1' inovtec-page-shell.html
+          grep -q 'kontrolSelectedChantier' inovtec-visual-runtime.js
+          grep -q 'kontrolCdcCount' inovtec-visual-runtime.js
+          grep -q 'cahierDesChargesV1' inovtec-visual-runtime.js
+          grep -q 'Sélectionnez un chantier' inovtec-visual-runtime.js
           grep -q 'ivAgentPickerButton' inovtec-info-agent-planning.js
           grep -q 'ivAgentPickerPanel' inovtec-info-agent-planning.js
           grep -q 'firebase-config.js?v=20260829-operational1' inovtec-page-shell.html
