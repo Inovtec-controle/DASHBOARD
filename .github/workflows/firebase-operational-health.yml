@@ -150,6 +150,7 @@ jobs:
           # Discipline et KONTROL : données / archives partagées.
           grep -Fq '__inovtec_shared_discipline_v1__' inovtec-shared-workspace.js
           grep -Fq 'kontrol/${user.uid}/pdfs' kontrol-cloud.js
+          grep -Fq 'KONTROL.html?v=20260829-no-category1' kontrol-cloud.js
           grep -Fq 'kontrolPdfMeta' inovtec-kontrol-shared-archive.js
 
           # Règles nécessaires aux chemins utilisés par l'application.
