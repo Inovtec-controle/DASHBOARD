@@ -287,17 +287,25 @@
     if (typeof originalSave !== "function") return;
 
     api.save = function(filename, options) {
+      const pdf = this;
       let blob = null;
-      try { blob = this.output("blob"); } catch (error) { console.warn("Création du PDF pour archivage impossible", error); }
+      try { blob = pdf.output("blob"); } catch (error) { console.warn("Création du PDF pour archivage impossible", error); }
       const details = readKontrolMetadata();
-      const result = originalSave.call(this, filename, options);
-      if (blob) {
-        archivePdfBlob(blob, filename, details).catch(error => {
+      if (!blob) return originalSave.call(pdf, filename, options);
+
+      archivePdfBlob(blob, filename, details)
+        .catch(error => {
           console.error("Archivage KONTROL impossible", error);
-          showToast("Le PDF a été téléchargé, mais l’archivage en ligne a échoué.", true);
+          showToast("L’archivage en ligne a échoué. Le PDF est tout de même téléchargé.", true);
+        })
+        .finally(() => {
+          try { originalSave.call(pdf, filename, options); }
+          catch (error) {
+            console.error("Téléchargement du PDF KONTROL impossible", error);
+            showToast("Le contrôle a été archivé, mais le téléchargement du PDF a échoué.", true);
+          }
         });
-      }
-      return result;
+      return pdf;
     };
     api.__inovtecCloudHooked = true;
   }
