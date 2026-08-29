@@ -311,11 +311,12 @@ jobs:
           if [ '${{ github.event_name }}' = 'push' ]; then
             live_ready=0
             for attempt in $(seq 1 15); do
-              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260829-operational1&mode=infos&sv=20260829-saveverify1" -o /tmp/shell.html
-              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/INFOCHANTIERS-V2-LEGACY.html?v=20260829-persistence5" -o /tmp/infos.html
-              if grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence5' /tmp/shell.html \
+              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260829-operational1&mode=infos&sv=20260829-idlock1" -o /tmp/shell.html
+              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/INFOCHANTIERS-V2-LEGACY.html?v=20260829-persistence6" -o /tmp/infos.html
+              if grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence6' /tmp/shell.html \
                 && grep -q 'Enregistrer ✓' /tmp/infos.html \
-                && grep -q 'get({source:"server"})' /tmp/infos.html; then
+                && grep -q 'get({source:"server"})' /tmp/infos.html \
+                && grep -q 'button.dataset.ivChantierId' /tmp/infos.html; then
                 live_ready=1
                 break
               fi
