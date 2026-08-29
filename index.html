@@ -23,7 +23,7 @@
       <a href="INFOCHANTIERS-V2.html?v=20260829-sitehistory4"><span class="ico">▥</span><span>Infos chantier</span></a>
       <a href="AGENTS.html?v=20260820-auth-recovery1"><span class="ico">♙</span><span>Classeur agents</span></a>
       <a href="ORGA.html?v=20260820-auth-recovery1"><span class="ico">◎</span><span>Organisation</span></a>
-      <a href="HEURE-SUP.html?v=20260820-auth-recovery1"><span class="ico">◷</span><span>Heures sup.</span></a>
+      <a href="VARIABLES.html?v=20260829-variables-dashboard1"><span class="ico">◷</span><span>Variables agents</span></a>
     </nav>
     <div class="m1-nav-group">Outils</div>
     <nav class="m1-nav">
@@ -67,7 +67,7 @@
           <div class="m1-kpi"><div class="icon">♙</div><small>Agents référencés</small><b id="kpiAgents">—</b><div id="kpiAgentsSub" class="sub">Classeur agents</div><div class="spark"></div></div>
           <div class="m1-kpi"><div class="icon">✓</div><small>Contrôles KONTROL archivés</small><b id="kpiKontrol">—</b><div id="kpiKontrolSub" class="sub">PDF partagés</div><div class="spark"></div></div>
           <div class="m1-kpi warn"><div class="icon">⚠</div><small>Incidents ouverts</small><b id="kpiIncidents">—</b><div id="kpiIncidentsSub" class="sub">Classeur agents</div><div class="spark"></div></div>
-          <div class="m1-kpi"><div class="icon">◷</div><small>Heures sup. du mois</small><b id="kpiHours">—</b><div id="kpiHoursSub" class="sub">Lignes enregistrées</div><div class="spark"></div></div>
+          <div class="m1-kpi"><div class="icon">◷</div><small>Variables du mois</small><b id="kpiVariables">—</b><div id="kpiVariablesSub" class="sub">Variables agents</div><div class="spark"></div></div>
           <div class="m1-kpi"><div class="icon">◎</div><small>Tâches Organisation actives</small><b id="kpiTasks">—</b><div id="kpiTasksSub" class="sub">Organisation</div><div class="spark"></div></div>
         </div>
       </section>
@@ -80,7 +80,7 @@
           <a class="m1-module" href="INFOCHANTIERS-V2.html?v=20260829-sitehistory4"><span class="micon">▥</span><strong>Infos chantier</strong><p>Contacts, accès, consignes, conteneurs et cahiers des charges.</p><span class="arrow">→</span></a>
           <a class="m1-module" href="AGENTS.html?v=20260820-auth-recovery1"><span class="micon">♙</span><strong>Classeur agents</strong><p>Fiches agents, contrats, documents, informations et suivi.</p><span class="arrow">→</span></a>
           <a class="m1-module" href="ORGA.html?v=20260820-auth-recovery1"><span class="micon">◎</span><strong>Organisation</strong><p>Centralisez les tâches, priorités, échéances et avancement.</p><span class="arrow">→</span></a>
-          <a class="m1-module" href="HEURE-SUP.html?v=20260820-auth-recovery1"><span class="micon">◷</span><strong>Heures sup.</strong><p>Enregistrez les durées, motifs et chantiers des heures supplémentaires.</p><span class="arrow">→</span></a>
+          <a class="m1-module" href="VARIABLES.html?v=20260829-variables-dashboard1"><span class="micon">◷</span><strong>Variables agents</strong><p>Centralisez heures complémentaires, supplémentaires, dimanches, jours fériés, nuits et absences.</p><span class="arrow">→</span></a>
           <a class="m1-module" href="ESSENCE.html"><span class="micon">⛽</span><strong>Dépense carburant</strong><p>Calculez le coût des trajets d'un agent selon la distance, la consommation et le prix du carburant.</p><span class="arrow">→</span></a>
         </div>
       </section>
@@ -92,7 +92,7 @@
             <div class="m1-row"><span class="dot"></span><div><strong>Infos chantier</strong><small>Chantiers accessibles à tous les comptes connectés</small></div><span id="opSites" class="value">—</span></div>
             <div class="m1-row"><span class="dot"></span><div><strong>Classeur agents</strong><small>Référentiel commun des agents</small></div><span id="opAgents" class="value">—</span></div>
             <div class="m1-row"><span class="dot"></span><div><strong>KONTROL</strong><small>PDF de contrôles partagés</small></div><span id="opKontrol" class="value">—</span></div>
-            <div class="m1-row"><span class="dot blue"></span><div><strong>Heures sup.</strong><small>Lignes enregistrées ce mois</small></div><span id="hsLines" class="value">—</span></div>
+            <div class="m1-row"><span class="dot blue"></span><div><strong>Variables agents</strong><small>Variables et absences du mois</small></div><span id="varEntries" class="value">—</span></div>
           </div>
         </div>
 
@@ -103,10 +103,10 @@
 
         <div class="m1-stack">
           <div class="m1-panel">
-            <div class="m1-panel-title"><h2>Heures sup.</h2><a href="HEURE-SUP.html?v=20260820-auth-recovery1">Ouvrir</a></div>
+            <div class="m1-panel-title"><h2>Variables agents</h2><a href="VARIABLES.html?v=20260829-variables-dashboard1">Ouvrir</a></div>
             <div class="m1-list">
-              <div class="m1-row"><span class="dot blue"></span><div><strong>Lignes du mois</strong><small>Entrées enregistrées</small></div><span id="hsLines2" class="value">—</span></div>
-              <div class="m1-row"><span class="dot"></span><div><strong>Durée du mois</strong><small>Total des durées saisies</small></div><span id="hsHours" class="value">—</span></div>
+              <div class="m1-row"><span class="dot blue"></span><div><strong>Variables du mois</strong><small>Heures + absences enregistrées</small></div><span id="varEntries2" class="value">—</span></div>
+              <div class="m1-row"><span class="dot"></span><div><strong>À vérifier</strong><small>Avant transmission paie</small></div><span id="varReview" class="value">—</span></div>
             </div>
           </div>
           <div class="m1-panel">
@@ -128,7 +128,7 @@
               <a href="KONTROL-CLOUD.html?v=20260829-sitehistory5"><span>✓</span>Nouveau contrôle<span class="chev">›</span></a>
               <a href="INFOCHANTIERS-V2.html?v=20260829-sitehistory4"><span>▥</span>Créer / modifier un chantier<span class="chev">›</span></a>
               <a href="ORGA.html?v=20260820-auth-recovery1"><span>◎</span>Ajouter une tâche<span class="chev">›</span></a>
-              <a href="HEURE-SUP.html?v=20260820-auth-recovery1"><span>◷</span>Ajouter des heures sup.<span class="chev">›</span></a>
+              <a href="VARIABLES.html?v=20260829-variables-dashboard1"><span>◷</span>Ajouter une variable agent<span class="chev">›</span></a>
               <a href="ESSENCE.html"><span>⛽</span>Calculer une dépense carburant<span class="chev">›</span></a>
             </div>
           </div>
@@ -172,7 +172,7 @@
 <script src="firebase-config.js?v=20260829-operational1"></script>
 <script src="dashboard-index.js?v=20260828-kpi1"></script>
 <script src="dashboard-index-shared.js?v=20260829-agentclean1"></script>
-<script src="dashboard-mark1.js?v=20260829-agentclean1"></script>
+<script src="dashboard-mark1.js?v=20260829-variables-dashboard1"></script>
 <script src="dashboard-global-search.js?v=20260829-agentclean1"></script>
 <script src="inovtec-contract-reminders.js?v=20260816-1"></script>
 <script src="inovtec-firebase-indicator.js?v=20260815-1"></script>
