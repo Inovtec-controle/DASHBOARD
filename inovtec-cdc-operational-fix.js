@@ -7,7 +7,8 @@ const frame=document.getElementById("legacyFrame"),fb=window.firebase;
 let db=fb?.firestore?.(),auth=fb?.auth?.();
 function refreshFirebase(){db=db||fb?.firestore?.();auth=auth||fb?.auth?.();return db}
 const DAYS=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-let patchedDoc=null,suggestionSiteId="",suggestionRows=[];
+let patchedDoc=null,suggestionSiteId="",suggestionRows=[],suggestionLoadedAt=0,suggestionLoadPromise=null;
+const GLOBAL_SUGGESTION_TTL=60000;
 const txt=v=>String(v??"").trim(),uid=()=>"cdc_"+Date.now()+"_"+Math.random().toString(16).slice(2),norm=v=>txt(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 function D(){try{return frame?.contentDocument||null}catch{return null}}
 async function site(d){
@@ -45,7 +46,10 @@ function ensureSuggestionUi(d,inputId,boxId,hint){
 function unique(values){const seen=new Set(),out=[];values.forEach(v=>{v=txt(v);const k=norm(v);if(v&&!seen.has(k)){seen.add(k);out.push(v)}});return out}
 function valuesFor(d,kind){
  if(kind==="zone")return unique(suggestionRows.map(r=>r.zone)).sort((a,b)=>a.localeCompare(b,"fr",{sensitivity:"base"}));
- const zone=norm(d.getElementById("ivCdcZone")?.value),same=[],other=[];suggestionRows.forEach(r=>{const p=txt(r.prestation);if(!p)return;(zone&&norm(r.zone)===zone?same:other).push(p)});return unique(same.concat(other));
+ const zone=norm(d.getElementById("ivCdcZone")?.value),same=[],other=[];
+ suggestionRows.forEach(r=>{const p=txt(r.prestation);if(!p)return;(zone&&norm(r.zone)===zone?same:other).push(p)});
+ const sort=v=>unique(v).sort((a,b)=>a.localeCompare(b,"fr",{sensitivity:"base"}));
+ return sort(same).concat(sort(other).filter(p=>!same.some(x=>norm(x)===norm(p))));
 }
 function renderSuggestions(d,kind,force=false){
  const cfg=kind==="zone"?{inputId:"ivCdcZone",boxId:"ivCdcZoneSuggestions"}:{inputId:"ivCdcPrestation",boxId:"ivCdcPrestationSuggestions"},ui=ensureSuggestionUi(d,cfg.inputId,cfg.boxId,kind==="zone"?"Clique dans la liste pour reprendre une zone déjà saisie.":"Les prestations de la zone choisie sont proposées en premier.");if(!ui)return;
@@ -63,8 +67,54 @@ function applyManualUi(d){
  const title=d.getElementById("ivCdcModalTitle");if(title&&!d.getElementById("ivCdcOverlay")?.dataset.rowId)title.textContent="Saisir le cahier des charges";
  ensureSuggestionUi(d,"ivCdcZone","ivCdcZoneSuggestions","Clique dans la liste pour reprendre une zone déjà saisie.");ensureSuggestionUi(d,"ivCdcPrestation","ivCdcPrestationSuggestions","Les prestations de la zone choisie sont proposées en premier.");bindSuggestions(d);
 }
-async function loadSuggestions(d,target){
- refreshFirebase();if(!target?.id||!db)return;suggestionSiteId=String(target.id);try{const snap=await db.collection("chantiers").doc(suggestionSiteId).get(),rows=snap.data()?.cahierDesChargesV1?.rows;suggestionRows=Array.isArray(rows)?rows:[]}catch(e){console.warn("CDC suggestions",e);suggestionRows=[]}applyManualUi(d);
+function suggestionRowsFromSites(sites=[]){
+ const out=[];
+ (Array.isArray(sites)?sites:[]).forEach(site=>{
+  if(!site||site._hidden===true)return;
+  const rows=site?.cahierDesChargesV1?.rows;
+  if(!Array.isArray(rows))return;
+  rows.forEach(row=>{
+   const zone=txt(row?.zone),prestation=txt(row?.prestation);
+   if(!zone&&!prestation)return;
+   out.push({...row,zone,prestation,_suggestionSiteId:String(site.id||"")});
+  });
+ });
+ return out;
+}
+async function loadSuggestions(d,target,force=false){
+ refreshFirebase();if(!target?.id||!db)return;
+ suggestionSiteId=String(target.id);
+ const fresh=!force&&suggestionRows.length&&Date.now()-suggestionLoadedAt<GLOBAL_SUGGESTION_TTL;
+ if(fresh){applyManualUi(d);return}
+ if(suggestionLoadPromise){try{await suggestionLoadPromise}finally{applyManualUi(d)}return}
+ suggestionLoadPromise=(async()=>{
+  try{
+   let sites=[];
+   try{sites=Array.from(window.InovtecDataHub?.chantiers||[])}catch{}
+   let allRows=suggestionRowsFromSites(sites);
+   if(!allRows.length||force||Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL){
+    const snap=await db.collection("chantiers").orderBy("nom").get();
+    sites=snap.docs.map(x=>({id:x.id,...x.data()})).filter(x=>x._hidden!==true);
+    allRows=suggestionRowsFromSites(sites);
+   }
+   if(!allRows.some(r=>String(r._suggestionSiteId||"")===suggestionSiteId)){
+    try{
+     const current=await db.collection("chantiers").doc(suggestionSiteId).get();
+     if(current.exists)allRows=allRows.concat(suggestionRowsFromSites([{id:current.id,...current.data()}]));
+    }catch(e){console.warn("CDC suggestions chantier courant",e)}
+   }
+   suggestionRows=allRows;
+   suggestionLoadedAt=Date.now();
+  }catch(e){
+   console.warn("CDC suggestions globales",e);
+   try{
+    const snap=await db.collection("chantiers").doc(suggestionSiteId).get(),rows=snap.data()?.cahierDesChargesV1?.rows;
+    suggestionRows=Array.isArray(rows)?rows.map(r=>({...r,_suggestionSiteId:suggestionSiteId})):[];
+    suggestionLoadedAt=Date.now();
+   }catch(_e){suggestionRows=[]}
+  }
+ })();
+ try{await suggestionLoadPromise}finally{suggestionLoadPromise=null;applyManualUi(d)}
 }
 function resetModal(d){
  const o=d.getElementById("ivCdcOverlay");if(!o)return;o.dataset.rowId="";
@@ -94,7 +144,7 @@ async function save(d){
  const btn=d.querySelector("#ivCdcForm button[type=submit]");if(btn?.dataset.ivSaving==="1")return;if(btn){btn.dataset.ivSaving="1";btn.disabled=true;btn.textContent="Enregistrement…"}
  try{
   await writeManual(target.id,rowId,payload);
-  suggestionRows=suggestionRows.filter(r=>!(norm(r.zone)===norm(payload.zone)&&norm(r.prestation)===norm(payload.prestation)));suggestionRows.push({zone:payload.zone,prestation:payload.prestation});
+  suggestionRows=suggestionRows.filter(r=>!(String(r._suggestionSiteId||"")===String(target.id)&&norm(r.zone)===norm(payload.zone)&&norm(r.prestation)===norm(payload.prestation)));suggestionRows.push({zone:payload.zone,prestation:payload.prestation,_suggestionSiteId:String(target.id)});suggestionLoadedAt=Date.now();
   if(o){o.hidden=true;o.dataset.rowId=""}
  }catch(e){console.error("CDC manual save",e);alert("Impossible d’enregistrer le cahier des charges. Vérifie la connexion Firebase puis réessaie.")}
  finally{if(btn){delete btn.dataset.ivSaving;btn.disabled=false;btn.textContent="Enregistrer"}}
