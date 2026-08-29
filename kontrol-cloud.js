@@ -19,7 +19,9 @@
 
   if (!firebase.apps.length) firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
   const auth = firebase.auth();
+  const db = firebase.firestore();
   const storage = firebase.storage();
+  const SHARED_CHUNK_SIZE = 180000;
 
   function showToast(message, isError = false) {
     clearTimeout(toastTimer);
@@ -101,6 +103,116 @@
       .slice(0, 180);
   }
 
+  function hash(value) {
+    const s = String(value || "");
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(36);
+  }
+
+  function normalize(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function readBlobAsDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(reader.error || new Error("Lecture PDF impossible"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function resolveChantierId(details) {
+    const direct = String(details?.chantierId || "").trim();
+    if (direct) {
+      try {
+        const snap = await db.collection("chantiers").doc(direct).get();
+        if (snap.exists && !snap.data()?._hidden) return direct;
+      } catch {}
+    }
+    const siteName = String(details?.site || "").trim();
+    if (!siteName) return "";
+    try {
+      const exact = await db.collection("chantiers").where("nom", "==", siteName).limit(10).get();
+      const rows = exact.docs.filter(doc => !doc.data()?._hidden);
+      if (rows.length === 1) return rows[0].id;
+      const target = normalize(siteName);
+      const allSites = await db.collection("chantiers").get();
+      const matches = allSites.docs.filter(doc => {
+        const data = doc.data() || {};
+        return !data._hidden && normalize(data.nom) === target;
+      });
+      return matches.length === 1 ? matches[0].id : "";
+    } catch (error) {
+      console.warn("Résolution chantier KONTROL impossible", error);
+      return "";
+    }
+  }
+
+  async function writeSharedHistory(blob, path, cleanName, details, user) {
+    const chantierId = await resolveChantierId(details);
+    if (!chantierId) throw new Error("Impossible d’identifier le chantier du contrôle");
+    const dataUrl = await readBlobAsDataUrl(blob);
+    if (!dataUrl) throw new Error("PDF vide");
+    const pdfId = "kpdf_" + hash(user.uid + "|" + path);
+    const chunks = [];
+    for (let i = 0; i < dataUrl.length; i += SHARED_CHUNK_SIZE) {
+      chunks.push(dataUrl.slice(i, i + SHARED_CHUNK_SIZE));
+    }
+    if (!chunks.length) throw new Error("PDF vide");
+    const chunkIds = chunks.map((_, i) => `__kontrol_pdf_chunk__${pdfId}_${String(i).padStart(3, "0")}`);
+    for (let start = 0; start < chunks.length; start += 20) {
+      const batch = db.batch();
+      chunks.slice(start, start + 20).forEach((data, offset) => {
+        const index = start + offset;
+        batch.set(db.collection("chantiers").doc(chunkIds[index]), {
+          _hidden: true,
+          _type: "kontrolPdfChunk",
+          pdfId,
+          chunkIndex: index,
+          totalChunks: chunks.length,
+          data
+        });
+      });
+      await batch.commit();
+    }
+    const now = new Date().toISOString();
+    await db.collection("chantiers").doc("__kontrol_pdf_meta__" + pdfId).set({
+      _hidden: true,
+      _type: "kontrolPdfMeta",
+      pdfId,
+      chunkIds,
+      originalName: cleanName,
+      size: Number(blob.size) || 0,
+      contentType: "application/pdf",
+      timeCreated: now,
+      createdAtMs: Date.now(),
+      createdByUid: user.uid,
+      createdByEmail: user.email || "",
+      chantierId,
+      storagePath: path,
+      customMetadata: {
+        originalName: cleanName,
+        site: String(details.site || "").slice(0, 220),
+        chantierId,
+        controlDate: String(details.controlDate || "").slice(0, 30),
+        controller: String(details.controller || "").slice(0, 160),
+        agents: String(details.agents || "").slice(0, 220),
+        category: String(details.category || "").slice(0, 80)
+      }
+    }, { merge: true });
+    return { pdfId, chantierId };
+  }
+
   function readKontrolMetadata() {
     try {
       const doc = frame.contentDocument;
@@ -126,27 +238,44 @@
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const path = `kontrol/${user.uid}/pdfs/${stamp}_${cleanName}`;
     const ref = storage.ref().child(path);
+    const chantierId = await resolveChantierId(details);
+    const resolvedDetails = { ...details, chantierId };
     const metadata = {
       contentType: "application/pdf",
       contentDisposition: `inline; filename="${cleanName.replace(/"/g, "")}"`,
       customMetadata: {
         originalName: cleanName,
-        site: String(details.site || "").slice(0, 220),
-        chantierId: String(details.chantierId || "").slice(0, 120),
-        controlDate: String(details.controlDate || "").slice(0, 30),
-        controller: String(details.controller || "").slice(0, 160),
-        agents: String(details.agents || "").slice(0, 220),
-        category: String(details.category || "").slice(0, 80)
+        site: String(resolvedDetails.site || "").slice(0, 220),
+        chantierId: String(resolvedDetails.chantierId || "").slice(0, 120),
+        controlDate: String(resolvedDetails.controlDate || "").slice(0, 30),
+        controller: String(resolvedDetails.controller || "").slice(0, 160),
+        agents: String(resolvedDetails.agents || "").slice(0, 220),
+        category: String(resolvedDetails.category || "").slice(0, 80)
       }
     };
-    showToast("Archivage du PDF en ligne…");
+    showToast("Archivage du PDF et de l’historique…");
     await ref.put(blob, metadata);
+    let shared = null;
+    try {
+      shared = await writeSharedHistory(blob, path, cleanName, resolvedDetails, user);
+      await ref.updateMetadata({
+        customMetadata: {
+          ...metadata.customMetadata,
+          chantierId: shared.chantierId,
+          sharedPdfId: shared.pdfId
+        }
+      });
+    } catch (error) {
+      console.error("Création directe de l’historique KONTROL impossible", error);
+    }
     try {
       window.dispatchEvent(new CustomEvent("inovtec:kontrol-pdf-archived", {
-        detail: { path, chantierId: String(details.chantierId || "") }
+        detail: { path, chantierId: String(shared?.chantierId || resolvedDetails.chantierId || "") }
       }));
+      if (shared) window.dispatchEvent(new CustomEvent("inovtec:kontrol-shared-archive-synced"));
     } catch {}
-    showToast("PDF téléchargé et archivé en ligne.");
+    if (shared) showToast("PDF archivé et ajouté à l’historique du chantier.");
+    else showToast("PDF archivé. Synchronisation de l’historique en cours…");
   }
 
   function hookPdfSave() {
