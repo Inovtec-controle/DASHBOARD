@@ -13,12 +13,12 @@ const txt=v=>String(v??"").trim(),uid=()=>"cdc_"+Date.now()+"_"+Math.random().to
 function D(){try{return frame?.contentDocument||null}catch{return null}}
 async function site(d){
  refreshFirebase();
+ const form=d.getElementById("siteForm"),id=txt(form?.dataset.ivChantierId);
+ if(id&&db){try{const snap=await db.collection("chantiers").doc(id).get({source:"server"});if(snap.exists)return{id:snap.id,...snap.data()}}catch(e){console.warn("CDC site id",e)}return{id}}
  let s=null;try{s=await window.InovtecCdcImport?.resolveSite?.()}catch(e){console.warn("CDC resolve",e)}
- if(s?.id){const f=d.getElementById("siteForm");if(f)f.dataset.ivChantierId=String(s.id);return s}
- const id=txt(d.getElementById("siteForm")?.dataset.ivChantierId);
- if(id&&db){try{const snap=await db.collection("chantiers").doc(id).get();if(snap.exists)return{id:snap.id,...snap.data()}}catch(e){console.warn("CDC site id",e)}}
+ if(s?.id){if(form)form.dataset.ivChantierId=String(s.id);return s}
  const nom=txt(d.getElementById("nom")?.value),adresse=txt(d.getElementById("adresse")?.value);
- if(db&&nom){try{const q=await db.collection("chantiers").where("nom","==",nom).limit(12).get(),found=q.docs.map(x=>({id:x.id,...x.data()})),hit=found.find(x=>!adresse||norm(x.adresse)===norm(adresse))||found[0];if(hit?.id){const f=d.getElementById("siteForm");if(f)f.dataset.ivChantierId=String(hit.id);return hit}}catch(e){console.warn("CDC site fallback",e)}}
+ if(db&&nom){try{const q=await db.collection("chantiers").where("nom","==",nom).limit(12).get(),found=q.docs.map(x=>({id:x.id,...x.data()})),sameAddress=found.filter(x=>adresse&&norm(x.adresse)===norm(adresse)),hit=sameAddress.length===1?sameAddress[0]:(found.length===1?found[0]:null);if(hit?.id){if(form)form.dataset.ivChantierId=String(hit.id);return hit}}catch(e){console.warn("CDC site fallback",e)}}
  return null;
 }
 function ensureStyle(d){
