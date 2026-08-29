@@ -82,7 +82,8 @@ jobs:
           done
           grep -qi '<!DOCTYPE html>' index.html
           grep -q 'Classeur agents' index.html
-          grep -q 'dashboard-concept3.css?v=20260829-c3-1' index.html
+          grep -q 'dashboard-concept3.css?v=20260829-font15-1' index.html
+          grep -q 'INOVTEC_READABILITY_15' dashboard-concept3.css
           grep -q 'dashboard-concept3.js?v=20260829-c3-2' index.html
           grep -q 'Centre de pilotage' index.html
           grep -q 'Raccourcis quotidiens' index.html
