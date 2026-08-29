@@ -81,6 +81,13 @@ jobs:
           done
           grep -qi '<!DOCTYPE html>' index.html
           grep -q 'Classeur agents' index.html
+          if grep -q 'id="btnResidence"\|id="btnBureau"' KONTROL.html; then
+            echo "::error file=KONTROL.html::Les anciens choix Résidence/Bureau sont encore visibles."
+            exit 1
+          fi
+          grep -q 'id="activeCategoryPill" hidden' KONTROL.html
+          grep -q 'KONTROL.html?v=20260829-no-category1' kontrol-cloud.js
+          grep -q 'kontrol-cloud.js?v=20260829-no-category1' KONTROL-CLOUD-LEGACY.html
           grep -q 'id="kpiIncidents"' index.html
           grep -q 'Incidents ouverts' index.html
           grep -q 'openIncidentCount' dashboard-index-shared.js
