@@ -11,15 +11,19 @@ const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLo
 function doc(){try{return frame?.contentDocument||null}catch{return null}}
 function sites(){try{return Array.from(window.InovtecDataHub?.chantiers||[])}catch{return[]}}
 function siteIdOf(site){return String(site?.id||site?.refId||"")}
+function selectedSiteId(d){return String(d?.getElementById("siteForm")?.dataset.ivChantierId||"").trim()}
 function activeSite(d){
+  const list=sites(),exact=selectedSiteId(d);
+  if(exact)return list.find(s=>siteIdOf(s)===exact)||null;
   const nom=d?.getElementById("nom")?.value.trim()||"";
   const adresse=d?.getElementById("adresse")?.value.trim()||"";
   if(!nom&&!adresse)return null;
-  const list=sites();
-  return list.find(s=>norm(s.nom)===norm(nom)&&adresse&&norm(s.adresse)===norm(adresse))
-    ||list.find(s=>norm(s.nom)===norm(nom))
-    ||list.find(s=>adresse&&norm(s.adresse)===norm(adresse))
-    ||null;
+  const exactAddress=list.filter(s=>norm(s.nom)===norm(nom)&&adresse&&norm(s.adresse)===norm(adresse));
+  if(exactAddress.length===1)return exactAddress[0];
+  const exactName=list.filter(s=>norm(s.nom)===norm(nom));
+  if(exactName.length===1)return exactName[0];
+  const exactAddressOnly=list.filter(s=>adresse&&norm(s.adresse)===norm(adresse));
+  return exactAddressOnly.length===1?exactAddressOnly[0]:null;
 }
 function ensureStyle(d){
   if(!d?.head||d.getElementById("ivContactTypeStyle"))return;
@@ -135,6 +139,7 @@ function syncFromSite(d){
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 async function resolveSavedSite(d,wasNew){
   for(let i=0;i<40;i++){
+    const exact=selectedSiteId(d);if(exact)return{id:exact};
     if(wasNew&&/nouveau/i.test(d.getElementById("recordState")?.textContent||"")){await wait(125);continue}
     const site=activeSite(d);if(site&&siteIdOf(site))return site;
     await wait(125);
