@@ -81,6 +81,10 @@ jobs:
           done
           grep -qi '<!DOCTYPE html>' index.html
           grep -q 'Classeur agents' index.html
+          grep -q 'id="kpiIncidents"' index.html
+          grep -q 'Incidents ouverts' index.html
+          grep -q 'openIncidentCount' dashboard-index-shared.js
+          grep -q 'incidentIsOpen' dashboard-index-shared.js
           if grep -qi 'DISCIPLINE-V9.html\|>Discipline<\|Dossiers Discipline' index.html; then
             echo "::error file=index.html::Discipline ne doit plus apparaître dans le Dashboard."
             exit 1
