@@ -44,3 +44,48 @@ a{color:inherit}.c3-app{min-height:100vh;display:grid;grid-template-columns:236p
 @media(max-width:700px){.c3-hero-banner{padding:22px;min-height:auto}.c3-hero-art{display:none}.c3-hero-copy{max-width:none}.c3-hero-copy h1{font-size:34px}.c3-hero-meta{max-width:none}.c3-hero-meta-card{min-height:62px}}
 
 /* READABILITY_BUBBLES_20 — pilotage et alertes +20% */
+
+/* READABILITY_ALL_BUBBLES_20 — autres bulles +20% */
+.c3-kpi small{font-size:13.8px}
+.c3-kpi .sub{font-size:11.04px}
+.c3-panel-head h2{font-size:17.94px}
+.c3-panel-head a{font-size:12.42px}
+.c3-ring-copy span{font-size:12.42px}
+.c3-mini b{font-size:22.08px}
+.c3-mini span{font-size:11.04px}
+.c3-shortcut{font-size:12.42px}
+.c3-module-line{font-size:12.42px;padding:8px 0}
+.c3-module-line b{font-size:13.8px}
+.c3-feed-row,.c3-day-row{min-height:58px}
+.c3-feed-row time,.c3-day-row time{font-size:11.04px}
+.c3-feed-row strong,.c3-day-row strong{font-size:12.42px}
+.c3-feed-row small,.c3-day-row small{font-size:11.04px}
+.c3-feed-row .who{font-size:11.04px}
+.c3-empty{font-size:12.42px}
+.c3-hero-meta-card small{font-size:11.04px}
+.c3-hero-meta-card strong{font-size:15.18px}
+.c3-sync-card strong{font-size:16.56px}
+.c3-sync-card>span{font-size:12.42px}
+
+/* MODERN_STATUS_WEATHER_ICONS */
+.c3-sync-card-title{display:flex;align-items:center;gap:9px}
+.c3-side-sync-icon{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:9px;background:rgba(255,255,255,.12);color:#d9f8e5}
+.c3-side-sync-icon svg{width:19px;height:19px;stroke-width:1.8}
+.c3-status{min-height:46px;padding:5px 11px 5px 6px;border:1px solid #dce9e2;border-radius:14px;background:#fff;box-shadow:0 5px 16px rgba(15,70,43,.05);gap:9px}
+.c3-status .c3-status-dot{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:11px;background:#eef5f1;color:#6d7f75}
+.c3-status .c3-status-dot.online{background:#e6f7ed;color:#0b8f49;box-shadow:inset 0 0 0 1px #d2eddd}
+.c3-status .c3-status-dot svg{width:21px;height:21px;stroke-width:1.9}
+.c3-status .c3-status-copy{display:block;line-height:1.2}
+.c3-status .c3-status-copy strong{font-size:12.42px;color:#183d2d}
+.c3-status .c3-status-copy>span{font-size:10.35px;color:#78877f;margin-top:3px}
+.weather-icon{width:42px;height:42px;display:grid;place-items:center;border:1px solid #dfe9e3;border-radius:13px;background:#fff;color:#17794a;box-shadow:0 5px 16px rgba(15,70,43,.04)}
+.weather-icon svg{width:23px;height:23px;stroke-width:1.8}
+.c3-hero-meta-icon svg{width:23px;height:23px;stroke-width:1.8}
+.c3-sync-meta-icon{color:#0b8f49}
+.c3-weather-sun{color:#d28b14}
+.c3-weather-moon{color:#5369a8}
+.c3-weather-cloud{color:#5d7b70}
+.c3-weather-rain{color:#3180b9}
+.c3-weather-snow{color:#5c91b9}
+.c3-weather-storm{color:#8b6fb8}
+.c3-weather-fog{color:#7f9188}
