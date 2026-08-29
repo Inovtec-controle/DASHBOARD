@@ -47,7 +47,22 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js?v=20260829-operational1"></script>
 <script src="inovtec-data-hub.js?v=20260829-agentclean1"></script>
-<script src="inovtec-shell.js?v=20260829-agentstable1"></script>
+<script src="inovtec-shell.js?v=20260829-nodiscipline2"></script>
+<script>
+(function stripRemovedDisciplineNavigation(){
+  const clean=()=>{
+    document.querySelectorAll('#desktopNav a,#mobileNav a,.iv-sidebar a').forEach(a=>{
+      const href=String(a.getAttribute("href")||"").toLowerCase();
+      const label=String(a.textContent||"").trim().toLowerCase();
+      if(href.includes("discipline")||label==="discipline")a.remove();
+    });
+  };
+  clean();
+  const targets=[document.getElementById("desktopNav"),document.getElementById("mobileNav")].filter(Boolean);
+  targets.forEach(target=>new MutationObserver(clean).observe(target,{childList:true,subtree:true}));
+  setTimeout(clean,50);setTimeout(clean,300);setTimeout(clean,1000);
+})();
+</script>
 <script>
 if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()!=="kontrol"){
   document.write('<script src="inovtec-cloud-sync.js?v=20260829-agentclean1"><\/script>');
