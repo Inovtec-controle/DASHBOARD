@@ -26,10 +26,25 @@ function organisation(d){const tasks=countText(d,"#board .task");const overdue=[
 function heures(d){const emp=txt(d.getElementById("employee"),"Agent");const week=txt(d.getElementById("weekTotalTop"),"0:00");const month=txt(d.getElementById("monthTotal"),"0:00");const count=txt(d.getElementById("countLabel"),"0");return [card("♙","Agent",emp,"Sélection actuelle"),card("◷","Total semaine",week,"Heures supplémentaires"),card("▦","Total mois",month,"Cumul affiché"),card("≡","Lignes",count,"Entrées filtrées")];}
 function temps(d){const a=txt(d.getElementById("timeInput"),"—");const b=txt(d.getElementById("decimalInput"),"—");const r=txt(d.getElementById("result"),"—");return [card("◷","Temps",a,"Heures : minutes"),card("#","Décimal",b,"Heures décimales"),card("⇄","Résultat",r,"Conversion instantanée"),card("✓","Mode","Bidirectionnel","Calcul existant")];}
 function salaire(d){const gross=txt(d.getElementById("gross"),"0,00 €");const net=txt(d.getElementById("net"),"0,00 €");const annual=txt(d.getElementById("annual"),"0,00 €");const ratio=txt(d.getElementById("ratio"),"78")+" %";return [card("€","Brut mensuel",gross,"Estimation"),card("✓","Net mensuel",net,"Avant impôt"),card("▦","Brut annuel",annual,"Projection 12 mois"),card("%","Ratio net",ratio,"Paramètre actuel")];}
-function kontrol(){const d=kontrolDoc();if(!d)return [card("✓","KONTROL","Chargement…","Contrôle qualité"),card("▦","Tâches","—","Critères existants"),card("◎","Score","—","Note qualité"),card("▤","Photos","—","Pièces du contrôle")];inject(d,"kontrol");const cat=txt(d.getElementById("activeCategoryPill"),"Résidence").replace(/^Actif\s*:\s*/i,"");const tasks=txt(d.getElementById("tasksCount"),"0 tâche");const score=txt(d.getElementById("score"),"—");const photos=txt(d.getElementById("photosCount"),"0 photo");return [card("✓","Catégorie",cat,"Contrôle actuel"),card("▦","Critères",tasks,"Liste inchangée"),card("◎","Note qualité",score,"Calcul KONTROL"),card("▤","Photos",photos,"Éléments du contrôle")];}
+function kontrolSelectedChantier(d){
+ const field=d?.getElementById("site"),raw=String(field?.value||"").trim(),hub=window.InovtecDataHub;
+ if(!raw)return null;
+ const exactId=String(field?.dataset?.ivChantierId||"").trim();
+ let site=exactId?Array.from(hub?.chantiers||[]).find(c=>String(c.id)===exactId):null;
+ if(!site)site=hub?.findChantier?.(raw)||null;
+ if(site?.id&&field)field.dataset.ivChantierId=String(site.id);
+ return site;
+}
+function kontrolCdcCount(site){
+ const rows=site?.cahierDesChargesV1?.rows;
+ if(!Array.isArray(rows))return 0;
+ return rows.filter(r=>String(r?.prestation||"").trim()).length;
+}
+function kontrol(){const d=kontrolDoc();if(!d)return [card("⌖","Chantier","—","Sélectionnez un chantier"),card("▦","Critères","—","Sélectionnez un chantier"),card("◎","Score","—","Note qualité"),card("▤","Photos","—","Pièces du contrôle")];inject(d,"kontrol");const field=d.getElementById("site"),raw=String(field?.value||"").trim(),site=kontrolSelectedChantier(d),score=txt(d.getElementById("score"),"—"),photos=txt(d.getElementById("photosCount"),"0 photo");if(!raw)return [card("⌖","Chantier","—","Sélectionnez un chantier"),card("▦","Critères","—","Sélectionnez un chantier"),card("◎","Note qualité",score,"En attente du chantier"),card("▤","Photos",photos,"Éléments du contrôle")];if(!site)return [card("⌖","Chantier",raw,"Chantier non reconnu","warning"),card("▦","Critères","—","Sélectionnez un chantier enregistré"),card("◎","Note qualité",score,"Chantier à confirmer"),card("▤","Photos",photos,"Éléments du contrôle")];const count=kontrolCdcCount(site),taskLabel=count+" tâche"+(count>1?"s":"");return [card("⌖","Chantier",String(site.nom||raw),"Cahier personnalisé"),card("▦","Critères",taskLabel,count?"Cahier des charges du chantier":"Cahier des charges vide",count?"":"warning"),card("◎","Note qualité",score,"Calcul KONTROL"),card("▤","Photos",photos,"Éléments du contrôle")];}
 function values(){const d=doc();if(!d)return[];inject(d,mode==="kontrol"?"kontrol-cloud":mode);if(mode==="planning")return planning(d);if(mode==="discipline")return discipline(d);if(mode==="infos")return infos(d);if(mode==="agents")return agents(d);if(mode==="organisation")return organisation(d);if(mode==="heures")return heures(d);if(mode==="temps")return temps(d);if(mode==="salaire")return salaire(d);if(mode==="kontrol")return kontrol();return[];}
 function render(){const items=values();if(!items.length)return;const html=items.join("");if(html===lastHtml)return;lastHtml=html;summary.innerHTML=html;}
 function bindSummaryEvents(d){if(!d?.body||d.body.dataset.ivSummaryEvents==="1")return;d.body.dataset.ivSummaryEvents="1";const schedule=()=>{clearTimeout(timer);timer=setTimeout(render,140)};["input","change","click","iv:chantier-saved"].forEach(type=>d.addEventListener(type,schedule,true));}
 function start(){clearTimeout(timer);lastHtml="";const d=doc();bindSummaryEvents(d);setTimeout(render,90);setTimeout(render,500);setTimeout(()=>{render();if(mode==="kontrol")bindSummaryEvents(kontrolDoc())},1200)}
 frame.addEventListener("load",start);if(frame.contentDocument?.readyState==="complete")start();
+try{window.InovtecDataHub?.subscribe?.(()=>{if(mode==="kontrol"){clearTimeout(timer);timer=setTimeout(render,80)}})}catch{}
 })();
