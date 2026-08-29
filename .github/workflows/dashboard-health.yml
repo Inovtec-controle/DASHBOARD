@@ -114,7 +114,7 @@ jobs:
           grep -q 'writeSharedHistory(blob' kontrol-cloud.js
           grep -q 'resolveChantierId(details)' kontrol-cloud.js
           grep -q '_type: "kontrolPdfMeta"' kontrol-cloud.js
-          grep -q 'kontrol-cloud.js?v=20260830-historydate1' KONTROL-CLOUD-LEGACY.html
+          grep -q 'kontrol-cloud.js?v=20260830-savepdf1' KONTROL-CLOUD-LEGACY.html
           grep -q 'Variables agents' index.html
           grep -q 'VARIABLES.html?v=20260829-variables-dashboard1' index.html
           grep -q 'id="kpiVariables"' index.html
@@ -167,15 +167,18 @@ jobs:
           grep -q 'inovtec-info-contract-fields.js?v=20260829-idlock1' inovtec-page-shell.html
           grep -q 'inovtec-info-agent-planning.js?v=20260829-agentdropdown1' inovtec-page-shell.html
           grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' inovtec-page-shell.html
-          grep -q 'inovtec-info-control-history.js?v=20260830-historydate1' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-kontrol-shared-archive.js?v=20260830-historydate1' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260830-historydate1' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-info-control-history.js?v=20260830-savepdf1' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-kontrol-shared-archive.js?v=20260830-savepdf1' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260830-savepdf1' INFOCHANTIERS-V2-LEGACY.html
           grep -q 'id="ivControlHistoryCard"' INFOCHANTIERS-V2-LEGACY.html
           grep -q 'chantierId' inovtec-info-control-history.js
           grep -q 'DIRECT_CONTROL_TYPE' kontrol-cloud.js
           grep -q 'saveControlDirect' kontrol-cloud.js
           grep -q 'kontrolHistoryRecordIds' kontrol-cloud.js
-          grep -q 'Enregistrer le contrôle' kontrol-cloud.js
+          grep -q 'Enregistrer + PDF' kontrol-cloud.js
+          grep -q '__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__' kontrol-cloud.js
+          grep -q 'ivAllowOriginalPdfOnce' kontrol-cloud.js
+          grep -q 'Enregistré + PDF' kontrol-cloud.js
           grep -q 'RECORD_TYPE="kontrolControlRecord"' inovtec-info-control-history.js
           grep -q 'subscribeRecords' inovtec-info-control-history.js
           grep -q 'kontrolHistoryRecordIds' inovtec-info-control-history.js
@@ -223,7 +226,7 @@ jobs:
             exit 1
           fi
           grep -q 'inovtec-shell.css?v=20260829-agentfull1' inovtec-page-shell.html
-          grep -q 'inovtec-shell.js?v=20260830-historydate1' inovtec-page-shell.html
+          grep -q 'inovtec-shell.js?v=20260830-savepdf1' inovtec-page-shell.html
           grep -q 'stripRemovedDisciplineNavigation' inovtec-page-shell.html
           grep -q 'href.includes("discipline")' inovtec-page-shell.html
           grep -q 'max-height:none' AGENTS-LEGACY.html
