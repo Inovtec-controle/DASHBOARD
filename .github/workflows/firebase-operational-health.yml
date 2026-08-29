@@ -123,6 +123,12 @@ jobs:
           grep -Fq 'get({source:"server"})' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'data-iv-chantier-id' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'persist(d,wasNew,token,snapshot)' inovtec-info-persistence-stable.js
+          grep -Fq 'if(exact)return{id:exact}' inovtec-info-persistence-stable.js
+          grep -Fq 'if(waitForNew){await wait(160);continue}' inovtec-info-persistence-stable.js
+          grep -Fq 'selectedSiteId(d)' inovtec-info-contact-mode.js
+          grep -Fq 'selectedSiteId(d)' inovtec-info-contract-fields.js
+          grep -Fq 'button.dataset.ivChantierId' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq 'get({source:"server"})' inovtec-cdc-operational-fix.js
           if grep -Fq 'setTimeout(()=>persist(d,wasNew,token),80)' inovtec-info-persistence-stable.js; then
             echo "::error file=inovtec-info-persistence-stable.js::La sauvegarde Infos chantier est redevenue différée."
             exit 1
@@ -176,4 +182,5 @@ jobs:
           grep -Fq 'kontrol/${user.uid}/pdfs' kontrol-cloud.js
 
       - name: Résumé
-        run: echo "Contrat Firebase complet vérifié : planning, agents, pièces agents, congés, variables, organisation, chantiers, discipline et KONTROL."
+        run: |
+          echo "Contrat Firebase complet vérifié : planning, agents, pièces agents, congés, variables, organisation, chantiers, discipline et KONTROL."
