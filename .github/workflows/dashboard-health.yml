@@ -82,6 +82,11 @@ jobs:
           done
           grep -qi '<!DOCTYPE html>' index.html
           grep -q 'Classeur agents' index.html
+          grep -q 'dashboard-concept3.css?v=20260829-c3-1' index.html
+          grep -q 'dashboard-concept3.js?v=20260829-c3-1' index.html
+          grep -q 'Centre de pilotage' index.html
+          grep -q 'Raccourcis quotidiens' index.html
+          grep -q 'Planning du jour' index.html
           if grep -q 'id="btnResidence"\|id="btnBureau"' KONTROL.html; then
             echo "::error file=KONTROL.html::Les anciens choix Résidence/Bureau sont encore visibles."
             exit 1
@@ -244,6 +249,7 @@ jobs:
           node --check dashboard-index.js
           node --check dashboard-index-shared.js
           node --check dashboard-mark1.js
+          node --check dashboard-concept3.js
           node --check dashboard-global-search.js
           node --check inovtec-search-handoff.js
           node --check inovtec-shell.js
