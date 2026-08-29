@@ -53,6 +53,14 @@ function agentDeletionState(...lists){
   return{ids,names,activeNames};
 }
 function activeAgent(a,d){if(!agentHasName(a))return false;const n=norm(agentName(a));return a&&a._deleted!==true&&!d.ids.has(String(a.id||""))&&!(d.names.has(n)&&!d.activeNames.has(n))}
+function incidentIsOpen(incident){
+  if(!incident||incident.deleted===true||incident.archived===true)return false;
+  const s=norm(incident.statut||incident.status||"ouvert");
+  return !["clos","cloture","cloturee","ferme","fermee","archive","archivee"].includes(s);
+}
+function openIncidentCount(agents){
+  return (Array.isArray(agents)?agents:[]).reduce((total,agent)=>total+(Array.isArray(agent?.incidents)?agent.incidents.filter(incidentIsOpen).length:0),0);
+}
 function disciplineFrom(data){
   if(Array.isArray(data?.recordsV9))return data.recordsV9;
   if(Array.isArray(data?.recordsV8))return data.recordsV8;
@@ -143,6 +151,14 @@ async function refresh(user){
     set("kpiAgentsSub","Synchronisé");
   }else{
     set("kpiAgentsSub","Synchronisation en cours");
+  }
+
+  if(agents.length||sharedR.status==="fulfilled"||personalR.status==="fulfilled"){
+    const openIncidents=openIncidentCount(agents);
+    set("kpiIncidents",openIncidents);
+    set("kpiIncidentsSub",openIncidents?(openIncidents+" à suivre"):"Aucun incident ouvert");
+  }else{
+    set("kpiIncidentsSub","Synchronisation en cours");
   }
 
   const discLists=[
