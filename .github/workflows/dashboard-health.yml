@@ -242,6 +242,13 @@ jobs:
           grep -q 'planning-calendar.js?v=' PLANNINGS-LEGACY.html
           grep -q 'planning-calendar.js?v=20260829-planningstable3' PLANNINGS-LEGACY.html
           grep -q 'planning-autoheight.js?v=20260829-planningstable3' PLANNINGS-LEGACY.html
+          grep -q 'inovtec-container-planning-link.js?v=20260829-freezefix1' inovtec-page-shell.html
+          grep -q '__INOVTEC_CONTAINER_PLANNING_LINK_STABLE__' inovtec-container-planning-link.js
+          if grep -q 'new MutationObserver(render).observe(d.body' inovtec-container-planning-link.js; then
+            echo "::error::Le lien Conteneurs/Planning recrée une boucle DOM infinie."
+            exit 1
+          fi
+          grep -q 'fix=planningfreeze1' PLANNINGS.html
           grep -q 'inovtec-planning-coverage.js?v=20260829-planningstable3' PLANNINGS-LEGACY.html
           grep -q 'sanitizePlanningState' planning-calendar.js
           grep -q 'isSameLocation' planning-calendar.js
@@ -316,6 +323,7 @@ jobs:
           node --check planning-calendar.js
           node --check planning-autoheight.js
           node --check inovtec-planning-coverage.js
+          node --check inovtec-container-planning-link.js
           node --check planning-editor-stability.js
           node --check planning-pdf.js
           node --check planning-calendar-legal-loader.js
