@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           grep -q 'inovtec-cross-page-data.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' inovtec-info-shell-stable.html
-          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260829-sitehistory5' KONTROL-CLOUD-LEGACY.html
+          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260829-sitehistory6' KONTROL-CLOUD-LEGACY.html
           grep -q 'dashboard-index-shared.js?v=20260829-agentclean1' index.html
 
       - name: Vérifier le modèle commun
@@ -57,6 +57,8 @@ jobs:
           grep -q 'kontrolPdfMeta' dashboard-index-shared.js
           grep -q 'agentRefIds' inovtec-kontrol-ref-metadata.js
           grep -q 'chantierId' inovtec-kontrol-ref-metadata.js
+          grep -q 'kontrolHistoryMetaIds' inovtec-kontrol-ref-metadata.js
+          grep -q 'referenceVersion:2' inovtec-kontrol-ref-metadata.js
 
       - name: Vérifier les calculateurs indépendants
         shell: bash
