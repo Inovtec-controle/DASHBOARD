@@ -114,7 +114,7 @@ jobs:
           grep -q 'writeSharedHistory(blob' kontrol-cloud.js
           grep -q 'resolveChantierId(details)' kontrol-cloud.js
           grep -q '_type: "kontrolPdfMeta"' kontrol-cloud.js
-          grep -q 'kontrol-cloud.js?v=20260829-sitehistory5' KONTROL-CLOUD-LEGACY.html
+          grep -q 'kontrol-cloud.js?v=20260829-sitehistory6' KONTROL-CLOUD-LEGACY.html
           grep -q 'Variables agents' index.html
           grep -q 'VARIABLES.html?v=20260829-variables-dashboard1' index.html
           grep -q 'id="kpiVariables"' index.html
@@ -167,11 +167,17 @@ jobs:
           grep -q 'inovtec-info-contract-fields.js?v=20260829-idlock1' inovtec-page-shell.html
           grep -q 'inovtec-info-agent-planning.js?v=20260829-agentdropdown1' inovtec-page-shell.html
           grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' inovtec-page-shell.html
-          grep -q 'inovtec-info-control-history.js?v=20260829-sitehistory4' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-kontrol-shared-archive.js?v=20260829-sitehistory5' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260829-sitehistory5' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-info-control-history.js?v=20260829-sitehistory6' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-kontrol-shared-archive.js?v=20260829-sitehistory6' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260829-sitehistory6' INFOCHANTIERS-V2-LEGACY.html
           grep -q 'id="ivControlHistoryCard"' INFOCHANTIERS-V2-LEGACY.html
           grep -q 'chantierId' inovtec-info-control-history.js
+          grep -q 'kontrolHistoryMetaIds' kontrol-cloud.js
+          grep -q 'kontrolHistoryMetaIds' inovtec-info-control-history.js
+          grep -q 'auth.onAuthStateChanged' inovtec-info-control-history.js
+          grep -q 'arrayUnion(metaDocId)' kontrol-cloud.js
+          grep -q 'referenceVersion:2' inovtec-kontrol-ref-metadata.js
+          node --check inovtec-kontrol-ref-metadata.js
           grep -q 'agentsAffectes' inovtec-info-agent-planning.js
           grep -q 'infoAssignedAgents' inovtec-visual-runtime.js
           grep -q 'iv:chantier-saved' inovtec-visual-runtime.js
