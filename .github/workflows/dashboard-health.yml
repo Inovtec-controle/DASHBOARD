@@ -195,7 +195,7 @@ jobs:
             exit 1
           fi
           grep -q 'inovtec-shell.css?v=20260829-agentfull1' inovtec-page-shell.html
-          grep -q 'inovtec-shell.js?v=20260829-variables-dashboard1' inovtec-page-shell.html
+          grep -q 'inovtec-shell.js?v=20260829-planningstable1' inovtec-page-shell.html
           grep -q 'stripRemovedDisciplineNavigation' inovtec-page-shell.html
           grep -q 'href.includes("discipline")' inovtec-page-shell.html
           grep -q 'max-height:none' AGENTS-LEGACY.html
@@ -241,6 +241,16 @@ jobs:
           grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js
           grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css
           grep -q 'planning-calendar.js?v=' PLANNINGS-LEGACY.html
+          grep -q 'planning-calendar.js?v=20260829-planningstable1' PLANNINGS-LEGACY.html
+          grep -q 'planning-autoheight.js?v=20260829-planningstable1' PLANNINGS-LEGACY.html
+          grep -q 'inovtec-planning-coverage.js?v=20260829-planningstable1' PLANNINGS-LEGACY.html
+          grep -q 'sanitizePlanningState' planning-calendar.js
+          grep -q '__INOVTEC_PLANNING_AUTOHEIGHT_STABLE__' planning-autoheight.js
+          if grep -q 'attributes:true' planning-autoheight.js; then
+            echo "::error::Le Planning ne doit plus observer ses propres changements de style."
+            exit 1
+          fi
+          grep -q '8000' inovtec-planning-coverage.js
           grep -q 'id="globalSearch"' index.html
           grep -q 'dashboard-global-search.js?v=20260829-agentclean1' index.html
           grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-page-shell.html
@@ -299,6 +309,8 @@ jobs:
           node --check inovtec-info-agent-planning.js
           node --check kontrol-cloud.js
           node --check planning-calendar.js
+          node --check planning-autoheight.js
+          node --check inovtec-planning-coverage.js
           node --check planning-editor-stability.js
           node --check planning-pdf.js
           node --check planning-calendar-legal-loader.js
