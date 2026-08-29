@@ -135,6 +135,7 @@ jobs:
           grep -Fq 'Array.isArray(site?.agentsAffectes)' inovtec-info-agent-planning.js
           grep -Fq 'masterAgents()' inovtec-info-agent-planning.js
           grep -Fq 'inferAssignments(doc,site)' inovtec-info-agent-planning.js
+          grep -Fq 'iv:chantier-saved' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'ivAgentPickerButton' inovtec-info-agent-planning.js
           grep -Fq 'button.dataset.ivChantierId' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'get({source:"server"})' inovtec-cdc-operational-fix.js
