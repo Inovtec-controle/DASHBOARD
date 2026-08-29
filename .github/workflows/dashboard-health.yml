@@ -140,6 +140,10 @@ jobs:
           grep -q 'fitAgentsFullPage' inovtec-shell.js
           grep -q '_deleted: true' AGENTS-LEGACY.html
           grep -q 'function agentHasName' AGENTS-LEGACY.html
+          grep -Fq '<label>Nom</label>' AGENTS-LEGACY.html
+          grep -Fq 'id="f_prenom"' AGENTS-LEGACY.html
+          grep -Fq '<label>Prénom</label>' AGENTS-LEGACY.html
+          grep -Fq 'id="f_nom"' AGENTS-LEGACY.html
           grep -q 'function cleanupAgentState' AGENTS-LEGACY.html
           grep -q 'function selectAgentById' AGENTS-LEGACY.html
           grep -q 'data-agent-id' AGENTS-LEGACY.html
@@ -157,7 +161,7 @@ jobs:
           grep -q 'inovtec-data-hub.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-referential.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js?v=20260829-agentstable1' inovtec-page-shell.html
-          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260829-operational1' AGENTS.html
+          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260829-namefields1' AGENTS.html
           if grep -q 'inovtec-agents-list-fit.js' AGENTS-LEGACY.html; then
             echo "::error::Le Classeur agents utilise encore l'affichage compact adaptatif."
             exit 1
