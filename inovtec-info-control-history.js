@@ -1,7 +1,7 @@
 (()=>{
 "use strict";
-if(window.__INOVTEC_INFO_CONTROL_HISTORY_V2__)return;
-window.__INOVTEC_INFO_CONTROL_HISTORY_V2__=true;
+if(window.__INOVTEC_INFO_CONTROL_HISTORY_V3__)return;
+window.__INOVTEC_INFO_CONTROL_HISTORY_V3__=true;
 if(!window.firebase||!firebase.firestore)return;
 if(!firebase.apps.length&&window.INOVTEC_FIREBASE_CONFIG)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
 const db=firebase.firestore(),auth=firebase.auth?.(),META_TYPE="kontrolPdfMeta",RECORD_TYPE="kontrolControlRecord";
@@ -28,7 +28,11 @@ function ensureStyle(){
     #ivControlHistoryCard .iv-control-history-empty{padding:14px;border:1px dashed #cedbd5;border-radius:12px;background:#f8fbf9;color:#6f7f77;font-size:11px;text-align:center}
     #ivControlHistoryCard .iv-control-history-open{flex:0 0 auto;white-space:nowrap}
     #ivControlHistoryCard .iv-control-history-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-    #ivControlHistoryCard .iv-control-history-delete{flex:0 0 auto;white-space:nowrap}
+    #ivControlHistoryCard .iv-control-history-delete{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;white-space:nowrap;min-height:38px;padding:8px 12px!important;border:1px solid #dc2626!important;border-radius:10px!important;background:#fff1f2!important;color:#b91c1c!important;font-weight:800!important;cursor:pointer!important;visibility:visible!important;opacity:1!important}
+    #ivControlHistoryCard .iv-control-history-delete:hover{background:#fee2e2!important}
+    #ivControlHistoryCard .iv-control-history-actions{min-width:max-content}
+    #ivControlViewer .iv-control-viewer-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    #ivControlViewer .iv-control-viewer-delete{display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:1px solid #dc2626;border-radius:10px;background:#fff1f2;color:#b91c1c;font-weight:800;cursor:pointer}
     #ivControlViewer{position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.58);padding:24px;overflow:auto}
     #ivControlViewer[hidden]{display:none!important}
     #ivControlViewer .iv-control-viewer-panel{max-width:1080px;margin:0 auto;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(15,23,42,.28);overflow:hidden}
@@ -62,6 +66,8 @@ function ensureStyle(){
     @media(max-width:620px){
       #ivControlHistoryCard .iv-control-history-row{align-items:stretch;flex-direction:column}
       #ivControlHistoryCard .iv-control-history-open{width:100%}
+      #ivControlHistoryCard .iv-control-history-actions{width:100%;min-width:0;display:grid;grid-template-columns:1fr}
+      #ivControlHistoryCard .iv-control-history-delete{width:100%}
     }
   `;
   d.head.appendChild(s);
@@ -153,7 +159,7 @@ function ensureViewer(){
   viewer=d.createElement("div");
   viewer.id="ivControlViewer";
   viewer.hidden=true;
-  viewer.innerHTML='<section class="iv-control-viewer-panel" role="dialog" aria-modal="true" aria-labelledby="ivControlViewerTitle"><div class="iv-control-viewer-head"><div><h2 id="ivControlViewerTitle" class="iv-control-viewer-title">Contrôle qualité</h2><div id="ivControlViewerSub" class="iv-control-viewer-sub"></div></div><button id="ivControlViewerClose" class="btn btn-secondary iv-control-close" type="button">Fermer</button></div><div id="ivControlViewerBody" class="iv-control-viewer-body"></div></section>';
+  viewer.innerHTML='<section class="iv-control-viewer-panel" role="dialog" aria-modal="true" aria-labelledby="ivControlViewerTitle"><div class="iv-control-viewer-head"><div><h2 id="ivControlViewerTitle" class="iv-control-viewer-title">Contrôle qualité</h2><div id="ivControlViewerSub" class="iv-control-viewer-sub"></div></div><div class="iv-control-viewer-actions"><button id="ivControlViewerDelete" class="iv-control-viewer-delete" type="button">Supprimer</button><button id="ivControlViewerClose" class="btn btn-secondary iv-control-close" type="button">Fermer</button></div></div><div id="ivControlViewerBody" class="iv-control-viewer-body"></div></section>';
   d.body.appendChild(viewer);
   viewer.querySelector("#ivControlViewerClose")?.addEventListener("click",()=>{viewer.hidden=true});
   viewer.addEventListener("click",event=>{if(event.target===viewer)viewer.hidden=true});
@@ -171,6 +177,12 @@ async function openControlViewer(item,button){
   viewer.hidden=false;
   title.textContent="Contrôle qualité — "+(item.site||selectedSiteName()||"Chantier");
   sub.textContent=[formatControlDate(item.controlDate),item.controlTime,item.createdByEmail?("Enregistré par "+item.createdByEmail):""].filter(Boolean).join(" • ");
+  const viewerDelete=viewer.querySelector("#ivControlViewerDelete");
+  if(viewerDelete){
+    viewerDelete.onclick=()=>deleteControlRecord(item,viewerDelete);
+    viewerDelete.disabled=false;
+    viewerDelete.textContent="Supprimer";
+  }
   body.innerHTML="";
   const summary=d.createElement("div");summary.className="iv-control-summary";
   summary.append(summaryCard("Note",item.score||"—"),summaryCard("Contrôleur",item.controller||"—"),summaryCard("Agent(s)",item.agents||"—"),summaryCard("Photos",String(Number(item.photoCount)||0)));
@@ -383,7 +395,7 @@ function render(){
       const badge=d.createElement("span");badge.className="status ok";badge.textContent=(Number(item.photoCount)||0)?((Number(item.photoCount)||0)+" photo"+((Number(item.photoCount)||0)>1?"s":"")):"Contrôle enregistré";
       const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Visualiser le contrôle";
       button.addEventListener("click",()=>openControlViewer(item,button));
-      const del=d.createElement("button");del.type="button";del.className="btn btn-danger iv-control-history-delete";del.textContent="Supprimer";
+      const del=d.createElement("button");del.type="button";del.className="iv-control-history-delete";del.textContent="Supprimer";del.title="Supprimer ce contrôle";del.setAttribute("aria-label","Supprimer ce contrôle");
       del.addEventListener("click",()=>deleteControlRecord(item,del));
       actions.append(badge,button,del);
       row.append(copy,actions);
@@ -398,7 +410,7 @@ function render(){
       const actions=d.createElement("div");actions.className="iv-control-history-actions";
       const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Consulter le PDF";
       button.addEventListener("click",()=>openPdf(item,button));
-      const del=d.createElement("button");del.type="button";del.className="btn btn-danger iv-control-history-delete";del.textContent="Supprimer";
+      const del=d.createElement("button");del.type="button";del.className="iv-control-history-delete";del.textContent="Supprimer";del.title="Supprimer ce contrôle";del.setAttribute("aria-label","Supprimer ce contrôle");
       del.addEventListener("click",()=>deletePdfHistory(item,del));
       actions.append(button,del);
       copy.append(title,details);row.append(copy,actions);
