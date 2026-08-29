@@ -35,6 +35,7 @@ jobs:
             ORGA-LEGACY.html
             INFOCHANTIERS-V2-LEGACY.html
             inovtec-info-persistence-stable.js
+            inovtec-info-control-history.js
             inovtec-site-management-layout.js
             inovtec-container-schedule.js
             discipline-firestore-bridge.js
@@ -65,6 +66,7 @@ jobs:
             inovtec-shared-workspace.js \
             inovtec-cross-page-data.js \
             inovtec-info-persistence-stable.js \
+            inovtec-info-control-history.js \
             inovtec-info-agent-planning.js \
             inovtec-site-management-layout.js \
             inovtec-container-schedule.js \
@@ -125,6 +127,9 @@ jobs:
           grep -Fq 'setSaveButtonState("error")' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'get({source:"server"})' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'data-iv-chantier-id' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq 'id="ivControlHistoryCard"' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq 'where("_type","==",META_TYPE)' inovtec-info-control-history.js
+          grep -Fq 'chantierId' inovtec-info-control-history.js
           grep -Fq 'persist(d,wasNew,token,snapshot)' inovtec-info-persistence-stable.js
           grep -Fq 'if(exact)return{id:exact}' inovtec-info-persistence-stable.js
           grep -Fq 'if(waitForNew){await wait(160);continue}' inovtec-info-persistence-stable.js
