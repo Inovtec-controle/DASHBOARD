@@ -6,6 +6,7 @@ const $=id=>document.getElementById(id);
 const parse=(s,f=null)=>{try{const v=JSON.parse(String(s||""));return v??f}catch{return f}};
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const localJson=(k,f)=>{try{return parse(localStorage.getItem(k)||"",f)}catch{return f}};
+const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const SHARED_ID="__inovtec_shared_workspace_v1__";
 const monthKey=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
 const isoDate=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
@@ -23,9 +24,9 @@ function mergePlanning(...items){const valid=items.filter(x=>x&&typeof x==="obje
 function setText(id,v){const e=$(id);if(e)e.textContent=String(v)}
 function formatAgo(ts){const n=typeof ts==="number"?ts:Date.parse(ts||"");if(!Number.isFinite(n))return"";const m=Math.max(0,Math.round((Date.now()-n)/60000));if(m<1)return"À l’instant";if(m<60)return"Il y a "+m+" min";const h=Math.round(m/60);if(h<24)return"Il y a "+h+" h";return new Intl.DateTimeFormat("fr-FR",{day:"2-digit",month:"2-digit"}).format(new Date(n))}
 function showList(id,html){const box=$(id);if(box)box.innerHTML=html}
-function alertRow(icon,title,sub,badge,tone=""){return '<div class="c3-alert"><span class="c3-alert-ico">'+icon+'</span><div><strong>'+title+'</strong><small>'+sub+'</small></div><span class="c3-badge '+tone+'">'+badge+'</span></div>'}
-function feedRow(item){return '<div class="c3-feed-row"><time>'+item.time+'</time><span class="c3-feed-ico">'+item.icon+'</span><div><strong>'+item.title+'</strong><small>'+item.sub+'</small></div><span class="who">'+item.who+'</span></div>'}
-function dayRow(e,agents){const a=agents.find(x=>String(x.id)===String(e.agentId));return '<div class="c3-day-row"><time>'+String(e.start||"—")+'</time><span class="c3-day-dot">●</span><div><strong>'+String(e.task||e.site||"Intervention")+'</strong><small>'+[e.site,a?.name].filter(Boolean).join(" • ")+'</small></div><span></span></div>'}
+function alertRow(icon,title,sub,badge,tone=""){return '<div class="c3-alert"><span class="c3-alert-ico">'+esc(icon)+'</span><div><strong>'+esc(title)+'</strong><small>'+esc(sub)+'</small></div><span class="c3-badge '+esc(tone)+'">'+esc(badge)+'</span></div>'}
+function feedRow(item){return '<div class="c3-feed-row"><time>'+esc(item.time)+'</time><span class="c3-feed-ico">'+esc(item.icon)+'</span><div><strong>'+esc(item.title)+'</strong><small>'+esc(item.sub)+'</small></div><span class="who">'+esc(item.who)+'</span></div>'}
+function dayRow(e,agents){const a=agents.find(x=>String(x.id)===String(e.agentId));return '<div class="c3-day-row"><time>'+esc(e.start||"—")+'</time><span class="c3-day-dot">●</span><div><strong>'+esc(e.task||e.site||"Intervention")+'</strong><small>'+esc([e.site,a?.name].filter(Boolean).join(" • "))+'</small></div><span></span></div>'}
 async function refresh(user){
  if(!user||!window.firebase?.firestore)return;
  const db=firebase.firestore();
