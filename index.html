@@ -20,7 +20,6 @@
       <a class="active" href="index.html"><span class="ico">⌂</span><span>Accueil</span></a>
       <a href="PLANNINGS.html?v=20260820-auth-recovery1"><span class="ico">▦</span><span>Planning</span></a>
       <a href="KONTROL-CLOUD.html?v=20260820-auth-recovery1"><span class="ico">✓</span><span>KONTROL</span></a>
-      <a href="DISCIPLINE-V9.html?v=20260820-auth-recovery1"><span class="ico">⚠</span><span>Discipline</span></a>
       <a href="INFOCHANTIERS-V2.html?v=20260829-agentbubble1"><span class="ico">▥</span><span>Infos chantier</span></a>
       <a href="AGENTS.html?v=20260820-auth-recovery1"><span class="ico">♙</span><span>Classeur agents</span></a>
       <a href="ORGA.html?v=20260820-auth-recovery1"><span class="ico">◎</span><span>Organisation</span></a>
@@ -67,7 +66,6 @@
           <div class="m1-kpi"><div class="icon">▥</div><small>Chantiers enregistrés</small><b id="kpiSites">—</b><div id="kpiSitesSub" class="sub">Firebase</div><div class="spark"></div></div>
           <div class="m1-kpi"><div class="icon">♙</div><small>Agents référencés</small><b id="kpiAgents">—</b><div id="kpiAgentsSub" class="sub">Classeur agents</div><div class="spark"></div></div>
           <div class="m1-kpi"><div class="icon">✓</div><small>Contrôles KONTROL archivés</small><b id="kpiKontrol">—</b><div id="kpiKontrolSub" class="sub">PDF partagés</div><div class="spark"></div></div>
-          <div class="m1-kpi warn"><div class="icon">⚠</div><small>Dossiers Discipline ouverts</small><b id="kpiDiscipline">—</b><div id="kpiDisciplineSub" class="sub">Suivi partagé</div><div class="spark"></div></div>
           <div class="m1-kpi"><div class="icon">◷</div><small>Heures sup. du mois</small><b id="kpiHours">—</b><div id="kpiHoursSub" class="sub">Lignes enregistrées</div><div class="spark"></div></div>
           <div class="m1-kpi"><div class="icon">◎</div><small>Tâches Organisation actives</small><b id="kpiTasks">—</b><div id="kpiTasksSub" class="sub">Organisation</div><div class="spark"></div></div>
         </div>
@@ -78,7 +76,6 @@
         <div class="m1-modules">
           <a class="m1-module" href="PLANNINGS.html?v=20260820-auth-recovery1"><span class="micon">▦</span><strong>Planning</strong><p>Gérez les plannings, les agents et les affectations par chantier.</p><span class="arrow">→</span></a>
           <a class="m1-module" href="KONTROL-CLOUD.html?v=20260820-auth-recovery1"><span class="micon">✓</span><strong>KONTROL</strong><p>Réalisez les contrôles qualité et retrouvez les PDF archivés.</p><span class="arrow">→</span></a>
-          <a class="m1-module" href="DISCIPLINE-V9.html?v=20260820-auth-recovery1"><span class="micon">⚠</span><strong>Discipline</strong><p>Suivez dossiers, observations, photos et documents disciplinaires.</p><span class="arrow">→</span></a>
           <a class="m1-module" href="INFOCHANTIERS-V2.html?v=20260829-agentbubble1"><span class="micon">▥</span><strong>Infos chantier</strong><p>Contacts, accès, consignes, conteneurs et cahiers des charges.</p><span class="arrow">→</span></a>
           <a class="m1-module" href="AGENTS.html?v=20260820-auth-recovery1"><span class="micon">♙</span><strong>Classeur agents</strong><p>Fiches agents, contrats, documents, informations et suivi.</p><span class="arrow">→</span></a>
           <a class="m1-module" href="ORGA.html?v=20260820-auth-recovery1"><span class="micon">◎</span><strong>Organisation</strong><p>Centralisez les tâches, priorités, échéances et avancement.</p><span class="arrow">→</span></a>
@@ -94,7 +91,6 @@
             <div class="m1-row"><span class="dot"></span><div><strong>Infos chantier</strong><small>Chantiers accessibles à tous les comptes connectés</small></div><span id="opSites" class="value">—</span></div>
             <div class="m1-row"><span class="dot"></span><div><strong>Classeur agents</strong><small>Référentiel commun des agents</small></div><span id="opAgents" class="value">—</span></div>
             <div class="m1-row"><span class="dot"></span><div><strong>KONTROL</strong><small>PDF de contrôles partagés</small></div><span id="opKontrol" class="value">—</span></div>
-            <div class="m1-row"><span class="dot orange"></span><div><strong>Discipline</strong><small>Dossiers ouverts à suivre</small></div><span id="opDiscipline" class="value">—</span></div>
             <div class="m1-row"><span class="dot blue"></span><div><strong>Heures sup.</strong><small>Lignes enregistrées ce mois</small></div><span id="hsLines" class="value">—</span></div>
           </div>
         </div>
@@ -102,7 +98,6 @@
         <div class="m1-panel">
           <div class="m1-panel-title"><h2>Données partagées</h2><a href="AGENTS.html?v=20260820-auth-recovery1">Voir les agents</a></div>
           <div class="m1-donut-wrap"><div class="m1-donut-box"><div class="m1-donut"></div><div class="m1-donut-label"><b id="opAgentsDonut">SYNC</b><span>Firebase commun</span></div></div></div>
-          <div class="m1-list"><div class="m1-row"><span class="dot"></span><div><strong>Agents et chantiers</strong><small>Référentiels communs entre les pages</small></div><span class="value">✓</span></div><div class="m1-row"><span class="dot"></span><div><strong>Discipline et KONTROL</strong><small>Données réconciliées entre comptes</small></div><span class="value">✓</span></div></div>
         </div>
 
         <div class="m1-stack">
@@ -131,7 +126,6 @@
               <a href="PLANNINGS.html?v=20260820-auth-recovery1"><span>▦</span>Ouvrir le planning<span class="chev">›</span></a>
               <a href="KONTROL-CLOUD.html?v=20260820-auth-recovery1"><span>✓</span>Nouveau contrôle<span class="chev">›</span></a>
               <a href="INFOCHANTIERS-V2.html?v=20260829-agentbubble1"><span>▥</span>Créer / modifier un chantier<span class="chev">›</span></a>
-              <a href="DISCIPLINE-V9.html?v=20260820-auth-recovery1"><span>⚠</span>Nouveau dossier Discipline<span class="chev">›</span></a>
               <a href="ORGA.html?v=20260820-auth-recovery1"><span>◎</span>Ajouter une tâche<span class="chev">›</span></a>
               <a href="HEURE-SUP.html?v=20260820-auth-recovery1"><span>◷</span>Ajouter des heures sup.<span class="chev">›</span></a>
               <a href="ESSENCE.html"><span>⛽</span>Calculer une dépense carburant<span class="chev">›</span></a>
@@ -140,7 +134,6 @@
           <div class="m1-panel m1-alerts">
             <div class="m1-panel-title"><h2>Points d'attention</h2></div>
             <div class="m1-list">
-              <div class="m1-row"><span class="dot orange"></span><div><strong>Dossiers Discipline</strong><small>Consultez les dossiers actuellement ouverts.</small></div><a href="DISCIPLINE-V9.html?v=20260820-auth-recovery1" class="value">Voir</a></div>
               <div class="m1-row"><span class="dot red"></span><div><strong>Tâches en retard</strong><small>Issues des échéances de la page Organisation.</small></div><span id="taskLateAlert" class="value">—</span></div>
             </div>
           </div>
@@ -154,7 +147,6 @@
             <div class="m1-stat"><b id="summarySites">—</b><small>Chantiers</small></div>
             <div class="m1-stat"><b id="summaryAgents">—</b><small>Agents</small></div>
             <div class="m1-stat"><b id="summaryKontrol">—</b><small>PDF KONTROL</small></div>
-            <div class="m1-stat"><b id="summaryDiscipline">—</b><small>Dossiers ouverts</small></div>
           </div>
         </div>
         <div class="m1-panel">
@@ -185,7 +177,6 @@
 <script src="inovtec-firebase-indicator.js?v=20260815-1"></script>
 <script src="inovtec-conges-nav.js?v=20260815-1"></script>
 <script>
-(()=>{const pairs=[["kpiSites","summarySites"],["kpiAgents","summaryAgents"],["kpiKontrol","summaryKontrol"],["kpiDiscipline","summaryDiscipline"],["kpiAgents","opAgentsDonut"],["hsLines","hsLines2"],["taskLate","taskLateAlert"]];const sync=()=>pairs.forEach(([a,b])=>{const x=document.getElementById(a),y=document.getElementById(b);if(x&&y)y.textContent=x.textContent});pairs.forEach(([a])=>{const x=document.getElementById(a);if(x)new MutationObserver(sync).observe(x,{childList:true,subtree:true,characterData:true})});sync()})();
 </script>
 </body>
 </html>
