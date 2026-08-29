@@ -66,6 +66,7 @@ jobs:
             inovtec-shared-workspace.js \
             inovtec-cross-page-data.js \
             inovtec-info-persistence-stable.js \
+            inovtec-info-agent-planning.js \
             inovtec-site-management-layout.js \
             inovtec-container-schedule.js \
             conges.js \
@@ -129,6 +130,11 @@ jobs:
           grep -Fq 'if(waitForNew){await wait(160);continue}' inovtec-info-persistence-stable.js
           grep -Fq 'selectedSiteId(d)' inovtec-info-contact-mode.js
           grep -Fq 'selectedSiteId(d)' inovtec-info-contract-fields.js
+          grep -Fq 'data.agentsAffectes=' INFOCHANTIERS-V2-LEGACY.html
+          grep -Fq 'data.agentsAffectes=' inovtec-info-persistence-stable.js
+          grep -Fq 'Array.isArray(site?.agentsAffectes)' inovtec-info-agent-planning.js
+          grep -Fq 'masterAgents()' inovtec-info-agent-planning.js
+          grep -Fq 'inferAssignments(doc,site)' inovtec-info-agent-planning.js
           grep -Fq 'button.dataset.ivChantierId' INFOCHANTIERS-V2-LEGACY.html
           grep -Fq 'get({source:"server"})' inovtec-cdc-operational-fix.js
           if grep -Fq 'setTimeout(()=>persist(d,wasNew,token),80)' inovtec-info-persistence-stable.js; then
