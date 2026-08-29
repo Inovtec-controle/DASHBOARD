@@ -23,6 +23,10 @@
   const storage = firebase.storage();
   const SHARED_CHUNK_SIZE = 180000;
   const DIRECT_CONTROL_TYPE = "kontrolControlRecord";
+  const DIRECT_PHOTO_CHUNK_TYPE = "kontrolControlPhotoChunk";
+  const DIRECT_PHOTO_CHUNK_SIZE = 180000;
+  const MAX_DIRECT_PHOTOS = 20;
+  const MAX_DIRECT_PHOTO_CHARS = 18 * 1024 * 1024;
 
   function showToast(message, isError = false) {
     clearTimeout(toastTimer);
@@ -291,6 +295,89 @@
     }
   }
 
+  function readKontrolPhotos() {
+    const out = [];
+    try {
+      const raw = localStorage.getItem(WORKING_DRAFT_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      const photos = Array.isArray(parsed?.photos) ? parsed.photos : [];
+      photos.slice(0, MAX_DIRECT_PHOTOS).forEach((ph, index) => {
+        const dataUrl = String(ph?.dataUrl || "");
+        if (!dataUrl.startsWith("data:image/")) return;
+        out.push({
+          id: String(ph?.id || ("photo_" + index)),
+          name: String(ph?.name || ("Photo " + (index + 1))).slice(0,160),
+          caption: String(ph?.caption || "").slice(0,500),
+          dataUrl
+        });
+      });
+    } catch (error) {
+      console.warn("Lecture des photos KONTROL depuis le brouillon impossible", error);
+    }
+    if (out.length) return out;
+    try {
+      const doc = frame.contentDocument;
+      [...doc.querySelectorAll("#photosGrid .photo-card")].slice(0, MAX_DIRECT_PHOTOS).forEach((card,index)=>{
+        const img = card.querySelector("img"), input = card.querySelector(".caption input");
+        const dataUrl = String(img?.src || "");
+        if (!dataUrl.startsWith("data:image/")) return;
+        out.push({
+          id: String(card.dataset.pid || ("photo_" + index)),
+          name: "Photo " + (index + 1),
+          caption: String(input?.value || "").slice(0,500),
+          dataUrl
+        });
+      });
+    } catch (error) {
+      console.warn("Lecture des photos KONTROL depuis l’écran impossible", error);
+    }
+    return out;
+  }
+
+  async function writeControlPhotos(recordId, chantierId, photos) {
+    const refs = [];
+    let totalChars = 0;
+    for (let index = 0; index < Math.min(photos.length, MAX_DIRECT_PHOTOS); index++) {
+      const ph = photos[index];
+      const dataUrl = String(ph?.dataUrl || "");
+      if (!dataUrl.startsWith("data:image/")) continue;
+      if (totalChars + dataUrl.length > MAX_DIRECT_PHOTO_CHARS) {
+        console.warn("Limite photos KONTROL atteinte, les photos suivantes ne sont pas archivées");
+        break;
+      }
+      totalChars += dataUrl.length;
+      const chunks = [];
+      for (let i = 0; i < dataUrl.length; i += DIRECT_PHOTO_CHUNK_SIZE) chunks.push(dataUrl.slice(i, i + DIRECT_PHOTO_CHUNK_SIZE));
+      const photoId = "kphoto_" + hash(recordId + "|" + index + "|" + String(ph.id || ""));
+      const chunkIds = chunks.map((_,chunkIndex)=>"__kontrol_control_photo_chunk__" + photoId + "_" + String(chunkIndex).padStart(3,"0"));
+      for (let start = 0; start < chunks.length; start += 20) {
+        const batch = db.batch();
+        chunks.slice(start,start+20).forEach((data,offset)=>{
+          const chunkIndex = start + offset;
+          batch.set(db.collection("chantiers").doc(chunkIds[chunkIndex]),{
+            _hidden:true,
+            _type:DIRECT_PHOTO_CHUNK_TYPE,
+            recordId,
+            chantierId,
+            photoId,
+            photoIndex:index,
+            chunkIndex,
+            totalChunks:chunks.length,
+            data
+          });
+        });
+        await batch.commit();
+      }
+      refs.push({
+        photoId,
+        name:String(ph.name || ("Photo " + (index + 1))).slice(0,160),
+        caption:String(ph.caption || "").slice(0,500),
+        chunkIds,
+        sizeChars:dataUrl.length
+      });
+    }
+    return refs;
+  }
   async function saveControlDirect() {
     const user = auth.currentUser;
     if (!user) throw new Error("Connexion Firebase requise");
@@ -298,8 +385,10 @@
     const chantierId = await resolveChantierId(details);
     if (!chantierId) throw new Error("Choisis un chantier enregistré avant d’enregistrer le contrôle");
     const tasks = readKontrolTasks();
+    const photos = readKontrolPhotos();
     const now = Date.now();
     const recordId = "__kontrol_control__" + hash([user.uid, chantierId, now, details.controlDate, details.controlTime].join("|"));
+    const photoRefs = photos.length ? await writeControlPhotos(recordId, chantierId, photos) : [];
     const record = {
       _hidden: true,
       _type: DIRECT_CONTROL_TYPE,
@@ -314,6 +403,8 @@
       score: String(details.score || "").slice(0,40),
       observations: String(details.observations || "").slice(0,4000),
       tasks: tasks.slice(0,250),
+      photoRefs,
+      photoCount: photoRefs.length,
       createdAtMs: now,
       timeCreated: new Date(now).toISOString(),
       createdByUid: user.uid,
