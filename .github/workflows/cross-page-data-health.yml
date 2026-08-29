@@ -61,6 +61,8 @@ jobs:
           grep -q 'kontrolHistoryRecordIds' kontrol-cloud.js
           grep -q 'kontrolHistoryRecordIds' inovtec-info-control-history.js
           grep -q 'photoRefs' kontrol-cloud.js
+          grep -q 'prepareAllPhotosForPdf' KONTROL.html
+          grep -q 'InovtecGenerateControlPdf' KONTROL.html
           grep -q 'readControlPhoto' inovtec-info-control-history.js
           grep -q 'deleteControlRecord' inovtec-info-control-history.js
           grep -q 'arrayRemove(recordId)' inovtec-info-control-history.js
