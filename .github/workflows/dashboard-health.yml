@@ -82,8 +82,9 @@ jobs:
           done
           grep -qi '<!DOCTYPE html>' index.html
           grep -q 'Classeur agents' index.html
-          grep -q 'dashboard-concept3.css?v=20260829-hero1' index.html
+          grep -q 'dashboard-concept3.css?v=20260829-bubbles20-1' index.html
           grep -q 'INOVTEC_READABILITY_15' dashboard-concept3.css
+          grep -q 'READABILITY_BUBBLES_20' dashboard-concept3.css
           grep -q 'dashboard-concept3.js?v=20260829-c3-2' index.html
           grep -q 'c3-hero-banner' index.html
           grep -q 'id="heroUserName"' index.html
