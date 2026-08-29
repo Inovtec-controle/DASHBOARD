@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="dashboard-concept3.css?v=20260829-font15-1">
+<link rel="stylesheet" href="dashboard-concept3.css?v=20260829-hero1">
 <link rel="stylesheet" href="inovtec-firebase-indicator.css?v=20260815-1">
 </head>
 <body>
@@ -44,11 +44,6 @@
 
   <section class="c3-main">
     <header class="c3-topbar">
-      <div class="c3-greeting">
-        <strong>Bonjour 👋</strong>
-        <span>Voici la situation opérationnelle en temps réel.</span>
-      </div>
-
       <div class="m1-search">
         <input id="globalSearch" type="search" placeholder="Rechercher un chantier, un agent, une tâche…" aria-label="Recherche globale" autocomplete="off">
         <div id="globalSearchResults" class="m1-search-results" hidden></div>
@@ -67,6 +62,35 @@
     </header>
 
     <main class="c3-content">
+      <section class="c3-hero-banner" aria-label="Bienvenue">
+        <div class="c3-hero-copy">
+          <div class="c3-hero-kicker">TABLEAU DE BORD OPÉRATIONNEL</div>
+          <h1>Bonjour <span id="heroUserName">Inovtec</span></h1>
+          <p>Voici la situation opérationnelle en temps réel.</p>
+          <div class="c3-hero-meta">
+            <div class="c3-hero-meta-card">
+              <span class="c3-hero-meta-icon">▦</span>
+              <div><small>Aujourd’hui</small><strong id="heroDateLabel">—</strong></div>
+            </div>
+            <div class="c3-hero-meta-card">
+              <span id="heroWeatherIcon" class="c3-hero-meta-icon">◌</span>
+              <div><small>Météo locale</small><strong id="heroWeatherText">Chargement…</strong></div>
+            </div>
+            <div class="c3-hero-meta-card">
+              <span class="c3-hero-meta-icon">↻</span>
+              <div><small>Synchronisation</small><strong id="heroSyncText">Connexion…</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="c3-hero-art" aria-hidden="true">
+          <span class="shape s1"></span>
+          <span class="shape s2"></span>
+          <span class="shape s3"></span>
+          <span class="shape s4"></span>
+          <span class="grid"></span>
+        </div>
+      </section>
+
       <section class="kpis c3-kpis" aria-label="Indicateurs principaux">
         <article class="c3-kpi">
           <div class="c3-kpi-top"><span class="c3-kpi-icon">▥</span><div><small>Chantiers</small><b id="kpiSites">—</b></div></div>
@@ -170,7 +194,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="firebase-config.js?v=20260829-operational1"></script>
-<script src="dashboard-index.js?v=20260829-c3-1"></script>
+<script src="dashboard-index.js?v=20260829-hero1"></script>
 <script src="dashboard-index-shared.js?v=20260829-agentclean1"></script>
 <script src="dashboard-mark1.js?v=20260829-variables-dashboard1"></script>
 <script src="dashboard-concept3.js?v=20260829-c3-2"></script>
