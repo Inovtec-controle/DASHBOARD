@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           grep -q 'inovtec-cross-page-data.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' inovtec-info-shell-stable.html
-          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260823-crosspage1' KONTROL-CLOUD-LEGACY.html
+          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260829-sitehistory1' KONTROL-CLOUD-LEGACY.html
           grep -q 'dashboard-index-shared.js?v=20260829-agentclean1' index.html
 
       - name: Vérifier le modèle commun
