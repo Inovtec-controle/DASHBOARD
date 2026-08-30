@@ -111,20 +111,27 @@ function summaryText(ids,agents){
  if(names.length<=2)return names.join(", ");
  return names[0]+" + "+(names.length-1)+" autre"+(names.length>2?"s":"");
 }
-function siteAgentSummary(site){
+function compactNames(names){
+ names=uniq(names);
+ if(!names.length)return"";
+ if(names.length<=2)return names.join(", ");
+ return names[0]+" + "+(names.length-1)+" autres";
+}
+function siteAgentSummary(site,doc){
+ const form=doc?.getElementById("siteForm"),activeId=String(form?.dataset.ivChantierId||""),siteId=String(site?.id||"");
+ if(activeId&&siteId===activeId){
+  try{const draftNames=parse(form?.dataset.ivAgentsAffectesNoms||"[]",[]);if(Array.isArray(draftNames)&&draftNames.length)return compactNames(draftNames)}catch{}
+ }
+ if(Array.isArray(site?.agentsAffectesNoms)&&site.agentsAffectesNoms.length)return compactNames(site.agentsAffectesNoms);
  const agents=masterAgents(),ids=explicitIds(site);
  if(Array.isArray(ids)&&ids.length){
-  const names=ids.map(id=>{
-   const a=agents.find(x=>String(x.id)===String(id));
-   return a?agentName(a):"";
-  }).filter(Boolean);
-  if(names.length<=2&&names.length)return names.join(", ");
-  if(names.length>2)return names[0]+" + "+(names.length-1)+" autres";
+  const names=ids.map(id=>{const a=agents.find(x=>String(x.id)===String(id));return a?agentName(a):""}).filter(Boolean);
+  if(names.length)return compactNames(names);
  }
- return String(site?.agentNom||"").trim();
+ return"";
 }
-function siteSidebarDetail(site){
- const address=String(site?.adresse||"").trim(),agents=siteAgentSummary(site),parts=[address,agents].filter(Boolean);
+function siteSidebarDetail(site,doc){
+ const address=String(site?.adresse||"").trim(),agents=siteAgentSummary(site,doc),parts=[address,agents].filter(Boolean);
  return parts.join(" • ")||"Aucune information complémentaire";
 }
 function syncHiddenSelect(card,ids,agents){
@@ -135,9 +142,10 @@ function syncHiddenSelect(card,ids,agents){
 }
 function setAssignments(doc,card,ids,activeId=""){
  ids=uniq(ids);const form=doc.getElementById("siteForm");
- if(form){form.dataset.ivAgentsAffectes=JSON.stringify(ids);form.dataset.ivAgentsDraft="1"}
+ const agents=masterAgents(),names=ids.map(id=>{const a=agents.find(x=>String(x.id)===String(id));return a?agentName(a):""}).filter(Boolean);
+ if(form){form.dataset.ivAgentsAffectes=JSON.stringify(ids);form.dataset.ivAgentsAffectesNoms=JSON.stringify(names);form.dataset.ivAgentsDraft="1"}
  card.dataset.activeAgentId=activeId&&ids.includes(activeId)?activeId:(ids[0]||"");
- const agents=masterAgents(),button=card.querySelector("#ivAgentPickerButton"),plan=card.querySelector("#ivOpenAgentPlanning");
+ const button=card.querySelector("#ivAgentPickerButton"),plan=card.querySelector("#ivOpenAgentPlanning");
  if(button)button.querySelector(".iv-agent-picker-text").textContent=summaryText(ids,agents);
  if(plan)plan.disabled=!ids.length;
  syncHiddenSelect(card,ids,agents);
@@ -174,13 +182,14 @@ function cleanSidebar(doc){
  const sites=masterSites();
  doc.querySelectorAll(".site-item").forEach(b=>{
    const exact=String(b.dataset.ivChantierId||""),site=sites.find(c=>String(c.id)===exact)||null,sub=b.querySelector("span");
-   if(sub&&site)sub.textContent=siteSidebarDetail(site);
+   if(sub&&site)sub.textContent=siteSidebarDetail(site,doc);
  });
  const subtitle=doc.querySelector(".topbar p");if(subtitle&&/planning/i.test(subtitle.textContent||""))subtitle.textContent="Accès, contacts et consignes";
 }
 function render(doc){
  if(!doc?.body)return;ensureStyle(doc);const card=ensureCard(doc);cleanSidebar(doc);if(!card)return;
  const site=currentSite(doc),agents=masterAgents().slice().sort((a,b)=>agentName(a).localeCompare(agentName(b),"fr",{sensitivity:"base",numeric:true})),ids=assignmentIds(doc,site),panel=card.querySelector("#ivAgentPickerPanel"),button=card.querySelector("#ivAgentPickerButton"),plan=card.querySelector("#ivOpenAgentPlanning");
+ const form=doc.getElementById("siteForm"),currentNames=ids.map(id=>{const a=agents.find(x=>String(x.id)===String(id));return a?agentName(a):""}).filter(Boolean);if(form&&form.dataset.ivAgentsDraft!=="1")form.dataset.ivAgentsAffectesNoms=JSON.stringify(currentNames.length?currentNames:(Array.isArray(site?.agentsAffectesNoms)?site.agentsAffectesNoms:[]));
  const wasOpen=!panel.hidden;
  panel.innerHTML="";
  if(!agents.length){const empty=doc.createElement("div");empty.className="iv-agent-empty";empty.textContent="Aucun agent dans le Classeur agents";panel.appendChild(empty)}
@@ -227,7 +236,7 @@ function bindDoc(doc){
      if(form){form.removeAttribute("data-iv-agents-draft");form.removeAttribute("data-iv-agents-affectes")}
      rememberSite(doc,site);setTimeout(()=>render(doc),90);return;
    }
-   if(e.target.closest?.("#newBtn")){const form=doc.getElementById("siteForm");if(form){form.removeAttribute("data-iv-agents-draft");form.dataset.ivAgentsAffectes="[]"}rememberSite(doc,null);setTimeout(()=>render(doc),90);return}
+   if(e.target.closest?.("#newBtn")){const form=doc.getElementById("siteForm");if(form){form.removeAttribute("data-iv-agents-draft");form.dataset.ivAgentsAffectes="[]";form.dataset.ivAgentsAffectesNoms="[]"}rememberSite(doc,null);setTimeout(()=>render(doc),90);return}
    if(e.target.closest?.("#deleteBtn"))setTimeout(()=>render(doc),90);
  },true);
  doc.addEventListener("keydown",e=>{if(e.key==="Escape")closePicker(doc.getElementById("ivSiteAgentsCard"))});
