@@ -8,10 +8,20 @@ const freq=(f,j=[])=>{f=norm(f);if(/semaine.*paire/.test(f)&&/impaire/.test(f))r
 const clean=r=>{const j=[...new Set((r.jours||[]).map(norm).filter(x=>DAYS.includes(x)))],f=txt(r.frequence);return{zone:txt(r.zone),prestation:txt(r.prestation),frequenceType:r.frequenceType||freq(f,j),frequence:f,jours:j,methodeConsigne:txt(r.methodeConsigne),controle:txt(r.controle),observations:txt(r.observations)}};
 const key=r=>[r.zone,r.prestation,r.frequenceType,r.frequence,(r.jours||[]).join(","),r.methodeConsigne,r.controle,r.observations].map(norm).join("|");
 
-function startsLikeContinuation(v){
- const s=txt(v);if(!s)return false;
- const first=s.charAt(0);
- return /^[a-zà-öø-ÿ]/.test(first)||/^[,;:.!?()\/\-–—]/.test(first);
+function startsWithJoinWord(v){
+ const s=norm(v);if(!s)return false;
+ return /^(de|des|du|d|le|la|les|un|une|au|aux|a|et|ou|pour|sur|sous|avec|sans|dans|en|par|vers|chez|entre)(?: |$)/.test(s);
+}
+function startsWithPunctuation(v){
+ return /^[,;:.!?()\/\-–—]/.test(txt(v));
+}
+function startsLower(v){
+ const s=txt(v);return !!s&&/^[a-zà-öø-ÿ]/.test(s.charAt(0));
+}
+function standaloneActionHead(v){
+ const s=norm(v),words=s.split(" ").filter(Boolean);
+ if(words.length!==1)return false;
+ return /^(desinfection|nettoyage|lavage|depoussierage|aspiration|balayage|balayagehumide|vidage|evacuation|essuyage|detartrage|degraissage|ramassage|reapprovisionnement|reassort)$/.test(words[0]);
 }
 function endsLikeContinuation(v){
  const s=norm(v);if(!s)return false;
@@ -47,7 +57,12 @@ function rebuildWrappedRows(rows=[]){
  for(const row of src){
   const prev=out.at(-1);
   if(!prev){out.push(row);continue}
-  const continuation=sameOrBlankZone(prev,row)&&(startsLikeContinuation(row.prestation)||endsLikeContinuation(prev.prestation));
+  const continuation=sameOrBlankZone(prev,row)&&(
+   endsLikeContinuation(prev.prestation)||
+   startsWithJoinWord(row.prestation)||
+   startsWithPunctuation(row.prestation)||
+   (startsLower(row.prestation)&&standaloneActionHead(prev.prestation))
+  );
   if(continuation){
    out[out.length-1]=combineRows(prev,row);
    merged++;
