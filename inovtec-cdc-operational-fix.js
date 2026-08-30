@@ -1,7 +1,7 @@
 (()=>{
 "use strict";
-if(window.__INOVTEC_CDC_OPERATIONAL_FIX_V5__)return;
-window.__INOVTEC_CDC_OPERATIONAL_FIX_V5__=true;
+if(window.__INOVTEC_CDC_OPERATIONAL_FIX_V6__)return;
+window.__INOVTEC_CDC_OPERATIONAL_FIX_V6__=true;
 if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()!=="infos")return;
 const frame=document.getElementById("legacyFrame"),fb=window.firebase;
 let db=fb?.firestore?.(),auth=fb?.auth?.();
@@ -10,6 +10,13 @@ const DAYS=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 let patchedDoc=null,suggestionSiteId="",suggestionRows=[],suggestionLoadedAt=0,suggestionLoadPromise=null,dismissedSuggestions={zone:new Set(),prestation:new Set()};
 const GLOBAL_SUGGESTION_TTL=60000;
 const txt=v=>String(v??"").trim(),uid=()=>"cdc_"+Date.now()+"_"+Math.random().toString(16).slice(2),norm=v=>txt(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+function legacyRowId(row){
+ if(row?.id)return String(row.id);
+ const raw=[row?.importId,row?.ordre,row?.sourceFileName,row?.sourceType,row?.zone,row?.prestation,row?.createdAtMs].map(v=>String(v??"")).join("|");
+ let h=2166136261;
+ for(let i=0;i<raw.length;i++){h^=raw.charCodeAt(i);h=Math.imul(h,16777619)}
+ return "cdc_legacy_"+(h>>>0).toString(16);
+}
 function D(){try{return frame?.contentDocument||null}catch{return null}}
 async function site(d){
  refreshFirebase();
@@ -244,7 +251,7 @@ async function loadSuggestions(d,target,force=false){
  try{await suggestionLoadPromise}finally{suggestionLoadPromise=null;applyManualUi(d)}
 }
 function resetModal(d){
- const o=d.getElementById("ivCdcOverlay");if(!o)return;o.dataset.rowId="";
+ const o=d.getElementById("ivCdcOverlay");if(!o)return;o.dataset.rowId="";o.dataset.ivEditingLock="1";
  ["ivCdcZone","ivCdcPrestation","ivCdcObservations"].forEach(id=>{const e=d.getElementById(id);if(e)e.value=""});
  const t=d.getElementById("ivCdcFrequenceType");if(t)t.value="jours";
  d.querySelectorAll("[data-iv-cdc-day]").forEach(x=>x.checked=false);
@@ -256,7 +263,7 @@ async function writeManual(targetId,rowId,payload){
  const run=()=>db.runTransaction(async tx=>{
   const ref=db.collection("chantiers").doc(String(targetId)),snap=await tx.get(ref);if(!snap.exists)throw Error("Chantier introuvable");
   const data=snap.data()||{},block=data?.cahierDesChargesV1||{},rows=Array.isArray(block.rows)?block.rows.map(r=>({...r})):[];
-  if(rowId){const i=rows.findIndex(r=>String(r.id)===rowId);if(i>=0)rows[i]={...rows[i],...payload};else rows.push({id:rowId,...payload,ordre:Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10,sourceType:"manual",createdAtMs:Date.now()})}
+  if(rowId){const i=rows.findIndex(r=>String(r.id||legacyRowId(r))===rowId);if(i>=0)rows[i]={...rows[i],id:rows[i].id||rowId,...payload};else rows.push({id:rowId,...payload,ordre:Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10,sourceType:"manual",createdAtMs:Date.now()})}
   else{const ordre=Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10;rows.push({id:uid(),...payload,ordre,sourceType:"manual",createdAtMs:Date.now()})}
   const now=Date.now();
   tx.set(ref,{
@@ -278,15 +285,16 @@ async function save(d){
   suggestionRows=suggestionRows.filter(r=>!(String(r._suggestionSiteId||"")===String(target.id)&&(rowId?String(r.id||"")===String(rowId):norm(r.zone)===norm(payload.zone)&&norm(r.prestation)===norm(payload.prestation))));
   suggestionRows.push({id:rowId||"",zone:payload.zone,prestation:payload.prestation,_suggestionSiteId:String(target.id),_suggestionSource:"row"});
   suggestionLoadedAt=Date.now();
-  if(o){o.hidden=true;o.dataset.rowId=""}
+  if(o){o.hidden=true;o.dataset.rowId="";delete o.dataset.ivEditingLock}
  }catch(e){console.error("CDC manual save",e);alert("Impossible d’enregistrer le cahier des charges. Vérifie la connexion Firebase puis réessaie.")}
  finally{if(btn){delete btn.dataset.ivSaving;btn.disabled=false;btn.textContent="Enregistrer"}}
 }
 function patchManual(d){
  const o=d.getElementById("ivCdcOverlay"),old=d.getElementById("ivCdcForm");if(!o||!old)return;applyManualUi(d);
  if(old.dataset.ivOperationalFix!=="1"){
+  if(!o.hidden&&o.dataset.ivEditingLock==="1")return;
   const form=old.cloneNode(true);form.dataset.ivOperationalFix="1";delete form.dataset.ivStructuredSave;form.querySelectorAll("[data-iv-suggest-bound]").forEach(el=>delete el.dataset.ivSuggestBound);form.querySelectorAll(".iv-cdc-suggest").forEach(box=>{box.innerHTML="";box.hidden=true});old.replaceWith(form);applyManualUi(d);
-  const close=()=>{o.hidden=true;o.dataset.rowId=""};d.getElementById("ivCdcClose")?.addEventListener("click",close);d.getElementById("ivCdcCancel")?.addEventListener("click",close);form.addEventListener("submit",e=>{e.preventDefault();e.stopImmediatePropagation();save(d)},true);
+  const close=()=>{o.hidden=true;o.dataset.rowId="";delete o.dataset.ivEditingLock};d.getElementById("ivCdcClose")?.addEventListener("click",close);d.getElementById("ivCdcCancel")?.addEventListener("click",close);form.addEventListener("submit",e=>{e.preventDefault();e.stopImmediatePropagation();save(d)},true);
  }
  let add=d.getElementById("ivCdcAdd");if(add&&add.dataset.ivOperationalFix!=="1"){const n=add.cloneNode(true);n.dataset.ivOperationalFix="1";n.textContent="✍️ Saisir manuellement";n.disabled=false;n.addEventListener("click",async e=>{e.preventDefault();const target=await site(d);if(!target?.id){alert("Sélectionne et enregistre d’abord le chantier.");return}await loadSuggestions(d,target);resetModal(d)});add.replaceWith(n)}
  if(o.dataset.ivSuggestionObserver!=="1"){o.dataset.ivSuggestionObserver="1";new MutationObserver(async()=>{if(o.hidden)return;const target=await site(d);if(target?.id)await loadSuggestions(d,target);applyManualUi(d)}).observe(o,{attributes:true,attributeFilter:["hidden"]})}
