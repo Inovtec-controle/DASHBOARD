@@ -27,7 +27,7 @@ function ensureStyle(d){
 #ivCdcOverlay .iv-cdc-modal{width:min(950px,calc(100vw - 24px))!important;max-height:none!important;overflow:visible!important}
 #ivCdcOverlay .iv-cdc-form-grid{gap:14px!important}
 #ivCdcOverlay .iv-cdc-suggest-field{position:relative;z-index:30}
-#ivCdcOverlay .iv-cdc-suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:120;background:#fff;border:1px solid #cfe0d7;border-radius:11px;box-shadow:0 14px 35px rgba(15,50,38,.16);max-height:220px;overflow:auto;padding:5px}
+#ivCdcOverlay .iv-cdc-suggest{position:relative;left:auto;right:auto;top:auto;z-index:120;background:#fff;border:1px solid #cfe0d7;border-radius:11px;box-shadow:0 10px 26px rgba(15,50,38,.12);max-height:180px;overflow:auto;padding:5px;margin-top:5px}
 #ivCdcOverlay .iv-cdc-suggest[hidden]{display:none}
 #ivCdcOverlay .iv-cdc-suggest-item{display:flex;align-items:center;gap:4px}
 #ivCdcOverlay .iv-cdc-suggest-choice{display:block;flex:1;min-width:0;border:0;background:#fff;text-align:left;padding:9px 10px;border-radius:8px;color:#24483a;font:inherit;font-size:11px;cursor:pointer}
@@ -79,6 +79,16 @@ async function dismissSuggestion(d,kind,value){
   });
  }catch(e){console.warn("CDC retrait suggestion",e)}
 }
+async function showSuggestions(d,kind,force=true){
+ try{
+  const stale=Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL;
+  if((!suggestionLoadedAt||stale)&&!suggestionLoadPromise){
+   const target=await site(d);
+   if(target?.id)await loadSuggestions(d,target,stale);
+  }
+ }catch(e){console.warn("CDC chargement suggestions au focus",e)}
+ renderSuggestions(d,kind,force);
+}
 function renderSuggestions(d,kind,force=false){
  const cfg=kind==="zone"?{inputId:"ivCdcZone",boxId:"ivCdcZoneSuggestions"}:{inputId:"ivCdcPrestation",boxId:"ivCdcPrestationSuggestions"},ui=ensureSuggestionUi(d,cfg.inputId,cfg.boxId,kind==="zone"?"Suggestions communes à tous les chantiers, les plus utilisées d’abord.":"Suggestions communes ; celles de la zone choisie sont prioritaires.");if(!ui)return;
  const q=norm(ui.input.value),all=valuesFor(d,kind),matches=all.filter(item=>!q||norm(item.value).includes(q)).slice(0,10);ui.box.innerHTML="";
@@ -97,14 +107,14 @@ function bindSuggestions(d){
  [["ivCdcZone","zone"],["ivCdcPrestation","prestation"]].forEach(([id,kind])=>{
   const input=d.getElementById(id);if(!input)return;
   input.dataset.ivSuggestBound="1";
-  input.oninput=()=>renderSuggestions(d,kind,true);
-  input.onfocus=()=>renderSuggestions(d,kind,true);
+  input.oninput=()=>{renderSuggestions(d,kind,true);if(!suggestionLoadedAt||Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL)showSuggestions(d,kind,true)};
+  input.onfocus=()=>showSuggestions(d,kind,true);
   input.onkeydown=e=>{if(e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}};
  });
  if(d.body.dataset.ivCdcSuggestDelegated!=="1"){
   d.body.dataset.ivCdcSuggestDelegated="1";
-  d.addEventListener("input",e=>{const kind=config[e.target?.id];if(kind)renderSuggestions(d,kind,true)},true);
-  d.addEventListener("focusin",e=>{const kind=config[e.target?.id];if(kind)renderSuggestions(d,kind,true)},true);
+  d.addEventListener("input",e=>{const kind=config[e.target?.id];if(kind){renderSuggestions(d,kind,true);if(!suggestionLoadedAt||Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL)showSuggestions(d,kind,true)}},true);
+  d.addEventListener("focusin",e=>{const kind=config[e.target?.id];if(kind)showSuggestions(d,kind,true)},true);
   d.addEventListener("keydown",e=>{const kind=config[e.target?.id];if(kind&&e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}},true);
   d.addEventListener("mousedown",e=>{if(e.target.closest?.(".iv-cdc-suggest-field"))return;["ivCdcZoneSuggestions","ivCdcPrestationSuggestions"].forEach(id=>{const box=d.getElementById(id);if(box)box.hidden=true})},true);
  }
