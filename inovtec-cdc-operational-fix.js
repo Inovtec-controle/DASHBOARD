@@ -1,7 +1,7 @@
 (()=>{
 "use strict";
-if(window.__INOVTEC_CDC_OPERATIONAL_FIX_V4__)return;
-window.__INOVTEC_CDC_OPERATIONAL_FIX_V4__=true;
+if(window.__INOVTEC_CDC_OPERATIONAL_FIX_V5__)return;
+window.__INOVTEC_CDC_OPERATIONAL_FIX_V5__=true;
 if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()!=="infos")return;
 const frame=document.getElementById("legacyFrame"),fb=window.firebase;
 let db=fb?.firestore?.(),auth=fb?.auth?.();
@@ -68,14 +68,13 @@ function valuesFor(d,kind){
 async function dismissSuggestion(d,kind,value){
  const key=norm(value);if(!key)return;
  dismissedSuggestions[kind].add(key);
- const target=await site(d);if(!target?.id||!db)return;
- const field=kind==="zone"?"dismissedZones":"dismissedPrestations";
+ const ref=globalSuggestionRef();if(!ref)return;
+ const field=kind==="zone"?"zones":"prestations";
  try{
   await db.runTransaction(async tx=>{
-   const ref=db.collection("chantiers").doc(String(target.id)),snap=await tx.get(ref);if(!snap.exists)return;
-   const prefs=snap.data()?.cdcSuggestionPrefsV1||{},existing=Array.isArray(prefs[field])?prefs[field]:[];
-   const next=existing.some(v=>norm(v)===key)?existing:existing.concat([txt(value)]);
-   tx.set(ref,{cdcSuggestionPrefsV1:{...prefs,[field]:next,updatedAtMs:Date.now(),updatedBy:auth?.currentUser?.uid||""}},{merge:true});
+   const snap=await tx.get(ref),data=snap.exists?(snap.data()||{}):{},hidden=data?.cdcSuggestionHiddenV1||{},existing=Array.isArray(hidden[field])?hidden[field].slice():[];
+   if(!existing.some(v=>norm(v)===key))existing.push(txt(value));
+   tx.set(ref,{cdcSuggestionHiddenV1:{...hidden,[field]:existing,updatedAtMs:Date.now()}},{merge:true});
   });
  }catch(e){console.warn("CDC retrait suggestion",e)}
 }
@@ -109,12 +108,16 @@ function bindSuggestions(d){
   input.dataset.ivSuggestBound="1";
   input.oninput=()=>{renderSuggestions(d,kind,true);if(!suggestionLoadedAt||Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL)showSuggestions(d,kind,true)};
   input.onfocus=()=>showSuggestions(d,kind,true);
+  input.onblur=()=>learnSuggestion(d,kind,input.value);
+  input.onchange=()=>learnSuggestion(d,kind,input.value);
   input.onkeydown=e=>{if(e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}};
  });
  if(d.body.dataset.ivCdcSuggestDelegated!=="1"){
   d.body.dataset.ivCdcSuggestDelegated="1";
   d.addEventListener("input",e=>{const kind=config[e.target?.id];if(kind){renderSuggestions(d,kind,true);if(!suggestionLoadedAt||Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL)showSuggestions(d,kind,true)}},true);
   d.addEventListener("focusin",e=>{const kind=config[e.target?.id];if(kind)showSuggestions(d,kind,true)},true);
+  d.addEventListener("focusout",e=>{const kind=config[e.target?.id];if(kind)learnSuggestion(d,kind,e.target.value)},true);
+  d.addEventListener("change",e=>{const kind=config[e.target?.id];if(kind)learnSuggestion(d,kind,e.target.value)},true);
   d.addEventListener("keydown",e=>{const kind=config[e.target?.id];if(kind&&e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}},true);
   d.addEventListener("mousedown",e=>{if(e.target.closest?.(".iv-cdc-suggest-field"))return;["ivCdcZoneSuggestions","ivCdcPrestationSuggestions"].forEach(id=>{const box=d.getElementById(id);if(box)box.hidden=true})},true);
  }
@@ -145,14 +148,57 @@ function suggestionRowsFromSites(sites=[]){
  });
  return out;
 }
-function suggestionPrefsFromSites(sites=[]){
- const zone=new Set(),prestation=new Set();
- (Array.isArray(sites)?sites:[]).forEach(s=>{
-  const prefs=s?.cdcSuggestionPrefsV1||{};
-  (Array.isArray(prefs.dismissedZones)?prefs.dismissedZones:[]).forEach(v=>{const k=norm(v);if(k)zone.add(k)});
-  (Array.isArray(prefs.dismissedPrestations)?prefs.dismissedPrestations:[]).forEach(v=>{const k=norm(v);if(k)prestation.add(k)});
- });
+function globalSuggestionRef(){
+ refreshFirebase();
+ const u=auth?.currentUser;
+ return u&&db?db.collection("kanban").doc(u.uid):null;
+}
+function rowsFromGlobalLibrary(data={}){
+ const out=[],lib=data?.cdcSuggestionLibraryV1||{};
+ (Array.isArray(lib.zones)?lib.zones:[]).forEach(zone=>{zone=txt(zone);if(zone)out.push({zone,prestation:"",_suggestionSource:"global-library"})});
+ (Array.isArray(lib.prestations)?lib.prestations:[]).forEach(prestation=>{prestation=txt(prestation);if(prestation)out.push({zone:"",prestation,_suggestionSource:"global-library"})});
+ return out;
+}
+function prefsFromGlobalLibrary(data={}){
+ const hidden=data?.cdcSuggestionHiddenV1||{},zone=new Set(),prestation=new Set();
+ (Array.isArray(hidden.zones)?hidden.zones:[]).forEach(v=>{const k=norm(v);if(k)zone.add(k)});
+ (Array.isArray(hidden.prestations)?hidden.prestations:[]).forEach(v=>{const k=norm(v);if(k)prestation.add(k)});
  return{zone,prestation};
+}
+async function readGlobalSuggestionStore(){
+ const ref=globalSuggestionRef();if(!ref)return{rows:[],prefs:{zone:new Set(),prestation:new Set()}};
+ try{
+  const snap=await ref.get(),data=snap.exists?(snap.data()||{}):{};
+  return{rows:rowsFromGlobalLibrary(data),prefs:prefsFromGlobalLibrary(data)};
+ }catch(e){
+  console.warn("CDC lecture bibliothèque globale",e);
+  return{rows:[],prefs:{zone:new Set(),prestation:new Set()}};
+ }
+}
+async function learnSuggestion(d,kind,value){
+ value=txt(value);if(!value)return;
+ const key=norm(value);if(!key)return;
+ dismissedSuggestions[kind].delete(key);
+ const prop=kind==="zone"?"zone":"prestation";
+ if(!suggestionRows.some(r=>norm(r?.[prop])===key&&r?._suggestionSource==="global-library")){
+  suggestionRows.push({zone:kind==="zone"?value:"",prestation:kind==="prestation"?value:"",_suggestionSource:"global-library"});
+ }
+ suggestionLoadedAt=Date.now();
+ const ref=globalSuggestionRef();if(!ref)return;
+ const libField=kind==="zone"?"zones":"prestations";
+ const hiddenField=kind==="zone"?"zones":"prestations";
+ try{
+  await db.runTransaction(async tx=>{
+   const snap=await tx.get(ref),data=snap.exists?(snap.data()||{}):{},lib=data?.cdcSuggestionLibraryV1||{},hidden=data?.cdcSuggestionHiddenV1||{};
+   const values=Array.isArray(lib[libField])?lib[libField].slice():[],hiddenValues=Array.isArray(hidden[hiddenField])?hidden[hiddenField].slice():[];
+   if(!values.some(v=>norm(v)===key))values.push(value);
+   const nextHidden=hiddenValues.filter(v=>norm(v)!==key);
+   tx.set(ref,{
+    cdcSuggestionLibraryV1:{...lib,[libField]:values,updatedAtMs:Date.now()},
+    cdcSuggestionHiddenV1:{...hidden,[hiddenField]:nextHidden,updatedAtMs:Date.now()}
+   },{merge:true});
+  });
+ }catch(e){console.warn("CDC apprentissage suggestion",e)}
 }
 async function loadSuggestions(d,target,force=false){
  refreshFirebase();if(!target?.id||!db)return;
@@ -169,22 +215,23 @@ async function loadSuggestions(d,target,force=false){
     const snap=await db.collection("chantiers").get();
     sites=snap.docs.map(x=>({id:x.id,...x.data()})).filter(x=>x._hidden!==true);
     allRows=suggestionRowsFromSites(sites);
-    dismissedSuggestions=suggestionPrefsFromSites(sites);
    }
    if(!allRows.some(r=>String(r._suggestionSiteId||"")===suggestionSiteId)){
     try{
      const current=await db.collection("chantiers").doc(suggestionSiteId).get();
-     if(current.exists){const currentSite={id:current.id,...current.data()};allRows=allRows.concat(suggestionRowsFromSites([currentSite]));const p=suggestionPrefsFromSites([currentSite]);p.zone.forEach(v=>dismissedSuggestions.zone.add(v));p.prestation.forEach(v=>dismissedSuggestions.prestation.add(v))}
+     if(current.exists)allRows=allRows.concat(suggestionRowsFromSites([{id:current.id,...current.data()}]));
     }catch(e){console.warn("CDC suggestions chantier courant",e)}
    }
-   suggestionRows=allRows;
+   const globalStore=await readGlobalSuggestionStore();
+   suggestionRows=allRows.concat(globalStore.rows);
+   dismissedSuggestions=globalStore.prefs;
    suggestionLoadedAt=Date.now();
   }catch(e){
    console.warn("CDC suggestions globales",e);
    try{
-    const snap=await db.collection("chantiers").doc(suggestionSiteId).get(),data=snap.data()||{},rows=data?.cahierDesChargesV1?.rows;
-    suggestionRows=Array.isArray(rows)?rows.map(r=>({...r,_suggestionSiteId:suggestionSiteId})):[];
-    dismissedSuggestions=suggestionPrefsFromSites([{id:suggestionSiteId,...data}]);
+    const snap=await db.collection("chantiers").doc(suggestionSiteId).get(),data=snap.data()||{},rows=data?.cahierDesChargesV1?.rows,globalStore=await readGlobalSuggestionStore();
+    suggestionRows=(Array.isArray(rows)?rows.map(r=>({...r,_suggestionSiteId:suggestionSiteId})):[]).concat(globalStore.rows);
+    dismissedSuggestions=globalStore.prefs;
     suggestionLoadedAt=Date.now();
    }catch(_e){suggestionRows=[]}
   }
@@ -206,13 +253,9 @@ async function writeManual(targetId,rowId,payload){
   const data=snap.data()||{},block=data?.cahierDesChargesV1||{},rows=Array.isArray(block.rows)?block.rows.map(r=>({...r})):[];
   if(rowId){const i=rows.findIndex(r=>String(r.id)===rowId);if(i>=0)rows[i]={...rows[i],...payload};else rows.push({id:rowId,...payload,ordre:Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10,sourceType:"manual",createdAtMs:Date.now()})}
   else{const ordre=Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10;rows.push({id:uid(),...payload,ordre,sourceType:"manual",createdAtMs:Date.now()})}
-  const lib=data?.cdcSuggestionLibraryV1||{},zones=Array.isArray(lib.zones)?lib.zones.slice():[],prestations=Array.isArray(lib.prestations)?lib.prestations.slice():[];
-  const addUnique=(arr,value)=>{value=txt(value);if(value&&!arr.some(v=>norm(v)===norm(value)))arr.push(value)};
-  addUnique(zones,payload.zone);addUnique(prestations,payload.prestation);
   const now=Date.now();
   tx.set(ref,{
-   cahierDesChargesV1:{...block,schemaVersion:2,structuredSchedule:true,rows,updatedAtMs:now,updatedBy:auth?.currentUser?.uid||""},
-   cdcSuggestionLibraryV1:{...lib,zones,prestations,updatedAtMs:now,updatedBy:auth?.currentUser?.uid||""}
+   cahierDesChargesV1:{...block,schemaVersion:2,structuredSchedule:true,rows,updatedAtMs:now,updatedBy:auth?.currentUser?.uid||""}
   },{merge:true});
  });
  try{return await run()}catch(e){if(["aborted","unavailable","deadline-exceeded"].includes(String(e?.code||"").toLowerCase())){await new Promise(r=>setTimeout(r,250));return run()}throw e}
@@ -225,10 +268,10 @@ async function save(d){
  const btn=d.querySelector("#ivCdcForm button[type=submit]");if(btn?.dataset.ivSaving==="1")return;if(btn){btn.dataset.ivSaving="1";btn.disabled=true;btn.textContent="Enregistrement…"}
  try{
   await writeManual(target.id,rowId,payload);
+  await learnSuggestion(d,"zone",payload.zone);
+  await learnSuggestion(d,"prestation",payload.prestation);
   suggestionRows=suggestionRows.filter(r=>!(String(r._suggestionSiteId||"")===String(target.id)&&(rowId?String(r.id||"")===String(rowId):norm(r.zone)===norm(payload.zone)&&norm(r.prestation)===norm(payload.prestation))));
   suggestionRows.push({id:rowId||"",zone:payload.zone,prestation:payload.prestation,_suggestionSiteId:String(target.id),_suggestionSource:"row"});
-  if(payload.zone&&!suggestionRows.some(r=>r._suggestionSource==="library"&&norm(r.zone)===norm(payload.zone)))suggestionRows.push({zone:payload.zone,prestation:"",_suggestionSiteId:String(target.id),_suggestionSource:"library"});
-  if(payload.prestation&&!suggestionRows.some(r=>r._suggestionSource==="library"&&norm(r.prestation)===norm(payload.prestation)))suggestionRows.push({zone:"",prestation:payload.prestation,_suggestionSiteId:String(target.id),_suggestionSource:"library"});
   suggestionLoadedAt=Date.now();
   if(o){o.hidden=true;o.dataset.rowId=""}
  }catch(e){console.error("CDC manual save",e);alert("Impossible d’enregistrer le cahier des charges. Vérifie la connexion Firebase puis réessaie.")}
