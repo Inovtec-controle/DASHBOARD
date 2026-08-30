@@ -111,6 +111,22 @@ function summaryText(ids,agents){
  if(names.length<=2)return names.join(", ");
  return names[0]+" + "+(names.length-1)+" autre"+(names.length>2?"s":"");
 }
+function siteAgentSummary(site){
+ const agents=masterAgents(),ids=explicitIds(site);
+ if(Array.isArray(ids)&&ids.length){
+  const names=ids.map(id=>{
+   const a=agents.find(x=>String(x.id)===String(id));
+   return a?agentName(a):"";
+  }).filter(Boolean);
+  if(names.length<=2&&names.length)return names.join(", ");
+  if(names.length>2)return names[0]+" + "+(names.length-1)+" autres";
+ }
+ return String(site?.agentNom||"").trim();
+}
+function siteSidebarDetail(site){
+ const address=String(site?.adresse||"").trim(),agents=siteAgentSummary(site),parts=[address,agents].filter(Boolean);
+ return parts.join(" • ")||"Aucune information complémentaire";
+}
 function syncHiddenSelect(card,ids,agents){
  const select=card.querySelector("#ivSiteAgentSelect");if(!select)return;
  select.innerHTML="";
@@ -158,7 +174,7 @@ function cleanSidebar(doc){
  const sites=masterSites();
  doc.querySelectorAll(".site-item").forEach(b=>{
    const exact=String(b.dataset.ivChantierId||""),site=sites.find(c=>String(c.id)===exact)||null,sub=b.querySelector("span");
-   if(sub&&site)sub.textContent=site.adresse||"Aucune information complémentaire";
+   if(sub&&site)sub.textContent=siteSidebarDetail(site);
  });
  const subtitle=doc.querySelector(".topbar p");if(subtitle&&/planning/i.test(subtitle.textContent||""))subtitle.textContent="Accès, contacts et consignes";
 }
