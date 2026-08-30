@@ -26,7 +26,7 @@ function ensureStyle(d){
  const s=d.createElement("style");s.id="ivCdcManualErgoStyle";s.textContent=`
 #ivCdcOverlay .iv-cdc-modal{width:min(950px,calc(100vw - 24px))!important;max-height:none!important;overflow:visible!important}
 #ivCdcOverlay .iv-cdc-form-grid{gap:14px!important}
-#ivCdcOverlay .iv-cdc-suggest-field{position:relative}
+#ivCdcOverlay .iv-cdc-suggest-field{position:relative;z-index:30}
 #ivCdcOverlay .iv-cdc-suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:120;background:#fff;border:1px solid #cfe0d7;border-radius:11px;box-shadow:0 14px 35px rgba(15,50,38,.16);max-height:220px;overflow:auto;padding:5px}
 #ivCdcOverlay .iv-cdc-suggest[hidden]{display:none}
 #ivCdcOverlay .iv-cdc-suggest-item{display:flex;align-items:center;gap:4px}
@@ -93,8 +93,21 @@ function renderSuggestions(d,kind,force=false){
  ui.box.hidden=false;
 }
 function bindSuggestions(d){
- [["ivCdcZone","zone"],["ivCdcPrestation","prestation"]].forEach(([id,kind])=>{const input=d.getElementById(id);if(!input||input.dataset.ivSuggestBound==="1")return;input.dataset.ivSuggestBound="1";input.addEventListener("input",()=>renderSuggestions(d,kind,true));input.addEventListener("focus",()=>renderSuggestions(d,kind,true));input.addEventListener("keydown",e=>{if(e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}})});
- if(d.body.dataset.ivCdcSuggestOutside!=="1"){d.body.dataset.ivCdcSuggestOutside="1";d.addEventListener("mousedown",e=>{if(e.target.closest?.(".iv-cdc-suggest-field"))return;["ivCdcZoneSuggestions","ivCdcPrestationSuggestions"].forEach(id=>{const box=d.getElementById(id);if(box)box.hidden=true})},true)}
+ const config={ivCdcZone:"zone",ivCdcPrestation:"prestation"};
+ [["ivCdcZone","zone"],["ivCdcPrestation","prestation"]].forEach(([id,kind])=>{
+  const input=d.getElementById(id);if(!input)return;
+  input.dataset.ivSuggestBound="1";
+  input.oninput=()=>renderSuggestions(d,kind,true);
+  input.onfocus=()=>renderSuggestions(d,kind,true);
+  input.onkeydown=e=>{if(e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}};
+ });
+ if(d.body.dataset.ivCdcSuggestDelegated!=="1"){
+  d.body.dataset.ivCdcSuggestDelegated="1";
+  d.addEventListener("input",e=>{const kind=config[e.target?.id];if(kind)renderSuggestions(d,kind,true)},true);
+  d.addEventListener("focusin",e=>{const kind=config[e.target?.id];if(kind)renderSuggestions(d,kind,true)},true);
+  d.addEventListener("keydown",e=>{const kind=config[e.target?.id];if(kind&&e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}},true);
+  d.addEventListener("mousedown",e=>{if(e.target.closest?.(".iv-cdc-suggest-field"))return;["ivCdcZoneSuggestions","ivCdcPrestationSuggestions"].forEach(id=>{const box=d.getElementById(id);if(box)box.hidden=true})},true);
+ }
 }
 function applyManualUi(d){
  ensureStyle(d);hideField(d,"ivCdcFrequence");hideField(d,"ivCdcControle");hideField(d,"ivCdcMethode");
