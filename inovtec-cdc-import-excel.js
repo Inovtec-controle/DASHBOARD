@@ -31,8 +31,8 @@ function relMerges(X,ws){
  if(!ref)return[];
  const range=X.utils.decode_range(ref);
  return (ws["!merges"]||[]).map(m=>({
-  s:{r:m.s.r-range.s.r,c:m.s.c-range.s.c},
-  e:{r:m.e.r-range.s.r,c:m.e.c-range.s.c}
+  s:{r:m.s.r-range.s.r,c:m.s.c},
+  e:{r:m.e.r-range.s.r,c:m.e.c}
  })).filter(m=>m.e.r>=0&&m.e.c>=0);
 }
 
@@ -75,8 +75,14 @@ function parseSheet(X,ws){
  if(!ref)return{rows:out,mergedGroups};
 
  const range=X.utils.decode_range(ref);
- const colCount=Math.max(1,range.e.c-range.s.c+1);
- const g=X.utils.sheet_to_json(ws,{header:1,defval:"",raw:false,blankrows:true});
+ const colCount=Math.max(1,range.e.c+1);
+ const g=X.utils.sheet_to_json(ws,{
+  header:1,
+  defval:"",
+  raw:false,
+  blankrows:true,
+  range:{s:{r:range.s.r,c:0},e:{r:range.e.r,c:range.e.c}}
+ });
  if(!g.length)return{rows:out,mergedGroups};
 
  const merges=relMerges(X,ws);
