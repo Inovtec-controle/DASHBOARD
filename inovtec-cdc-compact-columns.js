@@ -13,9 +13,10 @@ function ensureStyle(d){
   style.textContent=`
     #ivCdcCard .iv-cdc-column-hidden{display:none!important}
     #ivCdcCard .iv-cdc-table{min-width:560px!important}
-    #ivCdcCard .iv-cdc-table th:nth-child(1){width:28%}
-    #ivCdcCard .iv-cdc-table th:nth-child(2){width:46%}
-    #ivCdcCard .iv-cdc-days-cell{min-width:130px}
+    #ivCdcCard .iv-cdc-table th:nth-child(1){width:27%}
+    #ivCdcCard .iv-cdc-table th:nth-child(2){width:50%}
+    #ivCdcCard .iv-cdc-table th[data-iv-cdc-days-head="1"]{width:19%;white-space:nowrap}
+    #ivCdcCard .iv-cdc-days-cell{min-width:145px;white-space:nowrap!important}
     #ivCdcCard .iv-cdc-row-actions{justify-content:flex-end;white-space:nowrap}
     @media(max-width:700px){#ivCdcCard .iv-cdc-table{min-width:520px!important}}
   `;
