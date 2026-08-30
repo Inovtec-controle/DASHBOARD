@@ -128,12 +128,19 @@ function suggestionRowsFromSites(sites=[]){
  const out=[];
  (Array.isArray(sites)?sites:[]).forEach(site=>{
   if(!site||site._hidden===true)return;
+  const siteId=String(site.id||"");
   const rows=site?.cahierDesChargesV1?.rows;
-  if(!Array.isArray(rows))return;
-  rows.forEach(row=>{
+  if(Array.isArray(rows))rows.forEach(row=>{
    const zone=txt(row?.zone),prestation=txt(row?.prestation);
    if(!zone&&!prestation)return;
-   out.push({...row,zone,prestation,_suggestionSiteId:String(site.id||"")});
+   out.push({...row,zone,prestation,_suggestionSiteId:siteId,_suggestionSource:"row"});
+  });
+  const lib=site?.cdcSuggestionLibraryV1||{};
+  (Array.isArray(lib.zones)?lib.zones:[]).forEach(zone=>{
+   zone=txt(zone);if(zone)out.push({zone,prestation:"",_suggestionSiteId:siteId,_suggestionSource:"library"});
+  });
+  (Array.isArray(lib.prestations)?lib.prestations:[]).forEach(prestation=>{
+   prestation=txt(prestation);if(prestation)out.push({zone:"",prestation,_suggestionSiteId:siteId,_suggestionSource:"library"});
   });
  });
  return out;
@@ -196,11 +203,17 @@ async function writeManual(targetId,rowId,payload){
  refreshFirebase();if(!db)throw Error("Firebase indisponible");
  const run=()=>db.runTransaction(async tx=>{
   const ref=db.collection("chantiers").doc(String(targetId)),snap=await tx.get(ref);if(!snap.exists)throw Error("Chantier introuvable");
-  const block=snap.data()?.cahierDesChargesV1||{},rows=Array.isArray(block.rows)?block.rows.map(r=>({...r})):[];
+  const data=snap.data()||{},block=data?.cahierDesChargesV1||{},rows=Array.isArray(block.rows)?block.rows.map(r=>({...r})):[];
   if(rowId){const i=rows.findIndex(r=>String(r.id)===rowId);if(i>=0)rows[i]={...rows[i],...payload};else rows.push({id:rowId,...payload,ordre:Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10,sourceType:"manual",createdAtMs:Date.now()})}
   else{const ordre=Math.max(0,...rows.map(r=>Number(r.ordre)||0))+10;rows.push({id:uid(),...payload,ordre,sourceType:"manual",createdAtMs:Date.now()})}
+  const lib=data?.cdcSuggestionLibraryV1||{},zones=Array.isArray(lib.zones)?lib.zones.slice():[],prestations=Array.isArray(lib.prestations)?lib.prestations.slice():[];
+  const addUnique=(arr,value)=>{value=txt(value);if(value&&!arr.some(v=>norm(v)===norm(value)))arr.push(value)};
+  addUnique(zones,payload.zone);addUnique(prestations,payload.prestation);
   const now=Date.now();
-  tx.set(ref,{cahierDesChargesV1:{...block,schemaVersion:2,structuredSchedule:true,rows,updatedAtMs:now,updatedBy:auth?.currentUser?.uid||""}},{merge:true});
+  tx.set(ref,{
+   cahierDesChargesV1:{...block,schemaVersion:2,structuredSchedule:true,rows,updatedAtMs:now,updatedBy:auth?.currentUser?.uid||""},
+   cdcSuggestionLibraryV1:{...lib,zones,prestations,updatedAtMs:now,updatedBy:auth?.currentUser?.uid||""}
+  },{merge:true});
  });
  try{return await run()}catch(e){if(["aborted","unavailable","deadline-exceeded"].includes(String(e?.code||"").toLowerCase())){await new Promise(r=>setTimeout(r,250));return run()}throw e}
 }
@@ -212,7 +225,11 @@ async function save(d){
  const btn=d.querySelector("#ivCdcForm button[type=submit]");if(btn?.dataset.ivSaving==="1")return;if(btn){btn.dataset.ivSaving="1";btn.disabled=true;btn.textContent="Enregistrement…"}
  try{
   await writeManual(target.id,rowId,payload);
-  suggestionRows=suggestionRows.filter(r=>!(String(r._suggestionSiteId||"")===String(target.id)&&(rowId?String(r.id||"")===String(rowId):norm(r.zone)===norm(payload.zone)&&norm(r.prestation)===norm(payload.prestation))));suggestionRows.push({id:rowId||"",zone:payload.zone,prestation:payload.prestation,_suggestionSiteId:String(target.id)});suggestionLoadedAt=Date.now();
+  suggestionRows=suggestionRows.filter(r=>!(String(r._suggestionSiteId||"")===String(target.id)&&(rowId?String(r.id||"")===String(rowId):norm(r.zone)===norm(payload.zone)&&norm(r.prestation)===norm(payload.prestation))));
+  suggestionRows.push({id:rowId||"",zone:payload.zone,prestation:payload.prestation,_suggestionSiteId:String(target.id),_suggestionSource:"row"});
+  if(payload.zone&&!suggestionRows.some(r=>r._suggestionSource==="library"&&norm(r.zone)===norm(payload.zone)))suggestionRows.push({zone:payload.zone,prestation:"",_suggestionSiteId:String(target.id),_suggestionSource:"library"});
+  if(payload.prestation&&!suggestionRows.some(r=>r._suggestionSource==="library"&&norm(r.prestation)===norm(payload.prestation)))suggestionRows.push({zone:"",prestation:payload.prestation,_suggestionSiteId:String(target.id),_suggestionSource:"library"});
+  suggestionLoadedAt=Date.now();
   if(o){o.hidden=true;o.dataset.rowId=""}
  }catch(e){console.error("CDC manual save",e);alert("Impossible d’enregistrer le cahier des charges. Vérifie la connexion Firebase puis réessaie.")}
  finally{if(btn){delete btn.dataset.ivSaving;btn.disabled=false;btn.textContent="Enregistrer"}}
