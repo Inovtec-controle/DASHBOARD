@@ -180,7 +180,10 @@ async function learnSuggestion(d,kind,value){
  const key=norm(value);if(!key)return;
  dismissedSuggestions[kind].delete(key);
  const prop=kind==="zone"?"zone":"prestation";
- if(!suggestionRows.some(r=>norm(r?.[prop])===key&&r?._suggestionSource==="global-library")){
+ const existingRow=suggestionRows.find(r=>norm(r?.[prop])===key&&r?._suggestionSource==="global-library");
+ if(existingRow){
+  existingRow[prop]=value;
+ }else{
   suggestionRows.push({zone:kind==="zone"?value:"",prestation:kind==="prestation"?value:"",_suggestionSource:"global-library"});
  }
  suggestionLoadedAt=Date.now();
@@ -191,7 +194,9 @@ async function learnSuggestion(d,kind,value){
   await db.runTransaction(async tx=>{
    const snap=await tx.get(ref),data=snap.exists?(snap.data()||{}):{},lib=data?.cdcSuggestionLibraryV1||{},hidden=data?.cdcSuggestionHiddenV1||{};
    const values=Array.isArray(lib[libField])?lib[libField].slice():[],hiddenValues=Array.isArray(hidden[hiddenField])?hidden[hiddenField].slice():[];
-   if(!values.some(v=>norm(v)===key))values.push(value);
+   const idx=values.findIndex(v=>norm(v)===key);
+   if(idx>=0)values[idx]=value;
+   else values.push(value);
    const nextHidden=hiddenValues.filter(v=>norm(v)!==key);
    tx.set(ref,{
     cdcSuggestionLibraryV1:{...lib,[libField]:values,updatedAtMs:Date.now()},
