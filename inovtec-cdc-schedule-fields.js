@@ -34,7 +34,44 @@ function populateStructuredFields(d){const overlay=d.getElementById("ivCdcOverla
 async function updateRows(transform){if(!db||!currentSiteId)throw new Error("Chantier introuvable");const ref=db.collection("chantiers").doc(currentSiteId);await db.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists)throw new Error("Chantier introuvable");const block=snap.data()?.cahierDesChargesV1||{},latest=Array.isArray(block.rows)?block.rows:[],next=transform(latest.map(r=>({...r})));tx.update(ref,{"cahierDesChargesV1.schemaVersion":2,"cahierDesChargesV1.rows":next,"cahierDesChargesV1.updatedAtMs":Date.now(),"cahierDesChargesV1.updatedBy":auth?.currentUser?.uid||"","cahierDesChargesV1.structuredSchedule":true})})}
 async function saveStructured(d){const overlay=d.getElementById("ivCdcOverlay"),rowId=overlay?.dataset.rowId||"",prestation=d.getElementById("ivCdcPrestation")?.value.trim()||"";if(!prestation){d.getElementById("ivCdcPrestation")?.focus();return}const jours=[...d.querySelectorAll("[data-iv-cdc-day]:checked")].map(x=>x.dataset.ivCdcDay),payload={zone:d.getElementById("ivCdcZone")?.value.trim()||"",prestation,frequence:d.getElementById("ivCdcFrequence")?.value.trim()||"",frequenceType:d.getElementById("ivCdcFrequenceType")?.value||"jours",jours,methodeConsigne:d.getElementById("ivCdcMethode")?.value.trim()||"",controle:d.getElementById("ivCdcControle")?.value.trim()||"",observations:d.getElementById("ivCdcObservations")?.value.trim()||""};try{await updateRows(latest=>{if(rowId){const i=latest.findIndex(r=>String(r.id)===String(rowId));if(i>=0)latest[i]={...latest[i],...payload,updatedAtMs:Date.now()};return latest}const max=Math.max(0,...latest.map(r=>Number(r.ordre)||0));latest.push({id:uid(),...payload,ordre:max+10,sourceType:"manual",createdAtMs:Date.now(),updatedAtMs:Date.now()});return latest});if(overlay){overlay.hidden=true;overlay.dataset.rowId=""}}catch(e){console.error("Sauvegarde cahier des charges structuré impossible",e);alert("Impossible d’enregistrer cette ligne. Vérifie la connexion Firebase.")}}
 function scheduleSignature(ordered){return JSON.stringify(ordered.map(r=>[String(r.id||""),String(r.frequenceType||""),String(r.frequence||""),Array.isArray(r.jours)?r.jours.join(","):""]))}
-function decorateTable(d){const card=d.getElementById("ivCdcCard"),table=card?.querySelector(".iv-cdc-table");if(!table)return;const ordered=sortedRows(),signature=scheduleSignature(ordered);if(table.dataset.ivScheduleSignature===signature&&table.querySelector('[data-iv-cdc-days-head="1"]'))return;const head=table.querySelector("thead tr"),freqHead=[...head?.children||[]].find(th=>/fréquence/i.test(th.textContent||""));if(freqHead&&!head.querySelector('[data-iv-cdc-days-head="1"]')){const th=d.createElement("th");th.dataset.ivCdcDaysHead="1";th.textContent="Jours";freqHead.insertAdjacentElement("afterend",th)}[...table.querySelectorAll("tbody tr")].forEach((tr,i)=>{const row=ordered[i]||{},freqCell=tr.children[2];if(freqCell){freqCell.textContent="";const badge=d.createElement("span");badge.className="iv-cdc-freq-badge";badge.textContent=typeLabel(row);freqCell.appendChild(badge);const detail=String(row.frequence||"").trim();if(detail&&norm(detail)!==norm(typeLabel(row))){const div=d.createElement("div");div.className="iv-cdc-freq-detail";div.textContent=detail;freqCell.appendChild(div)}}let dayCell=tr.querySelector('[data-iv-cdc-days-cell="1"]');if(!dayCell){dayCell=d.createElement("td");dayCell.dataset.ivCdcDaysCell="1";dayCell.className="iv-cdc-days-cell";tr.children[2]?.insertAdjacentElement("afterend",dayCell)}dayCell.textContent="";const days=Array.isArray(row.jours)?row.jours:[];if(days.length)DAYS.filter(([k])=>days.includes(k)).forEach(([,l])=>{const chip=d.createElement("span");chip.className="iv-cdc-day-chip";chip.textContent=l;dayCell.appendChild(chip)});else dayCell.textContent=inferType(row)==="quotidien"?"Tous les jours":"—"});const freqStat=card.querySelector("#ivCdcFreq");if(freqStat){const count=new Set(rows.map(r=>inferType(r)||norm(r.frequence)).filter(Boolean)).size;if(freqStat.textContent!==String(count))freqStat.textContent=String(count)}table.dataset.ivScheduleSignature=signature;card.dataset.scheduleSchemaVersion="2"}
+function decorateTable(d){
+ const card=d.getElementById("ivCdcCard"),table=card?.querySelector(".iv-cdc-table");if(!table)return;
+ const ordered=sortedRows(),signature=scheduleSignature(ordered);
+ const head=table.querySelector("thead tr");if(!head)return;
+ let freqHead=[...head.children].find(th=>/fréquence/i.test(th.textContent||""));
+ let daysHead=head.querySelector('[data-iv-cdc-days-head="1"]')||[...head.children].find(th=>norm(th.textContent)==="jours");
+ if(!daysHead&&freqHead){
+  daysHead=d.createElement("th");daysHead.dataset.ivCdcDaysHead="1";daysHead.textContent="Jours";freqHead.insertAdjacentElement("beforebegin",daysHead);
+ }
+ if(daysHead)daysHead.dataset.ivCdcDaysHead="1";
+ const heads=[...head.children],freqIndex=freqHead?heads.indexOf(freqHead):-1,daysIndex=daysHead?heads.indexOf(daysHead):-1;
+ [...table.querySelectorAll("tbody tr")].forEach((tr,i)=>{
+  const row=ordered[i]||{};
+  const freqCell=freqIndex>=0?tr.children[freqIndex]:null;
+  if(freqCell){
+   freqCell.textContent="";
+   const badge=d.createElement("span");badge.className="iv-cdc-freq-badge";badge.textContent=typeLabel(row);freqCell.appendChild(badge);
+   const detail=String(row.frequence||"").trim();
+   if(detail&&norm(detail)!==norm(typeLabel(row))){const div=d.createElement("div");div.className="iv-cdc-freq-detail";div.textContent=detail;freqCell.appendChild(div)}
+  }
+  let dayCell=tr.querySelector('[data-iv-cdc-days-cell="1"]')||(daysIndex>=0?tr.children[daysIndex]:null);
+  if(!dayCell&&daysIndex>=0){
+   dayCell=d.createElement("td");dayCell.dataset.ivCdcDaysCell="1";dayCell.className="iv-cdc-days-cell";
+   const before=tr.children[daysIndex]||null;tr.insertBefore(dayCell,before);
+  }
+  if(dayCell){
+   dayCell.dataset.ivCdcDaysCell="1";dayCell.classList.add("iv-cdc-days-cell");dayCell.textContent="";
+   const days=Array.isArray(row.jours)?row.jours.map(norm):[];
+   if(days.length===7){
+    const chip=d.createElement("span");chip.className="iv-cdc-day-chip";chip.textContent="Tous";dayCell.appendChild(chip);
+   }else if(days.length){
+    DAYS.filter(([k])=>days.includes(k)).forEach(([,l])=>{const chip=d.createElement("span");chip.className="iv-cdc-day-chip";chip.textContent=l;dayCell.appendChild(chip)});
+   }else dayCell.textContent=inferType(row)==="quotidien"?"Tous":"—";
+  }
+ });
+ const freqStat=card.querySelector("#ivCdcFreq");if(freqStat){const count=new Set(rows.map(r=>inferType(r)||norm(r.frequence)).filter(Boolean)).size;if(freqStat.textContent!==String(count))freqStat.textContent=String(count)}
+ table.dataset.ivScheduleSignature=signature;card.dataset.scheduleSchemaVersion="2";
+}
 function bindSite(d){const site=activeSite(d),siteId=site?.id||"";if(String(siteId)===String(currentSiteId))return;if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null}currentSiteId=siteId;rows=[];if(!currentSiteId||!db)return;unsubscribe=db.collection("chantiers").doc(currentSiteId).onSnapshot(snap=>{const block=snap.data()?.cahierDesChargesV1||{};rows=Array.isArray(block.rows)?block.rows:[];scheduleInstall()},e=>console.error("Lecture fréquences structurées impossible",e))}
 function install(){const d=doc();if(!d?.body)return;if(d!==lastDoc){lastDoc=d;try{bodyObserver?.disconnect()}catch{}bodyObserver=new MutationObserver(scheduleInstall);bodyObserver.observe(d.body,{childList:true,subtree:true})}ensureFields(d);bindSite(d);decorateTable(d)}
 function scheduleInstall(){clearTimeout(installTimer);installTimer=setTimeout(install,70)}
