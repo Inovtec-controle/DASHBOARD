@@ -22,6 +22,7 @@ function renderDaysCell(d,row){
  const td=d.createElement("td");td.dataset.ivCdcDaysCell="1";td.className="iv-cdc-days-cell";
  const days=rowDays(row);
  if(!days.length){td.textContent="—";return td}
+ if(days.length===7){const s=d.createElement("span");s.className="iv-cdc-day-chip";s.textContent="Tous";td.appendChild(s);return td}
  days.forEach(([,label])=>{const s=d.createElement("span");s.className="iv-cdc-day-chip";s.textContent=label;td.appendChild(s)});
  return td;
 }
