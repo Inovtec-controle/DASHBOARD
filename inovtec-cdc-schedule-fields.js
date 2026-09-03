@@ -73,7 +73,11 @@ function decorateTable(d){
     const chip=d.createElement("span");chip.className="iv-cdc-day-chip";chip.textContent="Tous";dayCell.appendChild(chip);
    }else if(days.length){
     DAYS.filter(([k])=>days.includes(k)).forEach(([,l])=>{const chip=d.createElement("span");chip.className="iv-cdc-day-chip";chip.textContent=l;dayCell.appendChild(chip)});
-   }else dayCell.textContent=inferType(row)==="quotidien"?"Tous":"—";
+   }else{
+    const type=inferType(row),detail=String(row.frequence||"").trim();
+    if(type==="jours")dayCell.textContent="—";
+    else{const badge=d.createElement("span");badge.className="iv-cdc-freq-badge";badge.textContent=type==="autre"&&detail?detail:typeLabel(row);dayCell.appendChild(badge)}
+   }
   }
  });
  const freqStat=card.querySelector("#ivCdcFreq");if(freqStat){const count=new Set(rows.map(r=>inferType(r)||norm(r.frequence)).filter(Boolean)).size;if(freqStat.textContent!==String(count))freqStat.textContent=String(count)}
