@@ -18,6 +18,7 @@ function legacyRowId(row){
 }
 function editableRow(row){return row?.id?row:{...row,id:legacyRowId(row),_ivLegacyMissingId:true}}
 const CDC_DAYS=[["lundi","Lun"],["mardi","Mar"],["mercredi","Mer"],["jeudi","Jeu"],["vendredi","Ven"],["samedi","Sam"],["dimanche","Dim"]];
+const CDC_FREQ_LABELS={jours:"Selon jours",quotidien:"Quotidien",hebdomadaire:"Hebdomadaire",bimensuel:"Bimensuel",mensuel:"Mensuel",trimestriel:"Trimestriel",semestriel:"Semestriel",biannuel:"Bi-annuel",annuel:"Annuel",pair_impair:"Semaines paires / impaires",ponctuel:"Ponctuel",autre:"Autre"};
 function rowDays(row){
  const direct=Array.isArray(row?.jours)?row.jours.map(norm):[];
  const found=new Set(direct);
@@ -29,7 +30,13 @@ function rowDays(row){
 function renderDaysCell(d,row){
  const td=d.createElement("td");td.dataset.ivCdcDaysCell="1";td.className="iv-cdc-days-cell";
  const days=rowDays(row);
- if(!days.length){td.textContent="—";return td}
+ if(!days.length){
+  const type=String(row?.frequenceType||"").trim(),raw=String(row?.frequence||"").trim();
+  let label=CDC_FREQ_LABELS[type]||"";
+  if(type==="autre"&&raw)label=raw;
+  if(!label&&raw&&!/^selon\s+jours$/i.test(raw))label=raw;
+  td.textContent=label||"—";return td
+ }
  if(days.length===7){const s=d.createElement("span");s.className="iv-cdc-day-chip";s.textContent="Tous";td.appendChild(s);return td}
  days.forEach(([,label])=>{const s=d.createElement("span");s.className="iv-cdc-day-chip";s.textContent=label;td.appendChild(s)});
  return td;
