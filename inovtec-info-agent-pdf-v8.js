@@ -61,18 +61,25 @@ function cdcZones(rows){
   function tableHead(colors){
     need(9);
     let x=left;
-    pdf.setFillColor(...colors.light);
     pdf.setDrawColor(...colors.line);
     pdf.setFont("helvetica","bold");
     pdf.setFontSize(7.2);
+
+    // Colonne prestation : fond clair, texte couleur de zone.
+    pdf.setFillColor(...colors.light);
     pdf.setTextColor(...colors.fill);
     pdf.rect(x,y,taskW,8,"FD");
     pdf.text("PRESTATION",x+3,y+5);
     x+=taskW;
+
+    // Colonnes jours : fond de zone foncé + lettres blanches pour rester lisibles.
     DAY_KEYS.forEach(k=>{
+      pdf.setFillColor(...colors.fill);
+      pdf.setTextColor(255,255,255);
+      pdf.setFont("helvetica","bold");
+      pdf.setFontSize(7.8);
       pdf.rect(x,y,dayW,8,"FD");
-      pdf.setFontSize(7.4);
-      pdf.text(PDF_DAY_LABELS[k],x+dayW/2,y+5,{align:"center"});
+      pdf.text(PDF_DAY_LABELS[k],x+dayW/2,y+5.1,{align:"center"});
       x+=dayW;
     });
     y+=8;
