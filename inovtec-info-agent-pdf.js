@@ -76,7 +76,7 @@ function buildRoot(d,site){
   const body=css(d.createElement("div"),"padding:0 18px 12px;");
   addSection(d,body,"Accès au chantier",[["Clé / badge",val(d,site,"cles")],["Code d’accès",val(d,site,"code")],["Accès / particularités du local nettoyage",val(d,site,"accesLocalNettoyage")]]);
   addCdc(d,body,rowsOf(site));
-  addSection(d,body,"Matériel & locaux",[["Franges / matériel spécifique",val(d,site,"franges")],["Consommables",val(d,site,"consommables")],["Local nettoyage",val(d,site,"localnettoyage")],["Type d’ampoules",val(d,site,"ampoules")]]);
+  addSection(d,body,"Matériel & locaux",[["Franges / matériel spécifique",val(d,site,"franges")],["Consommables",val(d,site,"consommables")],["Local nettoyage",val(d,site,"localnettoyage")]]);
   addSection(d,body,"Conteneurs",[["Local conteneurs",val(d,site,"locauxConteneurs")],["Sortie OM",val(d,site,"sortieOM")],["Rentrée OM",val(d,site,"rentreeOM")],["Sortie TRI",val(d,site,"sortieTRI")],["Rentrée TRI",val(d,site,"rentreeTRI")]]);
   addSection(d,body,"Points techniques",[["Prises électriques",val(d,site,"electricite","électricité")],["Point d’eau",val(d,site,"eau","Eau")],["Observations techniques",val(d,site,"observationsTechniques")]]);
   addSection(d,body,"Consignes complémentaires",[["Informations complémentaires",val(d,site,"infopropres")]]);
