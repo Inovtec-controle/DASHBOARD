@@ -40,6 +40,8 @@ jobs:
             planning-pdf.js
             planning-calendar-legal-loader.js
             planning-context-fit.js
+            planning-replacement.js
+            planning-replacement.css
             KONTROL.html
             KONTROL-CLOUD-LEGACY.html
             kontrol-cloud.js
@@ -273,6 +275,9 @@ jobs:
             exit 1
           fi
           grep -q 'planning-pdf.js?v=20260815-3' PLANNINGS-LEGACY.html
+          grep -q 'planning-replacement.css?v=20260903-replacementrestore1' PLANNINGS-LEGACY.html
+          grep -q 'planning-replacement.js?v=20260903-replacementrestore1' PLANNINGS-LEGACY.html
+          grep -q 'Suggestion de remplacement optimal' planning-replacement.js
           grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js
           grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css
           grep -q 'planning-calendar.js?v=' PLANNINGS-LEGACY.html
@@ -364,6 +369,7 @@ jobs:
           node --check planning-pdf.js
           node --check planning-calendar-legal-loader.js
           node --check planning-context-fit.js
+          node --check planning-replacement.js
           python3 - <<'PY'
           from html.parser import HTMLParser
           from pathlib import Path
