@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="planning-calendar.css?v=20260815-3">
 <link rel="stylesheet" href="planning-responsive.css?v=20260814-1">
 <link rel="stylesheet" href="planning-parity.css?v=20260814-1">
+<link rel="stylesheet" href="planning-replacement.css?v=20260903-replacementrestore1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -21,7 +22,7 @@
       <div class="agent-search"><input id="agentSearch" type="search" placeholder="Rechercher un agent…" autocomplete="off"></div>
     </div>
     <div class="agent-list" id="agentList"></div>
-    <div class="agent-tip">La liste vient du Classeur Agents et se met à jour automatiquement.<br>Clic droit sur un agent : réglages PDF et rythme du planning.</div>
+    <div class="agent-tip">La liste vient du Classeur Agents et se met à jour automatiquement.<br>Clic droit sur un agent : remplacement optimal, réglages PDF et rythme du planning.</div>
   </aside>
 
   <main class="calendar-pane">
@@ -72,6 +73,7 @@
 <script src="planning-legal-guard.js?v=20260814-1"></script>
 <script src="planning-copy-count.js?v=20260814-4"></script>
 <script src="planning-context-fit.js?v=20260814-1"></script>
+<script src="planning-replacement.js?v=20260903-replacementrestore1"></script>
 <script src="planning-pdf.js?v=20260815-3"></script>
 <script src="planning-autoheight.js?v=20260829-planningstable3"></script>
 <script>(()=>{const hide=()=>{try{[...parent.document.querySelectorAll('.iv-tool')].forEach(b=>{if(/ajouter un agent/i.test(b.textContent||''))b.style.display='none'})}catch{}};setTimeout(hide,180);setTimeout(hide,650);setTimeout(hide,1400)})();</script>
