@@ -6,6 +6,7 @@ const frame=document.getElementById("legacyFrame");
 const fb=window.firebase;
 const db=fb?.firestore?.();
 const DAY_LABELS={lundi:"Lun",mardi:"Mar",mercredi:"Mer",jeudi:"Jeu",vendredi:"Ven",samedi:"Sam",dimanche:"Dim"};
+const FREQ_LABELS={jours:"Selon jours",quotidien:"Quotidien",hebdomadaire:"Hebdomadaire",bimensuel:"Bimensuel",mensuel:"Mensuel",trimestriel:"Trimestriel",semestriel:"Semestriel",biannuel:"Bi-annuel",annuel:"Annuel",pair_impair:"Semaines paires / impaires",ponctuel:"Ponctuel",autre:"Autre"};
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 function doc(){try{return frame?.contentDocument||null}catch{return null}}
 function win(){try{return frame?.contentWindow||null}catch{return null}}
@@ -42,7 +43,7 @@ function val(d,site,id,...aliases){
 }
 function cleanFilename(v){return String(v||"chantier").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,70)||"chantier"}
 function rowsOf(site){const list=site?.cahierDesChargesV1?.rows;return Array.isArray(list)?list.slice().sort((a,b)=>(Number(a.ordre)||0)-(Number(b.ordre)||0)||String(a.zone||"").localeCompare(String(b.zone||""),"fr",{sensitivity:"base"})||String(a.prestation||"").localeCompare(String(b.prestation||""),"fr",{sensitivity:"base"})):[]}
-function daysText(row){const days=Array.isArray(row?.jours)?row.jours.filter(x=>DAY_LABELS[x]):[];if(days.length)return days.map(x=>DAY_LABELS[x]).join(" • ");if(String(row?.frequenceType||"")==="quotidien"||/quotidien|tous les jours|chaque jour/i.test(String(row?.frequence||"")))return "Tous les jours";return "—"}
+function daysText(row){const days=Array.isArray(row?.jours)?row.jours.filter(x=>DAY_LABELS[x]):[];if(days.length)return days.map(x=>DAY_LABELS[x]).join(" • ");const type=String(row?.frequenceType||"").trim(),raw=String(row?.frequence||"").trim();if(type==="quotidien")return "Quotidien";if(type==="autre"&&raw)return raw;if(type&&type!=="jours"&&FREQ_LABELS[type])return FREQ_LABELS[type];if(/quotidien|tous les jours|chaque jour/i.test(raw))return "Quotidien";if(raw&&!/^selon\s+jours$/i.test(raw))return raw;return "—"}
 function css(el,text){el.style.cssText=text;return el}
 function textEl(d,tag,text,style=""){const el=d.createElement(tag);el.textContent=text;if(style)el.style.cssText=style;return el}
 function addSection(d,root,title,items){
