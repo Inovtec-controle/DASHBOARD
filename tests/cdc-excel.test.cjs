@@ -21,9 +21,57 @@ async function parse(ws, type = 'xlsx', extra = []) {
   X.utils.book_append_sheet(wb, ws, 'Prestations');
   extra.forEach(([name, other]) => X.utils.book_append_sheet(wb, other, name));
   const bytes = X.write(wb, {type: 'buffer', bookType: type});
-  const res = await app().InovtecCdcImportParsers.excel({name: 'essai.' + type, arrayBuffer: async () => bytes});
+  // The file input belongs to legacyFrame; File.arrayBuffer() comes from that other realm.
+  const buffer = vm.runInNewContext('Uint8Array.from(bytes).buffer', {bytes});
+  const res = await app().InovtecCdcImportParsers.excel({name: 'essai.' + type, arrayBuffer: async () => buffer});
   return JSON.parse(JSON.stringify(res));
 }
+test('browser reader handles a file selected inside a different window', async () => {
+  const w = {}, ctx = vm.createContext({window: w, document: {getElementById: () => null}, location: {search: '?mode=infos'}, URLSearchParams, URL, console, setTimeout, clearTimeout});
+  for (const file of ['vendor/xlsx-0.18.5.full.min.js', 'inovtec-cdc-importer.js', 'inovtec-cdc-import-excel.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx);
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, sheet([['Zone', 'Prestation', 'Lundi'], ['Accueil', 'Lavage du sol', '×']]), 'Entretien');
+  const bytes = X.write(wb, {type: 'buffer', bookType: 'xlsx'});
+  const buffer = vm.runInNewContext('Uint8Array.from(bytes).buffer', {bytes});
+  const res = await w.InovtecCdcImportParsers.excel({name: 'entretien.xlsx', arrayBuffer: async () => buffer});
+  assert.equal(res.rows.length, 1);
+  assert.equal(res.rows[0].prestation, 'Lavage du sol');
+  assert.deepEqual(Array.from(res.rows[0].jours), ['lundi']);
+});
+test('frequencies replacing day cells apply to every task covered by their merge', async () => {
+  for (const type of ['xlsx', 'xls']) {
+    const res = await parse(sheet([
+      ['Zones / Prestations', '', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
+      ['PARKING', 'Lavage mécanisé du sol', 'deux fois par an'],
+      ['', 'Nettoyage des rampes'],
+      ['', 'Balayage du local vélos', 'Mensuel'],
+      ['', 'Balayage des couloirs'],
+      ['HALL', 'Désinfection', '', '×']
+    ], ['A1:B1', 'A2:A5', 'C2:G3', 'C4:G5']), type);
+    assert.equal(res.rows.length, 5);
+    assert.deepEqual(res.rows.map(r => r.frequence), ['deux fois par an', 'deux fois par an', 'Mensuel', 'Mensuel', '']);
+    assert.deepEqual(res.rows.map(r => r.frequenceType), ['biannuel', 'biannuel', 'mensuel', 'mensuel', 'jours']);
+    assert.deepEqual(res.rows.map(r => r.jours), [[], [], [], [], ['mardi']]);
+  }
+});
+test('keeps textual schedules in day cells but does not invent frequencies for negative marks', async () => {
+  const res = await parse(sheet([
+    ['Zone', 'Prestation', 'Lundi', 'Mardi', 'Jeudi', 'Vendredi'],
+    ['Hall', 'Vitres', 'Trimestriel', '', '×'],
+    ['', 'Sol', false, 0, 'non', '-'],
+    ['', 'Portes', 'du lundi au vendredi']
+  ]));
+  assert.equal(res.rows[0].frequence, 'Trimestriel');
+  assert.deepEqual(res.rows[0].jours, ['jeudi']);
+  assert.equal(res.rows[1].frequence, '');
+  assert.deepEqual(res.rows[1].jours, []);
+  assert.deepEqual(res.rows[2].jours, ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi']);
+});
+test('empty worksheets do not display an import warning', async () => {
+  const res = await parse(sheet([['Prestation', 'Lundi'], ['Lavage', '×']]), 'xlsx', [['Feuille vide', sheet([])]]);
+  assert.equal(res.rows.length, 1);
+  assert.equal(res.warnings.length, 0);
+});
 test('imports the Clos Atlanta layout with a shared heading and four merged zones', async () => {
   const groups = [
     ['ESPACES\nVERTS', ['Ramassage détritus aux abords des entrées', 'Ramage déchets espaces verts'], [1]],

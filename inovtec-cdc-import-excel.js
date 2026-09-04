@@ -21,6 +21,11 @@ function load(){
  return loading;
 }
 function marked(v){const n=N(v);return /^(x|oui|yes|ok|v|true|vrai)$/.test(n)||/[✓✔✕×☑●•]/.test(String(v))||(/^\d+(?:[.,]\d+)?$/.test(T(v))&&Number(T(v).replace(",","."))>0)}
+function scheduleText(v){
+ const text=T(v),n=N(v);
+ if(!n||marked(v)||/^(non|no|false|faux|neant|ras|na|n a)$/.test(n)||/^[-+]?\d+(?:[.,]\d+)?$/.test(text))return"";
+ return text;
+}
 function day(v){const n=N(v);return ALIASES.findIndex(a=>a.includes(n))}
 function textDays(v){
  const raw=T(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(),found=new Set();
@@ -147,7 +152,7 @@ function header(g,r){
 }
 function parseSheet(X,ws){
  const rows=[],warnings=[];let mergedGroups=0,missing=0;
- const g=worksheet(X,ws);if(!g)return{rows,warnings,mergedGroups};
+ const g=worksheet(X,ws);if(!g)return{rows,warnings,mergedGroups,empty:true};
  let columns=null,zone="";
  for(let r=g.first;r<=g.last;r++){
   const candidate=header(g,r);
@@ -165,8 +170,13 @@ function parseSheet(X,ws){
   const values=col=>{const out=[];if(col<0)return out;for(let rr=r;rr<=end;rr++){const v=g.value(rr,col);if(v&&!out.some(x=>N(x)===N(v)))out.push(v)}return out};
   const frequencies=values(h.frequency),days=new Set();
   for(const {c,index} of h.dayCols){
-   if(index<0)continue;
-   for(let rr=r;rr<=end;rr++)if(marked(g.value(rr,c)))days.add(DAYS[index]);
+   for(let rr=r;rr<=end;rr++){
+    const value=g.value(rr,c);
+    if(index>=0&&marked(value))days.add(DAYS[index]);
+    // A periodicity may replace several day cells and span several distinct tasks.
+    const text=scheduleText(value);
+    if(text&&!frequencies.some(f=>N(f)===N(text)))frequencies.push(text);
+   }
   }
   for(const v of [...values(h.daysText),...frequencies])textDays(v).forEach(d=>days.add(d));
   for(const {c,label} of h.frequencyCols)for(let rr=r;rr<=end;rr++)if(marked(g.value(rr,c))){frequencies.push(label);break}
@@ -183,7 +193,12 @@ function parseSheet(X,ws){
 window.InovtecCdcImportParsers.excel=async file=>{
  if(file.size>20*1024*1024)throw Error("Ce fichier dépasse 20 Mo. Enregistre une copie contenant uniquement le cahier des charges.");
  const X=await load();let wb;
- try{wb=X.read(await file.arrayBuffer(),{type:"array",cellDates:false})}catch(e){throw Error(/password|encrypt/i.test(e?.message||"")?"Ce fichier Excel est protégé par un mot de passe. Importe une copie non protégée.":"Le fichier Excel ne peut pas être lu. Ouvre-le dans Excel puis enregistre une nouvelle copie au format .xlsx.")}
+ try{
+  // File comes from legacyFrame. Normalize its cross-window ArrayBuffer before
+  // handing it to SheetJS, whose ArrayBuffer detection uses instanceof.
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  wb=X.read(bytes,{type:"array",cellDates:false});
+ }catch(e){throw Error(/password|encrypt/i.test(e?.message||"")?"Ce fichier Excel est protégé par un mot de passe. Importe une copie non protégée.":"Le fichier Excel ne peut pas être lu. Ouvre-le dans Excel puis enregistre une nouvelle copie au format .xlsx.")}
  const rows=[],warnings=[];let mergedGroups=0;
  for(const name of wb.SheetNames||[]){
   if(wb.Workbook?.Sheets?.find(s=>s.name===name)?.Hidden){warnings.push(`Onglet « ${name} » masqué : non importé.`);continue}
@@ -191,7 +206,7 @@ window.InovtecCdcImportParsers.excel=async file=>{
   rows.push(...parsed.rows);mergedGroups+=parsed.mergedGroups;
   if(rows.length>600)throw Error("Import limité à 600 prestations par fichier.");
   warnings.push(...parsed.warnings.map(w=>`Onglet « ${name} » : ${w}`));
-  if(!parsed.rows.length)warnings.push(`Onglet « ${name} » : aucun tableau de prestations reconnu.`);
+  if(!parsed.rows.length&&!parsed.empty)warnings.push(`Onglet « ${name} » : aucun tableau de prestations reconnu.`);
  }
  if(mergedGroups)warnings.push(`${mergedGroups} prestation${mergedGroups>1?"s":""} sur cellules fusionnées regroupée${mergedGroups>1?"s":""} en une seule ligne.`);
  const reason=rows.length?"":"Aucun tableau de prestations reconnu. L’import recherche les textes des tâches à côté des jours de passage ou d’une fréquence. Vérifie que ces informations sont bien dans des cellules Excel, et non dans une image collée.";
