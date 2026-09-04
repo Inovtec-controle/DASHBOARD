@@ -32,8 +32,8 @@ function textDays(v){
 }
 function role(v){
  const n=N(v);if(!n)return"";
- if(/^(?:zones?|secteurs?|local|locaux|localisations?|emplacements?|parties?|categories?)(?: (?:a traiter|d intervention|de passage|des prestations|communes|secteur|zone))*$/.test(n))return"zone";
- if(/^(?:(?:nature|description|designation|liste|detail) (?:des? )?)?(?:prestations?|taches?|travaux|operations?|interventions?)(?: (?:a effectuer|a realiser|de nettoyage|d entretien|prevues?|zone))*$/.test(n)||/^(description|designation|libelle)$/.test(n))return"task";
+ if(/^(?:zones?|secteurs?|local|locaux|batiments?|espaces?|localisations?|emplacements?|parties?|categories?)(?: (?:a traiter|d intervention|de passage|des prestations|communes|secteur|zone))*$/.test(n))return"zone";
+ if(/^(?:(?:nature|description|designation|liste|details?) (?:des? )?)?(?:prestations?|taches?|travaux|operations?|interventions?)(?: (?:a effectuer|a realiser|de nettoyage|d entretien|prevues?|zones?|jours?|batiments?|locaux))*$/.test(n)||/^(description|designation|libelle)$/.test(n))return"task";
  if(/^(frequences?|periodicites?|rythmes?)(?: de passage|d intervention|des prestations)?$/.test(n))return"frequency";
  if(/^(jours?|jours? de passage|jours? d intervention|jours? prevus|passages?)$/.test(n))return"daysText";
  if(/^(methodes?|consignes?|mode operatoire)(?: consignes?)?$/.test(n))return"method";
@@ -71,10 +71,60 @@ function worksheet(X,ws){
  const heading=(r,c)=>{const m=merge(r,c);return m&&m.s.c!==c?"":value(r,c)};
  return{first,last,right,raw,merge,value,heading};
 }
+function matrixColumns(g,start,h,fields,dayCols,frequencyCols){
+ const schedule=[...dayCols.map(x=>x.c),...frequencyCols.map(x=>x.c),fields.frequency,fields.daysText].filter(c=>c>=0);
+ if(!schedule.length)return;
+ const firstSchedule=Math.min(...schedule),stats=new Map();
+ const auxiliary=v=>/^(?:n|no|numero|code|ref|reference|quantite|surface|duree|horaire|produit|materiel|nom|prenom|agent|responsable|personnel)(?:s?\b)/.test(N(v));
+ const textValue=v=>/[a-z]/.test(N(v))&&!marked(v)&&!ignored(v);
+ const inspect=c=>{
+  if(stats.has(c))return stats.get(c);
+  let count=0,scheduled=0;
+  for(let r=start;r<=Math.min(start+199,g.last);r++){
+   // Stop at the next matrix, which may have a different column order.
+   if(dayCols.filter(x=>role(g.raw(r,x.c))==="day").length>=2)break;
+   const v=g.raw(r,c),m=g.merge(r,c);
+   if(!textValue(v)||m&&m.e.c>=firstSchedule)continue;
+   count++;
+   if(schedule.some(col=>marked(g.value(r,col))))scheduled++;
+  }
+  const result={c,count,scheduled};stats.set(c,result);return result;
+ };
+ const originalTask=fields.task;
+ if(originalTask>=0){
+  // A heading spanning Zone + Task is not the location of every task beneath it.
+  const merged=g.merge(start-1,originalTask);
+  const candidates=[];
+  for(let c=originalTask;c<firstSchedule;c++){
+   if(c!==originalTask&&T(h[c])&&!(merged&&c<=merged.e.c))break;
+   if(!auxiliary(h[c])&&c!==fields.zone)candidates.push(inspect(c));
+  }
+  const best=candidates.filter(x=>x.count).sort((a,b)=>b.scheduled-a.scheduled||b.count-a.count||b.c-a.c)[0];
+  if(best)fields.task=best.c;
+ }else{
+  // With two or more day headings, infer the task from populated text columns.
+  // Explicit personnel/quantity columns must never become cleaning tasks.
+  const candidates=[];
+  for(let c=0;c<firstSchedule;c++){
+   if(c===fields.zone||auxiliary(h[c])||["method","control","notes"].includes(role(h[c])))continue;
+   candidates.push(inspect(c));
+  }
+  const best=candidates.filter(x=>x.count&&x.scheduled).sort((a,b)=>b.scheduled-a.scheduled||b.count-a.count||b.c-a.c)[0];
+  if(best)fields.task=best.c;
+ }
+ if(fields.zone<0&&fields.task>0){
+  for(let c=fields.task-1;c>=0;c--){
+   const m=g.merge(start-1,c),shared=m&&m.e.c>=fields.task&&m.e.c<firstSchedule;
+   if(auxiliary(h[c])||T(h[c])&&c!==originalTask&&role(h[c])!=="zone"&&!shared)continue;
+   if(inspect(c).count){fields.zone=c;break}
+  }
+ }
+}
 function header(g,r){
  let h=Array.from({length:g.right+1},(_,c)=>g.heading(r,c));
  const task=h.findIndex(v=>role(v)==="task");
- if(task<0)return null;
+ const distinctDays=new Set(h.filter(v=>role(v)==="day").map(N));
+ if(task<0&&distinctDays.size<2)return null;
  // An isolated task word inside a data row is not a header.
  const meaningful=h.filter(T);if(meaningful.length>1&&!h.some(v=>["zone","frequency","daysText","method","control","notes","day"].includes(role(v))))return null;
  let end=r;
@@ -86,6 +136,8 @@ function header(g,r){
  }
  const fields={zone:-1,task:-1,frequency:-1,daysText:-1,method:-1,control:-1,notes:-1},dayCols=[],frequencyCols=[];
  h.forEach((v,c)=>{const k=role(v);if(k in fields&&fields[k]<0)fields[k]=c;if(k==="day")dayCols.push({c,index:day(v),label:N(v)});if(k==="frequencyFlag")frequencyCols.push({c,label:T(v)})});
+ matrixColumns(g,end+1,h,fields,dayCols,frequencyCols);
+ if(fields.task<0)return null;
  // The standard L M M J V (S D) sequence is unambiguous; a lone M is not.
  for(let start=0;start<dayCols.length;start++){
   const block=dayCols.slice(start,start+7),pattern=["l","m","m","j","v","s","d"];
@@ -142,7 +194,7 @@ window.InovtecCdcImportParsers.excel=async file=>{
   if(!parsed.rows.length)warnings.push(`Onglet « ${name} » : aucun tableau de prestations reconnu.`);
  }
  if(mergedGroups)warnings.push(`${mergedGroups} prestation${mergedGroups>1?"s":""} sur cellules fusionnées regroupée${mergedGroups>1?"s":""} en une seule ligne.`);
- const reason=rows.length?"":"Aucune prestation détectée. Le tableau doit contenir un en-tête « Prestation », « Tâche » ou « Désignation ». Les colonnes Zone, Jours et Fréquence sont facultatives.";
+ const reason=rows.length?"":"Aucun tableau de prestations reconnu. L’import recherche les textes des tâches à côté des jours de passage ou d’une fréquence. Vérifie que ces informations sont bien dans des cellules Excel, et non dans une image collée.";
  return{sourceType:"excel",rows,warnings,mergedGroups,reason};
 };
 })();

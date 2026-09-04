@@ -24,6 +24,72 @@ async function parse(ws, type = 'xlsx', extra = []) {
   const res = await app().InovtecCdcImportParsers.excel({name: 'essai.' + type, arrayBuffer: async () => bytes});
   return JSON.parse(JSON.stringify(res));
 }
+test('imports the Clos Atlanta layout with a shared heading and four merged zones', async () => {
+  const groups = [
+    ['ESPACES\nVERTS', ['Ramassage détritus aux abords des entrées', 'Ramage déchets espaces verts'], [1]],
+    ['HALLS', ['Nettoyage interphone', 'Nettoyage interrupteurs', 'Nettoyage vitreries', "Enlèvement toiles d’araignées", 'Dépoussiérage plinthes', 'Nettoyage des ascenseurs', 'nettoyage des boites aux lettres', 'Aspiration des sols carrelés et paillassons', 'Lavages sols carrelés'], [0, 3]],
+    ['ETAGES', ['Aspiration ou Balayage des sols', 'Lavage des sols', 'Dépoussiérage des plinthes', 'Nettoyages interrupteurs', 'Nettoyage portes de services', "Enlèvement toiles d’araignées"], [2, 4]],
+    ['ESCALIERS\nET ACCES\nSOUS SOLS', ['Aspiration ou balayage des sols', 'Lavage des sols', "Enlèvement des toiles d’araignées", 'Dépoussiérage des rampes et gardes corps'], [1]]
+  ];
+  const data = [['LE CLOS ATLANTA'], ['Prestations / jours/ bâtiments', '', 'Lundi', 'Mardi', 'mercredi', 'Jeudi', 'Vendredi']];
+  const merges = ['A1:G1', 'A2:B2'], expected = [];
+  for (const [zone, tasks, days] of groups) {
+    const start = data.length + 1;
+    tasks.forEach((task, i) => {
+      data.push([i === 0 ? zone : '', task, ...Array.from({length: 5}, (_, d) => days.includes(d) ? '×' : '')]);
+      expected.push([zone.replace(/\n/g, ' '), task, days.map(d => ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'][d])]);
+    });
+    merges.push(`A${start}:A${data.length}`);
+  }
+  for (const type of ['xlsx', 'xls']) {
+    const res = await parse(sheet(data, merges), type);
+    assert.equal(res.rows.length, 21);
+    assert.deepEqual(res.rows.map(x => [x.zone, x.prestation, x.jours]), expected);
+    assert.equal(res.mergedGroups, 0, 'merged zones must not merge their distinct tasks');
+  }
+});
+test('shared task header spanning spare columns resolves the populated task column', async () => {
+  const res = await parse(sheet([
+    ['', 'Prestations / jours / bâtiments', '', '', 'Lundi', 'Vendredi'],
+    ['', 'HALLS', 'Lavage des sols', '', 'x', ''],
+    ['', '', 'Dépoussiérage des plinthes', '', '', 'x']
+  ], ['B1:D1', 'B2:B3']));
+  assert.deepEqual(res.rows.map(x => [x.zone, x.prestation]), [['HALLS', 'Lavage des sols'], ['HALLS', 'Dépoussiérage des plinthes']]);
+});
+test('recognizes an unlabelled zone beside a conventional task header', async () => {
+  const res = await parse(sheet([['', 'Prestations', 'Lundi', 'Jeudi'], ['HALLS', 'Lavage', 'x'], ['', 'Vitres', '', 'x']], ['A2:A3']));
+  assert.deepEqual(res.rows.map(x => x.zone), ['HALLS', 'HALLS']);
+});
+test('infers varied maintenance matrices without relying on a particular heading or task', async () => {
+  for (const heading of ['Programme d’entretien / secteurs', 'Planning des passages', 'Prestations / jours / bâtiments']) {
+    for (const type of ['xlsx', 'xls']) {
+      const res = await parse(sheet([
+        [heading, '', 'Ven.', 'Lu.', 'Me.'],
+        ['BÂTIMENT NORD', 'Désinfection des poignées', 'x', '', 'x'],
+        ['', 'Sortie des bacs', '', 'x', ''],
+        ['COUR INTÉRIEURE', 'Ramassage des feuilles', 'x', '', '']
+      ], ['C6:D6', 'C7:C8'], 'C6'), type);
+      assert.deepEqual(res.rows.map(x => [x.zone, x.prestation, x.jours]), [
+        ['BÂTIMENT NORD', 'Désinfection des poignées', ['mercredi', 'vendredi']],
+        ['BÂTIMENT NORD', 'Sortie des bacs', ['lundi']],
+        ['COUR INTÉRIEURE', 'Ramassage des feuilles', ['vendredi']]
+      ]);
+    }
+  }
+});
+test('infers text columns from a days-only heading and retains separate zone groups', async () => {
+  const res = await parse(sheet([
+    ['', '', 'Lundi', 'Mardi', 'Mercredi'],
+    ['GARAGES', 'Balayage', '', 'x', ''],
+    ['', 'Vidage des corbeilles', 'x', '', ''],
+    ['SAS', 'Nettoyage des portes', '', '', 'x']
+  ], ['A2:A3']));
+  assert.deepEqual(res.rows.map(x => [x.zone, x.prestation]), [['GARAGES', 'Balayage'], ['GARAGES', 'Vidage des corbeilles'], ['SAS', 'Nettoyage des portes']]);
+});
+test('does not turn a staff availability matrix into cleaning tasks', async () => {
+  const res = await parse(sheet([['Nom', 'Prénom', 'Lundi', 'Mardi'], ['Dupont', 'Claire', 'x', ''], ['Martin', 'Paul', '', 'x']]));
+  assert.equal(res.rows.length, 0);
+});
 test('recognizes offset tables, accents, XLSX and legacy XLS', async () => {
   for (const type of ['xlsx', 'xls']) {
     const r = await parse(sheet([['Zones', 'Nature des prestations', 'Fréquence'], ['Entrée', 'Lavage du sol', 'Trimestriel']], [], 'C5'), type);
