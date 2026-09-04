@@ -73,7 +73,22 @@ function ensureCard(d){
 function ensureModal(d){if(d.getElementById("ivCdcOverlay"))return;const o=d.createElement("div");o.className="iv-cdc-overlay";o.id="ivCdcOverlay";o.hidden=true;o.innerHTML='<form class="iv-cdc-modal" id="ivCdcForm"><div class="iv-cdc-modal-head"><h3 id="ivCdcModalTitle">Ajouter une prestation</h3><button class="iv-cdc-close" id="ivCdcClose" type="button">×</button></div><div class="iv-cdc-form-grid"><div class="field"><label for="ivCdcZone">Zone</label><input id="ivCdcZone" placeholder="Hall, escaliers, parking…"></div><div class="field"><label for="ivCdcPrestation">Prestation *</label><input id="ivCdcPrestation" required placeholder="Nettoyage des sols…"></div><div class="field"><label for="ivCdcFrequence">Fréquence</label><input id="ivCdcFrequence" placeholder="Quotidien, hebdomadaire, 2×/semaine…"></div><div class="field"><label for="ivCdcControle">Contrôle / exigence</label><input id="ivCdcControle" placeholder="Visuel, résultat attendu…"></div><div class="field full"><label for="ivCdcMethode">Méthode / consigne</label><textarea id="ivCdcMethode" placeholder="Méthode, produit, matériel ou consigne particulière"></textarea></div><div class="field full"><label for="ivCdcObservations">Observations</label><textarea id="ivCdcObservations" placeholder="Informations complémentaires"></textarea></div></div><div class="iv-cdc-modal-actions"><button type="button" class="iv-cdc-btn" id="ivCdcCancel">Annuler</button><button type="submit" class="iv-cdc-btn primary">Enregistrer</button></div></form>';d.body.appendChild(o);
  const close=()=>{o.hidden=true;o.dataset.rowId="";delete o.dataset.ivEditingLock};o.querySelector("#ivCdcClose").onclick=close;o.querySelector("#ivCdcCancel").onclick=close;o.addEventListener("click",e=>{if(e.target===o)close()});o.querySelector("#ivCdcForm").addEventListener("submit",e=>{e.preventDefault();saveRow(d)});
 }
-function openEditor(d,row){if(!currentSiteId){alert("Enregistre ou sélectionne d’abord un chantier.");return}const o=d.getElementById("ivCdcOverlay");if(!o)return;const editable=row?editableRow(row):null;o.dataset.rowId=editable?.id||"";o.dataset.ivEditingLock="1";d.getElementById("ivCdcModalTitle").textContent=editable?"Modifier la prestation":"Ajouter une prestation";d.getElementById("ivCdcZone").value=editable?.zone||"";d.getElementById("ivCdcPrestation").value=editable?.prestation||"";d.getElementById("ivCdcFrequence").value=editable?.frequence||"";d.getElementById("ivCdcControle").value=editable?.controle||"";d.getElementById("ivCdcMethode").value=editable?.methodeConsigne||"";d.getElementById("ivCdcObservations").value=editable?.observations||"";o.hidden=false;setTimeout(()=>d.getElementById("ivCdcPrestation")?.focus(),20)}
+function openEditor(d,row){
+ if(!currentSiteId){alert("Enregistre ou sélectionne d’abord un chantier.");return}
+ const o=d.getElementById("ivCdcOverlay");if(!o)return;
+ const editable=row?editableRow(row):null;
+ o.dataset.rowId=editable?.id||"";o.dataset.ivEditingLock="1";
+ d.getElementById("ivCdcModalTitle").textContent=editable?"Modifier la prestation":"Ajouter une prestation";
+ d.getElementById("ivCdcZone").value=editable?.zone||"";
+ d.getElementById("ivCdcPrestation").value=editable?.prestation||"";
+ d.getElementById("ivCdcFrequence").value=editable?.frequence||"";
+ d.getElementById("ivCdcControle").value=editable?.controle||"";
+ d.getElementById("ivCdcMethode").value=editable?.methodeConsigne||"";
+ d.getElementById("ivCdcObservations").value=editable?.observations||"";
+ // Initialise the schedule from the same row as the text fields, before showing the form.
+ window.InovtecCahierDesChargesSchema?.populateEditor(d,editable);
+ o.hidden=false;setTimeout(()=>d.getElementById("ivCdcPrestation")?.focus(),20);
+}
 function render(d){const card=ensureCard(d);if(!card)return;const add=card.querySelector("#ivCdcAdd");add.disabled=!currentSiteId;card.querySelector("#ivCdcCount").textContent=String(rows.length);card.querySelector("#ivCdcZones").textContent=String(new Set(rows.map(r=>norm(r.zone)).filter(Boolean)).size);card.querySelector("#ivCdcFreq").textContent=String(new Set(rows.map(r=>norm(r.frequence)).filter(Boolean)).size);const box=card.querySelector("#ivCdcContent");box.innerHTML="";
  if(!currentSiteId){box.innerHTML='<div class="iv-cdc-empty"><strong>Sélectionne un chantier enregistré</strong>Le cahier des charges sera automatiquement rattaché à la fiche choisie.</div>';return}
  if(!rows.length){box.innerHTML='<div class="iv-cdc-empty"><strong>Aucune ligne pour ce chantier</strong>L’espace est prêt. Tu pourras remplir manuellement quelques lignes ou importer directement ton fichier Excel à l’étape suivante.</div>';return}

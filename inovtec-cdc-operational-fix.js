@@ -276,8 +276,7 @@ async function loadSuggestions(d,target,force=false){
 function resetModal(d){
  const o=d.getElementById("ivCdcOverlay");if(!o)return;o.dataset.rowId="";o.dataset.ivEditingLock="1";
  ["ivCdcZone","ivCdcPrestation","ivCdcObservations"].forEach(id=>{const e=d.getElementById(id);if(e)e.value=""});
- const t=d.getElementById("ivCdcFrequenceType");if(t)t.value="jours";
- d.querySelectorAll("[data-iv-cdc-day]").forEach(x=>x.checked=false);
+ window.InovtecCahierDesChargesSchema?.populateEditor(d,null);
  const title=d.getElementById("ivCdcModalTitle");if(title)title.textContent="Saisir le cahier des charges";
  applyManualUi(d);o.hidden=false;setTimeout(()=>{const z=d.getElementById("ivCdcZone");z?.focus();renderSuggestions(d,"zone",true)},20);
 }
