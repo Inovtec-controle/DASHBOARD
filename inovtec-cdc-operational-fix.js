@@ -85,6 +85,18 @@ async function dismissSuggestion(d,kind,value){
   });
  }catch(e){console.warn("CDC retrait suggestion",e)}
 }
+function closeSuggestions(d,kind){
+ const input=d.getElementById(kind==="zone"?"ivCdcZone":"ivCdcPrestation");
+ if(input)input.dataset.ivSuggestClosed="1";
+ const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");
+ if(box)box.hidden=true;
+}
+function activateSuggestions(d,kind,immediate=false){
+ const input=d.getElementById(kind==="zone"?"ivCdcZone":"ivCdcPrestation");
+ if(input)delete input.dataset.ivSuggestClosed;
+ if(immediate)renderSuggestions(d,kind,true);
+ if(!immediate||!suggestionLoadedAt||Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL)showSuggestions(d,kind,true);
+}
 async function showSuggestions(d,kind,force=true){
  try{
   const stale=Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL;
@@ -97,12 +109,23 @@ async function showSuggestions(d,kind,force=true){
 }
 function renderSuggestions(d,kind,force=false){
  const cfg=kind==="zone"?{inputId:"ivCdcZone",boxId:"ivCdcZoneSuggestions"}:{inputId:"ivCdcPrestation",boxId:"ivCdcPrestationSuggestions"},ui=ensureSuggestionUi(d,cfg.inputId,cfg.boxId,kind==="zone"?"Suggestions communes à tous les chantiers, les plus utilisées d’abord.":"Suggestions communes ; celles de la zone choisie sont prioritaires.");if(!ui)return;
+ // A late async refresh must not reopen a list closed by a selection or Escape.
+ if(ui.input.dataset.ivSuggestClosed==="1"||d.getElementById("ivCdcOverlay")?.hidden){ui.box.hidden=true;return}
  const q=norm(ui.input.value),all=valuesFor(d,kind),matches=all.filter(item=>!q||norm(item.value).includes(q)).slice(0,10);ui.box.innerHTML="";
  if(!force&&!q){ui.box.hidden=true;return}
  if(!matches.length){const e=d.createElement("div");e.className="iv-cdc-suggest-empty";e.textContent="Aucune suggestion enregistrée";ui.box.appendChild(e);ui.box.hidden=false;return}
  matches.forEach(item=>{
   const row=d.createElement("div");row.className="iv-cdc-suggest-item";
-  const choice=d.createElement("button");choice.type="button";choice.className="iv-cdc-suggest-choice";choice.textContent=item.value;choice.addEventListener("mousedown",e=>e.preventDefault());choice.addEventListener("click",()=>{ui.input.value=item.value;ui.box.hidden=true;ui.input.dispatchEvent(new Event("change",{bubbles:true}));if(kind==="zone"){const p=d.getElementById("ivCdcPrestation");if(p){p.focus();renderSuggestions(d,"prestation",true)}}});
+  const choice=d.createElement("button");choice.type="button";choice.className="iv-cdc-suggest-choice";choice.textContent=item.value;choice.addEventListener("mousedown",e=>e.preventDefault());choice.addEventListener("click",()=>{
+   ui.input.value=item.value;
+   ui.input.focus({preventScroll:true});
+   closeSuggestions(d,"zone");closeSuggestions(d,"prestation");
+   ui.input.dispatchEvent(new Event("change",{bubbles:true}));
+   if(kind==="zone"){
+    const p=d.getElementById("ivCdcPrestation");
+    if(p){p.focus();activateSuggestions(d,"prestation",true)}
+   }
+  });
   const remove=d.createElement("button");remove.type="button";remove.className="iv-cdc-suggest-remove";remove.textContent="×";remove.title="Retirer cette suggestion de la bibliothèque";remove.setAttribute("aria-label","Retirer cette suggestion");remove.addEventListener("mousedown",e=>e.preventDefault());remove.addEventListener("click",async e=>{e.preventDefault();e.stopPropagation();if(!confirm(`Retirer « ${item.value} » des suggestions ?`))return;await dismissSuggestion(d,kind,item.value);renderSuggestions(d,kind,true)});
   row.append(choice,remove);ui.box.appendChild(row);
  });
@@ -113,20 +136,20 @@ function bindSuggestions(d){
  [["ivCdcZone","zone"],["ivCdcPrestation","prestation"]].forEach(([id,kind])=>{
   const input=d.getElementById(id);if(!input)return;
   input.dataset.ivSuggestBound="1";
-  input.oninput=()=>{renderSuggestions(d,kind,true);if(!suggestionLoadedAt||Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL)showSuggestions(d,kind,true)};
-  input.onfocus=()=>showSuggestions(d,kind,true);
+  input.oninput=()=>activateSuggestions(d,kind,true);
+  input.onfocus=()=>activateSuggestions(d,kind);
   input.onblur=()=>learnSuggestion(d,kind,input.value);
   input.onchange=()=>learnSuggestion(d,kind,input.value);
-  input.onkeydown=e=>{if(e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}};
+  input.onkeydown=e=>{if(e.key==="Escape")closeSuggestions(d,kind)};
  });
  if(d.body.dataset.ivCdcSuggestDelegated!=="1"){
   d.body.dataset.ivCdcSuggestDelegated="1";
-  d.addEventListener("input",e=>{const kind=config[e.target?.id];if(kind){renderSuggestions(d,kind,true);if(!suggestionLoadedAt||Date.now()-suggestionLoadedAt>=GLOBAL_SUGGESTION_TTL)showSuggestions(d,kind,true)}},true);
-  d.addEventListener("focusin",e=>{const kind=config[e.target?.id];if(kind)showSuggestions(d,kind,true)},true);
+  d.addEventListener("input",e=>{const kind=config[e.target?.id];if(kind)activateSuggestions(d,kind,true)},true);
+  d.addEventListener("focusin",e=>{const kind=config[e.target?.id];if(kind)activateSuggestions(d,kind)},true);
   d.addEventListener("focusout",e=>{const kind=config[e.target?.id];if(kind)learnSuggestion(d,kind,e.target.value)},true);
   d.addEventListener("change",e=>{const kind=config[e.target?.id];if(kind)learnSuggestion(d,kind,e.target.value)},true);
-  d.addEventListener("keydown",e=>{const kind=config[e.target?.id];if(kind&&e.key==="Escape"){const box=d.getElementById(kind==="zone"?"ivCdcZoneSuggestions":"ivCdcPrestationSuggestions");if(box)box.hidden=true}},true);
-  d.addEventListener("mousedown",e=>{if(e.target.closest?.(".iv-cdc-suggest-field"))return;["ivCdcZoneSuggestions","ivCdcPrestationSuggestions"].forEach(id=>{const box=d.getElementById(id);if(box)box.hidden=true})},true);
+  d.addEventListener("keydown",e=>{const kind=config[e.target?.id];if(kind&&e.key==="Escape")closeSuggestions(d,kind)},true);
+  d.addEventListener("mousedown",e=>{if(e.target.closest?.(".iv-cdc-suggest-field"))return;["zone","prestation"].forEach(kind=>closeSuggestions(d,kind))},true);
  }
 }
 function applyManualUi(d){
