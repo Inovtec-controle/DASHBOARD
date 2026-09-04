@@ -13,9 +13,15 @@ function ensureStyle(d){
   style.textContent=`
     #ivCdcCard .iv-cdc-column-hidden{display:none!important}
     #ivCdcCard .iv-cdc-table{min-width:560px!important}
-    #ivCdcCard .iv-cdc-table th:nth-child(1){width:27%}
-    #ivCdcCard .iv-cdc-table th:nth-child(2){width:50%}
-    #ivCdcCard .iv-cdc-table th[data-iv-cdc-days-head="1"]{width:19%;white-space:nowrap}
+    #ivCdcCard .iv-cdc-table th:nth-child(1){width:20%}
+    #ivCdcCard .iv-cdc-table th:nth-child(2){width:32%}
+    #ivCdcCard .iv-cdc-table th[data-iv-cdc-days-head="1"]{width:20%;white-space:nowrap}
+    #ivCdcCard .iv-cdc-table th[data-iv-cdc-observations-head="1"]{width:24%}
+    #ivCdcCard .iv-cdc-observations-cell{min-width:150px}
+    #ivCdcCard .iv-cdc-observations-edit{display:block;width:100%;min-height:40px;box-sizing:border-box;border:1px solid #d7e5de;border-radius:8px;background:#fbfdfc;padding:8px;color:#263f36;font:inherit;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;cursor:pointer}
+    #ivCdcCard .iv-cdc-observations-edit:empty::before{content:"Ajouter une observation";color:#64766d}
+    #ivCdcCard .iv-cdc-observations-edit:hover{background:#f0f7f3}
+    #ivCdcCard .iv-cdc-observations-edit:focus-visible{outline:2px solid #0b6b43;outline-offset:2px}
     #ivCdcCard .iv-cdc-days-cell{min-width:145px;white-space:nowrap!important}
     #ivCdcCard .iv-cdc-row-actions{justify-content:flex-end;white-space:nowrap}
     @media(max-width:700px){#ivCdcCard .iv-cdc-table{min-width:520px!important}}
@@ -24,7 +30,7 @@ function ensureStyle(d){
 }
 function shouldHide(label){
   const n=norm(label);
-  return n==="frequence"||n.includes("methode consigne")||n==="controle"||n==="observations"||n==="observation";
+  return n==="frequence"||n.includes("methode consigne")||n==="controle";
 }
 function compact(d){
   ensureStyle(d);

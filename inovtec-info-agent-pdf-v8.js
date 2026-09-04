@@ -48,7 +48,7 @@ async function ensureJsPdf(d,w){if(w?.jspdf?.jsPDF)return w.jspdf.jsPDF;let s=d.
 function makeWriter(pdf,name,address){const pageW=210,pageH=297,left=12,right=12,contentW=pageW-left-right;let y=47;function header(){pdf.setFillColor(6,78,59);pdf.rect(0,0,pageW,39,"F");pdf.setTextColor(255,255,255);pdf.setFont("helvetica","bold");pdf.setFontSize(8);pdf.text("INOVTEC - FICHE AGENT",left,10);pdf.setFontSize(18);pdf.text(pdf.splitTextToSize(clean(name)||"Chantier",155),left,20);if(address){pdf.setFont("helvetica","normal");pdf.setFontSize(12);pdf.text(pdf.splitTextToSize(clean(address),170),left,32)}pdf.setTextColor(23,53,43);y=47}function newPage(){pdf.addPage();pdf.setTextColor(23,53,43);y=12}function need(h){if(y+h>pageH-13)newPage()}function title(t){need(13);pdf.setFont("helvetica","bold");pdf.setFontSize(12);pdf.setTextColor(7,95,66);pdf.text(clean(t),left,y);pdf.setDrawColor(205,224,215);pdf.line(left,y+2,198,y+2);y+=8}function item(label,value){value=clean(value);if(!value)return;const lines=pdf.splitTextToSize(value,contentW-4),h=6+lines.length*4.2;need(h+2);pdf.setFillColor(248,252,250);pdf.setDrawColor(220,233,227);pdf.roundedRect(left,y,contentW,h,2,2,"FD");pdf.setTextColor(106,125,116);pdf.setFont("helvetica","bold");pdf.setFontSize(7.5);pdf.text(clean(label).toUpperCase(),left+3,y+4);pdf.setTextColor(23,53,43);pdf.setFont("helvetica","normal");pdf.setFontSize(9.5);pdf.text(lines,left+3,y+9);y+=h+3}function items(list){list.forEach(x=>item(x[0],x[1]));y+=1}function cdcZones(rows){
   if(!rows.length)return;
   title("Cahier des charges");
-  const taskW=102,daysW=contentW-taskW,dayW=daysW/7;
+  const taskW=85,daysW=49,observationsW=contentW-taskW-daysW,dayW=daysW/7;
   const groups=[];
   rows.forEach(r=>{
     const zone=clean(r?.zone)||"Zone non renseignee";
@@ -81,11 +81,16 @@ function makeWriter(pdf,name,address){const pageW=210,pageH=297,left=12,right=12
       pdf.text(PDF_DAY_LABELS[k],x+dayW/2,y+5.1,{align:"center"});
       x+=dayW;
     });
+    pdf.setFillColor(...colors.light);
+    pdf.setTextColor(...colors.fill);
+    pdf.setFontSize(7.2);
+    pdf.rect(x,y,observationsW,8,"FD");
+    pdf.text("OBSERVATIONS",x+3,y+5);
     y+=8;
   }
   function zoneHead(group,index,suite=false){
     const colors=ZONE_PALETTE[index%ZONE_PALETTE.length];
-    need(13);
+    need(31);
     pdf.setFillColor(...colors.fill);
     pdf.setDrawColor(...colors.fill);
     pdf.roundedRect(left,y,contentW,9,2,2,"FD");
@@ -103,10 +108,15 @@ function makeWriter(pdf,name,address){const pageW=210,pageH=297,left=12,right=12
     if(index>0)y+=3;
     let colors=zoneHead(group,index,false);
     group.rows.forEach((r,rowIndex)=>{
+      pdf.setFont("helvetica","normal");
+      pdf.setFontSize(8.3);
       const task=clean(r.prestation)||"-",accordingDays=isAccordingDays(r),freq=frequencyLabel(r),days=interventionDays(r),
             taskLines=pdf.splitTextToSize(task,taskW-7),
-            freqLines=!accordingDays&&freq?pdf.splitTextToSize(clean(freq),daysW-6):[],
-            h=Math.max(9,5+Math.max(taskLines.length,freqLines.length)*3.6);
+            observationLines=clean(r.observations)?pdf.splitTextToSize(clean(r.observations),observationsW-6):[];
+      pdf.setFont("helvetica","bold");
+      pdf.setFontSize(8.8);
+      const freqLines=!accordingDays&&freq?pdf.splitTextToSize(clean(freq),daysW-6):[],
+            h=Math.max(12,5+Math.max(taskLines.length,freqLines.length,observationLines.length)*3.6);
       if(y+h>pageH-13){
         newPage();
         title("Cahier des charges (suite)");
@@ -145,6 +155,13 @@ function makeWriter(pdf,name,address){const pageW=210,pageH=297,left=12,right=12
         pdf.setFontSize(8.8);
         if(freqLines.length)pdf.text(freqLines,x+daysW/2,y+h/2-(freqLines.length-1)*1.8+1.8,{align:"center"});
       }
+      x=left+taskW+daysW;
+      pdf.setFillColor(255,255,255);
+      pdf.rect(x,y,observationsW,h,"FD");
+      pdf.setTextColor(38,63,54);
+      pdf.setFont("helvetica","normal");
+      pdf.setFontSize(8.3);
+      if(observationLines.length)pdf.text(observationLines,x+3,y+5);
       y+=h;
     });
   });
