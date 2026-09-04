@@ -1,224 +1,148 @@
 (()=>{
 "use strict";
 window.InovtecCdcImportParsers=window.InovtecCdcImportParsers||{};
-
 const N=v=>String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const T=v=>String(v??"").replace(/\s+/g," ").trim();
-const D=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-
-const load=()=>window.XLSX
- ? Promise.resolve(window.XLSX)
- : new Promise((ok,no)=>{
-    const s=document.createElement("script");
-    s.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
-    s.onload=()=>ok(window.XLSX);
-    s.onerror=()=>no(Error("Impossible de charger le lecteur Excel."));
-    document.head.appendChild(s);
-   });
-
-const idx=(h,p)=>{
- for(let i=0;i<h.length;i++){
-  const x=N(h[i]);
-  if(p.some(r=>r.test(x)))return i;
+const DAYS=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+const ALIASES=[["lundi","lun","lu","l"],["mardi","mar","ma"],["mercredi","mer","me"],["jeudi","jeu","je","j"],["vendredi","ven","ve","v"],["samedi","sam","sa","s"],["dimanche","dim","di","d"]];
+const readerUrl=document.currentScript?.src?new URL("vendor/xlsx-0.18.5.full.min.js",document.currentScript.src).href:"vendor/xlsx-0.18.5.full.min.js";
+let loading=null;
+function load(){
+ if(window.XLSX?.read)return Promise.resolve(window.XLSX);
+ if(loading)return loading;
+ loading=new Promise((resolve,reject)=>{
+  const s=document.createElement("script");let done=false;
+  const finish=error=>{if(done)return;done=true;clearTimeout(timer);s.onload=s.onerror=null;if(error){s.remove();reject(error)}else resolve(window.XLSX)};
+  const timer=setTimeout(()=>finish(Error("Le lecteur Excel n’a pas pu se charger. Vérifie ta connexion puis réessaie.")),15000);
+  s.src=readerUrl;s.onload=()=>finish(window.XLSX?.read?null:Error("Le lecteur Excel est indisponible. Recharge la page puis réessaie."));
+  s.onerror=()=>finish(Error("Impossible de charger le lecteur Excel. Recharge la page puis réessaie."));
+  document.head.appendChild(s);
+ }).catch(e=>{loading=null;throw e});
+ return loading;
+}
+function marked(v){const n=N(v);return /^(x|oui|yes|ok|v|true|vrai)$/.test(n)||/[✓✔✕×☑●•]/.test(String(v))||(/^\d+(?:[.,]\d+)?$/.test(T(v))&&Number(T(v).replace(",","."))>0)}
+function day(v){const n=N(v);return ALIASES.findIndex(a=>a.includes(n))}
+function textDays(v){
+ const raw=T(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(),found=new Set();
+ const names="lundi|lun|lu|mardi|mar|ma|mercredi|mer|me|jeudi|jeu|je|vendredi|ven|ve|samedi|sam|sa|dimanche|dim|di";
+ const range=new RegExp(`\\b(${names})\\.?\\s*(?:au|a|[-–—])\\s*(${names})\\b`,"g");
+ for(const m of raw.matchAll(range)){const start=day(m[1]),end=day(m[2]);for(let n=start;n<=start+6;n++){found.add(n%7);if(n%7===end)break}}
+ for(const word of N(v).split(" ")){if(word.length<2)continue;const n=day(word);if(n>=0)found.add(n)}
+ return DAYS.filter((_,i)=>found.has(i));
+}
+function role(v){
+ const n=N(v);if(!n)return"";
+ if(/^(?:zones?|secteurs?|local|locaux|localisations?|emplacements?|parties?|categories?)(?: (?:a traiter|d intervention|de passage|des prestations|communes|secteur|zone))*$/.test(n))return"zone";
+ if(/^(?:(?:nature|description|designation|liste|detail) (?:des? )?)?(?:prestations?|taches?|travaux|operations?|interventions?)(?: (?:a effectuer|a realiser|de nettoyage|d entretien|prevues?|zone))*$/.test(n)||/^(description|designation|libelle)$/.test(n))return"task";
+ if(/^(frequences?|periodicites?|rythmes?)(?: de passage|d intervention|des prestations)?$/.test(n))return"frequency";
+ if(/^(jours?|jours? de passage|jours? d intervention|jours? prevus|passages?)$/.test(n))return"daysText";
+ if(/^(methodes?|consignes?|mode operatoire)(?: consignes?)?$/.test(n))return"method";
+ if(/^(controles?|exigences?)(?: exigences?)?$/.test(n))return"control";
+ if(/^(observations?|remarques?|notes?|commentaires?)$/.test(n))return"notes";
+ if(day(n)>=0||n==="m")return"day";
+ if(/^(quotidien(?:ne)?|hebdo(?:madaire)?|bimensuel(?:le)?|mensuel(?:le)?|trimestriel(?:le)?|semestriel(?:le)?|bi annuel(?:le)?|biannuel(?:le)?|annuel(?:le)?)$/.test(n))return"frequencyFlag";
+ return"";
+}
+const ignored=v=>/^(?:total|sous total|signature|page|legende|cahier des charges)(?:\b|$)/.test(N(v));
+function worksheet(X,ws){
+ const entries=[];
+ // Use populated cells: Excel often extends !ref to its last row just for formatting.
+ for(const address of Object.keys(ws||{})){
+  if(!/^[A-Z]+[1-9]\d*$/.test(address))continue;
+  const c=ws[address];if(c?.t==="z"||!T(c?.v??c?.w))continue;
+  const pos=X.utils.decode_cell(address);entries.push({r:pos.r,c:pos.c,value:c.t==="e"?"":T(X.utils.format_cell(c))});
  }
- return-1;
-};
-
-const mark=v=>/^(x|oui|yes|ok|v|1)$/.test(N(v))||/[✓✔✕×]/.test(String(v));
-
-function relMerges(X,ws){
- const ref=ws?.["!ref"];
- if(!ref)return[];
- const range=X.utils.decode_range(ref);
- return (ws["!merges"]||[]).map(m=>({
-  s:{r:m.s.r-range.s.r,c:m.s.c},
-  e:{r:m.e.r-range.s.r,c:m.e.c}
- })).filter(m=>m.e.r>=0&&m.e.c>=0);
-}
-
-function mergeAt(merges,r,c){
- return merges.find(m=>r>=m.s.r&&r<=m.e.r&&c>=m.s.c&&c<=m.e.c)||null;
-}
-
-function cell(g,merges,r,c){
- if(c<0||r<0)return"";
- const direct=T(g?.[r]?.[c]);
- if(direct)return direct;
- const m=mergeAt(merges,r,c);
- if(!m)return"";
- return T(g?.[m.s.r]?.[m.s.c]);
-}
-
-function uniqueValues(g,merges,start,end,col){
- if(col<0)return[];
- const out=[];
- for(let r=start;r<=end;r++){
-  const v=cell(g,merges,r,col);
-  if(v&&!out.some(x=>N(x)===N(v)))out.push(v);
+ if(!entries.length)return null;
+ let first=Infinity,last=0,right=0;for(const c of entries){first=Math.min(first,c.r);last=Math.max(last,c.r);right=Math.max(right,c.c)}
+ if(last-first>20000||right>=256||entries.length>200000)throw Error("Ce tableau est trop grand. Garde uniquement les colonnes et les lignes du cahier des charges dans le fichier à importer.");
+ const grid=new Map(),mergeRows=new Map();
+ for(const c of entries){if(!grid.has(c.r))grid.set(c.r,new Map());grid.get(c.r).set(c.c,c.value)}
+ const merges=(ws["!merges"]||[]).filter(m=>m.e.r>=first&&m.s.r<=last&&m.s.c<=right);
+ let mergeCells=0;
+ for(const m of merges){
+  const end=Math.min(m.e.r,last);mergeCells+=end-Math.max(first,m.s.r)+1;
+  if(mergeCells>200000)throw Error("Ce fichier contient trop de cellules fusionnées. Importe uniquement le tableau des prestations.");
+  for(let r=Math.max(first,m.s.r);r<=end;r++){if(!mergeRows.has(r))mergeRows.set(r,[]);mergeRows.get(r).push(m)}
  }
- return out;
+ const raw=(r,c)=>grid.get(r)?.get(c)||"";
+ const merge=(r,c)=>(mergeRows.get(r)||[]).find(m=>c>=m.s.c&&c<=m.e.c)||null;
+ const value=(r,c)=>{if(c==null||c<0)return"";const m=merge(r,c);return m?raw(m.s.r,m.s.c):raw(r,c)};
+ // Header groups spread over several day columns must not become fake columns.
+ const heading=(r,c)=>{const m=merge(r,c);return m&&m.s.c!==c?"":value(r,c)};
+ return{first,last,right,raw,merge,value,heading};
 }
-
-function rowHasContinuation(g,merges,r,cols,dayCols){
- if(dayCols.some(c=>c>=0&&mark(cell(g,merges,r,c))))return true;
- return cols.some(c=>c>=0&&T(cell(g,merges,r,c)));
+function header(g,r){
+ let h=Array.from({length:g.right+1},(_,c)=>g.heading(r,c));
+ const task=h.findIndex(v=>role(v)==="task");
+ if(task<0)return null;
+ // An isolated task word inside a data row is not a header.
+ const meaningful=h.filter(T);if(meaningful.length>1&&!h.some(v=>["zone","frequency","daysText","method","control","notes","day"].includes(role(v))))return null;
+ let end=r;
+ for(let next=r+1;next<=Math.min(r+2,g.last);next++){
+  const lower=Array.from({length:g.right+1},(_,c)=>g.heading(next,c));
+  const direct=lower.filter((v,c)=>T(g.raw(next,c)));
+  if(direct.filter(v=>["day","frequencyFlag"].includes(role(v))).length<2||direct.some(v=>!role(v)))break;
+  h=h.map((v,c)=>lower[c]||v);end=next;
+ }
+ const fields={zone:-1,task:-1,frequency:-1,daysText:-1,method:-1,control:-1,notes:-1},dayCols=[],frequencyCols=[];
+ h.forEach((v,c)=>{const k=role(v);if(k in fields&&fields[k]<0)fields[k]=c;if(k==="day")dayCols.push({c,index:day(v),label:N(v)});if(k==="frequencyFlag")frequencyCols.push({c,label:T(v)})});
+ // The standard L M M J V (S D) sequence is unambiguous; a lone M is not.
+ for(let start=0;start<dayCols.length;start++){
+  const block=dayCols.slice(start,start+7),pattern=["l","m","m","j","v","s","d"];
+  if(block.length>=5&&block.every((x,i)=>x.label===pattern[i]))block.forEach((x,i)=>x.index=i);
+ }
+ return{...fields,end,dayCols,frequencyCols};
 }
-
-function isIgnoredTask(p){
- return /^(total|sous total|sous-total|signature|page\b)/i.test(T(p));
-}
-
 function parseSheet(X,ws){
- const out=[];
- let mergedGroups=0;
- const ref=ws?.["!ref"];
- if(!ref)return{rows:out,mergedGroups};
-
- const range=X.utils.decode_range(ref);
- const colCount=Math.max(1,range.e.c+1);
- const g=X.utils.sheet_to_json(ws,{
-  header:1,
-  defval:"",
-  raw:false,
-  blankrows:true,
-  range:{s:{r:range.s.r,c:0},e:{r:range.e.r,c:range.e.c}}
- });
- if(!g.length)return{rows:out,mergedGroups};
-
- const merges=relMerges(X,ws);
- const expandedRow=r=>Array.from({length:colCount},(_,c)=>cell(g,merges,r,c));
-
- let hi=-1,best=-1;
- for(let r=0;r<Math.min(30,g.length);r++){
-  const score=expandedRow(r).map(N).reduce((a,x)=>a+(
-   /zone|secteur|local|prestation|tache|travaux|designation|description|frequence|periodicite|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|methode|consigne|controle|observation/.test(x)?1:0
-  ),0);
-  if(score>best){best=score;hi=r}
- }
- if(hi<0||best<1)return{rows:out,mergedGroups};
-
- const h=expandedRow(hi);
- let iz=idx(h,[/^zone$/,/^secteur$/,/^local$/,/^partie$/,/^categorie$/]);
- let ip=idx(h,[/prestation/,/^tache/,/^travaux/,/designation/,/description/,/operation/]);
- const iff=idx(h,[/frequence/,/periodicite/,/rythme/]);
- const im=idx(h,[/methode/,/consigne/,/mode operatoire/]);
- const ic=idx(h,[/controle/,/exigence/]);
- const io=idx(h,[/observation/,/remarque/,/^notes?$/]);
- const di={};
- D.forEach(k=>di[k]=idx(h,[new RegExp(`^${k.slice(0,3)}`)]));
-
- if(ip<0){
-  const ex=new Set([iz,iff,im,ic,io,...Object.values(di)]);
-  ip=h.findIndex((x,i)=>!ex.has(i)&&T(x));
- }
- if(ip<0)return{rows:out,mergedGroups};
- if(iz<0&&ip>0)iz=ip-1;
-
- const dayCols=D.map(k=>di[k]).filter(c=>c>=0);
- const continuationCols=[iff,im,ic,io].filter(c=>c>=0);
- let z="";
-
- for(let r=hi+1;r<g.length;){
-  const zoneHere=iz>=0?cell(g,merges,r,iz):"";
-  if(zoneHere)z=zoneHere;
-
-  const pm=mergeAt(merges,r,ip);
-  let p=pm?cell(g,merges,pm.s.r,ip):T(g?.[r]?.[ip]);
-
-  if(pm&&r>pm.s.r){
-   r++;
-   continue;
+ const rows=[],warnings=[];let mergedGroups=0,missing=0;
+ const g=worksheet(X,ws);if(!g)return{rows,warnings,mergedGroups};
+ let columns=null,zone="";
+ for(let r=g.first;r<=g.last;r++){
+  const candidate=header(g,r);
+  if(candidate){columns=candidate;r=candidate.end;continue}
+  if(!columns)continue;
+  const h=columns,pm=g.merge(r,h.task),p=g.value(r,h.task);
+  const scheduleCols=[h.frequency,h.daysText,...h.dayCols.map(x=>x.c),...h.frequencyCols.map(x=>x.c)].filter(c=>c>=0);
+  const section=pm&&pm.e.c>pm.s.c&&(pm.s.c<=h.zone&&pm.e.c>=h.task||scheduleCols.some(c=>c>=pm.s.c&&c<=pm.e.c));
+  if(section){if(r===pm.s.r&&p&&!ignored(p))zone=p;continue}
+  const currentZone=g.value(r,h.zone);if(currentZone&&!ignored(currentZone))zone=currentZone;
+  if(pm&&r>pm.s.r)continue;
+  if(!p){if(scheduleCols.some(c=>T(g.raw(r,c))))missing++;continue}
+  if(ignored(p))continue;
+  const end=pm?Math.min(pm.e.r,g.last):r;if(end>r)mergedGroups++;
+  const values=col=>{const out=[];if(col<0)return out;for(let rr=r;rr<=end;rr++){const v=g.value(rr,col);if(v&&!out.some(x=>N(x)===N(v)))out.push(v)}return out};
+  const frequencies=values(h.frequency),days=new Set();
+  for(const {c,index} of h.dayCols){
+   if(index<0)continue;
+   for(let rr=r;rr<=end;rr++)if(marked(g.value(rr,c)))days.add(DAYS[index]);
   }
-  if(!p||isIgnoredTask(p)){
-   r++;
-   continue;
-  }
-
-  let end=r;
-  if(pm&&pm.s.r===r&&pm.e.r>r){
-   end=Math.min(g.length-1,pm.e.r);
-   mergedGroups++;
-  }else{
-   for(let k=r+1;k<g.length;k++){
-    const rawZone=iz>=0?T(g?.[k]?.[iz]):"";
-    if(rawZone&&z&&N(rawZone)!==N(z))break;
-
-    const km=mergeAt(merges,k,ip);
-    const rawP=T(g?.[k]?.[ip]);
-    const kp=km?cell(g,merges,km.s.r,ip):rawP;
-
-    if(km&&km.s.r===k&&kp&&N(kp)!==N(p))break;
-    if(kp&&N(kp)!==N(p))break;
-
-    const cont=rowHasContinuation(g,merges,k,continuationCols,dayCols);
-    const sameTask=kp&&N(kp)===N(p);
-    if(!sameTask&&!cont)break;
-
-    end=k;
-   }
-  }
-
-  const jours=[];
-  D.forEach(k=>{
-   const c=di[k];
-   if(c<0)return;
-   for(let rr=r;rr<=end;rr++){
-    if(mark(cell(g,merges,rr,c))){
-     jours.push(k);
-     break;
-    }
-   }
-  });
-
-  const freqValues=uniqueValues(g,merges,r,end,iff);
-  const methodValues=uniqueValues(g,merges,r,end,im);
-  const controlValues=uniqueValues(g,merges,r,end,ic);
-  const observationValues=uniqueValues(g,merges,r,end,io);
-  const frequence=freqValues.join(" · ");
+  for(const v of [...values(h.daysText),...frequencies])textDays(v).forEach(d=>days.add(d));
+  for(const {c,label} of h.frequencyCols)for(let rr=r;rr<=end;rr++)if(marked(g.value(rr,c))){frequencies.push(label);break}
+  const jours=DAYS.filter(d=>days.has(d)),frequence=[...new Set(frequencies)].join(" · ");
   const frequenceType=window.InovtecCdcImport?.freq?.(frequence,jours)||"jours";
-
-  out.push({
-   zone:z,
-   prestation:p,
-   frequenceType,
-   frequence,
-   jours:[...new Set(jours)],
-   methodeConsigne:methodValues.join(" · "),
-   controle:controlValues.join(" · "),
-   observations:observationValues.join(" · ")
-  });
-
-  r=end+1;
+  rows.push({zone,prestation:p,frequenceType,frequence,jours,methodeConsigne:values(h.method).join(" · "),controle:values(h.control).join(" · "),observations:values(h.notes).join(" · ")});
+  if(rows.length>600)throw Error("Import limité à 600 prestations par fichier.");
+  if(h.dayCols.some(x=>x.index<0))warnings.push("Une colonne « M » est ambiguë : renomme-la « Mardi » ou « Mercredi » puis réimporte le fichier.");
+  r=end;
  }
-
- return{rows:out,mergedGroups};
+ if(missing)warnings.push(`${missing} ligne${missing>1?"s":""} avec une fréquence ou des jours, mais sans prestation, ignorée${missing>1?"s":""}.`);
+ return{rows,warnings:[...new Set(warnings)],mergedGroups};
 }
-
 window.InovtecCdcImportParsers.excel=async file=>{
- const X=await load();
- const wb=X.read(await file.arrayBuffer(),{type:"array",cellDates:false});
- const rows=[],warnings=[];
- let mergedGroups=0;
-
- for(const sn of wb.SheetNames){
-  const parsed=parseSheet(X,wb.Sheets[sn]);
-  rows.push(...parsed.rows);
-  mergedGroups+=parsed.mergedGroups;
+ if(file.size>20*1024*1024)throw Error("Ce fichier dépasse 20 Mo. Enregistre une copie contenant uniquement le cahier des charges.");
+ const X=await load();let wb;
+ try{wb=X.read(await file.arrayBuffer(),{type:"array",cellDates:false})}catch(e){throw Error(/password|encrypt/i.test(e?.message||"")?"Ce fichier Excel est protégé par un mot de passe. Importe une copie non protégée.":"Le fichier Excel ne peut pas être lu. Ouvre-le dans Excel puis enregistre une nouvelle copie au format .xlsx.")}
+ const rows=[],warnings=[];let mergedGroups=0;
+ for(const name of wb.SheetNames||[]){
+  if(wb.Workbook?.Sheets?.find(s=>s.name===name)?.Hidden){warnings.push(`Onglet « ${name} » masqué : non importé.`);continue}
+  const parsed=parseSheet(X,wb.Sheets[name]);
+  rows.push(...parsed.rows);mergedGroups+=parsed.mergedGroups;
+  if(rows.length>600)throw Error("Import limité à 600 prestations par fichier.");
+  warnings.push(...parsed.warnings.map(w=>`Onglet « ${name} » : ${w}`));
+  if(!parsed.rows.length)warnings.push(`Onglet « ${name} » : aucun tableau de prestations reconnu.`);
  }
-
- if(mergedGroups){
-  warnings.push(`${mergedGroups} cellule${mergedGroups>1?"s":""} fusionnée${mergedGroups>1?"s":""} regroupée${mergedGroups>1?"s":""} en une seule prestation.`);
- }
- if(!rows.length){
-  warnings.push("Aucun tableau Excel avec des colonnes reconnaissables n’a été trouvé.");
- }
-
- return{
-  sourceType:"excel",
-  rows,
-  warnings,
-  mergedGroups,
-  reason:rows.length?"":warnings[warnings.length-1]
- };
+ if(mergedGroups)warnings.push(`${mergedGroups} prestation${mergedGroups>1?"s":""} sur cellules fusionnées regroupée${mergedGroups>1?"s":""} en une seule ligne.`);
+ const reason=rows.length?"":"Aucune prestation détectée. Le tableau doit contenir un en-tête « Prestation », « Tâche » ou « Désignation ». Les colonnes Zone, Jours et Fréquence sont facultatives.";
+ return{sourceType:"excel",rows,warnings,mergedGroups,reason};
 };
 })();
