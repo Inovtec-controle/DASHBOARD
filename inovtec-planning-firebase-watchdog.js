@@ -4,7 +4,7 @@ const host=(()=>{try{return parent&&parent!==window?parent:window}catch{return w
 if(host.__INOVTEC_PLANNING_FIREBASE_WATCHDOG_V1__)return;
 host.__INOVTEC_PLANNING_FIREBASE_WATCHDOG_V1__=true;
 
-let user=null,serverState="loading",serverMessage="Vérification Firebase…",serverCheckedAt=0,authResolved=false,checkBusy=false,retryTimer=null,mirrorWaitingSince=0;
+let user=null,serverState="loading",serverMessage="Vérification Firebase…",serverCheckedAt=0,lastAttemptAt=0,authResolved=false,checkBusy=false,mirrorWaitingSince=0;
 const TIMEOUT_MS=8000;
 const CHECK_EVERY_MS=15000;
 
@@ -18,7 +18,7 @@ function mirrorText(){try{return String(host.document.getElementById("syncMirror
 function setMirror(text){try{const el=host.document.getElementById("syncMirror");if(el)el.textContent=text}catch{}}
 function cloudState(){
   const t=mirrorText().toLowerCase();
-  if(/erreur|impossible|refus|accès refusé|acces refuse|non connecté|non connecte/.test(t))return"error";
+  if(/erreur|impossible|refus|accès refusé|acces refuse|non connecté|non connecte|synchronisation bloquée|synchronisation bloquee/.test(t))return"error";
   if(/synchronisé|synchronise|données synchronisées|donnees synchronisees/.test(t))return"connected";
   return"loading";
 }
@@ -27,6 +27,7 @@ function withTimeout(promise,ms){
 }
 async function serverCheck(){
   if(checkBusy||!authResolved)return;
+  lastAttemptAt=Date.now();
   if(!navigator.onLine){serverState="error";serverMessage="Pas de connexion réseau";broadcast();return}
   if(!user){serverState="error";serverMessage="Compte Firebase non connecté";broadcast();return}
   if(!host.firebase||!host.INOVTEC_FIREBASE_CONFIG){serverState="error";serverMessage="Firebase indisponible";broadcast();return}
@@ -62,21 +63,26 @@ function broadcast(){
     status("error","Firebase accessible mais synchronisation du Planning bloquée");
   }else status("loading","Firebase accessible · synchronisation du Planning en cours");
 }
-function scheduleRetry(delay=3000){clearTimeout(retryTimer);retryTimer=setTimeout(serverCheck,delay)}
 function bind(){
   if(!host.firebase||!host.INOVTEC_FIREBASE_CONFIG||!host.firebase.auth||!host.firebase.firestore){setTimeout(bind,150);return}
   try{
     if(!host.firebase.apps.length)host.firebase.initializeApp(host.INOVTEC_FIREBASE_CONFIG);
     host.firebase.auth().onAuthStateChanged(u=>{
-      authResolved=true;user=u||null;serverState="loading";mirrorWaitingSince=0;
+      authResolved=true;user=u||null;serverState="loading";mirrorWaitingSince=0;serverCheckedAt=0;
       if(user)serverCheck();else broadcast();
     },()=>{authResolved=true;user=null;serverState="error";serverMessage="Problème d’authentification Firebase";broadcast()});
   }catch(e){authResolved=true;serverState="error";serverMessage="Firebase indisponible";broadcast()}
   host.addEventListener("online",()=>{serverState="loading";serverMessage="Reconnexion Firebase…";serverCheck()});
   host.addEventListener("offline",()=>{serverState="error";serverMessage="Pas de connexion réseau";broadcast()});
-  host.addEventListener("focus",()=>{if(user&&Date.now()-serverCheckedAt>10000)serverCheck()});
-  host.document.addEventListener("visibilitychange",()=>{if(!host.document.hidden&&user&&Date.now()-serverCheckedAt>10000)serverCheck()});
-  setInterval(()=>{broadcast();if(user&&!host.document.hidden&&Date.now()-serverCheckedAt>CHECK_EVERY_MS)serverCheck();if(serverState==="error"&&navigator.onLine&&user)scheduleRetry(2500)},1500);
+  host.addEventListener("focus",()=>{if(user&&Date.now()-lastAttemptAt>5000)serverCheck()});
+  host.document.addEventListener("visibilitychange",()=>{if(!host.document.hidden&&user&&Date.now()-lastAttemptAt>5000)serverCheck()});
+  setInterval(()=>{
+    broadcast();
+    if(!user||host.document.hidden||checkBusy)return;
+    const now=Date.now();
+    if(serverState==="error"&&navigator.onLine&&now-lastAttemptAt>5000)serverCheck();
+    else if(serverState==="connected"&&now-serverCheckedAt>CHECK_EVERY_MS)serverCheck();
+  },1500);
 }
 bind();
 })();
