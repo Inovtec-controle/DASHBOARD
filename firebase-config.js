@@ -44,13 +44,27 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
 (() => {
   try {
     if (window.top !== window) return;
-    if (document.querySelector('script[data-inovtec-firebase-operational="1"]')) return;
-    const script = document.createElement("script");
-    script.src = "inovtec-firebase-operational-guard.js?v=20260829-operational1";
-    script.dataset.inovtecFirebaseOperational = "1";
-    script.async = false;
-    (document.head || document.documentElement).appendChild(script);
+    const scripts = [
+      {
+        selector: 'script[data-inovtec-firebase-operational="1"]',
+        src: "inovtec-firebase-operational-guard.js?v=20260829-operational1",
+        dataset: "inovtecFirebaseOperational"
+      },
+      {
+        selector: 'script[data-inovtec-firebase-connection-recovery="1"]',
+        src: "inovtec-firebase-connection-recovery.js?v=20260905-recovery1",
+        dataset: "inovtecFirebaseConnectionRecovery"
+      }
+    ];
+    scripts.forEach(item => {
+      if (document.querySelector(item.selector)) return;
+      const script = document.createElement("script");
+      script.src = item.src;
+      script.dataset[item.dataset] = "1";
+      script.async = false;
+      (document.head || document.documentElement).appendChild(script);
+    });
   } catch (error) {
-    console.warn("Chargement du garde-fou Firebase ignoré", error);
+    console.warn("Chargement des garde-fous Firebase ignoré", error);
   }
 })();
