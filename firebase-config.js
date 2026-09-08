@@ -7,6 +7,26 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
   appId: "1:313162345276:web:1a270f797dd736a4060c39"
 });
 
+/* Initialise Firebase le plus tôt possible et active le transport Firestore
+   le plus tolérant aux proxys / réseaux qui bloquent le WebChannel. */
+(() => {
+  let attempts=0;
+  const configure=()=>{
+    if(!window.firebase||!firebase.initializeApp||!firebase.firestore){
+      if(attempts++<60)setTimeout(configure,50);
+      return;
+    }
+    try{
+      if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+      const db=firebase.firestore();
+      try{db.settings({experimentalAutoDetectLongPolling:true,useFetchStreams:false})}
+      catch(_e1){try{db.settings({experimentalAutoDetectLongPolling:true})}catch(_e2){}}
+      try{const p=db.enableNetwork();if(p&&typeof p.catch==="function")p.catch(()=>{})}catch{}
+    }catch(error){console.warn("Configuration réseau Firebase ignorée",error)}
+  };
+  configure();
+})();
+
 (() => {
   try {
     if (!localStorage.getItem("orga_task_board_v2")) {
@@ -47,12 +67,12 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
     const scripts = [
       {
         selector: 'script[data-inovtec-firebase-operational="1"]',
-        src: "inovtec-firebase-operational-guard.js?v=20260908-sync-recovery1",
+        src: "inovtec-firebase-operational-guard.js?v=20260908-firebase-stable2",
         dataset: "inovtecFirebaseOperational"
       },
       {
         selector: 'script[data-inovtec-firebase-connection-recovery="1"]',
-        src: "inovtec-firebase-connection-recovery.js?v=20260908-sync-recovery1",
+        src: "inovtec-firebase-connection-recovery.js?v=20260908-firebase-stable2",
         dataset: "inovtecFirebaseConnectionRecovery"
       }
     ];
