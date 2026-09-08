@@ -16,7 +16,6 @@ const client=sessionStorage.ivCloudClient||(sessionStorage.ivCloudClient="c"+Dat
 const metaKey="iv_cloud_meta_"+mode;
 const CLOUD_LIMIT=420000;
 let ref=null,user=null,ready=false,remoteApply=false,last="",pushTimer=null,reloadTimer=null,unsubscribe=null;
-let pushBusy=false,pushRetryTimer=null,subscriptionRetryTimer=null,subscriptionRetryCount=0;
 
 const rawLocal=()=>localStorage.getItem(key)||"";
 const parse=s=>{try{return JSON.parse(s)}catch{return null}};
@@ -270,29 +269,14 @@ function reload(){clearTimeout(reloadTimer);bindFrameActivity(frameDoc());const 
 
 async function push(reason){
   if(!ref||!user||remoteApply)return;
-  if(pushBusy){clearTimeout(pushRetryTimer);pushRetryTimer=setTimeout(()=>push("queued-retry"),1200);return}
-  pushBusy=true;
   const p=prepared(),value=p.payload,t=Date.now();
   try{
     await ref.set({moduleSyncV1:{[mode]:{payload:value,updatedAtMs:t,client,reason,compact:!!p.compact,version:4}}},{merge:true});
-    clearTimeout(pushRetryTimer);
     const h=sig(value);setMeta({ts:t,hash:h,compact:!!p.compact});last=h;
     updateLegacyStatus(p.compact?"Firebase — données synchronisées":"Firebase — synchronisé","ok",p.compact);
-    try{window.dispatchEvent(new CustomEvent("inovtec:firebase-status",{detail:{state:"connected",message:"Firebase connecté · sauvegarde confirmée",source:"cloud-sync"}}))}catch{}
   }catch(e){
     console.warn("Firebase sync "+mode,e);
-    /* Ne jamais marquer une modification comme traitée après un échec. */
-    last="";
     updateLegacyStatus("Firebase — erreur de sauvegarde","warning");
-    try{window.dispatchEvent(new CustomEvent("inovtec:firebase-status",{detail:{state:"error",message:"Firebase — sauvegarde interrompue, nouvelle tentative en cours",source:"cloud-sync"}}))}catch{}
-    clearTimeout(pushRetryTimer);
-    pushRetryTimer=setTimeout(async()=>{
-      if(!user||!navigator.onLine)return;
-      try{await user.getIdToken(true)}catch{}
-      push("automatic-retry");
-    },3500);
-  }finally{
-    pushBusy=false;
   }
 }
 
@@ -342,38 +326,12 @@ async function receive(snap){
 
 function start(u){
   if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null}
-  clearTimeout(subscriptionRetryTimer);clearTimeout(pushRetryTimer);subscriptionRetryCount=0;
   user=u||null;ready=false;ref=null;
   if(!user){updateLegacyStatus("Connexion Firebase requise","warning");showLogin();return}
   hideLogin();
   updateLegacyStatus("Connexion Firebase…","warning");
   ref=firebase.firestore().collection("kanban").doc(user.uid);
-  subscribe();
-}
-
-function scheduleSubscriptionRetry(error){
-  if(!user)return;
-  ready=false;
-  if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null}
-  const code=String(error?.code||"");
-  updateLegacyStatus(code.includes("permission")?"Firebase — reconnexion nécessaire":"Firebase — reconnexion en cours","warning");
-  clearTimeout(subscriptionRetryTimer);
-  const delay=Math.min(15000,1500*Math.pow(2,Math.min(subscriptionRetryCount++,3)));
-  subscriptionRetryTimer=setTimeout(async()=>{
-    if(!user)return;
-    if(!navigator.onLine){scheduleSubscriptionRetry(error);return}
-    try{await user.getIdToken(true)}catch{}
-    subscribe();
-  },delay);
-}
-
-function subscribe(){
-  if(!ref||!user)return;
-  if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null}
-  unsubscribe=ref.onSnapshot(s=>{
-    subscriptionRetryCount=0;
-    receive(s).catch(e=>{console.warn(e);scheduleSubscriptionRetry(e)});
-  },e=>{console.warn(e);scheduleSubscriptionRetry(e)});
+  unsubscribe=ref.onSnapshot(s=>receive(s).catch(e=>{console.warn(e);ready=true;updateLegacyStatus("Firebase — erreur de lecture","warning")}),e=>{console.warn(e);ready=true;updateLegacyStatus("Firebase — accès refusé","warning")});
 }
 
 if(window.firebase&&window.INOVTEC_FIREBASE_CONFIG){
@@ -385,11 +343,6 @@ if(window.firebase&&window.INOVTEC_FIREBASE_CONFIG){
     const h=sig(prepared().payload);
     if(h!==last){last=h;clearTimeout(pushTimer);pushTimer=setTimeout(()=>push("local-change"),500)}
   },800);
-  window.addEventListener("online",()=>{
-    if(!user)return;
-    if(!unsubscribe)subscribe();
-    const h=sig(prepared().payload);if(h!==String(meta().hash||"")){last="";push("online-retry")}
-  });
   frame?.addEventListener("load",()=>{setTimeout(()=>bindFrameActivity(frameDoc()),80);setTimeout(()=>{
     if(user)updateLegacyStatus(meta().compact?"Firebase — données synchronisées":"Firebase — synchronisé","ok",!!meta().compact);
     else updateLegacyStatus("Connexion Firebase requise","warning");
