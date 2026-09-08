@@ -29,6 +29,22 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
   configure();
 })();
 
+/* L'ancien contrôle global pouvait déclarer Firebase en panne si une seule
+   collection répondait lentement. On laisse le contrôleur de reprise faire
+   le vrai test avant d'afficher une erreur à l'utilisateur. */
+(() => {
+  window.addEventListener("inovtec:firebase-operational",event=>{
+    try{
+      const detail=event.detail||{};
+      const signedIn=!!window.firebase?.auth?.().currentUser;
+      if(detail.ok===false&&!detail.source&&navigator.onLine&&signedIn){
+        event.stopImmediatePropagation();
+        window.dispatchEvent(new CustomEvent("inovtec:firebase-status",{detail:{state:"loading",message:"Reconnexion Firebase…",source:"legacy-health-filter"}}));
+      }
+    }catch{}
+  },true);
+})();
+
 (() => {
   try {
     if (!localStorage.getItem("orga_task_board_v2")) {
@@ -69,12 +85,12 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
     const scripts = [
       {
         selector: 'script[data-inovtec-firebase-operational="1"]',
-        src: "inovtec-firebase-operational-guard.js?v=20260908-firebase-stable2",
+        src: "inovtec-firebase-operational-guard.js?v=20260908-firebase-stable3",
         dataset: "inovtecFirebaseOperational"
       },
       {
         selector: 'script[data-inovtec-firebase-connection-recovery="1"]',
-        src: "inovtec-firebase-connection-recovery.js?v=20260908-firebase-stable2",
+        src: "inovtec-firebase-connection-recovery.js?v=20260908-firebase-stable3",
         dataset: "inovtecFirebaseConnectionRecovery"
       }
     ];
