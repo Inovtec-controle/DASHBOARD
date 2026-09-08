@@ -112,7 +112,7 @@ jobs:
             exit 1
           fi
           grep -q 'id="activeCategoryPill" hidden' KONTROL.html
-          grep -q 'KONTROL.html?v=20260829-no-category1' kontrol-cloud.js
+          grep -q 'KONTROL.html?v=20260830-pdfphotos1' kontrol-cloud.js
           grep -q 'writeSharedHistory(blob' kontrol-cloud.js
           grep -q 'resolveChantierId(details)' kontrol-cloud.js
           grep -q '_type: "kontrolPdfMeta"' kontrol-cloud.js
@@ -146,13 +146,13 @@ jobs:
           grep -q 'inovtec-firebase-indicator.js' index.html
           grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
-          grep -q 'inovtec-cahier-des-charges.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -q 'inovtec-cahier-des-charges.js?v=20260904-observations1' inovtec-page-shell.html
           grep -q 'max-height:none;overflow:visible' inovtec-cahier-des-charges.js
           grep -q 'iv-cdc-overlay.*overflow:hidden' inovtec-cahier-des-charges.js
-          grep -q '__INOVTEC_CDC_OPERATIONAL_FIX_V3__' inovtec-cdc-operational-fix.js
+          grep -q '__INOVTEC_CDC_OPERATIONAL_FIX_V6__' inovtec-cdc-operational-fix.js
           grep -q 'function suggestionRowsFromSites' inovtec-cdc-operational-fix.js
           grep -q 'GLOBAL_SUGGESTION_TTL' inovtec-cdc-operational-fix.js
-          grep -Fq 'collection("chantiers").orderBy("nom").get()' inovtec-cdc-operational-fix.js
+          grep -Fq 'collection("chantiers").get()' inovtec-cdc-operational-fix.js
           grep -q 'InovtecCdcOperationalSave' inovtec-cdc-operational-fix.js
           grep -q 'ivOperationalFix.*InovtecCdcOperationalSave' inovtec-cdc-schedule-fields.js
           grep -q 'max-height:none!important;overflow:visible!important' inovtec-cdc-operational-fix.js
@@ -162,16 +162,16 @@ jobs:
             echo "::error::Le correctif CDC est de nouveau chargé deux fois."
             exit 1
           fi
-          grep -q 'inovtec-cdc-operational-fix.js?v=20260829-idlock1' inovtec-page-shell.html
-          grep -q 'inovtec-cdc-schedule-fields.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -q 'inovtec-cdc-operational-fix.js?v=20260904-editdays1' inovtec-page-shell.html
+          grep -q 'inovtec-cdc-schedule-fields.js?v=20260904-editdays1' inovtec-page-shell.html
           grep -q 'inovtec-cdc-ui-hard-fix.js?v=20260829-operational1' inovtec-page-shell.html
           grep -q 'inovtec-info-contact-mode.js?v=20260829-idlock1' inovtec-page-shell.html
           grep -q 'inovtec-info-contract-fields.js?v=20260829-idlock1' inovtec-page-shell.html
-          grep -q 'inovtec-info-agent-planning.js?v=20260829-agentdropdown1' inovtec-page-shell.html
-          grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' inovtec-page-shell.html
-          grep -q 'inovtec-info-control-history.js?v=20260830-pdfphotos1' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-kontrol-shared-archive.js?v=20260830-pdfphotos1' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260830-pdfphotos1' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-info-agent-planning.js?v=20260830-agentselector1' inovtec-page-shell.html
+          grep -q 'inovtec-info-persistence-stable.js?v=20260830-agentselector1' inovtec-page-shell.html
+          grep -q 'inovtec-info-control-history.js?v=20260830-savepdf1' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-kontrol-shared-archive.js?v=20260830-savepdf1' INFOCHANTIERS-V2-LEGACY.html
+          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260830-savepdf1' INFOCHANTIERS-V2-LEGACY.html
           grep -q 'id="ivControlHistoryCard"' INFOCHANTIERS-V2-LEGACY.html
           grep -q 'chantierId' inovtec-info-control-history.js
           grep -q 'DIRECT_CONTROL_TYPE' kontrol-cloud.js
@@ -184,7 +184,7 @@ jobs:
           grep -q 'PDF non généré' KONTROL.html
           grep -q 'photoCount:pdfPhotos.length' KONTROL.html
           grep -q 'KONTROL.html?v=20260830-pdfphotos1' kontrol-cloud.js
-          grep -q 'ivAllowOriginalPdfOnce' kontrol-cloud.js
+          grep -Fq 'child.InovtecGenerateControlPdf' kontrol-cloud.js
           grep -q 'Enregistré + PDF' kontrol-cloud.js
           grep -q 'RECORD_TYPE="kontrolControlRecord"' inovtec-info-control-history.js
           grep -q 'subscribeRecords' inovtec-info-control-history.js
@@ -267,7 +267,7 @@ jobs:
             echo "::error::Le Classeur agents utilise encore l'affichage compact adaptatif."
             exit 1
           fi
-          grep -q 'inovtec-info-auth-bridge.js?v=20260820-info-operational1' inovtec-page-shell.html
+          grep -q 'inovtec-info-auth-bridge.js?v=20260908-sync-recovery1' inovtec-page-shell.html
           grep -q 'inovtec-page-shell.html?build=20260908-sync-recovery1&amp;mode=infos' INFOCHANTIERS.html
           grep -q 'inovtec-page-shell.html?build=20260908-sync-recovery1&amp;mode=infos' INFOCHANTIERS-V2.html
           if grep -q 'inovtec-info-shell-stable.html' INFOCHANTIERS.html INFOCHANTIERS-V2.html; then
@@ -471,12 +471,12 @@ jobs:
             for attempt in $(seq 1 15); do
               curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260908-sync-recovery1&mode=infos&sv=20260829-agentbubble1" -o /tmp/shell.html
               curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/INFOCHANTIERS-V2-LEGACY.html?v=20260829-persistence7" -o /tmp/infos.html
-              if grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' /tmp/shell.html \
+              if grep -q 'inovtec-info-persistence-stable.js?v=20260830-agentselector1' /tmp/shell.html \
                 && grep -q 'Enregistrer ✓' /tmp/infos.html \
                 && grep -q 'get({source:"server"})' /tmp/infos.html \
                 && grep -q 'button.dataset.ivChantierId' /tmp/infos.html \
                 && grep -q 'data.agentsAffectes=' /tmp/infos.html \
-                && grep -q 'inovtec-info-agent-planning.js?v=20260829-agentdropdown1' /tmp/shell.html; then
+                && grep -q 'inovtec-info-agent-planning.js?v=20260830-agentselector1' /tmp/shell.html; then
                 live_ready=1
                 break
               fi
