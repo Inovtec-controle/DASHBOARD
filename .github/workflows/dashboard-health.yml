@@ -227,7 +227,7 @@ jobs:
           grep -q 'Sélectionnez un chantier' inovtec-visual-runtime.js
           grep -q 'ivAgentPickerButton' inovtec-info-agent-planning.js
           grep -q 'ivAgentPickerPanel' inovtec-info-agent-planning.js
-          grep -q 'firebase-config.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -q 'firebase-config.js?v=20260908-sync-recovery1' inovtec-page-shell.html
           if grep -q 'iv-cdc-modal{[^}]*overflow:auto' inovtec-cahier-des-charges.js; then
             echo "::error::La fenêtre de saisie manuelle contient encore une scrollbar interne."
             exit 1
@@ -258,7 +258,7 @@ jobs:
             echo "::error::L'affichage actuel de la liste agents a été modifié."
             exit 1
           fi
-          grep -q 'inovtec-cloud-sync.js?v=20260829-planningstable3' inovtec-page-shell.html
+          grep -q 'inovtec-cloud-sync.js?v=20260908-sync-recovery1' inovtec-page-shell.html
           grep -q 'inovtec-data-hub.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-referential.js?v=20260829-agentclean1' inovtec-page-shell.html
           grep -q 'inovtec-alphabetical-lists.js?v=20260829-agentstable1' inovtec-page-shell.html
@@ -268,8 +268,8 @@ jobs:
             exit 1
           fi
           grep -q 'inovtec-info-auth-bridge.js?v=20260820-info-operational1' inovtec-page-shell.html
-          grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' INFOCHANTIERS.html
-          grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' INFOCHANTIERS-V2.html
+          grep -q 'inovtec-page-shell.html?build=20260908-sync-recovery1&amp;mode=infos' INFOCHANTIERS.html
+          grep -q 'inovtec-page-shell.html?build=20260908-sync-recovery1&amp;mode=infos' INFOCHANTIERS-V2.html
           if grep -q 'inovtec-info-shell-stable.html' INFOCHANTIERS.html INFOCHANTIERS-V2.html; then
             echo "::error::Infos chantier utilise encore son ancien menu spécial."
             exit 1
@@ -307,10 +307,10 @@ jobs:
           grep -q 'id="globalSearch"' index.html
           grep -q 'dashboard-global-search.js?v=20260829-agentclean1' index.html
           grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-page-shell.html
-          grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' inovtec-info-shell-stable.html
+          grep -q 'inovtec-page-shell.html?build=20260908-sync-recovery1&amp;mode=infos' inovtec-info-shell-stable.html
           # Toutes les pages doivent charger le même build opérationnel sans cache navigateur.
           for page in INFOCHANTIERS.html INFOCHANTIERS-V2.html AGENTS.html PLANNINGS.html CONGES.html VARIABLES.html ORGA.html HEURE-SUP.html TEMPS.html SALAIRE.html ESSENCE.html KONTROL-CLOUD.html; do
-            grep -q 'build=20260829-operational1' "$page" || { echo "::error file=$page::Build opérationnel absent"; exit 1; }
+            grep -q 'build=20260908-sync-recovery1' "$page" || { echo "::error file=$page::Build opérationnel absent"; exit 1; }
             grep -qi 'http-equiv="cache-control"' "$page" || { echo "::error file=$page::Protection anti-cache absente"; exit 1; }
           done
           if grep -q 'sera activée ultérieurement' index.html; then
@@ -469,7 +469,7 @@ jobs:
           if [ '${{ github.event_name }}' = 'push' ]; then
             live_ready=0
             for attempt in $(seq 1 15); do
-              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260829-operational1&mode=infos&sv=20260829-agentbubble1" -o /tmp/shell.html
+              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260908-sync-recovery1&mode=infos&sv=20260829-agentbubble1" -o /tmp/shell.html
               curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/INFOCHANTIERS-V2-LEGACY.html?v=20260829-persistence7" -o /tmp/infos.html
               if grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' /tmp/shell.html \
                 && grep -q 'Enregistrer ✓' /tmp/infos.html \
