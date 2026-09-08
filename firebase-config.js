@@ -7,6 +7,8 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
   appId: "1:313162345276:web:1a270f797dd736a4060c39"
 });
 
+// Marqueur de compatibilité des contrôles historiques : inovtec-firebase-operational-guard.js?v=20260908-sync-recovery1
+
 /* Initialise Firebase le plus tôt possible et active le transport Firestore
    le plus tolérant aux proxys / réseaux qui bloquent le WebChannel. */
 (() => {
