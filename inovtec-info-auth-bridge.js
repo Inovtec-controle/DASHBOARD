@@ -7,12 +7,20 @@ if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
 const auth=firebase.auth();
 const db=firebase.firestore();
 const frame=document.getElementById("legacyFrame");
-let verifiedUid="",frameSyncTimer=null,reloadedForUid="";
+let verifiedUid="",frameSyncTimer=null,reloadedForUid="",verifyBusy=false;
+const VERIFY_TIMEOUT=9000;
 
 function setIndicator(state,message){
   try{window.InovtecFirebaseIndicator?.setState?.(state,message)}catch{}
-  try{window.dispatchEvent(new CustomEvent("inovtec:firebase-status",{detail:{state,message}}))}catch{}
+  try{window.dispatchEvent(new CustomEvent("inovtec:firebase-status",{detail:{state,message,source:"info-auth-bridge"}}))}catch{}
   const mirror=document.getElementById("syncMirror");if(mirror)mirror.textContent=message||"Firebase";
+}
+function withTimeout(promise,ms=VERIFY_TIMEOUT){
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>{timer=setTimeout(()=>{const e=new Error("Firebase timeout");e.code="timeout";reject(e)},ms)})
+  ]).finally(()=>clearTimeout(timer));
 }
 async function setBestPersistence(){
   const P=firebase.auth.Auth.Persistence;
@@ -45,20 +53,43 @@ function box(){
 function showLogin(){box().style.display="grid"}
 function hideLogin(){const el=document.getElementById("ivInfosAuthBridge");if(el)el.style.display="none"}
 
-async function verifyFirestore(user){
+async function firestoreProbe(user){
+  try{await withTimeout(db.enableNetwork(),3500)}catch{}
+  try{
+    return await withTimeout(db.collection("chantiers").limit(1).get({source:"server"}));
+  }catch(first){
+    const code=String(first?.code||"");
+    if(/unauthenticated|permission-denied/.test(code)){
+      try{await withTimeout(user.getIdToken(true),6000)}catch{}
+      return withTimeout(db.collection("chantiers").limit(1).get({source:"server"}));
+    }
+    throw first;
+  }
+}
+async function verifyFirestore(user,force=false){
   if(!user)return false;
-  if(verifiedUid===user.uid){setIndicator("connected","Firebase connecté · chantiers synchronisés");return true}
+  if(!force&&verifiedUid===user.uid){setIndicator("connected","Firebase connecté · chantiers synchronisés");return true}
+  if(verifyBusy)return false;
+  if(!navigator.onLine){setIndicator("error","Pas de connexion réseau");return false}
+  verifyBusy=true;
   setIndicator("loading","Vérification Firebase…");
   try{
-    await db.collection("chantiers").limit(1).get();
+    try{
+      await firestoreProbe(user);
+    }catch(first){
+      setIndicator("loading","Reconnexion Firebase…");
+      await new Promise(resolve=>setTimeout(resolve,1200));
+      await firestoreProbe(user);
+    }
     verifiedUid=user.uid;
     setIndicator("connected","Firebase connecté · chantiers synchronisés");
     return true;
   }catch(error){
     console.error("Vérification Firestore Infos chantier",error);
-    setIndicator("error","Firebase connecté mais accès aux chantiers impossible");
+    const code=String(error?.code||"");
+    setIndicator("error",code==="timeout"?"Firebase ne répond pas":"Firebase connecté mais accès aux chantiers impossible");
     return false;
-  }
+  }finally{verifyBusy=false}
 }
 function forceFrameReload(user){
   if(!frame||!user||reloadedForUid===user.uid)return;
@@ -90,11 +121,12 @@ setBestPersistence().catch(()=>{});
 auth.onAuthStateChanged(async user=>{
   if(!user){verifiedUid="";reloadedForUid="";showLogin();setIndicator("error","Compte Firebase non connecté");return}
   hideLogin();
-  await verifyFirestore(user);
+  await verifyFirestore(user,true);
   syncFrameAuth();
 });
 frame?.addEventListener("load",()=>syncFrameAuth());
-window.addEventListener("online",()=>{const u=auth.currentUser;if(u)verifyFirestore(u)});
+window.addEventListener("online",()=>{const u=auth.currentUser;if(u){verifiedUid="";verifyFirestore(u,true)}});
 window.addEventListener("offline",()=>setIndicator("error","Pas de connexion réseau"));
+window.addEventListener("focus",()=>{const u=auth.currentUser;if(u)verifyFirestore(u,false)});
 box();
 })();
