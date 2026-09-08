@@ -85,7 +85,10 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'projectId: "inovtec-chantiers"' firebase-config.js
-          grep -Fq 'inovtec-firebase-operational-guard.js?v=20260829-operational1' firebase-config.js
+          grep -Fq 'inovtec-firebase-operational-guard.js?v=20260908-sync-recovery1' firebase-config.js
+          grep -Fq 'automatic-retry' inovtec-cloud-sync.js
+          grep -Fq 'getIdToken(true)' inovtec-cloud-sync.js
+          grep -Fq 'scheduleSubscriptionRetry' inovtec-cloud-sync.js
 
           # Planning / agents / anciennes heures supplémentaires : synchronisation personnelle Firebase.
           grep -Fq 'planning:"inovtec_plannings_v2"' inovtec-cloud-sync.js
@@ -158,7 +161,7 @@ jobs:
           grep -Fq 'writeSharedHistory(blob' kontrol-cloud.js
           grep -Fq 'resolveChantierId(details)' kontrol-cloud.js
           grep -Fq '_type: "kontrolPdfMeta"' kontrol-cloud.js
-          grep -Fq 'KONTROL.html?v=20260829-no-category1' kontrol-cloud.js
+          grep -Fq 'KONTROL.html?v=20260830-pdfphotos1' kontrol-cloud.js
           grep -Fq 'kontrolCdcCount' inovtec-visual-runtime.js
           grep -Fq 'cahierDesChargesV1' inovtec-visual-runtime.js
           grep -Fq 'kontrolPdfMeta' inovtec-kontrol-shared-archive.js
@@ -167,6 +170,9 @@ jobs:
           grep -Fq 'match /kanban/{userId}' firestore.rules
           grep -Fq 'match /chantiers/{chantierId}' firestore.rules
           grep -Fq 'match /kontrol/{userId}/pdfs/{fileName}' storage.rules
+
+      - name: Tester les reprises après erreur Firebase
+        run: node --test tests/firebase-recovery.test.cjs
 
       - name: Vérifier que les modules critiques sont accessibles
         shell: bash
@@ -177,9 +183,10 @@ jobs:
           grep -Fq 'CONGES.html' inovtec-navigation-order.js
           grep -Fq 'VARIABLES.html' inovtec-navigation-order.js
           grep -Fq 'inovtec-conges-nav.js' inovtec-page-shell.html
-          grep -Fq 'firebase-config.js?v=20260829-operational1' inovtec-page-shell.html
+          grep -Fq 'firebase-config.js?v=20260908-sync-recovery1' inovtec-page-shell.html
+          grep -Fq 'inovtec-cloud-sync.js?v=20260908-sync-recovery1' inovtec-page-shell.html
           for page in PLANNINGS.html AGENTS.html CONGES.html VARIABLES.html ORGA.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html; do
-            grep -Fq 'build=20260829-operational1' "$page" || { echo "::error file=$page::Build Firebase opérationnel absent"; exit 1; }
+            grep -Fq 'build=20260908-sync-recovery1' "$page" || { echo "::error file=$page::Build Firebase opérationnel absent"; exit 1; }
           done
 
       - name: Vérifier la couverture de persistance des pages métier

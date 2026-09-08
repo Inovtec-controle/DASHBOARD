@@ -47,12 +47,12 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
     const scripts = [
       {
         selector: 'script[data-inovtec-firebase-operational="1"]',
-        src: "inovtec-firebase-operational-guard.js?v=20260829-operational1",
+        src: "inovtec-firebase-operational-guard.js?v=20260908-sync-recovery1",
         dataset: "inovtecFirebaseOperational"
       },
       {
         selector: 'script[data-inovtec-firebase-connection-recovery="1"]',
-        src: "inovtec-firebase-connection-recovery.js?v=20260905-recovery1",
+        src: "inovtec-firebase-connection-recovery.js?v=20260908-sync-recovery1",
         dataset: "inovtecFirebaseConnectionRecovery"
       }
     ];

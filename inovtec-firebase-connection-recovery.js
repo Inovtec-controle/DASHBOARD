@@ -6,7 +6,7 @@ if(window.top!==window)return;
 
 const CHECK_TIMEOUT=9000;
 const RETRY_MS=12000;
-let auth=null,db=null,user=null,checking=false,lastCheck=0,retryTimer=null,bootTimer=null;
+let auth=null,db=null,user=null,checking=false,lastCheck=0,lastTokenRefresh=0,retryTimer=null,bootTimer=null;
 
 function emit(state,message,extra={}){
   const detail={state,message,source:"firebase-connection-recovery",...extra};
@@ -41,6 +41,7 @@ async function verify(force=false){
   checking=true;
   emit("loading","Vérification de la connexion Firebase…");
   try{
+    if(Date.now()-lastTokenRefresh>5*60*1000){await withTimeout(user.getIdToken(true),5000);lastTokenRefresh=Date.now()}
     try{await withTimeout(db.enableNetwork(),3000)}catch{}
     await withTimeout(Promise.all([
       db.collection("kanban").doc(user.uid).get({source:"server"}),
@@ -62,6 +63,7 @@ async function verify(force=false){
 }
 function start(currentUser){
   user=currentUser||null;
+  lastTokenRefresh=0;
   clearTimeout(retryTimer);
   if(!user){emit("error","Compte Firebase non connecté");operational(false,"Compte Firebase non connecté");return}
   emit("loading","Compte Firebase reconnu · connexion en cours…");
