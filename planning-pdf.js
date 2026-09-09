@@ -42,7 +42,8 @@ function agentData(state,week,agent){
   const dayTotals=groups.map(g=>g.reduce((n,item)=>n+workedDurationMin(item),0));
   const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
   const nightTotal=groups.reduce((total,g)=>total+g.reduce((n,item)=>n+nightDurationMin(item),0),0);
-  return{agent:agent.name||"Agent",start,end,groups,dayTotals,weekTotal,nightTotal};
+  const sundayTotal=dayTotals[6]||0;
+  return{agent:agent.name||"Agent",start,end,groups,dayTotals,weekTotal,nightTotal,sundayTotal};
 }
 function jsPDFClass(){return window.jspdf?.jsPDF||window.jsPDF||null}
 function fitLine(doc,value,maxWidth){let s=String(value||"").replace(/\s+/g," ").trim();if(!s)return"";if(doc.getTextWidth(s)<=maxWidth)return s;const ell="...";while(s.length>1&&doc.getTextWidth(s+ell)>maxWidth)s=s.slice(0,-1);return(s.trim()||"")+ell}
@@ -68,7 +69,13 @@ function drawHeader(doc,data){
   doc.setFontSize(18);doc.text(String(data.agent||"Agent"),15,21,{maxWidth:178});
   doc.setFontSize(9);doc.setFont("helvetica","normal");doc.text(rangeLabel(data.start,data.end),15,27);
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text("TOTAL SEMAINE",281,14,{align:"right"});doc.setFontSize(15);doc.text(totalLabel(data.weekTotal),281,22.5,{align:"right"});
-  if(data.nightTotal>0){doc.setFontSize(6.5);doc.setFont("helvetica","bold");doc.text(`TRAVAIL DE NUIT (21H-6H) : ${totalLabel(data.nightTotal)}`,281,28,{align:"right"})}
+  const extras=[];
+  if(data.nightTotal>0)extras.push(`TRAVAIL DE NUIT (21H-6H) : ${totalLabel(data.nightTotal)}`);
+  if(data.sundayTotal>0)extras.push(`TRAVAIL LE DIMANCHE : ${totalLabel(data.sundayTotal)}`);
+  if(extras.length){
+    doc.setFont("helvetica","bold");doc.setFontSize(extras.length>1?5.8:6.5);
+    extras.forEach((label,i)=>doc.text(label,281,extras.length>1?26.5+i*2.6:28,{align:"right"}));
+  }
   doc.setLineWidth(.25);doc.setFont("helvetica","normal");doc.setTextColor(0,0,0);
 }
 function layoutDay(list,range,bodyY,bodyH){
