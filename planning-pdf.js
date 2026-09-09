@@ -14,6 +14,8 @@ function safeName(v){return String(v||"planning").normalize("NFD").replace(/[\u0
 function timeToMin(t){const m=String(t||"").match(/(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):0}
 function displayTime(t){const m=String(t||"").match(/(\d{1,2}):(\d{2})/);if(!m)return String(t||"");return`${Number(m[1])}h${m[2]}`}
 function durationMin(item){return Math.max(0,timeToMin(item.end)-timeToMin(item.start))}
+function isPause(item){return norm(item?.task)==="pause"}
+function workedDurationMin(item){return isPause(item)?0:durationMin(item)}
 function durationLabel(mins){const h=Math.floor(mins/60),m=mins%60;return h?`${h}h${pad(m)}`:`${m} min`}
 function totalLabel(mins){const h=Math.floor(mins/60),m=mins%60;return`${h}h${pad(m)}`}
 function loadState(){try{const s=JSON.parse(localStorage.getItem(KEY)||"{}");return s&&Array.isArray(s.agents)&&s.weeks?s:{agents:[],weeks:{},selected:null}}catch{return{agents:[],weeks:{},selected:null}}}
@@ -28,7 +30,7 @@ function agentData(state,week,agent){
     const d=Math.max(0,Math.min(6,Number(e.day)||0));
     groups[d].push({start:e.start||"",end:e.end||"",task:e.task||"Intervention",brief:e.site||"",note:e.note||""});
   });
-  const dayTotals=groups.map(g=>g.reduce((n,item)=>n+durationMin(item),0));
+  const dayTotals=groups.map(g=>g.reduce((n,item)=>n+workedDurationMin(item),0));
   const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
   return{agent:agent.name||"Agent",start,end,groups,dayTotals,weekTotal};
 }
