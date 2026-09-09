@@ -1,0 +1,35 @@
+/* Fenetre creation/modification planning : toujours entierement dans le viewport */
+#editorPopover{
+  max-height:calc(100dvh - 24px)!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+#editorPopover .editor-actions{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:20!important;
+  background:rgba(255,255,255,.98)!important;
+  box-shadow:0 -6px 12px rgba(15,23,42,.04);
+}
+@media (max-width:720px){
+  #editorPopover.open{
+    left:12px!important;
+    right:12px!important;
+    top:12px!important;
+    bottom:auto!important;
+    width:auto!important;
+    max-width:none!important;
+    max-height:calc(100dvh - 24px)!important;
+    overflow-y:auto!important;
+  }
+}
+@media (max-height:760px){
+  #editorPopover{padding:9px!important}
+  #editorPopover .editor-row{margin-bottom:5px!important}
+  #editorPopover .editor-field,
+  #editorPopover .editor-textarea,
+  #editorPopover .editor-select{padding:5px 7px!important}
+  #editorPopover .editor-textarea{min-height:38px!important;max-height:56px!important}
+  #editorPopover .editor-actions{margin-top:5px!important;padding-top:7px!important;padding-bottom:7px!important}
+}
