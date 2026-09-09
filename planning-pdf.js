@@ -83,19 +83,22 @@ function layoutDay(list,range,bodyY,bodyH){
   return pos;
 }
 function drawEvent(doc,item,x,y,w,h){
-  const padX=2,textW=w-4;
-  doc.setFillColor(255,255,255);doc.setDrawColor(174,195,184);doc.setLineWidth(.22);doc.roundedRect(x,y,w,h,1.2,1.2,"FD");
-  doc.setFillColor(6,120,84);doc.rect(x,y,.9,h,"F");
-  const mins=durationMin(item);
+  const padX=2,textW=w-4,pause=isPause(item);
+  if(pause){doc.setFillColor(255,248,225);doc.setDrawColor(224,165,55);doc.setLineWidth(.38)}
+  else{doc.setFillColor(255,255,255);doc.setDrawColor(174,195,184);doc.setLineWidth(.22)}
+  doc.roundedRect(x,y,w,h,1.2,1.2,"FD");
+  if(pause)doc.setFillColor(230,145,56);else doc.setFillColor(6,120,84);
+  doc.rect(x,y,pause?1.2:.9,h,"F");
+  const mins=durationMin(item),cx=x+w/2;
   doc.setFont("helvetica","bold");doc.setFontSize(6.9);doc.setTextColor(205,45,45);
   const timeText=`${displayTime(item.start)} - ${displayTime(item.end)}   ${durationLabel(mins)}`;
-  doc.text(fitLine(doc,timeText,textW),x+padX,y+2.9);
-  doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(25,45,38);
-  doc.text(fitLine(doc,item.task||"Intervention",textW),x+padX,y+6.1);
+  doc.text(fitLine(doc,timeText,textW),cx,y+2.9,{align:"center"});
+  doc.setFont("helvetica","bold");doc.setFontSize(9.6);doc.setTextColor(25,25,25);
+  doc.text(fitLine(doc,item.task||"Intervention",textW),cx,y+6.5,{align:"center"});
   if(item.brief){
-    doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(66,78,72);
+    doc.setFont("helvetica","normal");doc.setFontSize(8.4);doc.setTextColor(35,35,35);
     const maxLines=h>=16?2:1,lines=fitLines(doc,item.brief,textW,maxLines);
-    if(lines.length)doc.text(lines,x+padX,y+9.2,{lineHeightFactor:1.08});
+    if(lines.length)doc.text(lines,cx,y+9.8,{align:"center",lineHeightFactor:1.08});
   }
 }
 function drawGrid(doc,data){
