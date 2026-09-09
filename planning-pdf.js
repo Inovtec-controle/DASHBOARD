@@ -63,13 +63,13 @@ function timeRange(data){
   return{start:first,end:last};
 }
 function drawHeader(doc,data){
-  doc.setFillColor(6,78,59);doc.roundedRect(8,7,281,23,4,4,"F");
-  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7);doc.text("PLANNING HEBDOMADAIRE",15,13);
+  doc.setFillColor(255,255,255);doc.setDrawColor(6,78,59);doc.setLineWidth(1.1);doc.roundedRect(8,7,281,23,4,4,"FD");
+  doc.setTextColor(20,57,45);doc.setFont("helvetica","bold");doc.setFontSize(7);doc.text("PLANNING HEBDOMADAIRE",15,13);
   doc.setFontSize(18);doc.text(String(data.agent||"Agent"),15,21,{maxWidth:178});
   doc.setFontSize(9);doc.setFont("helvetica","normal");doc.text(rangeLabel(data.start,data.end),15,27);
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text("TOTAL SEMAINE",281,14,{align:"right"});doc.setFontSize(15);doc.text(totalLabel(data.weekTotal),281,22.5,{align:"right"});
   if(data.nightTotal>0){doc.setFontSize(6.5);doc.setFont("helvetica","bold");doc.text(`TRAVAIL DE NUIT (21H-6H) : ${totalLabel(data.nightTotal)}`,281,28,{align:"right"})}
-  doc.setFont("helvetica","normal");doc.setTextColor(0,0,0);
+  doc.setLineWidth(.25);doc.setFont("helvetica","normal");doc.setTextColor(0,0,0);
 }
 function layoutDay(list,range,bodyY,bodyH){
   if(!list.length)return[];
