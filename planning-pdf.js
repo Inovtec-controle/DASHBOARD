@@ -3,6 +3,8 @@
 const KEY="inovtec_plannings_v2";
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const MONTHS=["janvier","fevrier","mars","avril","mai","juin","juillet","aout","septembre","octobre","novembre","decembre"];
+const NIGHT_START=21*60;
+const NIGHT_END=6*60;
 const $=id=>document.getElementById(id);
 const pad=n=>String(n).padStart(2,"0");
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
@@ -16,6 +18,13 @@ function displayTime(t){const m=String(t||"").match(/(\d{1,2}):(\d{2})/);if(!m)r
 function durationMin(item){return Math.max(0,timeToMin(item.end)-timeToMin(item.start))}
 function isPause(item){return norm(item?.task)==="pause"}
 function workedDurationMin(item){return isPause(item)?0:durationMin(item)}
+function overlapMin(start,end,windowStart,windowEnd){return Math.max(0,Math.min(end,windowEnd)-Math.max(start,windowStart))}
+function nightDurationMin(item){
+  if(isPause(item)||!item?.start||!item?.end)return 0;
+  const start=timeToMin(item.start);let end=timeToMin(item.end);
+  if(end<start)end+=24*60;
+  return overlapMin(start,end,0,NIGHT_END)+overlapMin(start,end,NIGHT_START,24*60+NIGHT_END);
+}
 function durationLabel(mins){const h=Math.floor(mins/60),m=mins%60;return h?`${h}h${pad(m)}`:`${m} min`}
 function totalLabel(mins){const h=Math.floor(mins/60),m=mins%60;return`${h}h${pad(m)}`}
 function loadState(){try{const s=JSON.parse(localStorage.getItem(KEY)||"{}");return s&&Array.isArray(s.agents)&&s.weeks?s:{agents:[],weeks:{},selected:null}}catch{return{agents:[],weeks:{},selected:null}}}
@@ -32,7 +41,8 @@ function agentData(state,week,agent){
   });
   const dayTotals=groups.map(g=>g.reduce((n,item)=>n+workedDurationMin(item),0));
   const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
-  return{agent:agent.name||"Agent",start,end,groups,dayTotals,weekTotal};
+  const nightTotal=groups.reduce((total,g)=>total+g.reduce((n,item)=>n+nightDurationMin(item),0),0);
+  return{agent:agent.name||"Agent",start,end,groups,dayTotals,weekTotal,nightTotal};
 }
 function jsPDFClass(){return window.jspdf?.jsPDF||window.jsPDF||null}
 function fitLine(doc,value,maxWidth){let s=String(value||"").replace(/\s+/g," ").trim();if(!s)return"";if(doc.getTextWidth(s)<=maxWidth)return s;const ell="...";while(s.length>1&&doc.getTextWidth(s+ell)>maxWidth)s=s.slice(0,-1);return(s.trim()||"")+ell}
@@ -57,7 +67,8 @@ function drawHeader(doc,data){
   doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7);doc.text("PLANNING HEBDOMADAIRE",15,13);
   doc.setFontSize(18);doc.text(String(data.agent||"Agent"),15,21,{maxWidth:178});
   doc.setFontSize(9);doc.setFont("helvetica","normal");doc.text(rangeLabel(data.start,data.end),15,27);
-  doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text("TOTAL SEMAINE",281,14,{align:"right"});doc.setFontSize(15);doc.text(totalLabel(data.weekTotal),281,23,{align:"right"});
+  doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text("TOTAL SEMAINE",281,14,{align:"right"});doc.setFontSize(15);doc.text(totalLabel(data.weekTotal),281,22.5,{align:"right"});
+  if(data.nightTotal>0){doc.setFontSize(6.5);doc.setFont("helvetica","bold");doc.text(`TRAVAIL DE NUIT (21H-6H) : ${totalLabel(data.nightTotal)}`,281,28,{align:"right"})}
   doc.setFont("helvetica","normal");doc.setTextColor(0,0,0);
 }
 function layoutDay(list,range,bodyY,bodyH){
