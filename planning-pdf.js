@@ -180,7 +180,7 @@ function drawGrid(doc,data){
     const cx=x+i*dayW+dayW/2;
     doc.setFont("helvetica","bold");doc.setFontSize(8.2);doc.setTextColor(25,45,38);doc.text(totalLabel(mins),cx,totalY+6.8,{align:"center"});
   });
-  doc.setFont("helvetica","normal");doc.setFontSize(5.8);doc.setTextColor(105,116,110);doc.text(`Amplitude affichee : ${displayTime(`${Math.floor(range.start/60)}:${pad(range.start%60)}`)} - ${displayTime(`${Math.floor(range.end/60)}:${pad(range.end%60)}`)}`,8,207);
+  doc.setFont("helvetica","normal");doc.setFontSize(5.8);doc.setTextColor(105,116,110);
   doc.text("Document genere depuis Inovtec Dashboard",289,207,{align:"right"});
 }
 function drawPage(doc,data){drawHeader(doc,data);drawGrid(doc,data)}
