@@ -73,15 +73,25 @@ function drawHeader(doc,data){
 }
 function layoutDay(list,range,bodyY,bodyH){
   if(!list.length)return[];
-  const gap=1.1,bodyBottom=bodyY+bodyH,n=list.length;
-  const minH=Math.max(10.8,Math.min(15,(bodyH-gap*(n-1))/Math.max(1,n)));
+  const n=list.length;
+  const gap=n>=10?.35:n>=7?.55:n>=5?.8:1.1;
+  const bodyBottom=bodyY+bodyH;
+  const fittedH=Math.max(5.8,(bodyH-gap*(n-1))/Math.max(1,n));
+  const dense=n>=7||fittedH<10.8;
+  const minH=dense?Math.max(5.8,Math.min(9.4,fittedH)):Math.max(10.8,Math.min(15,fittedH));
   const span=Math.max(60,range.end-range.start);
   const pos=list.map(item=>{
     const start=timeToMin(item.start),end=Math.max(start+15,timeToMin(item.end));
     const desiredTop=bodyY+Math.max(0,Math.min(1,(start-range.start)/span))*bodyH;
-    const naturalH=Math.max(minH,Math.min(30,((end-start)/span)*bodyH));
-    return{item,top:desiredTop,h:naturalH};
+    let naturalH=Math.max(minH,Math.min(30,((end-start)/span)*bodyH));
+    if(dense)naturalH=Math.min(naturalH,fittedH);
+    return{item,top:desiredTop,h:naturalH,compact:dense||naturalH<11};
   });
+  const occupied=pos.reduce((sum,p)=>sum+p.h,0)+gap*Math.max(0,n-1);
+  if(occupied>bodyH){
+    const available=Math.max(5.2,(bodyH-gap*Math.max(0,n-1))/Math.max(1,n));
+    pos.forEach(p=>{p.h=Math.min(p.h,available);p.compact=true});
+  }
   for(let i=0;i<pos.length;i++){if(i>0)pos[i].top=Math.max(pos[i].top,pos[i-1].top+pos[i-1].h+gap)}
   if(pos.length){
     let overflow=pos[pos.length-1].top+pos[pos.length-1].h-bodyBottom;
@@ -90,26 +100,35 @@ function layoutDay(list,range,bodyY,bodyH){
     for(let i=1;i<pos.length;i++)pos[i].top=Math.max(pos[i].top,pos[i-1].top+pos[i-1].h+gap);
     overflow=pos[pos.length-1].top+pos[pos.length-1].h-bodyBottom;
     if(overflow>0){for(let i=pos.length-1;i>=0;i--){pos[i].top-=overflow;overflow=0;if(i>0&&pos[i-1].top+pos[i-1].h+gap>pos[i].top)overflow=pos[i-1].top+pos[i-1].h+gap-pos[i].top}}
+    if(pos[0].top<bodyY){const shift=bodyY-pos[0].top;pos.forEach(p=>p.top+=shift)}
   }
   return pos;
 }
-function drawEvent(doc,item,x,y,w,h){
-  const padX=2,textW=w-4,pause=isPause(item);
-  if(pause){doc.setFillColor(255,248,225);doc.setDrawColor(224,165,55);doc.setLineWidth(.38)}
-  else{doc.setFillColor(255,255,255);doc.setDrawColor(174,195,184);doc.setLineWidth(.22)}
-  doc.roundedRect(x,y,w,h,1.2,1.2,"FD");
+function drawEvent(doc,item,x,y,w,h,compact=false){
+  const tiny=h<7.4,small=h<10.2,dense=compact||small;
+  const padX=tiny?1.1:dense?1.45:2,textW=w-padX*2,pause=isPause(item);
+  if(pause){doc.setFillColor(255,248,225);doc.setDrawColor(224,165,55);doc.setLineWidth(dense?.3:.38)}
+  else{doc.setFillColor(255,255,255);doc.setDrawColor(174,195,184);doc.setLineWidth(dense?.18:.22)}
+  const radius=tiny?.55:dense?.8:1.2;
+  doc.roundedRect(x,y,w,h,radius,radius,"FD");
   if(pause)doc.setFillColor(230,145,56);else doc.setFillColor(6,120,84);
-  doc.rect(x,y,pause?1.2:.9,h,"F");
+  doc.rect(x,y,pause?(dense?.8:1.2):(dense?.65:.9),h,"F");
   const mins=durationMin(item),cx=x+w/2;
-  doc.setFont("helvetica","bold");doc.setFontSize(6.9);doc.setTextColor(205,45,45);
+  const timeSize=tiny?4.6:small?5.2:dense?5.8:6.9;
+  const taskSize=tiny?5.5:small?6.3:dense?7.2:9.6;
+  const briefSize=small?5.1:dense?6.0:8.4;
+  const timeY=tiny?y+2.0:small?y+2.25:dense?y+2.55:y+2.9;
+  const taskY=tiny?y+4.55:small?y+5.05:dense?y+5.65:y+6.5;
+  doc.setFont("helvetica","bold");doc.setFontSize(timeSize);doc.setTextColor(205,45,45);
   const timeText=`${displayTime(item.start)} - ${displayTime(item.end)}   ${durationLabel(mins)}`;
-  doc.text(fitLine(doc,timeText,textW),cx,y+2.9,{align:"center"});
-  doc.setFont("helvetica","bold");doc.setFontSize(9.6);doc.setTextColor(25,25,25);
-  doc.text(fitLine(doc,item.task||"Intervention",textW),cx,y+6.5,{align:"center"});
-  if(item.brief){
-    doc.setFont("helvetica","normal");doc.setFontSize(8.4);doc.setTextColor(35,35,35);
-    const maxLines=h>=16?2:1,lines=fitLines(doc,item.brief,textW,maxLines);
-    if(lines.length)doc.text(lines,cx,y+9.8,{align:"center",lineHeightFactor:1.08});
+  doc.text(fitLine(doc,timeText,textW),cx,timeY,{align:"center"});
+  doc.setFont("helvetica","bold");doc.setFontSize(taskSize);doc.setTextColor(25,25,25);
+  doc.text(fitLine(doc,item.task||"Intervention",textW),cx,Math.min(taskY,y+h-1.05),{align:"center"});
+  if(item.brief&&!tiny&&h>=8.7){
+    doc.setFont("helvetica","normal");doc.setFontSize(briefSize);doc.setTextColor(35,35,35);
+    const maxLines=!dense&&h>=16?2:1,lines=fitLines(doc,item.brief,textW,maxLines);
+    const briefY=small?y+7.55:dense?y+8.45:y+9.8;
+    if(lines.length&&briefY<y+h-.7)doc.text(lines,cx,briefY,{align:"center",lineHeightFactor:1.04});
   }
 }
 function drawGrid(doc,data){
@@ -136,7 +155,7 @@ function drawGrid(doc,data){
   }
   data.groups.forEach((list,day)=>{
     const positions=layoutDay(list,range,bodyY+1,bodyH-2),left=x+day*dayW+1.1,cardW=dayW-2.2;
-    positions.forEach(p=>drawEvent(doc,p.item,left,p.top,cardW,p.h));
+    positions.forEach(p=>drawEvent(doc,p.item,left,p.top,cardW,p.h,p.compact));
   });
   doc.setFillColor(248,250,249);doc.rect(x,totalY,w,totalH,"F");doc.setDrawColor(155,166,160);doc.line(x,totalY,x+w,totalY);
   data.dayTotals.forEach((mins,i)=>{
