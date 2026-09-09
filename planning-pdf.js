@@ -76,16 +76,27 @@ function layoutDay(list,range,bodyY,bodyH){
   const n=list.length;
   const gap=n>=10?.35:n>=7?.55:n>=5?.8:1.1;
   const bodyBottom=bodyY+bodyH;
-  const fittedH=Math.max(5.8,(bodyH-gap*(n-1))/Math.max(1,n));
-  const dense=n>=7||fittedH<10.8;
-  const minH=dense?Math.max(5.8,Math.min(9.4,fittedH)):Math.max(10.8,Math.min(15,fittedH));
+  const fittedH=Math.max(5.2,(bodyH-gap*(n-1))/Math.max(1,n));
   const span=Math.max(60,range.end-range.start);
+
+  /* Quand la journée contient beaucoup de prestations, on utilise toute la
+     hauteur réellement disponible. Les bulles ne débordent jamais dans la
+     ligne du total journalier et le texte ne se compacte que si nécessaire. */
+  if(n>=5){
+    return list.map((item,i)=>({
+      item,
+      top:bodyY+i*(fittedH+gap),
+      h:fittedH,
+      compact:fittedH<11
+    }));
+  }
+
+  const minH=Math.max(10.8,Math.min(15,fittedH));
   const pos=list.map(item=>{
     const start=timeToMin(item.start),end=Math.max(start+15,timeToMin(item.end));
     const desiredTop=bodyY+Math.max(0,Math.min(1,(start-range.start)/span))*bodyH;
-    let naturalH=Math.max(minH,Math.min(30,((end-start)/span)*bodyH));
-    if(dense)naturalH=Math.min(naturalH,fittedH);
-    return{item,top:desiredTop,h:naturalH,compact:dense||naturalH<11};
+    const naturalH=Math.max(minH,Math.min(30,((end-start)/span)*bodyH));
+    return{item,top:desiredTop,h:naturalH,compact:naturalH<11};
   });
   const occupied=pos.reduce((sum,p)=>sum+p.h,0)+gap*Math.max(0,n-1);
   if(occupied>bodyH){
