@@ -15,7 +15,7 @@ const frame=document.getElementById("legacyFrame");
 const client=sessionStorage.ivCloudClient||(sessionStorage.ivCloudClient="c"+Date.now()+Math.random().toString(16).slice(2));
 const metaKey="iv_cloud_meta_"+mode;
 const CLOUD_LIMIT=420000;
-let ref=null,user=null,ready=false,remoteApply=false,last="",pushTimer=null,reloadTimer=null,unsubscribe=null;
+let ref=null,user=null,ready=false,remoteApply=false,last="",pushTimer=null,reloadTimer=null,unsubscribe=null,localCheckTimer=null;
 
 const rawLocal=()=>localStorage.getItem(key)||"";
 const parse=s=>{try{return JSON.parse(s)}catch{return null}};
@@ -262,7 +262,13 @@ function ensureLoginBox(){
 function showLogin(){const b=ensureLoginBox();if(b)b.style.display="grid"}
 function hideLogin(){const b=document.getElementById("ivCloudLogin");if(b)b.style.display="none"}
 let lastFrameActivity=0;
-function markFrameActivity(){lastFrameActivity=Date.now()}
+function checkLocalChange(){
+  if(!ready||!user||remoteApply)return;
+  const h=sig(prepared().payload);
+  if(h!==last){last=h;clearTimeout(pushTimer);pushTimer=setTimeout(()=>push("local-change"),500)}
+}
+function scheduleLocalCheck(delay=350){clearTimeout(localCheckTimer);localCheckTimer=setTimeout(checkLocalChange,delay)}
+function markFrameActivity(){lastFrameActivity=Date.now();scheduleLocalCheck(350)}
 function bindFrameActivity(d){if(!d?.body||d.body.dataset.ivCloudActivity==="1")return;d.body.dataset.ivCloudActivity="1";["pointerdown","mousedown","touchstart","keydown","input","change","focusin"].forEach(type=>d.addEventListener(type,markFrameActivity,true));const nested=d.getElementById("kontrolFrame");if(nested){nested.addEventListener("load",()=>{try{bindFrameActivity(nested.contentDocument)}catch{}});try{bindFrameActivity(nested.contentDocument)}catch{}}}
 function frameIsBusy(){try{for(const d of [frameDoc(),nestedKontrolDoc()].filter(Boolean)){const a=d.activeElement;if(a&&(/^(SELECT|INPUT|TEXTAREA)$/i.test(a.tagName)||a.isContentEditable))return true;if(d.querySelector?.('.editor-popover.open,.modal.open,.modal.show,[role="dialog"][open],dialog[open]'))return true}}catch{}return false}
 function reload(){clearTimeout(reloadTimer);bindFrameActivity(frameDoc());const attempt=()=>{const idle=Date.now()-lastFrameActivity;if(frameIsBusy()||idle<5000){reloadTimer=setTimeout(attempt,Math.max(800,5000-idle));return}try{if(mode==="planning"){const w=frame?.contentWindow;if(w)w.dispatchEvent(new w.CustomEvent("inovtec:planning-cloud-updated"));return}frame?.contentWindow?.location.reload()}catch{}};reloadTimer=setTimeout(attempt,mode==="planning"?250:1000)}
@@ -338,11 +344,8 @@ if(window.firebase&&window.INOVTEC_FIREBASE_CONFIG){
   if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
   firebase.auth().onAuthStateChanged(start);
   last=sig(prepared().payload);
-  setInterval(()=>{
-    if(!ready||!user||remoteApply)return;
-    const h=sig(prepared().payload);
-    if(h!==last){last=h;clearTimeout(pushTimer);pushTimer=setTimeout(()=>push("local-change"),500)}
-  },800);
+  setInterval(()=>{if(document.visibilityState==="visible")checkLocalChange()},6000);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")scheduleLocalCheck(100)});
   frame?.addEventListener("load",()=>{setTimeout(()=>bindFrameActivity(frameDoc()),80);setTimeout(()=>{
     if(user)updateLegacyStatus(meta().compact?"Firebase — données synchronisées":"Firebase — synchronisé","ok",!!meta().compact);
     else updateLegacyStatus("Connexion Firebase requise","warning");
