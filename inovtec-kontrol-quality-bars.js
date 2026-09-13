@@ -257,7 +257,14 @@ function applyLayout(doc){
   if(!hasControl){summary.hidden=true;return true}
   summary.hidden=false;
 
-  /* La synthèse reste dans le contrôle, après les photos. Le bouton PDF reste ensuite le dernier élément de la page. */
+  /* Les notes internes doivent être juste sous les photos du chantier. */
+  const photos=doc.getElementById("photosCard");
+  const internalNotes=doc.getElementById("ctrlNotes")?.closest("section.card");
+  if(photos&&internalNotes&&photos.nextElementSibling!==internalNotes){
+    photos.after(internalNotes);
+  }
+
+  /* La synthèse vient ensuite. Le bouton PDF reste le dernier élément de la page. */
   if(summary.parentNode!==main || main.lastElementChild!==summary)main.appendChild(summary);
 
   const title=summary.querySelector(".summary>div:first-child>label.lbl");
