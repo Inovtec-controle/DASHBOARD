@@ -16,3 +16,7 @@
 @keyframes ivFirebaseSpin{to{transform:rotate(360deg)}}
 @media(max-width:760px){.iv-date{min-width:150px!important}.iv-firebase-indicator{width:32px;height:32px;flex-basis:32px;margin-top:6px}.iv-firebase-indicator[data-state="loading"]::before{inset:5px}.iv-firebase-indicator[data-state="connected"]::after{font-size:19px}.iv-firebase-indicator[data-state="error"]::after{font-size:23px}}
 @media(prefers-reduced-motion:reduce){.iv-firebase-indicator[data-state="loading"]::before{animation-duration:1.8s}}
+
+/* FUEL_NAV_ICON — remplace l’emoji pompe par un pictogramme monochrome cohérent */
+.c3-nav a[href^="ESSENCE.html"] .ico{font-size:0;display:grid;place-items:center}
+.c3-nav a[href^="ESSENCE.html"] .ico::before{content:"";display:block;width:19px;height:19px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='3' width='10' height='18' rx='1.5'/%3E%3Cpath d='M6.5 6.5h5v4h-5zM14 7h2l3 3v7a2 2 0 0 0 4 0v-5M19 10l2-2'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='3' width='10' height='18' rx='1.5'/%3E%3Cpath d='M6.5 6.5h5v4h-5zM14 7h2l3 3v7a2 2 0 0 0 4 0v-5M19 10l2-2'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
