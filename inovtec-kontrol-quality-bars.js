@@ -262,7 +262,7 @@ function attach(doc){
   activeDoc=doc;
   applyLayout(doc);
   observer=new MutationObserver(scheduleApply);
-  observer.observe(doc.body,{childList:true,subtree:true,attributes:true,attributeFilter:["style","class"]});
+  observer.observe(doc.body,{childList:true,subtree:true});
   setTimeout(scheduleApply,100);
   setTimeout(scheduleApply,500);
   setTimeout(scheduleApply,1200);
