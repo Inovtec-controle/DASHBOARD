@@ -168,7 +168,14 @@ function applyLayout(doc){
   }
 
   summary.hidden=false;
-  if(doc.body.lastElementChild!==summary)doc.body.appendChild(summary);
+  const actions=doc.querySelector(".sticky-actions");
+  if(actions?.parentNode){
+    if(summary.parentNode!==actions.parentNode || summary.nextElementSibling!==actions){
+      actions.parentNode.insertBefore(summary,actions);
+    }
+  }else if(doc.body.lastElementChild!==summary){
+    doc.body.appendChild(summary);
+  }
 
   const title=summary.querySelector(".summary>div:first-child>label.lbl");
   if(title)title.textContent="Synthèse du contrôle";
