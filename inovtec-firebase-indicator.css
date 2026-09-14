@@ -20,3 +20,7 @@
 /* FUEL_NAV_ICON — remplace l’emoji pompe par un pictogramme monochrome cohérent */
 .c3-nav a[href^="ESSENCE.html"] .ico{font-size:0;display:grid;place-items:center}
 .c3-nav a[href^="ESSENCE.html"] .ico::before{content:"";display:block;width:19px;height:19px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='3' width='10' height='18' rx='1.5'/%3E%3Cpath d='M6.5 6.5h5v4h-5zM14 7h2l3 3v7a2 2 0 0 0 4 0v-5M19 10l2-2'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='3' width='10' height='18' rx='1.5'/%3E%3Cpath d='M6.5 6.5h5v4h-5zM14 7h2l3 3v7a2 2 0 0 0 4 0v-5M19 10l2-2'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+
+/* SIDEBAR_SCROLLBAR_GLOBAL — conserve le défilement sans afficher la barre */
+.iv-sidebar,.c3-sidebar{scrollbar-width:none!important;-ms-overflow-style:none!important}
+.iv-sidebar::-webkit-scrollbar,.c3-sidebar::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;background:transparent!important}
