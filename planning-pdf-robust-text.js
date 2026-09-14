@@ -73,17 +73,22 @@ function measureEvent(doc,item,w,size){
   return{h:Math.max(6.2,h),padX,textW,timeSize,taskSize,briefSize,timeLines,taskLines,briefLines,timeLH,taskLH,briefLH,topPad,bottomPad};
 }
 function chooseDayLayout(doc,list,w,bodyH){
-  if(!list.length)return{fontSize:7.4,gap:0,metrics:[],total:0};
-  const gaps=[1,.8,.62,.48,.36,.28,.2],sizes=[7.4,6.9,6.4,5.9,5.4,4.9,4.5,4.1,3.8,3.5,3.2,3];
-  for(let si=0;si<sizes.length;si++){const size=sizes[si],gap=gaps[Math.min(gaps.length-1,Math.floor(si/2))],metrics=list.map(item=>measureEvent(doc,item,w,size)),total=metrics.reduce((n,m)=>n+m.h,0)+gap*Math.max(0,list.length-1);if(total<=bodyH-.8)return{fontSize:size,gap,metrics,total}}
-  const size=2.75,gap=.12,metrics=list.map(item=>measureEvent(doc,item,w,size));let total=metrics.reduce((n,m)=>n+m.h,0)+gap*Math.max(0,list.length-1);
-  if(total>bodyH-.3){const scale=(bodyH-.3)/total;metrics.forEach(m=>{m.h=Math.max(4.2,m.h*scale);m.timeLH*=scale;m.taskLH*=scale;m.briefLH*=scale;m.topPad*=scale;m.bottomPad*=scale});total=metrics.reduce((n,m)=>n+m.h,0)+gap*Math.max(0,list.length-1)}
-  return{fontSize:size,gap,metrics,total};
+  if(!list.length)return{fontSize:7.4,gap:0,metrics:[],total:0,compact:false};
+  const compact=list.length>15;
+  const gaps=compact?[.5,.4,.32,.25,.2,.16,.12]:[.8,.72,.64,.56,.48,.4,.32];
+  const sizes=compact?[5.8,5.4,5,4.6,4.2,3.9,3.6,3.3,3.05,2.8,2.6]:[7.4,7.1,6.8,6.5,6.2,5.9,5.6,5.3,5];
+  for(let si=0;si<sizes.length;si++){
+    const size=sizes[si],gap=gaps[Math.min(gaps.length-1,Math.floor(si/2))],metrics=list.map(item=>measureEvent(doc,item,w,size)),total=metrics.reduce((n,m)=>n+m.h,0)+gap*Math.max(0,list.length-1);
+    if(total<=bodyH-.8)return{fontSize:size,gap,metrics,total,compact};
+  }
+  const size=compact?2.45:4.75,gap=compact?.1:.24,metrics=list.map(item=>measureEvent(doc,item,w,size));let total=metrics.reduce((n,m)=>n+m.h,0)+gap*Math.max(0,list.length-1);
+  if(total>bodyH-.3){const scale=(bodyH-.3)/total;metrics.forEach(m=>{m.h=Math.max(compact?3.7:5.4,m.h*scale);m.timeLH*=scale;m.taskLH*=scale;m.briefLH*=scale;m.topPad*=scale;m.bottomPad*=scale});total=metrics.reduce((n,m)=>n+m.h,0)+gap*Math.max(0,list.length-1)}
+  return{fontSize:size,gap,metrics,total,compact};
 }
 function drawEvent(doc,item,x,y,w,h,m){
   const pause=isPause(item),barW=m.briefSize<=4?.55:.8;if(pause){doc.setFillColor(255,248,225);doc.setDrawColor(224,165,55)}else{doc.setFillColor(255,255,255);doc.setDrawColor(174,195,184)}
   doc.setLineWidth(.18);doc.roundedRect(x,y,w,h,.75,.75,"FD");doc.setFillColor(pause?230:6,pause?145:120,pause?56:84);doc.rect(x,y,barW,h,"F");
-  const cx=x+w/2;let ty=y+m.topPad+m.timeLH*.82;doc.setFont("helvetica","bold");doc.setFontSize(m.timeSize);doc.setTextColor(205,45,45);if(m.timeLines.length)doc.text(m.timeLines,cx,ty,{align:"center",lineHeightFactor:.98});
+  const cx=x+w/2,extraY=Math.max(0,(h-m.h)/2);let ty=y+extraY+m.topPad+m.timeLH*.82;doc.setFont("helvetica","bold");doc.setFontSize(m.timeSize);doc.setTextColor(205,45,45);if(m.timeLines.length)doc.text(m.timeLines,cx,ty,{align:"center",lineHeightFactor:.98});
   ty+=Math.max(1,m.timeLines.length)*m.timeLH+.45;doc.setFont("helvetica","bold");doc.setFontSize(m.taskSize);doc.setTextColor(25,25,25);if(m.taskLines.length)doc.text(m.taskLines,cx,ty,{align:"center",lineHeightFactor:.98});
   ty+=Math.max(1,m.taskLines.length)*m.taskLH;if(m.briefLines.length){ty+=.55;doc.setFont("helvetica","normal");doc.setFontSize(m.briefSize);doc.setTextColor(35,35,35);doc.text(m.briefLines,cx,ty,{align:"center",lineHeightFactor:.98})}
 }
@@ -91,7 +96,14 @@ function drawGrid(doc,data){
   const x=8,y=36,w=281,headH=11,bodyH=146,totalH=11,dayW=w/7,bodyY=y+headH,totalY=bodyY+bodyH;
   doc.setFillColor(246,249,247);doc.rect(x,y,w,headH,"F");doc.setDrawColor(155,166,160);doc.setLineWidth(.25);doc.rect(x,y,w,headH+bodyH+totalH);for(let i=1;i<7;i++){const vx=x+i*dayW;doc.line(vx,y,vx,y+headH+bodyH+totalH)}
   DAYS.forEach((name,i)=>{const d=addDays(data.start,i),cx=x+i*dayW+dayW/2;doc.setTextColor(27,53,43);doc.setFont("helvetica","bold");doc.setFontSize(7.5);doc.text(name.toUpperCase(),cx,y+4.4,{align:"center"});doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(91,106,99);doc.text(`${d.getDate()} ${MONTHS[d.getMonth()]}`,cx,y+8.5,{align:"center"})});
-  data.groups.forEach((list,i)=>{if(!list.length)return;const cellX=x+i*dayW+.8,cellW=dayW-1.6,layout=chooseDayLayout(doc,list,cellW,bodyH-1.2),spare=Math.max(0,bodyH-1.2-layout.total);let cursor=bodyY+.6+Math.min(1.6,spare/(list.length+1));list.forEach((item,j)=>{const m=layout.metrics[j],h=Math.min(m.h,bodyY+bodyH-.35-cursor);drawEvent(doc,item,cellX,cursor,cellW,h,m);cursor+=h+layout.gap})});
+  data.groups.forEach((list,i)=>{
+    if(!list.length)return;
+    const cellX=x+i*dayW+.8,cellW=dayW-1.6,usableH=bodyH-1.2,layout=chooseDayLayout(doc,list,cellW,usableH),shouldFill=list.length>=8&&list.length<=15;
+    let spare=Math.max(0,usableH-layout.total);
+    if(shouldFill&&spare>0){const add=spare/list.length;layout.metrics.forEach(m=>m.h+=add);layout.total+=spare;spare=0}
+    let cursor=bodyY+.6+(shouldFill?0:Math.min(1.6,spare/(list.length+1)));
+    list.forEach((item,j)=>{const m=layout.metrics[j],h=Math.min(m.h,bodyY+bodyH-.6-cursor);drawEvent(doc,item,cellX,cursor,cellW,h,m);cursor+=h+layout.gap});
+  });
   doc.setFillColor(248,250,249);doc.rect(x,totalY,w,totalH,"F");doc.setDrawColor(155,166,160);doc.line(x,totalY,x+w,totalY);data.dayTotals.forEach((mins,i)=>{const cx=x+i*dayW+dayW/2;doc.setFont("helvetica","bold");doc.setFontSize(5.8);doc.setTextColor(87,101,94);doc.text("TOTAL JOUR",cx,totalY+4,{align:"center"});doc.setFontSize(8.5);doc.setTextColor(20,57,45);doc.text(totalLabel(mins),cx,totalY+8.6,{align:"center"})});
 }
 function drawPage(doc,data){drawHeader(doc,data);drawGrid(doc,data)}
