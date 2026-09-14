@@ -11,9 +11,14 @@ function menuOpen(){
 }
 
 window.dispatchEvent=function(event){
-  if(event?.type==="inovtec:planning-cloud-updated"&&menuOpen()){
-    pendingPlanningRefresh=true;
-    return true;
+  if(menuOpen()){
+    if(event?.type==="inovtec:planning-cloud-updated"){
+      pendingPlanningRefresh=true;
+      return true;
+    }
+    if(event?.type==="resize"&&!event.isTrusted){
+      return true;
+    }
   }
   return nativeDispatch(event);
 };
