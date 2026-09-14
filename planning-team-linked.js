@@ -122,18 +122,20 @@ function syncTeamWeek(state,team,week,forceSource){
   const eligible=team.members.filter(id=>!except.has(id));
   if(eligible.length<2)return false;
   const meta=team.weeks[week]&&typeof team.weeks[week]==="object"?team.weeks[week]:null;
-  let source=forceSource&&eligible.includes(forceSource)?forceSource:chooseSource(state,team,week,eligible,meta);
+  let source=forceSource&&eligible.includes(forceSource)&&(rows(state,week,forceSource).length||meta)?forceSource:chooseSource(state,team,week,eligible,meta);
   if(!source)return false;
   const sourceRows=rows(state,week,source);
-  if(!sourceRows.length)return false;
+  if(!sourceRows.length&&!meta)return false;
   const sig=signature(sourceRows);
   let changed=false;
   eligible.forEach(id=>{
     if(id===source)return;
     if(signature(rows(state,week,id))!==sig){replaceMemberWeek(state,week,id,sourceRows,source);changed=true}
   });
-  const next={signature:sig,sourceAgentId:source,updatedAt:new Date().toISOString()};
-  if(JSON.stringify(meta||{})!==JSON.stringify(next)){team.weeks[week]=next;changed=true}
+  if(!meta||changed||safe(meta.signature)!==sig){
+    team.weeks[week]={signature:sig,sourceAgentId:source,updatedAt:new Date().toISOString()};
+    changed=true;
+  }
   return changed;
 }
 function saveState(state,rerender=true){
@@ -248,7 +250,7 @@ function openTeamModal(agentId,teamId){
   modal.querySelector("#ivTeamSave").onclick=()=>saveTeamFromModal(agentId);
   modal.querySelector("#ivTeamDelete").onclick=()=>deleteTeamFromModal(agentId);
 }
-function saveTeamFromModal(){
+function saveTeamFromModal(focusAgentId){
   const modal=ensureModal(),state=parseState();if(!state)return;
   cleanTeams(state);
   const chosen=modal.querySelector("#ivTeamChoice").value;
@@ -279,7 +281,7 @@ function toggleException(agentId,teamId,week,enable){
   const team=state.teamPlanning.teams.find(t=>t.id===teamId);if(!team)return;
   const set=exceptionSet(team,week);if(enable)set.add(agentId);else set.delete(agentId);
   if(set.size)team.exceptions[week]=Array.from(set);else delete team.exceptions[week];
-  if(!enable){const source=team.referenceAgentId===agentId?team.members.find(id=>id!==agentId):team.referenceAgentId;if(source&&rows(state,week,source).length)replaceMemberWeek(state,week,agentId,rows(state,week,source),source);delete team.weeks[week];}
+  if(!enable){const source=team.referenceAgentId===agentId?team.members.find(id=>id!==agentId):team.referenceAgentId;if(source&&rows(state,week,source).length)replaceMemberWeek(state,week,agentId,rows(state,week,source),source);team.weeks[week]=undefined;delete team.weeks[week];}
   saveState(state,true);setTimeout(()=>scheduleSync(100),70);
 }
 function leaveTeam(agentId,teamId){
