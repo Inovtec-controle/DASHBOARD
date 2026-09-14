@@ -68,8 +68,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
    la logique de planning-calendar.js et ne sont jamais melanges avec le standard. */
 (()=>{
 "use strict";
-if(window.__INOVTEC_PLANNING_STANDARD_RECURRENCE_V1__)return;
-window.__INOVTEC_PLANNING_STANDARD_RECURRENCE_V1__=true;
+if(window.__INOVTEC_PLANNING_STANDARD_RECURRENCE_V2__)return;
+window.__INOVTEC_PLANNING_STANDARD_RECURRENCE_V2__=true;
 
 const KEY="inovtec_plannings_v2";
 const pad=n=>String(n).padStart(2,"0");
@@ -83,6 +83,7 @@ function parseState(){
     if(!state||typeof state!=="object"||Array.isArray(state))return null;
     if(!state.weeks||typeof state.weeks!=="object"||Array.isArray(state.weeks))state.weeks={};
     if(!Array.isArray(state.agents))state.agents=[];
+    if(!state.standardRecurrence||typeof state.standardRecurrence!=="object"||Array.isArray(state.standardRecurrence))state.standardRecurrence={};
     return state;
   }catch{return null}
 }
@@ -98,57 +99,63 @@ function signature(list){
   })).sort((a,b)=>a.day-b.day||a.start.localeCompare(b.start)||a.end.localeCompare(b.end)||a.task.localeCompare(b.task)));
 }
 function normalizeAgent(a){
-  if(!a||typeof a!=="object")return;
-  a.parityMode=a.parityMode==="alternating"?"alternating":"standard";
-  if(!a.standardInheritedWeeks||typeof a.standardInheritedWeeks!=="object"||Array.isArray(a.standardInheritedWeeks))a.standardInheritedWeeks={};
-  a.standardTemplate=safe(a.standardTemplate);
+  if(a&&typeof a==="object")a.parityMode=a.parityMode==="alternating"?"alternating":"standard";
 }
-function isManualWeek(state,week,a){
+function recurrenceMeta(state,a){
+  const id=safe(a?.id);
+  let meta=state.standardRecurrence[id];
+  if(!meta||typeof meta!=="object"||Array.isArray(meta))meta=state.standardRecurrence[id]={template:"",inheritedWeeks:{}};
+  meta.template=safe(meta.template);
+  if(!meta.inheritedWeeks||typeof meta.inheritedWeeks!=="object"||Array.isArray(meta.inheritedWeeks))meta.inheritedWeeks={};
+  return meta;
+}
+function isManualWeek(state,week,a,meta){
   const mine=rows(state,week,a.id);
   if(!mine.length)return false;
-  const marker=a.standardInheritedWeeks?.[week];
+  const marker=meta.inheritedWeeks?.[week];
   if(!marker)return true;
   const copiedSig=typeof marker==="object"?safe(marker.signature):"";
   if(!copiedSig)return false;
   return signature(mine)!==copiedSig;
 }
-function promoteEditedInheritedWeek(state,week,a){
-  const marker=a.standardInheritedWeeks?.[week];
+function promoteEditedInheritedWeek(state,week,a,meta){
+  const marker=meta.inheritedWeeks?.[week];
   if(!marker)return false;
   const mine=rows(state,week,a.id);
   const copiedSig=typeof marker==="object"?safe(marker.signature):"";
   if(copiedSig&&signature(mine)===copiedSig)return false;
-  delete a.standardInheritedWeeks[week];
+  delete meta.inheritedWeeks[week];
   mine.forEach(e=>{if(e&&typeof e==="object")delete e._standardInheritedFrom});
-  a.standardTemplate=week;
+  meta.template=week;
   return true;
 }
-function latestManualSource(state,targetWeek,a){
+function latestManualSource(state,targetWeek,a,meta){
   const keys=Object.keys(state.weeks||{}).filter(w=>w<targetWeek&&rows(state,w,a.id).length).sort().reverse();
-  return keys.find(w=>isManualWeek(state,w,a))||"";
+  return keys.find(w=>isManualWeek(state,w,a,meta))||"";
 }
 function ensureStandardWeek(state,week,a){
   normalizeAgent(a);
   if(a.parityMode!=="standard")return false;
+  const meta=recurrenceMeta(state,a);
 
-  let changed=promoteEditedInheritedWeek(state,week,a);
+  let changed=promoteEditedInheritedWeek(state,week,a,meta);
   const mine=rows(state,week,a.id);
-  if(mine.length&&!a.standardInheritedWeeks[week]){
-    if(a.standardTemplate!==week){a.standardTemplate=week;changed=true}
+  if(mine.length&&!meta.inheritedWeeks[week]){
+    if(meta.template!==week){meta.template=week;changed=true}
     return changed;
   }
 
-  let source=safe(a.standardTemplate);
-  if(!source||source>=week||!rows(state,source,a.id).length||!isManualWeek(state,source,a)){
-    source=latestManualSource(state,week,a);
-    if(source&&a.standardTemplate!==source){a.standardTemplate=source;changed=true}
+  let source=safe(meta.template);
+  if(!source||source>=week||!rows(state,source,a.id).length||!isManualWeek(state,source,a,meta)){
+    source=latestManualSource(state,week,a,meta);
+    if(source&&meta.template!==source){meta.template=source;changed=true}
   }
   if(!source||source>=week)return changed;
 
   const sourceRows=rows(state,source,a.id);
   if(!sourceRows.length)return changed;
   const sourceSig=signature(sourceRows);
-  const marker=a.standardInheritedWeeks[week];
+  const marker=meta.inheritedWeeks[week];
   const markerSource=typeof marker==="string"?marker:safe(marker?.source);
   const markerSig=typeof marker==="object"?safe(marker?.sourceSignature):"";
   if(markerSource===source&&markerSig===sourceSig&&mine.length)return changed;
@@ -157,7 +164,7 @@ function ensureStandardWeek(state,week,a){
   const keep=(Array.isArray(state.weeks[week])?state.weeks[week]:[]).filter(e=>String(e?.agentId)!==String(a.id));
   const clones=sourceRows.map(src=>({...src,id:uid("e"),agentId:a.id,_standardInheritedFrom:source}));
   state.weeks[week]=keep.concat(clones);
-  a.standardInheritedWeeks[week]={source,sourceSignature:sourceSig,signature:signature(clones)};
+  meta.inheritedWeeks[week]={source,sourceSignature:sourceSig,signature:signature(clones)};
   return true;
 }
 function currentWeek(){
@@ -168,11 +175,16 @@ function currentWeek(){
   const y=new Date(x.getFullYear(),0,4),w=1+Math.round(((x-y)/86400000-3+((y.getDay()+6)%7))/7);
   return x.getFullYear()+"-W"+pad(w);
 }
+function cleanRemovedAgents(state){
+  const ids=new Set(state.agents.map(a=>safe(a?.id)).filter(Boolean));
+  Object.keys(state.standardRecurrence||{}).forEach(id=>{if(!ids.has(id))delete state.standardRecurrence[id]});
+}
 function syncCurrentWeek(){
   const state=parseState();
   const week=currentWeek();
   if(!state||!week)return false;
   let changed=false;
+  cleanRemovedAgents(state);
   state.agents.forEach(a=>{
     normalizeAgent(a);
     if(a.parityMode==="standard"&&ensureStandardWeek(state,week,a))changed=true;
