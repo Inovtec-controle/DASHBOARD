@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gestion du matériel — Inovtec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--green:#064e3b;--green2:#0f7a5b;--bg:#f4f8f6;--card:#fff;--line:#dce9e2;--text:#17372d;--muted:#6b7d76;--warn:#b45309;--danger:#b91c1c;--ok:#047857;--shadow:0 8px 24px rgba(15,23,42,.06)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.page{padding:18px;max-width:1600px;margin:auto}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.search{flex:1;min-width:240px}.field,input,select,textarea{width:100%;border:1px solid var(--line);border-radius:11px;background:#fff;padding:10px 12px;color:var(--text)}textarea{min-height:84px;resize:vertical}.btn{border:0;border-radius:11px;padding:10px 14px;font-weight:700;cursor:pointer}.btn.primary{background:var(--green);color:#fff}.btn.secondary{background:#fff;border:1px solid var(--line);color:var(--text)}.btn.danger{background:#fff1f2;color:var(--danger);border:1px solid #fecdd3}.status{font-size:12px;color:var(--muted)}.cards{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:12px;margin-bottom:14px}.kpi{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px;box-shadow:var(--shadow)}.kpi small{display:block;color:var(--muted);font-weight:700;margin-bottom:7px}.kpi strong{font-size:24px}.layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,.8fr);gap:14px}.panel{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);overflow:hidden}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}.panel-head h2{font-size:15px;margin:0}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:1050px}.table th,.table td{padding:11px 12px;border-bottom:1px solid #edf3ef;text-align:left;font-size:12px;vertical-align:middle}.table th{position:sticky;top:0;background:#f9fbfa;color:#5d7068;font-size:10px;letter-spacing:.05em;text-transform:uppercase;z-index:1}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800;background:#edf6f2;color:#1f5e4b}.badge.warn{background:#fff7ed;color:var(--warn)}.badge.danger{background:#fff1f2;color:var(--danger)}.badge.ok{background:#ecfdf5;color:var(--ok)}.actions{display:flex;gap:6px}.icon-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 8px;cursor:pointer}.empty{padding:35px 20px;text-align:center;color:var(--muted)}.form{padding:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.grid .full{grid-column:1/-1}.label{display:block;font-size:11px;font-weight:800;color:#51675e;margin:0 0 5px}.section-title{grid-column:1/-1;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#779087;margin-top:5px;padding-top:8px;border-top:1px solid #edf3ef}.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}.alert-list{display:grid;gap:8px;padding:12px}.alert{border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:12px}.alert b{display:block;margin-bottom:3px}.filters{display:flex;gap:8px;flex-wrap:wrap}.filters select{width:auto;min-width:150px}.login{position:fixed;inset:0;background:rgba(244,248,246,.97);z-index:20;display:none;align-items:center;justify-content:center}.login.open{display:flex}.login-card{width:min(400px,calc(100vw - 30px));background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow)}.login-card h2{margin:0 0 8px}.login-card p{color:var(--muted);font-size:13px}.login-card .field{margin:7px 0}.error{font-size:12px;color:var(--danger);min-height:18px}.muted{color:var(--muted)}
+@media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}.panel.form-panel{order:-1}}@media(max-width:650px){.page{padding:10px}.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.grid .full,.section-title{grid-column:1}.filters select{min-width:0;flex:1}.toolbar{align-items:stretch}.search{min-width:100%}}
+</style>
+</head>
+<body>
+<div id="loginBox" class="login"><div class="login-card"><h2>Connexion Inovtec</h2><p>Connecte-toi pour retrouver et synchroniser le matériel.</p><input id="email" class="field" type="email" placeholder="Adresse e-mail"><input id="password" class="field" type="password" placeholder="Mot de passe"><div id="loginError" class="error"></div><button id="loginBtn" class="btn primary" style="width:100%">Se connecter</button></div></div>
+<div class="page">
+  <div class="toolbar">
+    <input id="search" class="search field" type="search" placeholder="Rechercher un matériel, une référence, un fournisseur, un chantier…">
+    <div class="filters"><select id="categoryFilter"><option value="">Toutes catégories</option></select><select id="statusFilter"><option value="">Tous états</option><option>En service</option><option>En stock</option><option>En panne</option><option>À réparer</option><option>Réformé</option></select></div>
+    <button id="exportBtn" class="btn secondary" type="button">Exporter CSV</button>
+    <span id="syncStatus" class="status">Connexion Firebase…</span>
+  </div>
+  <section class="cards">
+    <div class="kpi"><small>Références matériel</small><strong id="kpiRefs">0</strong></div>
+    <div class="kpi"><small>Quantité totale</small><strong id="kpiQty">0</strong></div>
+    <div class="kpi"><small>Valeur estimée</small><strong id="kpiValue">0 €</strong></div>
+    <div class="kpi"><small>Stock faible</small><strong id="kpiLow">0</strong></div>
+    <div class="kpi"><small>Maintenance à prévoir</small><strong id="kpiMaintenance">0</strong></div>
+  </section>
+  <div class="layout">
+    <section class="panel">
+      <div class="panel-head"><h2>Inventaire du matériel</h2><span id="count" class="muted">0 élément</span></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Matériel</th><th>Catégorie</th><th>Référence</th><th>Qté</th><th>Fournisseur</th><th>Affectation</th><th>État</th><th>Maintenance</th><th>Valeur</th><th></th></tr></thead><tbody id="rows"></tbody></table><div id="empty" class="empty">Aucun matériel enregistré.</div></div>
+    </section>
+    <aside class="panel form-panel">
+      <div class="panel-head"><h2 id="formTitle">Ajouter un matériel</h2><button id="newBtn" class="btn secondary" type="button">Nouveau</button></div>
+      <form id="materialForm" class="form">
+        <input id="id" type="hidden">
+        <div class="grid">
+          <div><label class="label">Désignation *</label><input id="name" required placeholder="Ex. Aspirateur eau et poussière"></div>
+          <div><label class="label">Catégorie</label><input id="category" list="categories" placeholder="Ex. Aspiration"><datalist id="categories"><option>Autolaveuse</option><option>Aspirateur</option><option>Monobrosse</option><option>Chariot</option><option>Nettoyeur haute pression</option><option>Petit matériel</option><option>EPI</option><option>Électrique</option><option>Autre</option></datalist></div>
+          <div><label class="label">Marque / modèle</label><input id="brand" placeholder="Ex. Kärcher NT 30/1"></div>
+          <div><label class="label">Référence fournisseur</label><input id="reference" placeholder="Référence / SKU"></div>
+          <div><label class="label">N° de série</label><input id="serial" placeholder="Numéro de série"></div>
+          <div><label class="label">État</label><select id="status"><option>En service</option><option>En stock</option><option>En panne</option><option>À réparer</option><option>Réformé</option></select></div>
+          <div class="section-title">Stock & affectation</div>
+          <div><label class="label">Quantité</label><input id="quantity" type="number" min="0" step="1" value="1"></div>
+          <div><label class="label">Seuil minimum</label><input id="minStock" type="number" min="0" step="1" value="0"></div>
+          <div><label class="label">Chantier / site affecté</label><input id="site" placeholder="Ex. Améthyste"></div>
+          <div><label class="label">Emplacement</label><input id="location" placeholder="Local, véhicule, dépôt…"></div>
+          <div class="section-title">Fournisseur & achat</div>
+          <div><label class="label">Fournisseur</label><input id="supplier" placeholder="Nom du fournisseur"></div>
+          <div><label class="label">Contact fournisseur</label><input id="supplierContact" placeholder="Téléphone / e-mail"></div>
+          <div><label class="label">Prix unitaire HT/TTC</label><input id="price" type="number" min="0" step="0.01" placeholder="0,00"></div>
+          <div><label class="label">Date d'achat</label><input id="purchaseDate" type="date"></div>
+          <div><label class="label">Fin de garantie</label><input id="warrantyEnd" type="date"></div>
+          <div class="section-title">Maintenance</div>
+          <div><label class="label">Fréquence maintenance</label><select id="maintenanceFreq"><option value="">Aucune</option><option value="1">Tous les mois</option><option value="3">Tous les 3 mois</option><option value="6">Tous les 6 mois</option><option value="12">Tous les ans</option></select></div>
+          <div><label class="label">Prochaine maintenance</label><input id="nextMaintenance" type="date"></div>
+          <div class="full"><label class="label">Observations</label><textarea id="notes" placeholder="Consignes, panne connue, accessoires, historique court…"></textarea></div>
+        </div>
+        <div class="form-actions"><button id="deleteBtn" class="btn danger" type="button" hidden>Supprimer</button><button class="btn primary" type="submit">Enregistrer</button></div>
+      </form>
+      <div class="panel-head"><h2>Alertes matériel</h2></div><div id="alerts" class="alert-list"><div class="alert muted">Aucune alerte.</div></div>
+    </aside>
+  </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=20260829-operational1"></script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),KEY='inovtec_materiel_v1';let user=null,ref=null,unsub=null,state={items:[]},saveTimer=null;
+const fields=['name','category','brand','reference','serial','status','quantity','minStock','site','location','supplier','supplierContact','price','purchaseDate','warrantyEnd','maintenanceFreq','nextMaintenance','notes'];
+const money=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(n)||0);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function loadLocal(){try{const d=JSON.parse(localStorage.getItem(KEY)||'{}');if(Array.isArray(d.items))state=d}catch{}}
+function saveLocal(){localStorage.setItem(KEY,JSON.stringify(state))}
+function setSync(t){$('syncStatus').textContent=t}
+function payload(){return JSON.stringify({items:state.items,updatedAt:new Date().toISOString()})}
+async function push(){saveLocal();if(!ref)return;clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{try{setSync('Synchronisation…');await ref.set({moduleSyncV1:{materiel:{payload:payload(),updatedAt:new Date().toISOString()}}},{merge:true});setSync('Firebase synchronisé')}catch(e){console.error(e);setSync('Erreur Firebase — sauvegarde locale conservée')}},250)}
+function parseRemote(d){try{const p=d?.moduleSyncV1?.materiel?.payload;if(!p)return null;const r=JSON.parse(p);return Array.isArray(r.items)?r:null}catch{return null}}
+function uid(){return 'm_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)}
+function dateSoon(s,days=30){if(!s)return false;const d=new Date(s+'T12:00:00'),now=new Date(),lim=new Date();lim.setDate(now.getDate()+days);return d<=lim}
+function datePast(s){if(!s)return false;return new Date(s+'T23:59:59')<new Date()}
+function render(){
+ const q=$('search').value.trim().toLowerCase(),cf=$('categoryFilter').value,sf=$('statusFilter').value;
+ const cats=[...new Set(state.items.map(x=>x.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+ const prev=cf;$('categoryFilter').innerHTML='<option value="">Toutes catégories</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join('');$('categoryFilter').value=cats.includes(prev)?prev:'';
+ const filtered=state.items.filter(x=>{const hay=[x.name,x.category,x.brand,x.reference,x.serial,x.supplier,x.site,x.location].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!cf||x.category===cf)&&(!sf||x.status===sf)}).sort((a,b)=>(a.name||'').localeCompare(b.name||'','fr'));
+ $('count').textContent=`${filtered.length} élément${filtered.length>1?'s':''}`;$('empty').style.display=filtered.length?'none':'block';
+ $('rows').innerHTML=filtered.map(x=>{const qty=Number(x.quantity)||0,min=Number(x.minStock)||0,low=min>0&&qty<=min,maint=x.nextMaintenance&&(dateSoon(x.nextMaintenance,30)||datePast(x.nextMaintenance));const value=qty*(Number(x.price)||0);return `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.brand||'')}</span></td><td>${esc(x.category||'—')}</td><td>${esc(x.reference||x.serial||'—')}</td><td><span class="badge ${low?'danger':''}">${qty}${low?' · bas':''}</span></td><td>${esc(x.supplier||'—')}</td><td>${esc(x.site||x.location||'—')}</td><td><span class="badge ${x.status==='En panne'||x.status==='À réparer'?'danger':x.status==='En service'?'ok':''}">${esc(x.status||'—')}</span></td><td>${x.nextMaintenance?`<span class="badge ${maint?'warn':''}">${esc(x.nextMaintenance)}</span>`:'—'}</td><td>${money(value)}</td><td><div class="actions"><button class="icon-btn edit" data-id="${x.id}" title="Modifier">✎</button></div></td></tr>`}).join('');
+ const qty=state.items.reduce((s,x)=>s+(Number(x.quantity)||0),0),val=state.items.reduce((s,x)=>s+(Number(x.quantity)||0)*(Number(x.price)||0),0),low=state.items.filter(x=>(Number(x.minStock)||0)>0&&(Number(x.quantity)||0)<=(Number(x.minStock)||0)).length,maint=state.items.filter(x=>x.nextMaintenance&&dateSoon(x.nextMaintenance,30)).length;
+ $('kpiRefs').textContent=state.items.length;$('kpiQty').textContent=qty;$('kpiValue').textContent=money(val);$('kpiLow').textContent=low;$('kpiMaintenance').textContent=maint;
+ const alerts=[];state.items.forEach(x=>{const qty=Number(x.quantity)||0,min=Number(x.minStock)||0;if(min>0&&qty<=min)alerts.push(`<div class="alert"><b>Stock faible — ${esc(x.name)}</b>${qty} disponible(s), seuil ${min}. Fournisseur : ${esc(x.supplier||'non renseigné')}.</div>`);if(x.nextMaintenance&&dateSoon(x.nextMaintenance,30))alerts.push(`<div class="alert"><b>Maintenance — ${esc(x.name)}</b>Prévue le ${esc(x.nextMaintenance)}${datePast(x.nextMaintenance)?' · en retard':''}.</div>`);if(x.warrantyEnd&&dateSoon(x.warrantyEnd,45)&&!datePast(x.warrantyEnd))alerts.push(`<div class="alert"><b>Garantie bientôt terminée — ${esc(x.name)}</b>Fin le ${esc(x.warrantyEnd)}.</div>`);if(x.status==='En panne'||x.status==='À réparer')alerts.push(`<div class="alert"><b>${esc(x.status)} — ${esc(x.name)}</b>${esc(x.site||x.location||'Affectation non renseignée')}.</div>`)});$('alerts').innerHTML=alerts.slice(0,12).join('')||'<div class="alert muted">Aucune alerte.</div>';
+ document.querySelectorAll('.edit').forEach(b=>b.onclick=()=>edit(b.dataset.id));
+}
+function resetForm(){$('materialForm').reset();$('id').value='';$('quantity').value='1';$('minStock').value='0';$('status').value='En service';$('formTitle').textContent='Ajouter un matériel';$('deleteBtn').hidden=true}
+function edit(id){const x=state.items.find(i=>i.id===id);if(!x)return;$('id').value=x.id;fields.forEach(f=>{if($(f))$(f).value=x[f]??''});$('formTitle').textContent='Modifier le matériel';$('deleteBtn').hidden=false;$('name').focus();scrollTo({top:0,behavior:'smooth'})}
+$('materialForm').addEventListener('submit',e=>{e.preventDefault();const id=$('id').value||uid(),old=state.items.find(x=>x.id===id)||{};const item={...old,id,updatedAt:new Date().toISOString()};fields.forEach(f=>item[f]=$(f).value.trim?$(f).value.trim():$(f).value);item.quantity=Number(item.quantity)||0;item.minStock=Number(item.minStock)||0;item.price=Number(item.price)||0;const idx=state.items.findIndex(x=>x.id===id);if(idx>=0)state.items[idx]=item;else state.items.push(item);push();render();resetForm()});
+$('newBtn').onclick=resetForm;$('deleteBtn').onclick=()=>{const id=$('id').value;if(!id||!confirm('Supprimer ce matériel ?'))return;state.items=state.items.filter(x=>x.id!==id);push();render();resetForm()};
+['search','categoryFilter','statusFilter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
+$('exportBtn').onclick=()=>{const cols=['Désignation','Catégorie','Marque / modèle','Référence','N° série','Quantité','Seuil mini','Fournisseur','Contact fournisseur','Prix unitaire','Chantier','Emplacement','État','Achat','Garantie','Prochaine maintenance','Observations'];const vals=x=>[x.name,x.category,x.brand,x.reference,x.serial,x.quantity,x.minStock,x.supplier,x.supplierContact,x.price,x.site,x.location,x.status,x.purchaseDate,x.warrantyEnd,x.nextMaintenance,x.notes];const csv=[cols,...state.items.map(vals)].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='inventaire-materiel-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(a.href)};
+function initFirebase(){if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG){setSync('Configuration Firebase introuvable');return}if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);const auth=firebase.auth(),db=firebase.firestore();auth.onAuthStateChanged(u=>{user=u||null;if(unsub){try{unsub()}catch{}unsub=null}if(!user){$('loginBox').classList.add('open');setSync('Connexion requise');return}$('loginBox').classList.remove('open');ref=db.collection('kanban').doc(user.uid);setSync('Connexion Firebase…');unsub=ref.onSnapshot(s=>{const remote=s.exists?parseRemote(s.data()):null;if(remote){state=remote;saveLocal()}else if(state.items.length)push();setSync('Firebase synchronisé');render()},e=>{console.error(e);setSync('Firebase indisponible — données locales');render()})});$('loginBtn').onclick=async()=>{try{$('loginError').textContent='';await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value)}catch(e){$('loginError').textContent='Connexion impossible. Vérifie les identifiants.'}}}
+loadLocal();render();resetForm();initFirebase();
+})();
+</script>
+</body></html>
