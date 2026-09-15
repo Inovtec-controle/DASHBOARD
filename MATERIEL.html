@@ -1,1 +1,62 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate"><meta http-equiv="pragma" content="no-cache"><meta http-equiv="expires" content="0"><meta http-equiv="refresh" content="0; url=inovtec-page-shell.html?build=20260915-materiel1&amp;mode=materiel&amp;page=MATERIEL-LEGACY.html%3Fv%3D20260915-materiel1"><title>Matériel — Inovtec</title></head><body><p>Ouverture de la gestion du matériel… <a href="inovtec-page-shell.html?build=20260915-materiel1&amp;mode=materiel&amp;page=MATERIEL-LEGACY.html%3Fv%3D20260915-materiel1">Continuer</a></p></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#064e3b">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<title>Matériel — Inovtec Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="inovtec-shell.css?v=20260829-agentfull1">
+<link rel="stylesheet" href="inovtec-shell-v2.css?v=20260815-2">
+<style>
+html,body{min-height:100%}.iv-stage{padding:0!important}.iv-frame{width:100%;min-height:calc(100vh - 225px);border:0;background:#f4f8f6}.iv-tool-link{text-decoration:none}.iv-mobile-nav a span:first-child{font-size:18px}
+@media(max-width:760px){.iv-frame{min-height:calc(100vh - 190px)}}
+</style>
+</head>
+<body>
+<div class="iv-shell">
+  <aside class="iv-sidebar">
+    <a class="iv-brand" href="index.html"><span class="iv-brand-mark"></span><span class="iv-brand-copy"><strong>INOVTEC</strong><span>DASHBOARD</span></span></a>
+    <nav class="iv-nav" aria-label="Navigation principale">
+      <a href="index.html"><span class="iv-ico">⌂</span><span>Accueil</span></a>
+      <a href="PLANNINGS.html?v=20260829-planningstable3"><span class="iv-ico">▦</span><span>Planning</span></a>
+      <a href="KONTROL-CLOUD.html?v=20260830-pdfphotos1"><span class="iv-ico">✓</span><span>KONTROL</span></a>
+      <a href="INFOCHANTIERS-V2.html?v=20260830-pdfphotos1"><span class="iv-ico">ⓘ</span><span>Infos chantier</span></a>
+      <a href="AGENTS.html"><span class="iv-ico">♙</span><span>Classeur agents</span></a>
+      <a class="active" href="MATERIEL.html"><span class="iv-ico">▣</span><span>Matériel</span></a>
+      <a href="ORGA.html"><span class="iv-ico">◎</span><span>Organisation</span></a>
+      <a href="VARIABLES.html?v=20260829-variables-dashboard1"><span class="iv-ico">◷</span><span>Variables agents</span></a>
+      <a href="TEMPS.html"><span class="iv-ico">◷</span><span>Conversion temps</span></a>
+      <a href="SALAIRE.html"><span class="iv-ico">€</span><span>Salaire</span></a>
+      <a href="ESSENCE.html"><span class="iv-ico">⛽</span><span>Dépense carburant</span></a>
+    </nav>
+    <div class="iv-sidebar-note"><strong>Inovtec Construction</strong><br>Gestion du parc matériel et des fournisseurs.</div>
+  </aside>
+  <section class="iv-main">
+    <header class="iv-topbar">
+      <div class="iv-top-left"><span class="iv-status-dot"></span><strong>Matériel</strong><span id="syncMirror">Inventaire opérationnel</span></div>
+      <div class="iv-top-actions"><button id="refreshPage" class="iv-small-btn" type="button">↻ <span class="iv-hide-mobile">Actualiser</span></button><a class="iv-small-btn iv-tool-link" href="index.html">⌂ <span class="iv-hide-mobile">Accueil</span></a><span class="iv-avatar">IN</span></div>
+    </header>
+    <section class="iv-hero">
+      <div class="iv-hero-copy"><div class="iv-eyebrow">GESTION DU PARC</div><h1>Matériel & <em>fournisseurs</em></h1><p>Suivez précisément votre matériel, son affectation, son fournisseur, son coût, son état et ses échéances de maintenance.</p></div>
+      <div class="iv-date"><strong id="dateLabel">—</strong><span id="timeLabel">—</span></div>
+      <div class="iv-geometry" aria-hidden="true"><span class="iv-dots"></span><span class="iv-circle a"></span><span class="iv-circle b"></span><span class="iv-rect a"></span><span class="iv-rect b"></span><span class="iv-diag one"></span><span class="iv-diag two"></span><span class="iv-diag three"></span></div>
+    </section>
+    <section class="iv-toolbar">
+      <button id="addMaterial" class="iv-tool primary" type="button"><span>＋</span><span>Ajouter un matériel</span></button>
+      <button id="searchMaterial" class="iv-tool" type="button"><span>⌕</span><span>Rechercher</span></button>
+      <button id="exportMaterial" class="iv-tool" type="button"><span>⇩</span><span>Exporter CSV</span></button>
+      <span class="iv-spacer"></span><span id="liveMirror" class="iv-live">Inventaire synchronisé avec Firebase</span>
+    </section>
+    <section class="iv-stage"><iframe id="materialFrame" class="iv-frame" title="Gestion du matériel" src="MATERIEL-LEGACY.html?v=20260915-materiel1"></iframe></section>
+  </section>
+</div>
+<nav class="iv-mobile-nav" aria-label="Navigation mobile"><a href="index.html"><span>⌂</span><span>Accueil</span></a><a href="PLANNINGS.html"><span>▦</span><span>Planning</span></a><a href="INFOCHANTIERS-V2.html"><span>ⓘ</span><span>Chantiers</span></a><a class="active" href="MATERIEL.html"><span>▣</span><span>Matériel</span></a><a href="AGENTS.html"><span>♙</span><span>Agents</span></a></nav>
+<script>
+(()=>{const frame=document.getElementById('materialFrame'),doc=()=>{try{return frame.contentDocument}catch{return null}};const df=new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),tf=new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit'});function tick(){const d=new Date();document.getElementById('dateLabel').textContent=df.format(d).replace(/^./,c=>c.toUpperCase());document.getElementById('timeLabel').textContent=tf.format(d)}tick();setInterval(tick,30000);document.getElementById('refreshPage').onclick=()=>frame.contentWindow.location.reload();document.getElementById('addMaterial').onclick=()=>{const d=doc();d?.getElementById('newBtn')?.click();d?.getElementById('name')?.focus()};document.getElementById('searchMaterial').onclick=()=>doc()?.getElementById('search')?.focus();document.getElementById('exportMaterial').onclick=()=>doc()?.getElementById('exportBtn')?.click();frame.addEventListener('load',()=>{setInterval(()=>{const d=doc(),s=d?.getElementById('syncStatus')?.textContent,c=d?.getElementById('count')?.textContent;if(s)document.getElementById('syncMirror').textContent=s;if(c)document.getElementById('liveMirror').textContent=c+' dans l’inventaire'},1200)})})();
+</script>
+</body>
+</html>
