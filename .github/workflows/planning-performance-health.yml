@@ -1,0 +1,31 @@
+name: Planning performance health
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'planning-context-fit.js'
+      - 'PLANNINGS-LEGACY.html'
+      - 'PLANNINGS.html'
+      - '.github/workflows/planning-performance-health.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify script syntax and page links
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check planning-context-fit.js
+          node --check planning-calendar.js
+          grep -Fq 'planning-context-fit.js?v=20260916-performance1' PLANNINGS-LEGACY.html
+          grep -Fq 'PLANNINGS-LEGACY.html%3Fv%3D20260916-planningperformance1' PLANNINGS.html
+          grep -Fq 'scheduleSync(220)' planning-context-fit.js
+          if grep -Eq 'addEventListener\(["\x27]mouseup["\x27]' planning-context-fit.js; then
+            echo '::error::Recalcul global souris interdit dans le planning'
+            exit 1
+          fi
+          echo 'Planning performance checks: PASS'
