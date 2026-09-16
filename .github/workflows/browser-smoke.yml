@@ -41,3 +41,4 @@ jobs:
           node tests/planning-fixture.mjs
           node tests/firebase-org-migration.mjs
           node tests/planning-loading-regression.mjs
+          node tests/shell-refresh-performance.mjs
