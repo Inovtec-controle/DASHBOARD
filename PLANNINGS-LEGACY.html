@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="planning-parity.css?v=20260814-1">
 <link rel="stylesheet" href="planning-replacement.css?v=20260903-replacementrestore1">
 <link rel="stylesheet" href="planning-editor-fit.css?v=20260909-editorfit2">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div class="planner-shell">
@@ -83,5 +83,6 @@
 <script src="planning-autoheight.js?v=20260829-planningstable3"></script>
 <script>(()=>{const hide=()=>{try{[...parent.document.querySelectorAll('.iv-tool')].forEach(b=>{if(/ajouter un agent/i.test(b.textContent||''))b.style.display='none'})}catch{}};setTimeout(hide,180);setTimeout(hide,650);setTimeout(hide,1400)})();</script>
 <script>(()=>{try{if(parent&&parent!==window&&!parent.__INOVTEC_PLANNING_COVERAGE_LOADER__){parent.__INOVTEC_PLANNING_COVERAGE_LOADER__=true;const s=parent.document.createElement('script');s.src='inovtec-planning-coverage.js?v=20260829-planningstable3';parent.document.head.appendChild(s)}}catch(e){console.warn('Couverture planning',e)}})();</script>
+<script src="planning-early-ready.js?v=20260916-unblock1"></script>
 </body>
 </html>
