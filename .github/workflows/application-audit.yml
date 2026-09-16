@@ -1,0 +1,118 @@
+name: Application audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: application-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier la syntaxe de tous les scripts JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' file; do
+            node --check "$file" || { echo "::error file=$file::Syntaxe JavaScript invalide"; exit 1; }
+            count=$((count+1))
+          done < <(find . -type f -name '*.js' -not -path './.git/*' -print0)
+          echo "JavaScript : $count fichiers contrôlés"
+      - name: Vérifier les références locales et les scripts intégrés
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import html, re, subprocess, tempfile
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import unquote, urlsplit, parse_qs
+
+          root=Path.cwd()
+          errors=[]; warnings=[]; checked=0; inline_count=0
+          class Page(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=True)
+                  self.refs=[];self.scripts=[];self.script=None;self.inline=[]
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs); value=None
+                  if tag=='script':
+                      if a.get('src'):value=a['src'];self.scripts.append(value)
+                      elif a.get('type','').lower() not in ('application/json','application/ld+json','text/plain'):
+                          self.script=[]
+                  elif tag=='link' and a.get('rel','').lower() in ('stylesheet','icon','manifest','modulepreload','preload'):
+                      value=a.get('href')
+                  elif tag=='iframe':value=a.get('src')
+                  elif tag=='a' and a.get('href','').split('?',1)[0].lower().endswith('.html'):
+                      value=a.get('href')
+                  elif tag=='meta' and a.get('http-equiv','').lower()=='refresh':
+                      m=re.search(r'url\s*=\s*[\'\"]?([^\'\";]+)',a.get('content',''),re.I)
+                      if m:value=m.group(1)
+                  if value:self.refs.append((tag,value))
+              def handle_data(self,data):
+                  if self.script is not None:self.script.append(data)
+              def handle_endtag(self,tag):
+                  if tag=='script' and self.script is not None:
+                      text=''.join(self.script).strip();self.script=None
+                      if text:self.inline.append(text)
+          def check_ref(page,tag,raw):
+              value=html.unescape(raw.strip())
+              if value.startswith(('//','#','data:','mailto:','tel:','javascript:')):return
+              u=urlsplit(value)
+              if u.scheme or u.netloc:return
+              target=unquote(u.path).lstrip('/')
+              if target and not (root/page.parent/target).is_file():
+                  errors.append(f'{page}: référence introuvable ({tag}) : {target}')
+              for key in ('page',):
+                  for inner in parse_qs(u.query).get(key,[]):
+                      inner=unquote(html.unescape(inner)).split('?',1)[0]
+                      if inner.lower().endswith('.html') and not (root/page.parent/inner).is_file():
+                          errors.append(f'{page}: page intégrée introuvable : {inner}')
+          for path in sorted(root.rglob('*.html')):
+              if '.git' in path.parts:continue
+              rel=path.relative_to(root)
+              doc=Page()
+              try:doc.feed(path.read_text(encoding='utf-8'))
+              except Exception as e:errors.append(f'{rel}: HTML illisible : {e}');continue
+              checked+=1
+              for tag,url in doc.refs:check_ref(rel,tag,url)
+              for i,script in enumerate(doc.inline,1):
+                  inline_count+=1
+                  with tempfile.NamedTemporaryFile(mode='w',suffix='.js',encoding='utf-8') as tmp:
+                      tmp.write(script);tmp.flush()
+                      r=subprocess.run(['node','--check',tmp.name],capture_output=True,text=True)
+                      if r.returncode:
+                          errors.append(f'{rel}: script intégré n°{i} invalide : {r.stderr.strip()[-350:]}')
+              normalized=[urlsplit(s).path for s in doc.scripts]
+              dup=sorted({x for x in normalized if normalized.count(x)>1 and not x.startswith(('http:','https:','//'))})
+              if dup:warnings.append(f'{rel}: scripts chargés plusieurs fois : {", ".join(dup)}')
+          print(f'HTML : {checked} pages, {inline_count} scripts intégrés contrôlés')
+          for msg in warnings:print('AVERTISSEMENT :',msg)
+          for msg in errors:print('::error::',msg)
+          print(f'Bilan : {len(errors)} erreur(s), {len(warnings)} avertissement(s)')
+          if errors:raise SystemExit(1)
+          PY
+      - name: Vérifier les fichiers principaux et les liens du planning
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          pages=['index.html','PLANNINGS.html','PLANNINGS-LEGACY.html','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','MATERIEL.html','CONGES.html','ORGA.html']
+          missing=[p for p in pages if not Path(p).is_file() or Path(p).stat().st_size==0]
+          for p in missing:print(f'::error file={p}::Page absente ou vide')
+          src=Path('PLANNINGS-LEGACY.html').read_text()
+          for path in ('planning-calendar.js','planning-context-fit.js','planning-autoheight.js'):
+              if f'src="{path}?' not in src:missing.append(path);print(f'::error file=PLANNINGS-LEGACY.html::Script non chargé : {path}')
+          if missing:raise SystemExit(1)
+          print(f'Pages principales : {len(pages)} présentes ; scripts du planning : 3 liés')
+          PY
