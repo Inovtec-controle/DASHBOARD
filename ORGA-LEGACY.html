@@ -119,6 +119,7 @@
   let editingId = null;
   let syncingFromCloud = false;
   let draggedId = null;
+  let migrationPending = false;
 
   const $ = id => document.getElementById(id);
   const loginScreen = $("loginScreen");
@@ -191,12 +192,44 @@
       if(snap.exists && Array.isArray(snap.data().tasks)){
         tasks = snap.data().tasks;
         saveLocal();
+        setSync("Synchronisé","ok");
       }else{
         loadLocal();
-        if(tasks.length) saveCloud();
+        if(tasks.length && !migrationPending && currentUser){
+          // Une lecture distante ne doit pas se transformer en remplacement aveugle
+          // de tâches déjà présentes dans le document partagé ou personnel.
+          migrationPending = true;
+          const owner = currentUser.uid;
+          const localCopy = JSON.parse(JSON.stringify(tasks));
+          setSync("Vérification des tâches partagées…");
+          db.collection("chantiers").doc("__inovtec_shared_workspace_v1__").get()
+            .then(shared=>{
+              if(currentUser?.uid !== owner) return;
+              if(shared.exists && Array.isArray(shared.data()?.tasks)){
+                setSync("Reprise depuis l’espace partagé en cours…");
+                return;
+              }
+              // Relecture serveur immédiatement avant la migration : ne jamais
+              // remplacer une liste créée entre-temps par un autre appareil.
+              return db.collection("kanban").doc(owner).get({source:"server"}).then(fresh=>{
+                if(currentUser?.uid !== owner) return;
+                if(fresh.exists && Array.isArray(fresh.data()?.tasks)) return;
+                return db.collection("kanban").doc(owner).set({
+                  tasks:localCopy,
+                  updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+                },{merge:true}).then(()=>setSync("Tâches locales enregistrées sur Firebase","ok"));
+              });
+            })
+            .catch(error=>{
+              console.error("Reprise Firebase des tâches locales",error);
+              setSync("Reprise Firebase impossible — tâches locales conservées","warning");
+            })
+            .finally(()=>{migrationPending=false;});
+        }else if(!tasks.length){
+          setSync("Aucune tâche enregistrée","ok");
+        }
       }
       render();
-      setSync("Synchronisé","ok");
       setTimeout(()=>{ syncingFromCloud = false; },0);
     }, error=>{
       console.error(error);
