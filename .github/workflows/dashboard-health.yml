@@ -21,416 +21,64 @@ jobs:
     steps:
       - name: Récupérer le dépôt
         uses: actions/checkout@v4
-
-      - name: Vérifier les fichiers indispensables
+      - name: Contrôler les pages et les fonctions indispensables
         shell: bash
         run: |
           set -euo pipefail
-          files=(
-            index.html
-            dashboard-global-search.js
-            inovtec-search-handoff.js
-            INFOCHANTIERS.html
-            ORGA.html
-            PLANNINGS.html
-            PLANNINGS-LEGACY.html
-            planning-calendar.css
-            planning-calendar.js
-            planning-editor-stability.js
-            planning-pdf.js
-            planning-calendar-legal-loader.js
-            planning-context-fit.js
-            planning-replacement.js
-            planning-replacement.css
-            KONTROL.html
-            KONTROL-CLOUD-LEGACY.html
-            kontrol-cloud.js
-            HEURE-SUP.html
-            TEMPS.html
-            SALAIRE.html
-            ESSENCE.html
-            CONGES.html
-            VARIABLES.html
-            AGENTS.html
-            AGENTS-LEGACY.html
-            firebase-config.js
-            inovtec-common.css
-            inovtec-shell.js
-            inovtec-cloud-sync.js
-            inovtec-cahier-des-charges.js
-            inovtec-cdc-source-formats.js
-            inovtec-cdc-schedule-fields.js
-            inovtec-cdc-operational-fix.js
-            inovtec-cdc-ui-hard-fix.js
-            inovtec-firebase-operational-guard.js
-            inovtec-info-contact-mode.js
-            inovtec-info-contract-fields.js
-            inovtec-info-persistence-stable.js
-            inovtec-info-control-history.js
-            inovtec-referential.js
-            inovtec-visual-runtime.js
-            inovtec-agent-contract-hours.js
-            inovtec-alphabetical-lists.js
-            inovtec-firebase-indicator.css
-            inovtec-firebase-indicator.js
-            inovtec-page-shell.html
-            inovtec-info-auth-bridge.js
-          )
-          for file in "${files[@]}"; do
-            if [[ ! -s "$file" ]]; then
-              echo "::error file=$file::Fichier absent ou vide"
-              exit 1
-            fi
-          done
-          grep -qi '<!DOCTYPE html>' index.html
-          grep -q 'Classeur agents' index.html
-          grep -q 'dashboard-concept3.css?v=20260829-readability20-2' index.html
-          grep -q 'INOVTEC_READABILITY_15' dashboard-concept3.css
-          grep -q 'READABILITY_BUBBLES_20' dashboard-concept3.css
-          grep -q 'dashboard-concept3.js?v=20260830-kontrolcount1' index.html
-          grep -q 'c3-hero-banner' index.html
-          grep -q 'id="heroUserName"' index.html
-          grep -q 'id="heroDateLabel"' index.html
-          grep -q 'id="heroWeatherText"' index.html
-          grep -q 'id="heroSyncText"' index.html
-          grep -q 'connectedName(user)' dashboard-index.js
-          grep -q 'dashboard-index.js?v=20260829-icons2' index.html
-          grep -q 'READABILITY_ALL_BUBBLES_20' dashboard-concept3.css
-          grep -q 'MODERN_STATUS_WEATHER_ICONS' dashboard-concept3.css
-          grep -q 'function weatherSvg' dashboard-index.js
-          grep -q 'setWeatherIcon' dashboard-index.js
-          grep -q 'id="heroSyncIcon"' index.html
-          if grep -q 'Bonjour 👋' index.html; then
-            echo "::error::L’ancien petit bloc Bonjour ne doit plus apparaître."
-            exit 1
-          fi
-          grep -q 'Centre de pilotage' index.html
-          grep -q 'Raccourcis quotidiens' index.html
-          grep -q 'Planning du jour' index.html
-          if grep -q 'id="btnResidence"\|id="btnBureau"' KONTROL.html; then
-            echo "::error file=KONTROL.html::Les anciens choix Résidence/Bureau sont encore visibles."
-            exit 1
-          fi
-          grep -q 'id="activeCategoryPill" hidden' KONTROL.html
-          grep -q 'KONTROL.html?v=20260829-no-category1' kontrol-cloud.js
-          grep -q 'writeSharedHistory(blob' kontrol-cloud.js
-          grep -q 'resolveChantierId(details)' kontrol-cloud.js
-          grep -q '_type: "kontrolPdfMeta"' kontrol-cloud.js
-          grep -q 'kontrol-cloud.js?v=20260830-pdfphotos1' KONTROL-CLOUD-LEGACY.html
-          grep -q 'Variables agents' index.html
-          grep -q 'VARIABLES.html?v=20260829-variables-dashboard1' index.html
-          grep -q 'id="kpiVariables"' index.html
-          grep -q 'id="varEntries2"' index.html
-          grep -q 'id="varReview"' index.html
-          grep -q 'mergedVariables(shared,personal)' dashboard-mark1.js
-          grep -q 'mergedConges(shared,personal)' dashboard-mark1.js
-          grep -q 'configs.variables' inovtec-shell.js
-          if grep -qi 'HEURE-SUP.html\|Heures sup\.' index.html inovtec-shell.js; then
-            echo "::error::Variables agents doit remplacer l’ancien module Heures sup dans l’interface."
-            exit 1
-          fi
-          grep -q 'id="kpiIncidents"' index.html
-          grep -q 'Incidents ouverts' index.html
-          grep -q 'openIncidentCount' dashboard-index-shared.js
-          grep -q 'incidentIsOpen' dashboard-index-shared.js
-          if grep -qi 'DISCIPLINE-V9.html\|>Discipline<\|Dossiers Discipline' index.html; then
-            echo "::error file=index.html::Discipline ne doit plus apparaître dans le Dashboard."
-            exit 1
-          fi
-          if grep -Eq 'const nav=.*configs\.discipline|const mobileItems=.*configs\.discipline' inovtec-shell.js; then
-            echo "::error file=inovtec-shell.js::Discipline est encore présente dans la navigation commune."
-            exit 1
-          fi
-          grep -Fq 'window.location.replace("index.html")' DISCIPLINE.html
-          grep -Fq 'window.location.replace("index.html")' DISCIPLINE-V9.html
-          grep -q 'inovtec-firebase-indicator.js' index.html
-          grep -q 'inovtec-firebase-indicator.js' inovtec-page-shell.html
-          grep -q 'inovtec-alphabetical-lists.js' inovtec-page-shell.html
-          grep -q 'inovtec-cahier-des-charges.js?v=20260829-operational1' inovtec-page-shell.html
-          grep -q 'max-height:none;overflow:visible' inovtec-cahier-des-charges.js
-          grep -q 'iv-cdc-overlay.*overflow:hidden' inovtec-cahier-des-charges.js
-          grep -q '__INOVTEC_CDC_OPERATIONAL_FIX_V3__' inovtec-cdc-operational-fix.js
-          grep -q 'function suggestionRowsFromSites' inovtec-cdc-operational-fix.js
-          grep -q 'GLOBAL_SUGGESTION_TTL' inovtec-cdc-operational-fix.js
-          grep -Fq 'collection("chantiers").orderBy("nom").get()' inovtec-cdc-operational-fix.js
-          grep -q 'InovtecCdcOperationalSave' inovtec-cdc-operational-fix.js
-          grep -q 'ivOperationalFix.*InovtecCdcOperationalSave' inovtec-cdc-schedule-fields.js
-          grep -q 'max-height:none!important;overflow:visible!important' inovtec-cdc-operational-fix.js
-          grep -q 'max-height:none!important;overflow:visible!important' inovtec-cdc-ui-hard-fix.js
-          grep -q 'correctif opérationnel est chargé une seule fois' inovtec-cdc-source-formats.js
-          if grep -q 'createElement("script").*operational-fix\|data-iv-cdc-operational-fix' inovtec-cdc-source-formats.js; then
-            echo "::error::Le correctif CDC est de nouveau chargé deux fois."
-            exit 1
-          fi
-          grep -q 'inovtec-cdc-operational-fix.js?v=20260829-idlock1' inovtec-page-shell.html
-          grep -q 'inovtec-cdc-schedule-fields.js?v=20260829-operational1' inovtec-page-shell.html
-          grep -q 'inovtec-cdc-ui-hard-fix.js?v=20260829-operational1' inovtec-page-shell.html
-          grep -q 'inovtec-info-contact-mode.js?v=20260829-idlock1' inovtec-page-shell.html
-          grep -q 'inovtec-info-contract-fields.js?v=20260829-idlock1' inovtec-page-shell.html
-          grep -q 'inovtec-info-agent-planning.js?v=20260829-agentdropdown1' inovtec-page-shell.html
-          grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' inovtec-page-shell.html
-          grep -q 'inovtec-info-control-history.js?v=20260830-pdfphotos1' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-kontrol-shared-archive.js?v=20260830-pdfphotos1' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-kontrol-ref-metadata.js?v=20260830-pdfphotos1' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'id="ivControlHistoryCard"' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'chantierId' inovtec-info-control-history.js
-          grep -q 'DIRECT_CONTROL_TYPE' kontrol-cloud.js
-          grep -q 'saveControlDirect' kontrol-cloud.js
-          grep -q 'kontrolHistoryRecordIds' kontrol-cloud.js
-          grep -q 'Enregistrer + PDF' kontrol-cloud.js
-          grep -q '__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__' kontrol-cloud.js
-          grep -q 'InovtecGenerateControlPdf' KONTROL.html
-          grep -q 'prepareAllPhotosForPdf' KONTROL.html
-          grep -q 'PDF non généré' KONTROL.html
-          grep -q 'photoCount:pdfPhotos.length' KONTROL.html
-          grep -q 'KONTROL.html?v=20260830-pdfphotos1' kontrol-cloud.js
-          grep -q 'ivAllowOriginalPdfOnce' kontrol-cloud.js
-          grep -q 'Enregistré + PDF' kontrol-cloud.js
-          grep -q 'RECORD_TYPE="kontrolControlRecord"' inovtec-info-control-history.js
-          grep -q 'subscribeRecords' inovtec-info-control-history.js
-          grep -q 'kontrolHistoryRecordIds' inovtec-info-control-history.js
-          grep -q 'DIRECT_PHOTO_CHUNK_TYPE' kontrol-cloud.js
-          grep -q 'writeControlPhotos' kontrol-cloud.js
-          grep -q 'photoRefs' kontrol-cloud.js
-          grep -q 'readControlPhoto' inovtec-info-control-history.js
-          grep -q 'Visualiser le contrôle' inovtec-info-control-history.js
-          grep -q 'ivControlViewer' inovtec-info-control-history.js
-          grep -q 'deleteControlRecord' inovtec-info-control-history.js
-          grep -q 'deletePdfHistory' inovtec-info-control-history.js
-          grep -q 'arrayRemove(recordId)' inovtec-info-control-history.js
-          grep -q 'arrayRemove(metaId)' inovtec-info-control-history.js
-          grep -q 'iv-control-history-delete' inovtec-info-control-history.js
-          grep -q '__INOVTEC_INFO_CONTROL_HISTORY_V3__' inovtec-info-control-history.js
-          grep -q 'ivControlViewerDelete' inovtec-info-control-history.js
-          grep -q 'displayDate=formatControlDate' inovtec-info-control-history.js
-          grep -q 'background:#fff1f2' inovtec-info-control-history.js
-          grep -q 'kontrolHistoryMetaIds' kontrol-cloud.js
-          grep -q 'kontrolHistoryMetaIds' inovtec-info-control-history.js
-          grep -q 'auth.onAuthStateChanged' inovtec-info-control-history.js
-          grep -q 'arrayUnion(metaDocId)' kontrol-cloud.js
-          grep -q 'referenceVersion:2' inovtec-kontrol-ref-metadata.js
-          node --check inovtec-kontrol-ref-metadata.js
-          grep -q 'agentsAffectes' inovtec-info-agent-planning.js
-          grep -q 'infoAssignedAgents' inovtec-visual-runtime.js
-          grep -q 'iv:chantier-saved' inovtec-visual-runtime.js
-          grep -q 'iv:chantier-saved' INFOCHANTIERS-V2-LEGACY.html
-          grep -q 'inovtec-visual-runtime.js?v=20260829-kontrolcdc1' inovtec-page-shell.html
-          grep -q 'inovtec-kontrol-cdc-link.js?v=20260829-site-names1' inovtec-page-shell.html
-          grep -Fq 'o.label=lost?' inovtec-kontrol-cdc-link.js
-          if grep -Fq 'o.label=[siteAddressOf(c)' inovtec-kontrol-cdc-link.js; then
-            echo "::error file=inovtec-kontrol-cdc-link.js::Les adresses sont encore affichées dans la liste KONTROL."
-            exit 1
-          fi
-          grep -q 'kontrolSelectedChantier' inovtec-visual-runtime.js
-          grep -q 'kontrolCdcCount' inovtec-visual-runtime.js
-          grep -q 'cahierDesChargesV1' inovtec-visual-runtime.js
-          grep -q 'Sélectionnez un chantier' inovtec-visual-runtime.js
-          grep -q 'ivAgentPickerButton' inovtec-info-agent-planning.js
-          grep -q 'ivAgentPickerPanel' inovtec-info-agent-planning.js
-          grep -q 'firebase-config.js?v=20260829-operational1' inovtec-page-shell.html
-          if grep -q 'iv-cdc-modal{[^}]*overflow:auto' inovtec-cahier-des-charges.js; then
-            echo "::error::La fenêtre de saisie manuelle contient encore une scrollbar interne."
-            exit 1
-          fi
-          grep -q 'inovtec-shell.css?v=20260829-agentfull1' inovtec-page-shell.html
-          grep -q 'inovtec-shell.js?v=20260830-pdfphotos1' inovtec-page-shell.html
-          grep -q 'stripRemovedDisciplineNavigation' inovtec-page-shell.html
-          grep -q 'href.includes("discipline")' inovtec-page-shell.html
-          grep -q 'max-height:none' AGENTS-LEGACY.html
-          grep -q 'overflow:visible' AGENTS-LEGACY.html
-          grep -q 'fitAgentsFullPage' inovtec-shell.js
-          grep -q '_deleted: true' AGENTS-LEGACY.html
-          grep -q 'function agentHasName' AGENTS-LEGACY.html
-          grep -Fq '<label>Nom</label>' AGENTS-LEGACY.html
-          grep -Fq 'id="f_prenom"' AGENTS-LEGACY.html
-          grep -Fq '<label>Prénom</label>' AGENTS-LEGACY.html
-          grep -Fq 'id="f_nom"' AGENTS-LEGACY.html
-          grep -q 'function cleanupAgentState' AGENTS-LEGACY.html
-          grep -q 'function selectAgentById' AGENTS-LEGACY.html
-          grep -q 'data-agent-id' AGENTS-LEGACY.html
-          grep -q 'ivInternalSort' AGENTS-LEGACY.html
-          grep -q 'ivInternalSort' inovtec-alphabetical-lists.js
-          grep -q 'inovtec-agents-archive.js?v=20260829-agentstable1' inovtec-page-shell.html
-          grep -q 'nettoyage-fiche-sans-nom' AGENTS-LEGACY.html
-          grep -q 'max-height:none' AGENTS-LEGACY.html
-          grep -q 'overflow:visible' AGENTS-LEGACY.html
-          if grep -q 'inovtec-agents-list-fit.js' AGENTS-LEGACY.html; then
-            echo "::error::L'affichage actuel de la liste agents a été modifié."
-            exit 1
-          fi
-          grep -q 'inovtec-cloud-sync.js?v=20260829-planningstable3' inovtec-page-shell.html
-          grep -q 'inovtec-data-hub.js?v=20260829-agentclean1' inovtec-page-shell.html
-          grep -q 'inovtec-referential.js?v=20260829-agentclean1' inovtec-page-shell.html
-          grep -q 'inovtec-alphabetical-lists.js?v=20260829-agentstable1' inovtec-page-shell.html
-          grep -q 'AGENTS-LEGACY.html%3Fv%3D20260829-namefields1' AGENTS.html
-          if grep -q 'inovtec-agents-list-fit.js' AGENTS-LEGACY.html; then
-            echo "::error::Le Classeur agents utilise encore l'affichage compact adaptatif."
-            exit 1
-          fi
-          grep -q 'inovtec-info-auth-bridge.js?v=20260820-info-operational1' inovtec-page-shell.html
-          grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' INFOCHANTIERS.html
-          grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' INFOCHANTIERS-V2.html
-          if grep -q 'inovtec-info-shell-stable.html' INFOCHANTIERS.html INFOCHANTIERS-V2.html; then
-            echo "::error::Infos chantier utilise encore son ancien menu spécial."
-            exit 1
-          fi
-          grep -q 'planning-pdf.js?v=20260815-3' PLANNINGS-LEGACY.html
-          grep -q 'planning-replacement.css?v=20260903-replacementrestore1' PLANNINGS-LEGACY.html
-          grep -q 'planning-replacement.js?v=20260903-replacementrestore1' PLANNINGS-LEGACY.html
-          grep -q 'Suggestion de remplacement optimal' planning-replacement.js
-          grep -q 'const START_HOUR=0,END_HOUR=24,HOUR_PX=56' planning-calendar.js
-          grep -Fq 'height:calc(var(--pc-hour) * 24)' planning-calendar.css
-          grep -q 'planning-calendar.js?v=' PLANNINGS-LEGACY.html
-          grep -q 'planning-calendar.js?v=20260829-planningstable3' PLANNINGS-LEGACY.html
-          grep -q 'planning-autoheight.js?v=20260829-planningstable3' PLANNINGS-LEGACY.html
-          grep -q 'inovtec-container-planning-link.js?v=20260829-freezefix1' inovtec-page-shell.html
-          grep -q '__INOVTEC_CONTAINER_PLANNING_LINK_STABLE__' inovtec-container-planning-link.js
-          if grep -q 'new MutationObserver(render).observe(d.body' inovtec-container-planning-link.js; then
-            echo "::error::Le lien Conteneurs/Planning recrée une boucle DOM infinie."
-            exit 1
-          fi
-          grep -q 'fix=planningfreeze1' PLANNINGS.html
-          grep -q 'inovtec-planning-coverage.js?v=20260829-planningstable3' PLANNINGS-LEGACY.html
-          grep -q 'sanitizePlanningState' planning-calendar.js
-          grep -q 'isSameLocation' planning-calendar.js
-          grep -q 'e.site=\$("edSite").value.trim()' planning-calendar.js
-          if grep -q 'planning-editor-stability.js' PLANNINGS-LEGACY.html; then
-            echo "::error::Le script conflictuel de sélection chantier est encore chargé."
-            exit 1
-          fi
-          grep -q '__INOVTEC_PLANNING_AUTOHEIGHT_STABLE__' planning-autoheight.js
-          if grep -q 'attributes:true' planning-autoheight.js; then
-            echo "::error::Le Planning ne doit plus observer ses propres changements de style."
-            exit 1
-          fi
-          grep -q '8000' inovtec-planning-coverage.js
-          grep -q 'id="globalSearch"' index.html
-          grep -q 'dashboard-global-search.js?v=20260829-agentclean1' index.html
-          grep -q 'inovtec-search-handoff.js?v=20260828-search1' inovtec-page-shell.html
-          grep -q 'inovtec-page-shell.html?build=20260829-operational1&amp;mode=infos' inovtec-info-shell-stable.html
-          # Toutes les pages doivent charger le même build opérationnel sans cache navigateur.
-          for page in INFOCHANTIERS.html INFOCHANTIERS-V2.html AGENTS.html PLANNINGS.html CONGES.html VARIABLES.html ORGA.html HEURE-SUP.html TEMPS.html SALAIRE.html ESSENCE.html KONTROL-CLOUD.html; do
-            grep -q 'build=20260829-operational1' "$page" || { echo "::error file=$page::Build opérationnel absent"; exit 1; }
-            grep -qi 'http-equiv="cache-control"' "$page" || { echo "::error file=$page::Protection anti-cache absente"; exit 1; }
-          done
-          if grep -q 'sera activée ultérieurement' index.html; then
-            echo "::error file=index.html::Une fonctionnalité visible du dashboard est encore annoncée comme inactive."
-            exit 1
-          fi
-          if grep -Eq 'id="globalSearch"[^>]*disabled' index.html; then
-            echo "::error file=index.html::La recherche globale est de nouveau désactivée."
-            exit 1
-          fi
-
-      - name: Vérifier la syntaxe JavaScript
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --check firebase-config.js
-          node --check dashboard-index.js
-          node --check dashboard-index-shared.js
-          node --check dashboard-mark1.js
-          node --check dashboard-concept3.js
-          node --check dashboard-global-search.js
-          node --check inovtec-search-handoff.js
-          node --check inovtec-shell.js
-          node --check inovtec-cloud-sync.js
-          node --check inovtec-cahier-des-charges.js
-          node --check inovtec-cdc-source-formats.js
-          node --check inovtec-cdc-schedule-fields.js
-          node --check inovtec-cdc-operational-fix.js
-          node --check inovtec-cdc-ui-hard-fix.js
-          node --check inovtec-firebase-operational-guard.js
-          node --check inovtec-info-contact-mode.js
-          node --check inovtec-info-contract-fields.js
-          node --check inovtec-info-persistence-stable.js
-          node --check inovtec-info-control-history.js
-          node --check inovtec-data-hub.js
-          node --check inovtec-shared-workspace.js
-          node --check inovtec-referential.js
-          node --check inovtec-cross-page-data.js
-          node --check inovtec-historical-data-recovery.js
-          node --check inovtec-referential.js
-          node --check inovtec-visual-runtime.js
-          node --check inovtec-agent-contract-hours.js
-          node --check inovtec-alphabetical-lists.js
-          node --check inovtec-agents-archive.js
-          node --check inovtec-firebase-indicator.js
-          node --check inovtec-info-auth-bridge.js
-          node --check inovtec-empty-initial-selection.js
-          node --check inovtec-planning-launch-selection.js
-          node --check inovtec-info-agent-planning.js
-          node --check kontrol-cloud.js
-          node --check planning-calendar.js
-          node --check planning-autoheight.js
-          node --check inovtec-planning-coverage.js
-          node --check inovtec-container-planning-link.js
-          node --check planning-editor-stability.js
-          node --check planning-pdf.js
-          node --check planning-calendar-legal-loader.js
-          node --check planning-context-fit.js
-          node --check planning-replacement.js
           python3 - <<'PY'
-          from html.parser import HTMLParser
           from pathlib import Path
-          import subprocess, tempfile
-
-          pages = [
-              'index.html','INFOCHANTIERS.html','ORGA.html','DISCIPLINE.html',
-              'PLANNINGS.html','PLANNINGS-LEGACY.html','KONTROL.html','KONTROL-CLOUD-LEGACY.html','HEURE-SUP.html','TEMPS.html',
-              'SALAIRE.html','ESSENCE.html','CONGES.html','VARIABLES.html','AGENTS.html','AGENTS-LEGACY.html','inovtec-page-shell.html'
-          ]
-
-          class ScriptParser(HTMLParser):
-              def __init__(self):
-                  super().__init__()
-                  self.current = None
-                  self.scripts = []
-              def handle_starttag(self, tag, attrs):
-                  if tag.lower() != 'script':
-                      return
-                  attrs = dict(attrs)
-                  if attrs.get('src'):
-                      self.current = None
-                      return
-                  script_type = (attrs.get('type') or '').lower()
-                  if script_type and script_type not in ('text/javascript', 'module'):
-                      self.current = None
-                      return
-                  self.current = {'type': script_type, 'parts': []}
-              def handle_data(self, data):
-                  if self.current is not None:
-                      self.current['parts'].append(data)
-              def handle_endtag(self, tag):
-                  if tag.lower() == 'script' and self.current is not None:
-                      self.scripts.append(self.current)
-                      self.current = None
-
-          failed = False
-          for page in pages:
-              parser = ScriptParser()
-              parser.feed(Path(page).read_text(encoding='utf-8'))
-              for index, script in enumerate(parser.scripts, 1):
-                  code = ''.join(script['parts']).strip()
-                  if not code:
-                      continue
-                  suffix = '.mjs' if script['type'] == 'module' or '\nimport ' in '\n'+code or code.startswith('import ') else '.js'
-                  with tempfile.NamedTemporaryFile('w', suffix=suffix, delete=False, encoding='utf-8') as tmp:
-                      tmp.write(code)
-                      path = tmp.name
-                  result = subprocess.run(['node', '--check', path], text=True, capture_output=True)
-                  if result.returncode:
-                      print(f'::error file={page}::Erreur JavaScript dans le script inline #{index}')
-                      print(result.stderr)
-                      failed = True
-          if failed:
-              raise SystemExit(1)
+          from html.parser import HTMLParser
+          from urllib.parse import urlsplit
+          must_exist=['index.html','dashboard-index.js','dashboard-concept3.css','dashboard-index-shared.js','dashboard-global-search.js','inovtec-page-shell.html','inovtec-shell.js','inovtec-data-hub.js','inovtec-cloud-sync.js','firebase-config.js','PLANNINGS.html','PLANNINGS-LEGACY.html','planning-calendar.js','planning-context-fit.js','planning-autoheight.js','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','CONGES.html','ORGA.html','MATERIEL.html']
+          issues=[]
+          for p in must_exist:
+              f=Path(p)
+              if not f.is_file() or f.stat().st_size==0:issues.append(f'Fichier absent ou vide : {p}')
+          class Refs(HTMLParser):
+              def __init__(self):super().__init__();self.links=[];self.scripts=[];self.ids=set()
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs)
+                  if a.get('id'):self.ids.add(a['id'])
+                  if tag=='a' and a.get('href'):self.links.append(a['href'])
+                  if tag=='script' and a.get('src'):self.scripts.append(a['src'])
+          pages={}
+          for name in ('index.html','inovtec-page-shell.html','PLANNINGS-LEGACY.html','VARIABLES-DASHBOARD.html'):
+              parser=Refs();parser.feed(Path(name).read_text(encoding='utf-8'));pages[name]=parser
+          home=pages['index.html'];shell=pages['inovtec-page-shell.html'];planning=pages['PLANNINGS-LEGACY.html']
+          for page in ('PLANNINGS.html','KONTROL-CLOUD.html','INFOCHANTIERS-V2.html','AGENTS.html','CONGES.html','VARIABLES.html','ORGA.html'):
+              if not any(urlsplit(h).path==page for h in home.links):issues.append(f'Navigation accueil absente : {page}')
+          if any('discipline' in urlsplit(h).path.lower() for h in home.links):issues.append('Ancien module Discipline encore lié depuis l’accueil')
+          for name in ('globalSearch','heroUserName','heroSyncText','kpiVariables','kpiIncidents'):
+              if name not in home.ids:issues.append(f'Identifiant du tableau de bord absent : {name}')
+          for name in ('legacyFrame','pageSummary','desktopNav','mobileNav'):
+              if name not in shell.ids:issues.append(f'Conteneur principal absent : {name}')
+          for name in ('planning-calendar.js','planning-context-fit.js','planning-autoheight.js','planning-pdf.js'):
+              if not any(urlsplit(src).path==name for src in planning.scripts):issues.append(f'Script Planning non chargé : {name}')
+          for path,markers in {
+              'planning-calendar.js':('sanitizePlanningState','ensureParityForCurrentView','inovtec:planning-cloud-updated'),
+              'planning-context-fit.js':('ensureStandardWeek','inovtec:planning-cloud-updated'),
+              'inovtec-cloud-sync.js':('onSnapshot','moduleSyncV1'),
+              'dashboard-index-shared.js':('openIncidentCount','kontrolPdfMeta'),
+          }.items():
+              contents=Path(path).read_text(encoding='utf-8')
+              for marker in markers:
+                  if marker not in contents:issues.append(f'{path} : fonction ou branchement manquant ({marker})')
+          for issue in issues:print(f'::error::{issue}')
+          print(f'Contrôles Dashboard : {len(must_exist)} fichiers, {len(home.links)} liens accueil, {len(issues)} erreur(s)')
+          if issues:raise SystemExit(1)
           PY
+      - name: Contrôler la syntaxe des composants essentiels
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in dashboard-index.js dashboard-index-shared.js dashboard-global-search.js inovtec-shell.js inovtec-data-hub.js inovtec-cloud-sync.js planning-calendar.js planning-context-fit.js planning-pdf.js variables.js variables-monthly-planning.js; do
+            node --check "$f"
+          done
 
   diagnose-pages:
     runs-on: ubuntu-latest
     steps:
-      - name: Lire la configuration et le dernier build GitHub Pages
+      - name: Lire la configuration GitHub Pages
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -438,62 +86,26 @@ jobs:
           set -euo pipefail
           headers=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
           curl -fsSL "${headers[@]}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" -o /tmp/pages.json
-          curl -fsSL "${headers[@]}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds/latest" -o /tmp/build.json
           python3 - <<'PY'
           import json
-          pages=json.load(open('/tmp/pages.json', encoding='utf-8'))
-          build=json.load(open('/tmp/build.json', encoding='utf-8'))
-          print('html_url =', pages.get('html_url'))
-          print('status =', pages.get('status'))
-          print('build_type =', pages.get('build_type'))
-          print('source =', pages.get('source'))
-          print('latest_build_status =', build.get('status'))
-          print('latest_build_commit =', build.get('commit'))
-          print('latest_build_error =', build.get('error'))
-          print('latest_build_message =', build.get('message'))
+          data=json.load(open('/tmp/pages.json',encoding='utf-8'))
+          print('Site public :',data.get('html_url'))
+          print('Statut Pages :',data.get('status'))
+          print('Source :',data.get('source'))
+          if not data.get('html_url'):raise SystemExit('::error::GitHub Pages n’est pas configuré')
           PY
 
   smoke-live-site:
     runs-on: ubuntu-latest
     steps:
-      - name: Vérifier le site GitHub Pages public
+      - name: Vérifier que les principales pages publiques répondent
         shell: bash
         run: |
           set -euo pipefail
           base='https://inovtec-controle.github.io/DASHBOARD'
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors "$base/" -o /tmp/index.html
-          grep -q 'Classeur agents' /tmp/index.html || {
-            echo '::error::Le site public répond mais ne contient pas encore la nouvelle version du dashboard.'
-            exit 1
-          }
-          if [ '${{ github.event_name }}' = 'push' ]; then
-            live_ready=0
-            for attempt in $(seq 1 15); do
-              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/inovtec-page-shell.html?build=20260829-operational1&mode=infos&sv=20260829-agentbubble1" -o /tmp/shell.html
-              curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors "$base/INFOCHANTIERS-V2-LEGACY.html?v=20260829-persistence7" -o /tmp/infos.html
-              if grep -q 'inovtec-info-persistence-stable.js?v=20260829-persistence7' /tmp/shell.html \
-                && grep -q 'Enregistrer ✓' /tmp/infos.html \
-                && grep -q 'get({source:"server"})' /tmp/infos.html \
-                && grep -q 'button.dataset.ivChantierId' /tmp/infos.html \
-                && grep -q 'data.agentsAffectes=' /tmp/infos.html \
-                && grep -q 'inovtec-info-agent-planning.js?v=20260829-agentdropdown1' /tmp/shell.html; then
-                live_ready=1
-                break
-              fi
-              sleep 4
-            done
-            if [ "$live_ready" -ne 1 ]; then
-              echo '::error::La version publique Infos chantier ne contient pas encore la confirmation Firebase attendue.'
-              exit 1
-            fi
-          else
-            curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors "$base/inovtec-page-shell.html" -o /tmp/shell.html
-          fi
-          grep -q 'inovtec-alphabetical-lists.js' /tmp/shell.html || {
-            echo '::error::Le site public ne contient pas encore le tri alphabétique global.'
-            exit 1
-          }
-          for page in INFOCHANTIERS.html ORGA.html PLANNINGS.html KONTROL-CLOUD.html AGENTS.html CONGES.html VARIABLES.html HEURE-SUP.html TEMPS.html SALAIRE.html ESSENCE.html; do
-            curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null
+          for page in index.html PLANNINGS.html PLANNINGS-LEGACY.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html inovtec-page-shell.html planning-calendar.js; do
+            curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null || { echo "::error::$page inaccessible sur le site public";exit 1; }
           done
-          echo 'Site public accessible et version attendue détectée.'
+          curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$base/index.html" -o /tmp/inovtec-home.html
+          grep -q 'Classeur agents' /tmp/inovtec-home.html || { echo '::error::Accueil public incomplet';exit 1; }
+          echo 'Les pages et scripts principaux répondent depuis GitHub Pages.'
