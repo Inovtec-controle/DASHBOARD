@@ -40,7 +40,8 @@ try {
       await page.locator('#app:not(.hidden)').waitFor({timeout:10000});
       await page.waitForFunction(expected=>{
         const test=window.__firebaseOrgTest;
-        return test && (expected===0?document.querySelector('#syncStatus')?.textContent?.includes('partagées') || document.querySelector('#syncStatus')?.textContent?.includes('Synchronisé'):test.writes.length>=expected);
+        const status=document.querySelector('#syncStatus')?.textContent||'';
+        return test && (expected===0?(status.includes('partagé')||status.includes('Synchronisé')):test.writes.length>=expected);
       },sc.expectedWrites,{timeout:10000});
       const result=await page.evaluate(()=>({
         writes:window.__firebaseOrgTest.writes.map(w=>({name:w.name,id:w.id,tasks:w.data.tasks})),
