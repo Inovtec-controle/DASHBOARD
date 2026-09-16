@@ -40,3 +40,4 @@ jobs:
           node tests/browser-smoke.mjs
           node tests/planning-fixture.mjs
           node tests/firebase-org-migration.mjs
+          node tests/planning-loading-regression.mjs
