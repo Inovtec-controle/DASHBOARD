@@ -1,7 +1,7 @@
 (()=>{
 "use strict";
-let state="loading",message="Connexion à Firebase en cours",authResolved=false,lastExternal=0;
-const LABELS={loading:"Connexion à Firebase en cours",connected:"Firebase connecté",error:"Problème de connexion Firebase"};
+let state="loading",message="Vérification de Firebase en cours",authResolved=false,signedIn=false,lastExternal=0;
+const LABELS={loading:"Vérification de Firebase en cours",connected:"Firebase accessible",error:"Problème de connexion Firebase"};
 function host(){return document.querySelector(".iv-date,.hero-date")}
 function indicator(){
   const h=host();if(!h)return null;
@@ -56,10 +56,20 @@ function hideOldStatusUI(){
 function poll(){
   indicator();hideOldStatusUI();
   if(!navigator.onLine){apply("error","Pas de connexion réseau");return}
+  if(!authResolved){apply("loading","Authentification Firebase en cours");return}
+  if(!signedIn){apply("error","Compte Firebase non connecté");return}
+  const health=window.InovtecFirebaseOperational;
+  if(health?.ok===false){apply("error","Lecture Firebase impossible : "+String(health.error||"accès refusé"));return}
   const local=iframeStatus()||mirrorStatus();
-  if(local){apply(local.state,local.message,true);return}
-  if(Date.now()-lastExternal<2200)return;
-  if(authResolved&&state==="loading")apply("connected","Firebase connecté");
+  if(local?.state==="error"){apply("error",local.message);return}
+  if(local?.state==="loading"){apply("loading",local.message);return}
+  // Une session Auth ouverte, ou un badge d'une page, ne prouve pas que Firestore répond.
+  if(health?.ok!==true){apply("loading","Compte connecté · lecture Firestore non encore confirmée");return}
+  if(local?.state==="connected"){
+    apply("connected","Firebase accessible · "+local.message+" (état annoncé par la rubrique)");return;
+  }
+  if(Date.now()-lastExternal<1000)return;
+  apply("connected","Firebase accessible · lecture Firestore confirmée ; enregistrement de cette rubrique non vérifié");
 }
 function bindFirebase(){
   indicator();apply("loading","Connexion à Firebase en cours");
@@ -67,15 +77,14 @@ function bindFirebase(){
   try{
     if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
     firebase.auth().onAuthStateChanged(user=>{
-      authResolved=true;
-      if(!navigator.onLine){apply("error","Pas de connexion réseau");return}
-      if(user)apply("connected","Firebase connecté");
-      else apply("error","Compte Firebase non connecté");
-    },()=>{authResolved=true;apply("error","Problème de connexion Firebase")});
-  }catch(e){authResolved=true;apply("error","Problème de connexion Firebase")}
+      authResolved=true;signedIn=!!user;
+      poll();
+    },()=>{authResolved=true;signedIn=false;apply("error","Problème de connexion Firebase")});
+  }catch(e){authResolved=true;signedIn=false;apply("error","Problème de connexion Firebase")}
 }
+window.addEventListener("inovtec:firebase-operational",poll);
 window.addEventListener("offline",()=>apply("error","Pas de connexion réseau"));
 window.addEventListener("online",()=>{apply("loading","Reconnexion à Firebase en cours");setTimeout(poll,300)});
-document.getElementById("legacyFrame")?.addEventListener("load",()=>{apply("loading","Connexion à Firebase en cours");setTimeout(poll,180);setTimeout(poll,700)});
+document.getElementById("legacyFrame")?.addEventListener("load",()=>{apply("loading","Vérification Firebase en cours");setTimeout(poll,180);setTimeout(poll,700)});
 bindFirebase();poll();setInterval(()=>{if(document.visibilityState==="visible")poll()},5000);
 })();
