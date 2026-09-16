@@ -7,6 +7,7 @@ const context = await browser.newContext({ viewport: { width: 1365, height: 900 
 const page = await context.newPage();
 page.on('pageerror', error => {
   const message = String(error?.stack || error?.message || error);
+  console.error('ERREUR PAGE :', message.slice(0, 650));
   if (/(?:127\.0\.0\.1|localhost).*?(?:TypeError|ReferenceError|SyntaxError)|^(?:TypeError|ReferenceError|SyntaxError)/i.test(message)) {
     failures.push('JavaScript : ' + message.slice(0, 400));
   }
@@ -29,7 +30,6 @@ await check('Planning : chargement complet du calendrier', async () => {
   await page.frameLocator('#legacyFrame').locator('#calendarViewport').waitFor({ state: 'attached', timeout: 45000 });
   await page.frameLocator('#legacyFrame').locator('#prevBtn').waitFor({ state: 'attached', timeout: 10000 });
   await page.frameLocator('#legacyFrame').locator('#agentList').waitFor({ state: 'attached', timeout: 10000 });
-  // L’existence des boutons ne signifie pas que leurs gestionnaires JavaScript sont installés.
   await page.waitForFunction(() => {
     const doc = document.querySelector('#legacyFrame')?.contentDocument;
     const period = doc?.getElementById('periodLabel')?.textContent?.trim();
@@ -39,13 +39,25 @@ await check('Planning : chargement complet du calendrier', async () => {
 
 await check('Planning : changement des vues sans blocage', async () => {
   const frame = page.frameLocator('#legacyFrame');
+  const snapshot = async (phase) => {
+    try {
+      const details = await frame.locator('body').evaluate(body => {
+        const d=body.ownerDocument;
+        const tabs=[...d.querySelectorAll('.view-tab')].map(b=>({view:b.dataset.view,active:b.classList.contains('active'),onclick:typeof b.onclick}));
+        return {tabs,period:d.getElementById('periodLabel')?.textContent,week:d.getElementById('week')?.value,view:d.getElementById('calendarViewport')?.firstElementChild?.className,href:d.location.href};
+      });
+      console.log('DIAGNOSTIC ' + phase + ' : ' + JSON.stringify(details));
+    } catch(e) { console.log('DIAGNOSTIC ' + phase + ' indisponible : ' + e.message); }
+  };
+  await snapshot('avant clic');
   for (const mode of ['month', 'list', 'week', 'day', 'week']) {
     const button = frame.locator(`.view-tab[data-view="${mode}"]`);
-    await button.click({ force: true, timeout: 10000 });
-    await page.waitForTimeout(150);
+    await button.click({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await snapshot('après clic '+mode);
     if (!await button.evaluate(b => b.classList.contains('active'))) throw new Error('Vue non sélectionnée : ' + mode);
   }
-  await frame.locator('#todayBtn').click({ force: true, timeout: 10000 });
+  await frame.locator('#todayBtn').click({ timeout: 10000 });
   const text = await frame.locator('#periodLabel').textContent();
   if (!text || text.trim() === '—') throw new Error('Période du calendrier absente');
 });
