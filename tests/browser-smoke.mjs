@@ -24,11 +24,17 @@ await check('Accueil : recherche et navigation', async () => {
   if (await page.locator('.c3-nav a[href*="VARIABLES.html"]').count() !== 1) throw new Error('Lien Variables absent');
 });
 
-await check('Planning : chargement du calendrier', async () => {
+await check('Planning : chargement complet du calendrier', async () => {
   await page.goto(base + '/PLANNINGS.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.frameLocator('#legacyFrame').locator('#calendarViewport').waitFor({ state: 'attached', timeout: 45000 });
   await page.frameLocator('#legacyFrame').locator('#prevBtn').waitFor({ state: 'attached', timeout: 10000 });
   await page.frameLocator('#legacyFrame').locator('#agentList').waitFor({ state: 'attached', timeout: 10000 });
+  // L’existence des boutons ne signifie pas que leurs gestionnaires JavaScript sont installés.
+  await page.waitForFunction(() => {
+    const doc = document.querySelector('#legacyFrame')?.contentDocument;
+    const period = doc?.getElementById('periodLabel')?.textContent?.trim();
+    return Boolean(period && period !== '—' && doc?.getElementById('week')?.value);
+  }, null, { timeout: 30000 });
 });
 
 await check('Planning : changement des vues sans blocage', async () => {
@@ -36,7 +42,7 @@ await check('Planning : changement des vues sans blocage', async () => {
   for (const mode of ['month', 'list', 'week', 'day', 'week']) {
     const button = frame.locator(`.view-tab[data-view="${mode}"]`);
     await button.click({ force: true, timeout: 10000 });
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(150);
     if (!await button.evaluate(b => b.classList.contains('active'))) throw new Error('Vue non sélectionnée : ' + mode);
   }
   await frame.locator('#todayBtn').click({ force: true, timeout: 10000 });
