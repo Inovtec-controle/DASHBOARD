@@ -1,0 +1,35 @@
+name: Variables dashboard health
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'VARIABLES.html'
+      - 'VARIABLES-DASHBOARD.html'
+      - 'VARIABLES-LEGACY.html'
+      - 'variables-dashboard.js'
+      - 'variables-monthly-planning.js'
+      - 'variables-dashboard-navigation.js'
+      - 'variables-editor-nav.js'
+      - '.github/workflows/variables-dashboard-health.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier les liens et la syntaxe Javascript
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in variables-dashboard.js variables-monthly-planning.js variables-dashboard-navigation.js variables-editor-nav.js; do
+            test -s "$f"
+            node --check "$f"
+          done
+          grep -Fq 'VARIABLES-DASHBOARD.html' VARIABLES.html
+          grep -Fq 'variables-monthly-planning.js' VARIABLES-DASHBOARD.html
+          grep -Fq 'variables-dashboard-navigation.js' VARIABLES-DASHBOARD.html
+          grep -Fq 'variables-editor-nav.js' VARIABLES-LEGACY.html
+          grep -Fq 'VARIABLES-LEGACY.html' variables-dashboard.js
+          echo 'Variables dashboard : scripts et liens valides.'
