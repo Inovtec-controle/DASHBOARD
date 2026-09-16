@@ -1,0 +1,52 @@
+name: Réparation ciblée Firebase Organisation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/repair-orga-firebase.py
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+      - name: Appliquer le correctif précis et valider le script intégré
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/repair-orga-firebase.py
+          git diff --check
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import subprocess, tempfile
+          class Scripts(HTMLParser):
+              def __init__(self): super().__init__(); self.inside=False; self.blocks=[]
+              def handle_starttag(self,tag,attrs):
+                  if tag=='script' and not dict(attrs).get('src'): self.inside=True; self.blocks.append('')
+              def handle_data(self,text):
+                  if self.inside:self.blocks[-1]+=text
+              def handle_endtag(self,tag):
+                  if tag=='script':self.inside=False
+          p=Scripts();p.feed(Path('ORGA-LEGACY.html').read_text(encoding='utf-8'))
+          for js in p.blocks:
+              with tempfile.NamedTemporaryFile(mode='w',suffix='.js') as f:
+                  f.write(js);f.flush();subprocess.run(['node','--check',f.name],check=True)
+          print('Scripts intégrés Organisation : syntaxe valide')
+          PY
+      - name: Publier uniquement la correction Organisation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'inovtec-maintenance-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- ORGA-LEGACY.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'Corriger la reprise des tâches Organisation vers Firebase'
+            git push origin HEAD:main
+          fi
