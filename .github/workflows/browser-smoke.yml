@@ -26,7 +26,7 @@ jobs:
           set -euo pipefail
           npm install --no-save --package-lock=false playwright@1.56.1
           npx playwright install chromium
-      - name: Vérifier la navigation et les contrôles en navigateur
+      - name: Vérifier la navigation et les interventions dans le navigateur
         shell: bash
         run: |
           set -euo pipefail
@@ -38,3 +38,4 @@ jobs:
             sleep 1
           done
           node tests/browser-smoke.mjs
+          node tests/planning-fixture.mjs
