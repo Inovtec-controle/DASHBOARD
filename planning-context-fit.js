@@ -63,19 +63,16 @@ function start(){
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();
 })();
 
-/* Planning recurrent : les plannings standards se reportent automatiquement
-   d'une semaine a l'autre. Les agents en rythme pair/impair restent geres par
-   la logique de planning-calendar.js et ne sont jamais melanges avec le standard. */
+/* Report standard conservé, sans recalcul de tous les agents à chaque clic. */
 (()=>{
 "use strict";
 if(window.__INOVTEC_PLANNING_STANDARD_RECURRENCE_V2__)return;
 window.__INOVTEC_PLANNING_STANDARD_RECURRENCE_V2__=true;
-
 const KEY="inovtec_plannings_v2";
 const pad=n=>String(n).padStart(2,"0");
 const safe=v=>v==null?"":String(v);
 const uid=p=>p+"_"+Date.now()+"_"+Math.random().toString(16).slice(2);
-
+let syncTimer=0,syncing=false;
 function parseState(){
   try{
     const raw=localStorage.getItem(KEY);
@@ -93,14 +90,11 @@ function rows(state,week,agentId){
 }
 function signature(list){
   return JSON.stringify((Array.isArray(list)?list:[]).map(e=>({
-    day:Number(e?.day)||0,
-    start:safe(e?.start),end:safe(e?.end),task:safe(e?.task),site:safe(e?.site),
+    day:Number(e?.day)||0,start:safe(e?.start),end:safe(e?.end),task:safe(e?.task),site:safe(e?.site),
     chantierId:safe(e?.chantierId),note:safe(e?.note)
   })).sort((a,b)=>a.day-b.day||a.start.localeCompare(b.start)||a.end.localeCompare(b.end)||a.task.localeCompare(b.task)));
 }
-function normalizeAgent(a){
-  if(a&&typeof a==="object")a.parityMode=a.parityMode==="alternating"?"alternating":"standard";
-}
+function normalizeAgent(a){if(a&&typeof a==="object")a.parityMode=a.parityMode==="alternating"?"alternating":"standard"}
 function recurrenceMeta(state,a){
   const id=safe(a?.id);
   let meta=state.standardRecurrence[id];
@@ -115,8 +109,7 @@ function isManualWeek(state,week,a,meta){
   const marker=meta.inheritedWeeks?.[week];
   if(!marker)return true;
   const copiedSig=typeof marker==="object"?safe(marker.signature):"";
-  if(!copiedSig)return false;
-  return signature(mine)!==copiedSig;
+  return !!copiedSig&&signature(mine)!==copiedSig;
 }
 function promoteEditedInheritedWeek(state,week,a,meta){
   const marker=meta.inheritedWeeks?.[week];
@@ -137,21 +130,18 @@ function ensureStandardWeek(state,week,a){
   normalizeAgent(a);
   if(a.parityMode!=="standard")return false;
   const meta=recurrenceMeta(state,a);
-
   let changed=promoteEditedInheritedWeek(state,week,a,meta);
   const mine=rows(state,week,a.id);
   if(mine.length&&!meta.inheritedWeeks[week]){
     if(meta.template!==week){meta.template=week;changed=true}
     return changed;
   }
-
   let source=safe(meta.template);
   if(!source||source>=week||!rows(state,source,a.id).length||!isManualWeek(state,source,a,meta)){
     source=latestManualSource(state,week,a,meta);
     if(source&&meta.template!==source){meta.template=source;changed=true}
   }
   if(!source||source>=week)return changed;
-
   const sourceRows=rows(state,source,a.id);
   if(!sourceRows.length)return changed;
   const sourceSig=signature(sourceRows);
@@ -160,7 +150,6 @@ function ensureStandardWeek(state,week,a){
   const markerSig=typeof marker==="object"?safe(marker?.sourceSignature):"";
   if(markerSource===source&&markerSig===sourceSig&&mine.length)return changed;
   if(mine.length&&!marker)return changed;
-
   const keep=(Array.isArray(state.weeks[week])?state.weeks[week]:[]).filter(e=>String(e?.agentId)!==String(a.id));
   const clones=sourceRows.map(src=>({...src,id:uid("e"),agentId:a.id,_standardInheritedFrom:source}));
   state.weeks[week]=keep.concat(clones);
@@ -175,35 +164,35 @@ function currentWeek(){
   const y=new Date(x.getFullYear(),0,4),w=1+Math.round(((x-y)/86400000-3+((y.getDay()+6)%7))/7);
   return x.getFullYear()+"-W"+pad(w);
 }
-function cleanRemovedAgents(state){
-  const ids=new Set(state.agents.map(a=>safe(a?.id)).filter(Boolean));
-  Object.keys(state.standardRecurrence||{}).forEach(id=>{if(!ids.has(id))delete state.standardRecurrence[id]});
-}
 function syncCurrentWeek(){
-  const state=parseState();
-  const week=currentWeek();
-  if(!state||!week)return false;
-  let changed=false;
-  cleanRemovedAgents(state);
-  state.agents.forEach(a=>{
-    normalizeAgent(a);
-    if(a.parityMode==="standard"&&ensureStandardWeek(state,week,a))changed=true;
-  });
-  if(!changed)return false;
+  if(syncing||document.hidden)return false;
+  syncing=true;
   try{
+    const state=parseState(),week=currentWeek();
+    if(!state||!week)return false;
+    let changed=false;
+    for(const a of state.agents){
+      if(a&&a.parityMode!=="alternating"&&ensureStandardWeek(state,week,a))changed=true;
+    }
+    if(!changed)return false;
     localStorage.setItem(KEY,JSON.stringify(state));
     window.dispatchEvent(new Event("inovtec:planning-cloud-updated"));
     return true;
-  }catch{return false}
+  }catch(e){console.warn("Récurrence planning",e);return false}
+  finally{syncing=false}
 }
-function scheduleSync(){setTimeout(syncCurrentWeek,35)}
+function scheduleSync(delay=100){clearTimeout(syncTimer);syncTimer=setTimeout(syncCurrentWeek,delay)}
 function bind(){
-  ["prevBtn","nextBtn","todayBtn"].forEach(id=>document.getElementById(id)?.addEventListener("click",scheduleSync));
-  document.querySelectorAll(".view-tab").forEach(b=>b.addEventListener("click",scheduleSync));
-  document.getElementById("edDone")?.addEventListener("click",()=>setTimeout(syncCurrentWeek,120));
-  document.getElementById("edDelete")?.addEventListener("click",()=>setTimeout(syncCurrentWeek,120));
-  document.addEventListener("mouseup",()=>setTimeout(syncCurrentWeek,180));
-  setTimeout(syncCurrentWeek,120);
+  // Le calcul doit être déclenché uniquement par un changement de semaine,
+  // la sélection d'un agent ou une véritable modification du planning.
+  ["prevBtn","nextBtn","todayBtn"].forEach(id=>document.getElementById(id)?.addEventListener("click",()=>scheduleSync(100)));
+  document.querySelectorAll(".view-tab").forEach(b=>b.addEventListener("click",()=>scheduleSync(100)));
+  document.getElementById("agentList")?.addEventListener("click",e=>{if(e.target.closest(".agent-row"))scheduleSync(100)});
+  document.getElementById("edDone")?.addEventListener("click",()=>scheduleSync(180));
+  document.getElementById("edDelete")?.addEventListener("click",()=>scheduleSync(180));
+  // Aucun écouteur global mouseup : il provoquait une analyse complète
+  // de tous les agents et une potentielle réécriture Firebase à chaque clic.
+  scheduleSync(220);
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind,{once:true});else bind();
 })();
