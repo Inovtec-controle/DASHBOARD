@@ -18,11 +18,40 @@ const configs={
  essence:{label:"Dépense carburant",eyebrow:"DÉPLACEMENTS",title:"Dépense <em>carburant</em>",subtitle:"Calculez rapidement le coût réel du carburant d’un agent à partir de ses trajets et de son véhicule.",route:"ESSENCE.html",icon:fuelIcon}
 };
 const cfg=configs[mode]||configs.planning;
-const nav=[configs.planning,configs.kontrol,configs.infos,configs.agents,configs.organisation,configs.variables,configs.temps,configs.salaire,configs.essence];
-function makeNav(target,mobile=false){target.innerHTML="";const home=document.createElement("a");home.href="index.html";home.innerHTML=mobile?'<span>⌂</span><span>Accueil</span>':'<span class="iv-ico">⌂</span><span>Accueil</span>';target.appendChild(home);nav.forEach(item=>{const a=document.createElement("a");a.href=item.route;a.classList.toggle("active",item===cfg);a.innerHTML=mobile?`<span>${item.icon}</span><span>${item.label.replace("Classeur ","")}</span>`:`<span class="iv-ico">${item.icon}</span><span>${item.label}</span>`;target.appendChild(a)})}
+// La navigation complète doit exister dès le premier rendu, avant le chargement de Firebase.
+// Ces destinations et leur ordre correspondent au référentiel de inovtec-ui-stability.js.
+const navDefinitions=[
+ ['Accueil','⌂','index.html','home'],
+ ['Planning','▦','PLANNINGS.html','planning','PLANNINGS-LEGACY.html?v=20260917-planning-preservation1'],
+ ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20260913-width1'],
+ ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos','INFOCHANTIERS-V2-LEGACY.html?v=20260904-editdays1'],
+ ['Classeur agents','♙','AGENTS.html','agents','AGENTS-LEGACY.html?v=20260914-incidentpdf1'],
+ ['Matériel','▣','MATERIEL.html','materiel'],
+ ['Réassort','↻','REASSORT.html','reassort'],
+ ['Congés & absences','☂','CONGES.html','conges','CONGES-LEGACY.html?v=20260829-operational1'],
+ ['Variables agents','◷','VARIABLES.html','variables','VARIABLES-DASHBOARD.html?v=20260916-1'],
+ ['Organisation','◎','ORGA.html','organisation','ORGA-LEGACY.html?v=20260829-operational1'],
+ ['Conversion temps','⇄','TEMPS.html','temps','TEMPS-LEGACY.html?v=20260829-operational1'],
+ ['Salaire','€','SALAIRE.html','salaire','SALAIRE-LEGACY.html?v=20260829-operational1'],
+ ['Dépense carburant','⛽','ESSENCE.html','essence','ESSENCE-LEGACY.html?v=20260829-operational1']
+];
+const navRoute=item=>item[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:item[3],page:item[4],build:'20260917-ui-stable1'}).toString():item[2];
+function makeNav(target,mobile=false){
+ const items=mobile?navDefinitions.filter(item=>['home','planning','infos','agents','variables'].includes(item[3])):navDefinitions;
+ const fragment=document.createDocumentFragment();
+ items.forEach(item=>{const a=document.createElement('a');a.href=navRoute(item);a.dataset.ivMenuKey=item[3];if(item[3]===mode)a.classList.add('active');if(mobile){const label={home:'Accueil',planning:'Planning',infos:'Chantiers',agents:'Agents',variables:'Variables'}[item[3]]||item[0];a.innerHTML='<span>'+item[1]+'</span><span>'+label+'</span>'}else a.innerHTML='<span class="iv-ico">'+item[1]+'</span><span>'+item[0]+'</span>';fragment.appendChild(a)});
+ if(mobile){const more=document.createElement('button');more.type='button';more.className='iv-more-menu';more.setAttribute('aria-haspopup','dialog');more.setAttribute('aria-expanded','false');more.innerHTML='<span>☰</span><span>Menu</span>';more.addEventListener('click',()=>{
+   // Le gestionnaire officiel du tiroir est installé par le script d'interface commun.
+   const stable=window.__INOVTEC_UI_STABILITY_V1__;
+   if(!stable){more.setAttribute('aria-expanded','false');return}
+   more.dispatchEvent(new CustomEvent('iv:open-unified-menu',{bubbles:true}));
+ });fragment.appendChild(more)}
+ target.replaceChildren(fragment);
+ // Le script commun ne doit pas reconstruire un menu déjà rendu de façon identique.
+ target.dataset.ivStableMenu=mobile?'prebuilt-mobile':'1';
+}
 makeNav($("desktopNav"));
-const mobileItems=[configs.planning,configs.kontrol,configs.infos,configs.agents];
-$("mobileNav").innerHTML='<a href="index.html"><span>⌂</span><span>Accueil</span></a>'+mobileItems.map(item=>`<a href="${item.route}" class="${item===cfg?"active":""}"><span>${item.icon}</span><span>${item.label.replace("Classeur ","")}</span></a>`).join("");
+makeNav($("mobileNav"),true);
 $("eyebrow").textContent=cfg.eyebrow;$("pageTitle").innerHTML=cfg.title;$("pageSubtitle").textContent=cfg.subtitle;$("topTitle").textContent=cfg.label;document.title=`${cfg.label} — Inovtec Dashboard`;
 const df=new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}),tf=new Intl.DateTimeFormat("fr-FR",{hour:"2-digit",minute:"2-digit"});
 function tick(){const d=new Date();$("dateLabel").textContent=df.format(d).replace(/^./,c=>c.toUpperCase());$("timeLabel").textContent=tf.format(d)}tick();setInterval(tick,30000);
