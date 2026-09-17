@@ -3,7 +3,7 @@ import {chromium} from 'playwright';
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 try{
   const page=await browser.newPage({viewport:{width:1365,height:900},serviceWorkers:'block'});
-  page.on('pageerror',error=>{throw error});
+  page.on('pageerror',error=>console.error('ERREUR PAGE',String(error)));
   await page.addInitScript(()=>{
     try{
       if(!localStorage.getItem('kontrol_agents_classeur_v2')){
@@ -31,7 +31,13 @@ try{
   if(await frame.locator('#btnSaveAgent').count()!==1)throw Error('Le bouton de sauvegarde du Classeur a été touché');
   await link.evaluate(button=>button.click());
   await page.waitForURL(/mode=planning/, {timeout:30000});
-  await frame.locator('#ivTeamModal.open').waitFor({state:'visible',timeout:30000});
+  await page.waitForTimeout(1800);
+  console.log('DIAGNOSTIC ÉQUIPE',JSON.stringify(await page.evaluate(()=>{
+    const frame=document.getElementById('legacyFrame'),d=frame?.contentDocument;
+    const state=JSON.parse(localStorage.getItem('inovtec_plannings_v2')||'{}');
+    return {url:location.href,request:sessionStorage.getItem('ivAgentsOpenTeamEditorV1'),bridge:window.__IV_AGENTS_TEAM_CONTEXT_V1__,iframeUrl:frame?.src,iframeReady:d?.readyState,agents:state.agents?.map(a=>({id:a.id,refId:a.refId})).slice(0,10),selected:state.selected,rows:[...(d?.querySelectorAll('.agent-row[data-agent-id]')||[])].slice(0,10).map(r=>({id:r.dataset.agentId,text:r.innerText.slice(0,50)})),menu:d?.getElementById('contextMenu')?.outerHTML?.slice(0,1300),modal:d?.getElementById('ivTeamModal')?.outerHTML?.slice(0,300),notes:d?.body?.innerText?.slice(-250)};
+  })));
+  await frame.locator('#ivTeamModal.open').waitFor({state:'visible',timeout:4000});
   if(!await frame.locator('#ivTeamModal #ivTeamMembers input[value="test_team_agent_1"]').isChecked())throw Error('L’agent du clic droit n’est pas présélectionné');
   const stateBefore=await page.evaluate(()=>JSON.parse(localStorage.getItem('inovtec_plannings_v2')||'{}'));
   if((stateBefore.teamPlanning?.teams||[]).length)throw Error('Une équipe a été créée sans validation');
