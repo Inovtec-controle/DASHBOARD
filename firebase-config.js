@@ -23,7 +23,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
           site: item.site || "",
           date: item.date || "",
           niveau: item.niveau || "Observation",
-          statut: "Ouvert",
+          statut: item.statut || "Ouvert",
           responsable: item.resp || "",
           motif: item.motif || "",
           temoins: item.tem || "",
@@ -33,6 +33,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
           updatedAt: new Date().toISOString(),
           migratedFromLegacy: true
         }));
+        localStorage.setItem("inovtec_discipline_v2", JSON.stringify(migrated));
       }
     }
   } catch (error) {
@@ -81,7 +82,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
     if (!document.querySelector('script[data-iv-stable-ui="1"]') && !window.__INOVTEC_UI_STABILITY_V1__) {
       const script = document.createElement("script");
       script.src = "inovtec-ui-stability.js?v=20260917-ui-stable2";
-      script.dataset.ivStableUi = "1";
+      script.dataset.ivStableUi = '1';
       script.async = false;
       (document.head || document.documentElement).appendChild(script);
     }
