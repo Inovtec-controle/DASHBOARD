@@ -1,0 +1,57 @@
+import assert from 'node:assert/strict';
+import { chromium } from 'playwright';
+const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const page=await browser.newPage({viewport:{width:1280,height:850}});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.dismiss());
+await page.addInitScript(()=>{
+ const clone=x=>JSON.parse(JSON.stringify(x));
+ const state={doc:{moduleSyncV1:{reassort:{payload:JSON.stringify({orders:[{id:'livraison-intacte'}]})}}},callbacks:[],cache:false,fail:false,writes:0};
+ const snapshot=()=>({exists:true,data:()=>clone(state.doc),metadata:{fromCache:state.cache,hasPendingWrites:false}});
+ state.emit=()=>state.callbacks.forEach(cb=>cb(snapshot()));
+ const ref={onSnapshot(opts,cb){const callback=typeof opts==='function'?opts:cb;state.callbacks.push(callback);queueMicrotask(()=>callback(snapshot()));return()=>{state.callbacks=state.callbacks.filter(x=>x!==callback)};}};
+ const firestore={collection(){return{doc(){return ref}}},runTransaction:async fn=>{
+  if(state.fail)throw Error('Connexion Firebase interrompue');
+  let patch=null;const tx={get:async()=>snapshot(),set(_ref,data){patch=data}};
+  const result=await fn(tx);if(patch){state.doc={...state.doc,moduleSyncV1:{...state.doc.moduleSyncV1,...patch.moduleSyncV1}};state.writes++;state.emit()}return result;
+ }};
+ const auth={onAuthStateChanged(cb){queueMicrotask(()=>cb({uid:'meme-compte'}));return()=>{}},setPersistence:async()=>{},signInWithEmailAndPassword:async()=>({})};
+ auth.Auth={Persistence:{LOCAL:'local',SESSION:'session',NONE:'none'}};
+ window.firebase={auth:()=>auth,firestore:()=>firestore};
+ window.InovtecDataHub={agents:[{id:'agent-1',name:'Alice Martin'}],subscribe:()=>()=>{}};
+ window.__congesFixture=state;
+});
+try{
+ await page.goto('http://127.0.0.1:8765/CONGES-LEGACY.html',{waitUntil:'domcontentloaded',timeout:30000});
+ await page.waitForFunction(()=>window.__INOVTEC_CONGES_SYNC_V2__&&document.querySelector('#congesSyncStatus')?.textContent==='Firebase synchronisé',{timeout:12000});
+ assert.equal(await page.locator('#newLeave').isDisabled(),false,'Connexion confirmée : création doit être possible');
+ await page.click('#newLeave');await page.selectOption('#agentSelect','agent-1');await page.fill('#startDate','2026-09-21');await page.fill('#endDate','2026-09-22');await page.fill('#leaveComment','Premier congé');await page.click('#leaveForm [type=submit]');
+ await page.waitForFunction(()=>JSON.parse(window.__congesFixture.doc.moduleSyncV1.conges.payload).length===1);
+ let state=await page.evaluate(()=>window.__congesFixture.doc);
+ assert.equal(state.moduleSyncV1.reassort.payload,JSON.stringify({orders:[{id:'livraison-intacte'}]}),'Les congés écrasent Réassort');
+ assert.equal(JSON.parse(state.moduleSyncV1.conges.payload)[0].comment,'Premier congé','La première création est absente');
+ console.log('OK : création initiale et préservation des autres modules Firebase');
+ await page.locator('#leaveList button').filter({hasText:'Modifier'}).first().click();
+ await page.evaluate(()=>{const s=window.__congesFixture,rows=JSON.parse(s.doc.moduleSyncV1.conges.payload);rows[0].comment='Modification sur téléphone';rows[0].updatedAt='2026-09-18T12:05:00.000Z';s.doc.moduleSyncV1.conges.payload=JSON.stringify(rows);s.emit()});
+ await page.fill('#leaveComment','Modification périmée sur ordinateur');await page.click('#leaveForm [type=submit]');
+ await page.waitForFunction(()=>document.querySelector('#congesSyncStatus')?.textContent?.includes('modifiée ou supprimée'));
+ assert.equal(await page.evaluate(()=>JSON.parse(window.__congesFixture.doc.moduleSyncV1.conges.payload)[0].comment),'Modification sur téléphone','Le conflit a écrasé le téléphone');
+ await page.click('#cancelModal');await page.locator('#leaveList button').filter({hasText:'Modifier'}).first().click();await page.fill('#leaveComment','Modification après relecture');await page.click('#leaveForm [type=submit]');
+ await page.waitForFunction(()=>JSON.parse(window.__congesFixture.doc.moduleSyncV1.conges.payload)[0].comment==='Modification après relecture');
+ console.log('OK : conflit détecté, réouverture et modification permises');
+ await page.click('#newLeave');await page.selectOption('#agentSelect','agent-1');await page.fill('#startDate','2026-09-23');await page.fill('#endDate','2026-09-24');await page.click('#leaveForm [type=submit]');
+ await page.waitForFunction(()=>JSON.parse(window.__congesFixture.doc.moduleSyncV1.conges.payload).length===2);
+ await page.locator('#leaveList button').filter({hasText:'Modifier'}).last().click();
+ await page.evaluate(()=>window.confirm=()=>true);await page.click('#deleteLeave');
+ await page.waitForFunction(()=>JSON.parse(window.__congesFixture.doc.moduleSyncV1.conges.payload).some(x=>x.deleted===true));
+ const deleted=await page.evaluate(()=>JSON.parse(window.__congesFixture.doc.moduleSyncV1.conges.payload).filter(x=>x.deleted));
+ assert.equal(deleted.length,1);assert.equal(deleted[0].status,'cancelled','La suppression ne protège pas les tableaux de bord');
+ assert.equal(await page.locator('#leaveList .leave-row').count(),1,'Une fiche supprimée reste visible');
+ console.log('OK : suppression conservée comme marqueur et masquée dans les listes');
+ await page.evaluate(()=>{const s=window.__congesFixture;s.cache=true;s.emit()});
+ await page.waitForFunction(()=>document.querySelector('#newLeave')?.disabled===true);
+ await page.evaluate(()=>{const s=window.__congesFixture;s.cache=false;s.emit()});
+ await page.waitForFunction(()=>document.querySelector('#newLeave')?.disabled===false);
+ assert.equal(errors.length,0,'Erreurs navigateur : '+errors.join(' ; '));
+ console.log('OK : cache non confirmé en lecture seule, retour à la synchronisation après reconnexion');
+ console.log('BILAN CONGÉS : simulations Firebase validées, aucun accès aux données réelles');
+}finally{await browser.close()}
