@@ -1,0 +1,33 @@
+name: Conges Firebase sync check
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'conges.js'
+      - 'CONGES-LEGACY.html'
+      - 'tests/conges-transaction-sync.mjs'
+      - '.github/workflows/conges-sync-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  conges-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install chromium
+      - name: Tester creation, concurrence, suppression et cache
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/conges-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/CONGES-LEGACY.html -o /dev/null; then break; fi
+            sleep 1
+          done
+          node tests/conges-transaction-sync.mjs
