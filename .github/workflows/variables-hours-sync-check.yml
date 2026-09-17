@@ -30,5 +30,6 @@ jobs:
             if curl -fsS http://127.0.0.1:8765/VARIABLES-LEGACY.html -o /dev/null; then break; fi
             sleep 1
           done
+          echo 'Contrôle des heures Variables et des absences Congés avec deux sessions Firebase simulées'
           node tests/variables-hours-transaction-sync.mjs
           node tests/variables-leave-transaction-sync.mjs
