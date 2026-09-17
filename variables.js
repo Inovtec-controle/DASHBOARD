@@ -48,6 +48,14 @@ let leaves=[],agents=[],chantiers=[],selectedAgentId="";
 let user=null,docRef=null,unsub=null,hubUnsub=null;
 let variablesReady=false,legacyHoursResolved=false,legacyHoursCloud=[];
 let planningSuggestions=[];
+// An absence is edited against the exact revision opened by the user.
+let leaveEditRevision=null, leaveCloudReady=false, variablesCloudReady=false;
+function syncNotice(message,error=false){
+ let el=document.getElementById('variablesFirebaseNotice');
+ if(!el){el=document.createElement('div');el.id='variablesFirebaseNotice';el.setAttribute('role','status');el.setAttribute('aria-live','polite');el.style.cssText='font:600 12px Inter,sans-serif;padding:8px 12px;white-space:normal';document.querySelector('.top')?.after(el)}
+ el.textContent=message;el.style.color=error?'#ad382d':'#12623e';
+}
+
 
 function cleanState(v){
   return{
@@ -191,9 +199,10 @@ function resetForm(){
   $("formDate").value=iso;$("formDuration").value="";$("formSite").value="";$("formStart").value=iso;$("formEnd").value=iso;
   $("formStartPart").value="full";$("formEndPart").value="full";$("formDoc").checked=false;$("formNote").value="";$("deleteVariable").hidden=true;toggleForm();
 }
-function openModal(){resetForm();$("variableModal").classList.add("open");$("variableModal").setAttribute("aria-hidden","false");setTimeout(()=>$("formType").focus(),30)}
+function openModal(){leaveEditRevision=null;resetForm();$("variableModal").classList.add("open");$("variableModal").setAttribute("aria-hidden","false");setTimeout(()=>$("formType").focus(),30)}
 function closeModal(){$("variableModal").classList.remove("open");$("variableModal").setAttribute("aria-hidden","true")}
 function openEdit(r){
+  leaveEditRevision=r.source==='conges'?String(leaves.find(l=>String(l.id)===String(r.id))?.updatedAt||''):null;
   buildFormOptions();$("editId").value=r.id;$("editSource").value=r.source;$("modalTitle").textContent="Modifier la variable";
   $("formAgent").value=r.agentRefId||"";$("formType").value=r.type;$("formDate").value=r.date||"";
   $("formDuration").value=r.minutes?`${Math.floor(r.minutes/60)}:${pad(r.minutes%60)}`:"";$("formSite").value=r.siteId||"";
@@ -207,10 +216,15 @@ async function onSubmit(e){
   if(id&&source==="conges"&&!wantsAbs)return alert("Pour remplacer une absence par une variable horaire, supprimez d’abord l’absence puis ajoutez la nouvelle variable.");
   if(id&&source==="variables"&&wantsAbs)return alert("Pour remplacer une variable horaire par une absence, supprimez d’abord la ligne puis ajoutez l’absence.");
   if(wantsAbs){
-    const start=$("formStart").value,end=$("formEnd").value;if(!start||!end||end<start)return alert("Vérifiez les dates de début et de fin.");
-    let l=source==="conges"?leaves.find(x=>x.id===id):null;
-    const rec={id:l?.id||uid("leave"),agentRefId:agentId,agentName:displayAgent(a),sourceType:l?.sourceType||"absence",type:TYPE_TO_LEAVE[type]||"Autre absence",startDate:start,endDate:end,startPart:$("formStartPart").value,endPart:$("formEndPart").value,comment:$("formNote").value.trim(),status:l?.status||"approved",payrollMeta:{...(l?.payrollMeta||{}),justificatif:$("formDoc").checked,updatedFrom:"variables",updatedAt:isoNow()},createdAt:l?.createdAt||isoNow(),updatedAt:isoNow()};
-    if(l)Object.assign(l,rec);else leaves.push(rec);markDraft(agentId);closeModal();await pushLeaves(id?"variables-edit-absence":"variables-create-absence");render();return;
+    const start=$("formStart").value,end=$("formEnd").value;
+    if(!start||!end||end<start)return alert("Vérifiez les dates de début et de fin.");
+    const old=source==="conges"?leaves.find(x=>String(x.id)===String(id)):null;
+    if(id&&source==="conges"&&!old)return alert("Cette absence a changé. Rechargez sa fiche.");
+    const timestamp=isoNow();
+    const rec={id:old?.id||uid("leave"),agentRefId:agentId,agentName:displayAgent(a),sourceType:old?.sourceType||"absence",type:TYPE_TO_LEAVE[type]||"Autre absence",startDate:start,endDate:end,startPart:$("formStartPart").value,endPart:$("formEndPart").value,comment:$("formNote").value.trim(),status:old?.status||"approved",payrollMeta:{...(old?.payrollMeta||{}),justificatif:$("formDoc").checked,updatedFrom:"variables",updatedAt:timestamp},createdAt:old?.createdAt||timestamp,updatedAt:timestamp};
+    const ok=await saveLeaveChange(old?"edit":"create",rec,leaveEditRevision);
+    if(ok){closeModal();markDraft(agentId);await saveAndPush("absence-changed");render()}
+    return;
   }
   const minutes=parseDuration($("formDuration").value);if(!minutes)return alert("Indiquez une durée valide, par exemple 2:30 ou 2,5.");
   const date=$("formDate").value;if(!date)return alert("Indiquez la date.");
@@ -220,10 +234,28 @@ async function onSubmit(e){
 }
 function deleteRow(r){
   if(!confirm("Supprimer cette variable ?"))return;
-  if(r.source==="conges"){leaves=leaves.filter(x=>x.id!==r.id);markDraft(r.agentRefId);pushLeaves("variables-delete-absence");render();return}
+  if(r.source==="conges"){
+    const old=leaves.find(x=>String(x.id)===String(r.id));
+    if(!old)return alert("Cette absence a changé. Actualisez la page.");
+    saveLeaveChange("delete",{id:old.id},String(old.updatedAt||"")).then(async ok=>{
+      if(ok){markDraft(r.agentRefId);await saveAndPush("absence-deleted");render()}
+    });
+    return;
+  }
   const e=state.entries.find(x=>x.id===r.id);if(e){e.deleted=true;e.updatedAt=isoNow();markDraft(e.agentRefId);saveAndPush("delete");render()}
 }
-function deleteCurrent(){const id=$("editId").value,source=$("editSource").value;if(!id)return;closeModal();deleteRow({id,source,agentRefId:$("formAgent").value})}
+function deleteCurrent(){
+ const id=$("editId").value,source=$("editSource").value;if(!id)return;
+ if(source==="conges"){
+   if(!confirm("Supprimer cette variable ?"))return;
+   const agentId=$("formAgent").value;
+   saveLeaveChange("delete",{id},leaveEditRevision).then(async ok=>{
+     if(ok){closeModal();markDraft(agentId);await saveAndPush("absence-deleted");render()}
+   });
+   return;
+ }
+ closeModal();deleteRow({id,source,agentRefId:$("formAgent").value});
+}
 function mergeState(remote,local){
   const r=cleanState(remote),l=cleanState(local),map=new Map();
   [...r.entries,...l.entries].forEach(e=>{if(!e?.id)return;const prev=map.get(e.id);if(!prev||String(e.updatedAt||"")>=String(prev.updatedAt||""))map.set(e.id,e)});
@@ -234,9 +266,35 @@ async function saveAndPush(reason){
   saveLocal();if(!docRef||!user)return;
   try{await docRef.set({moduleSyncV1:{variables:{payload:JSON.stringify(state),updatedAtMs:Date.now(),client:"variables_"+user.uid.slice(0,6),reason,version:1}}},{merge:true})}catch(e){console.warn("Variables Firebase",e)}
 }
-async function pushLeaves(reason){
-  saveLeavesLocal();if(!docRef||!user)return;
-  try{await docRef.set({moduleSyncV1:{conges:{payload:JSON.stringify(leaves),updatedAtMs:Date.now(),client:"variables_"+user.uid.slice(0,6),reason,version:1}}},{merge:true})}catch(e){console.warn("Absences Firebase",e)}
+// Congés owns this collection. Variables updates exactly one record in a
+// server-side transaction; it must never write its entire cached list.
+async function saveLeaveChange(kind,record,expected){
+ const f=fb(),u=f?.auth()?.currentUser;
+ if(!f||!u||!docRef||!variablesCloudReady||(!leaveCloudReady&&leaves.length)){
+   syncNotice("Firebase non confirmé : absence non enregistrée. Ouvrez Congés si une reprise de données est nécessaire.",true);
+   return false;
+ }
+ syncNotice("Synchronisation de l’absence…");
+ try{
+   const reference=docRef,uidAtStart=u.uid;
+   await f.firestore().runTransaction(async tx=>{
+     const snap=await tx.get(reference);
+     const entry=snap.exists?snap.data()?.moduleSyncV1?.conges:null;
+     if(entry&&typeof entry.payload!=="string")throw Error("Format Firebase des absences invalide.");
+     const rows=entry?parse(entry.payload,null):[];
+     if(!Array.isArray(rows))throw Error("Absences Firebase illisibles : enregistrement bloqué.");
+     if(kind!=="create"&&!entry)throw Error("Absence introuvable dans Firebase.");
+     const pos=rows.findIndex(r=>String(r?.id)===String(record.id)),previous=pos<0?null:rows[pos];
+     if(kind==="create"&&previous)throw Error("Cette absence existe déjà sur l’autre appareil.");
+     if(kind!=="create"&&(!previous||previous.deleted||String(previous.updatedAt||"")!==String(expected||"")))throw Error("Cette absence a changé sur l’autre appareil. Rouvrez sa fiche avant de réessayer.");
+     const next=rows.slice();
+     if(kind==="create")next.push(record);
+     else if(kind==="delete")next[pos]={...previous,deleted:true,status:"cancelled",updatedAt:isoNow()};
+     else next[pos]={...previous,...record};
+     tx.set(reference,{moduleSyncV1:{conges:{payload:JSON.stringify(next),updatedAtMs:Date.now(),client:"variables_"+uidAtStart.slice(0,6),reason:"variables-"+kind,version:2}}},{merge:true});
+   });
+   syncNotice("Absence synchronisée avec Firebase");return true;
+ }catch(error){console.warn("Variables / congés Firebase",error);syncNotice(error?.message||"Enregistrement Firebase impossible.",true);alert(error?.message||"Absence non enregistrée : Firebase indisponible.");return false}
 }
 function bindHub(){
   const h=hub();if(!h){setTimeout(bindHub,250);return}
@@ -259,13 +317,24 @@ function bindFirebase(){
   const f=fb();
   if(!f){variablesReady=true;legacyHoursResolved=true;maybeMigrateLegacyHours();return}
   f.auth().onAuthStateChanged(u=>{
-    user=u||null;if(unsub){try{unsub()}catch{}unsub=null}
+    user=u||null;variablesCloudReady=false;leaveCloudReady=false;if(unsub){try{unsub()}catch{}unsub=null}
     if(!user){docRef=null;$("loginBox").classList.add("open");variablesReady=true;legacyHoursResolved=true;maybeMigrateLegacyHours();return}
     $("loginBox").classList.remove("open");docRef=f.firestore().collection("kanban").doc(user.uid);
-    unsub=docRef.onSnapshot(s=>{
+    unsub=docRef.onSnapshot({includeMetadataChanges:true},s=>{
+      const confirmed=!(s.metadata?.fromCache||s.metadata?.hasPendingWrites);
+      variablesCloudReady=confirmed;
       const d=s.exists?(s.data()||{}):{},ve=d?.moduleSyncV1?.variables,ce=d?.moduleSyncV1?.conges,he=d?.moduleSyncV1?.heures;
       if(ve?.payload){state=mergeState(parse(ve.payload,{}),state);saveLocal()}else if(state.entries.length||Object.keys(state.monthStatus).length)saveAndPush("migration");
-      if(ce?.payload){const r=parse(ce.payload,[]);if(Array.isArray(r)){leaves=r;saveLeavesLocal()}}else if(leaves.length)pushLeaves("migration");
+      if(ce&&typeof ce.payload==="string"){
+        const r=parse(ce.payload,null);
+        if(Array.isArray(r)){
+          leaves=r;saveLeavesLocal();leaveCloudReady=confirmed;
+          if(confirmed){localStorage.setItem("inovtec_conges_cloud_seen_"+user.uid,"1");localStorage.setItem("inovtec_conges_cache_uid",user.uid)}
+        }else{leaveCloudReady=false;syncNotice("Absences Firebase illisibles : aucune écriture autorisée.",true)}
+      }else{
+        leaveCloudReady=confirmed&&!leaves.length;
+        if(confirmed&&leaves.length)syncNotice("Absences locales à reprendre : ouvrez Congés & absences avant de modifier depuis Variables.",true);
+      }
       const old=parse(he?.payload||"{}",{});legacyHoursCloud=Array.isArray(old?.entries)?old.entries:[];legacyHoursResolved=true;variablesReady=true;render();maybeMigrateLegacyHours();
     },e=>{console.warn("Variables lecture Firebase",e);variablesReady=true;legacyHoursResolved=true;maybeMigrateLegacyHours()});
   });
