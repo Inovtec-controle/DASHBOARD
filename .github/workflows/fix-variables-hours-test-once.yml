@@ -1,0 +1,32 @@
+name: Fix Variables hours conflict test once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-variables-hours-test-once.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Contrôler le message de conflit réellement utilisé par la fenêtre
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests/variables-hours-transaction-sync.mjs');s=p.read_text(encoding='utf-8')
+          old=" await page.waitForFunction(()=>document.querySelector('#variablesFirebaseNotice')?.textContent?.includes('changé'));"
+          new=" await page.waitForFunction(()=>document.querySelector('#variableModal')?.classList.contains('open'));"
+          assert s.count(old)==1, 'Test modifié entretemps'
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+          node --check tests/variables-hours-transaction-sync.mjs
+          git diff --check
+          git config user.name 'Inovtec Sync Bot'
+          git config user.email 'sync-bot@users.noreply.github.com'
+          git add tests/variables-hours-transaction-sync.mjs
+          git commit -m 'Vérifie le refus de conflit sur le formulaire Variables'
+          git push origin HEAD:main
