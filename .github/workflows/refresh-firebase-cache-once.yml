@@ -19,7 +19,7 @@ jobs:
           from pathlib import Path
           for name,old,new in [
             ('VARIABLES-LEGACY.html','variables.js?v=20260825-1','variables.js?v=20260918-firebase-tx1'),
-            ('CONGES-LEGACY.html','conges.js?v=20260820-auth-recovery1','conges.js?v=20260918-firebase-tx2'),
+            ('CONGES-LEGACY.html','conges.js?v=20260918-transaction-sync2','conges.js?v=20260918-firebase-tx3'),
           ]:
             p=Path(name); source=p.read_text(encoding='utf-8')
             assert source.count(old)==1, f'{name}: version inattendue, aucune modification'
