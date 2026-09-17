@@ -41,6 +41,17 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
   }
 })();
 
+// Matériel : soumettre les formulaires avec une transaction Firestore, et non
+// avec une réécriture de l'inventaire basée sur une ancienne copie locale.
+(() => {
+  if (!/\bMATERIEL-LEGACY\.html$/i.test(location.pathname) || document.querySelector('script[data-iv-material-transaction="1"]')) return;
+  const script = document.createElement('script');
+  script.src = 'inovtec-materiel-transactional-sync.js?v=20260918-tx1';
+  script.dataset.ivMaterialTransaction = '1';
+  script.async = false;
+  (document.head || document.documentElement).appendChild(script);
+})();
+
 (() => {
   try {
     if (window.top !== window) {
