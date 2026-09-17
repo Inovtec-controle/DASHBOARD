@@ -1,0 +1,31 @@
+name: Refresh Variables hours browser cache once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/refresh-variables-hours-cache-once.yml'
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Charger la nouvelle version des variables sur ordinateur et téléphone
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('VARIABLES-LEGACY.html');source=p.read_text(encoding='utf-8')
+          old='variables.js?v=20260918-firebase-tx1'
+          assert source.count(old)==1, 'Version initiale inattendue'
+          p.write_text(source.replace(old,'variables.js?v=20260918-firebase-tx2',1),encoding='utf-8')
+          PY
+          node --check variables.js
+          git diff --check
+          git config user.name 'Inovtec Sync Bot'
+          git config user.email 'sync-bot@users.noreply.github.com'
+          git add VARIABLES-LEGACY.html
+          git commit -m 'Charge la nouvelle synchronisation Variables sur tous les appareils'
+          git push origin HEAD:main
