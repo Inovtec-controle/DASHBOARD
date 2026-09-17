@@ -33,7 +33,6 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
           updatedAt: new Date().toISOString(),
           migratedFromLegacy: true
         }));
-        localStorage.setItem("inovtec_discipline_v2", JSON.stringify(migrated));
       }
     }
   } catch (error) {
@@ -107,6 +106,16 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
   const script = document.createElement('script');
   script.src = 'inovtec-hide-csv-exports.js?v=20260917-no-csv1';
   script.dataset.ivHideCsv = '1';
+  script.async = false;
+  (document.head || document.documentElement).appendChild(script);
+})();
+
+// Accueil uniquement : recherche sous le bandeau, sans deuxième barre d'informations.
+(() => {
+  if (!document.querySelector('.c3-app .c3-hero-banner') || document.querySelector('script[data-iv-home-search-layout="1"]')) return;
+  const script = document.createElement('script');
+  script.src = 'inovtec-home-search-layout.js?v=20260917-home-search1';
+  script.dataset.ivHomeSearchLayout = '1';
   script.async = false;
   (document.head || document.documentElement).appendChild(script);
 })();
