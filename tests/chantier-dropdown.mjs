@@ -1,0 +1,32 @@
+import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
+const config=readFileSync('firebase-config.js','utf8');
+if(!config.includes('inovtec-chantier-dropdown.js?v=20260917-1'))throw Error('Sélecteur non chargé par la configuration commune');
+const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+try{
+ const page=await browser.newPage({viewport:{width:1260,height:800}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:8765/tests/chantier-dropdown-fixture.html',{waitUntil:'domcontentloaded'});
+ await page.locator('[data-iv-chantier-dropdown]').first().waitFor({timeout:10000});
+ await page.waitForFunction(()=>document.querySelectorAll('[data-iv-chantier-dropdown]').length===2);
+ const order=page.locator('#orderSite + select'),material=page.locator('#site + select');
+ if(await order.count()!==1||await material.count()!==1)throw Error('Menus Matériel/Réassort absents');
+ const choices=await order.locator('option').allTextContents();
+ if(!choices.includes('Améthyste')||!choices.includes('Le Clos')||choices.some(s=>s.includes('Document système')))throw Error('Chantiers Firebase incomplets ou document technique affiché');
+ if(!choices.some(s=>s.includes('Ancien chantier')&&s.includes('valeur déjà enregistrée')))throw Error('Ancienne affectation perdue');
+ await page.evaluate(()=>{window.__siteEvents=0;document.getElementById('orderSite').addEventListener('change',()=>window.__siteEvents++)});
+ await order.selectOption({label:'Améthyste'});
+ if(await page.locator('#orderSite').inputValue()!=='Améthyste'||await page.evaluate(()=>window.__siteEvents)!==1)throw Error('Sélection non transmise au formulaire Réassort');
+ await material.selectOption({label:'Le Clos'});
+ if(await page.locator('#site').inputValue()!=='Le Clos')throw Error('Sélection non transmise au formulaire Matériel');
+ await page.evaluate(()=>{document.getElementById('orderSite').value='Le Clos'});
+ await page.waitForFunction(()=>document.querySelector('#orderSite + select')?.value==='Le Clos',{timeout:4000});
+ await page.locator('#orderForm').evaluate(e=>e.reset());
+ await page.waitForFunction(()=>document.querySelector('#orderSite + select')?.value==='Ancien chantier',{timeout:4000});
+ if(await page.locator('#siteForm select').count()!==0)throw Error('Le nom du chantier maître ne doit pas être modifié');
+ await page.evaluate(()=>window.__signOut());
+ await page.waitForFunction(()=>document.querySelectorAll('[data-iv-chantier-dropdown]').length===0,{timeout:4000});
+ if(await page.locator('#orderSite').inputValue()!=='Ancien chantier')throw Error('Une valeur a été effacée à la déconnexion');
+ if(errors.length)throw Error('Erreur navigateur : '+errors.join(' ; '));
+ console.log('OK : Réassort, Matériel, exclusion documents internes, anciennes valeurs, synchronisation, réinitialisation et déconnexion.');
+}finally{await browser.close()}
