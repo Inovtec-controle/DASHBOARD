@@ -40,6 +40,7 @@ jobs:
           node tests/browser-smoke.mjs
           node tests/ui-session-navigation.mjs
           node tests/menu-single-render.mjs
+          node tests/common-header.mjs
           node tests/chantier-dropdown.mjs
           node tests/reassort-smoke.mjs
           node tests/planning-fixture.mjs
