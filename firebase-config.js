@@ -23,7 +23,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
           site: item.site || "",
           date: item.date || "",
           niveau: item.niveau || "Observation",
-          statut: "Ouvert",
+          statut: item.statut || "Ouvert",
           responsable: item.resp || "",
           motif: item.motif || "",
           temoins: item.tem || "",
@@ -73,4 +73,14 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
   } catch (error) {
     console.warn("Chargement des services Firebase ignoré", error);
   }
+})();
+
+// Les champs « Chantier » lisent tous le même référentiel Infos chantier.
+(() => {
+  if (document.querySelector('script[data-iv-chantier-dropdown="1"]')) return;
+  const script = document.createElement('script');
+  script.src = 'inovtec-chantier-dropdown.js?v=20260917-1';
+  script.dataset.ivChantierDropdown = '1';
+  script.async = true;
+  (document.head || document.documentElement).appendChild(script);
 })();
