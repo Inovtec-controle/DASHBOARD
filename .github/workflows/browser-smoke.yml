@@ -38,6 +38,7 @@ jobs:
             sleep 1
           done
           node tests/browser-smoke.mjs
+          node tests/agent-team-context.mjs
           node tests/home-search-layout.mjs
           node tests/ui-session-navigation.mjs
           node tests/menu-single-render.mjs
