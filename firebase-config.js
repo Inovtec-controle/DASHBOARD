@@ -100,3 +100,13 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
   script.async = true;
   (document.head || document.documentElement).appendChild(script);
 })();
+
+// Les exports CSV ne sont plus proposés sur les pages et cadres de l'application.
+(() => {
+  if (document.querySelector('script[data-iv-hide-csv="1"]') || window.__INOVTEC_HIDE_CSV_EXPORTS_V1__) return;
+  const script = document.createElement('script');
+  script.src = 'inovtec-hide-csv-exports.js?v=20260917-no-csv1';
+  script.dataset.ivHideCsv = '1';
+  script.async = false;
+  (document.head || document.documentElement).appendChild(script);
+})();
