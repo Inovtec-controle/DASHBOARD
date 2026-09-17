@@ -82,17 +82,24 @@
       setTimeout(()=>{
         const fresh=[...d.querySelectorAll('.agent-row[data-agent-id]')].find(r=>str(r.dataset.agentId)===str(agent.id));
         if(!fresh){busy=false;return}
+        const menu=d.getElementById('contextMenu');
+        const openTeam=()=>{
+          const action=[...(menu?.querySelectorAll('button[data-iv-team-menu="1"]')||[])].find(b=>/Gérer l’équipe|Créer \/ rejoindre une équipe/.test(b.textContent||''));
+          if(!action)return false;
+          action.click();
+          if(d.getElementById('ivTeamModal')?.classList.contains('open')){clearRequest();busy=false;return true}
+          return false;
+        };
+        const observer=new d.defaultView.MutationObserver(()=>{
+          if(openTeam())observer.disconnect();
+        });
+        if(menu)observer.observe(menu,{attributes:true,attributeFilter:['class'],childList:true});
         const r=fresh.getBoundingClientRect();
         fresh.dispatchEvent(new d.defaultView.MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2,clientX:Math.max(8,r.left+Math.min(30,r.width/2)),clientY:Math.max(8,r.top+Math.min(18,r.height/2))}));
-        setTimeout(()=>{
-          const menu=d.getElementById('contextMenu');
-          const action=[...(menu?.querySelectorAll('button[data-iv-team-menu="1"]')||[])].find(b=>/Gérer l’équipe|Créer \/ rejoindre une équipe/.test(b.textContent||''));
-          if(action&&menu.classList.contains('open')){
-            action.click();
-            if(d.getElementById('ivTeamModal')?.classList.contains('open')){clearRequest();busy=false;return}
-          }
-          busy=false;
-        },170);
+        d.defaultView.queueMicrotask(()=>{
+          if(openTeam())observer.disconnect();
+          else d.defaultView.setTimeout(()=>{observer.disconnect();busy=false},450);
+        });
       },100);
     }catch(err){busy=false;console.warn('Accès au planning d’équipe',err)}
   }
