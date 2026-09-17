@@ -43,7 +43,19 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
 
 (() => {
   try {
-    if (window.top !== window) return;
+    if (window.top !== window) {
+      // Matériel utilise son propre cadre : charger l'interface commune dans la page parente.
+      const p = window.parent;
+      const doc = p.document;
+      if (doc.getElementById('materialFrame')?.contentWindow === window && !doc.querySelector('script[data-iv-stable-ui="1"]') && !p.__INOVTEC_UI_STABILITY_V1__) {
+        const script = doc.createElement('script');
+        script.src = 'inovtec-ui-stability.js?v=20260917-ui-stable2';
+        script.dataset.ivStableUi = '1';
+        script.async = false;
+        (doc.head || doc.documentElement).appendChild(script);
+      }
+      return;
+    }
     if (!document.querySelector('script[data-inovtec-firebase-operational="1"]')) {
       const script = document.createElement("script");
       script.src = "inovtec-firebase-operational-guard.js?v=20260829-operational1";
