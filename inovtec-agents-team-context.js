@@ -58,6 +58,12 @@ let attempts=0;
 function ensureSafeEditor(){
  const d=doc();
  if(!d||!d.location.pathname.endsWith('/PLANNINGS-LEGACY.html')||!d.head)return;
+ if(!d.querySelector('script[data-iv-team-viewport]')){
+  const viewport=d.createElement('script');
+  viewport.src='planning-team-modal-viewport.js?v=20260917-safe-team1';
+  viewport.dataset.ivTeamViewport='1';
+  d.head.appendChild(viewport);
+ }
  if(d.defaultView.InovtecSafeTeamPlanning||d.querySelector('script[data-iv-safe-team-editor]'))return;
  const script=d.createElement('script');
  script.src='planning-team-safe-ui.js?v=20260917-safe-team1';
