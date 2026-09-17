@@ -29,7 +29,7 @@ jobs:
           from pathlib import Path
           from html.parser import HTMLParser
           from urllib.parse import urlsplit
-          must_exist=['index.html','dashboard-index.js','dashboard-concept3.css','dashboard-index-shared.js','dashboard-global-search.js','inovtec-page-shell.html','inovtec-shell.js','inovtec-data-hub.js','inovtec-cloud-sync.js','firebase-config.js','PLANNINGS.html','PLANNINGS-LEGACY.html','planning-calendar.js','planning-context-fit.js','planning-autoheight.js','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','CONGES.html','ORGA.html','MATERIEL.html']
+          must_exist=['index.html','dashboard-index.js','dashboard-concept3.css','dashboard-index-shared.js','dashboard-global-search.js','inovtec-page-shell.html','inovtec-shell.js','inovtec-data-hub.js','inovtec-cloud-sync.js','firebase-config.js','PLANNINGS.html','PLANNINGS-LEGACY.html','planning-calendar.js','planning-context-fit.js','planning-autoheight.js','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','CONGES.html','ORGA.html','MATERIEL.html','REASSORT.html']
           issues=[]
           for p in must_exist:
               f=Path(p)
@@ -45,7 +45,7 @@ jobs:
           for name in ('index.html','inovtec-page-shell.html','PLANNINGS-LEGACY.html','VARIABLES-DASHBOARD.html'):
               parser=Refs();parser.feed(Path(name).read_text(encoding='utf-8'));pages[name]=parser
           home=pages['index.html'];shell=pages['inovtec-page-shell.html'];planning=pages['PLANNINGS-LEGACY.html']
-          for page in ('PLANNINGS.html','KONTROL-CLOUD.html','INFOCHANTIERS-V2.html','AGENTS.html','CONGES.html','VARIABLES.html','ORGA.html'):
+          for page in ('PLANNINGS.html','KONTROL-CLOUD.html','INFOCHANTIERS-V2.html','AGENTS.html','CONGES.html','VARIABLES.html','ORGA.html','MATERIEL.html','REASSORT.html'):
               if not any(urlsplit(h).path==page for h in home.links):issues.append(f'Navigation accueil absente : {page}')
           if any('discipline' in urlsplit(h).path.lower() for h in home.links):issues.append('Ancien module Discipline encore lié depuis l’accueil')
           for name in ('globalSearch','heroUserName','heroSyncText','kpiVariables','kpiIncidents'):
@@ -98,14 +98,21 @@ jobs:
   smoke-live-site:
     runs-on: ubuntu-latest
     steps:
-      - name: Vérifier que les principales pages publiques répondent
+      - name: Vérifier que les principales pages publiques répondent et que Réassort est publié
         shell: bash
         run: |
           set -euo pipefail
           base='https://inovtec-controle.github.io/DASHBOARD'
-          for page in index.html PLANNINGS.html PLANNINGS-LEGACY.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html inovtec-page-shell.html planning-calendar.js; do
+          for page in index.html PLANNINGS.html PLANNINGS-LEGACY.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html REASSORT.html inovtec-page-shell.html planning-calendar.js; do
             curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null || { echo "::error::$page inaccessible sur le site public";exit 1; }
           done
-          curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$base/index.html" -o /tmp/inovtec-home.html
-          grep -q 'Classeur agents' /tmp/inovtec-home.html || { echo '::error::Accueil public incomplet';exit 1; }
-          echo 'Les pages et scripts principaux répondent depuis GitHub Pages.'
+          for attempt in $(seq 1 12); do
+            curl -fsSL --retry 2 --retry-delay 2 "$base/index.html?check=${GITHUB_SHA}" -o /tmp/inovtec-home.html
+            if grep -q 'href="REASSORT.html"' /tmp/inovtec-home.html; then
+              echo 'Page Réassort et lien d’accueil accessibles sur le site public.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo '::error::Le lien Réassort n’est pas encore présent sur l’accueil public'
+          exit 1
