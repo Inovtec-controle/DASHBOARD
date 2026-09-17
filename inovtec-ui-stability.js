@@ -21,7 +21,7 @@ const definitions=[
  ['Dépense carburant','⛽','ESSENCE.html','essence','ESSENCE-LEGACY.html?v=20260829-operational1']
 ];
 const route=d=>d[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:d[3],page:d[4],build:'20260917-ui-stable1'}).toString():d[2];
-const active=mode||({ 'INDEX.HTML':'home','MATERIEL.HTML':'materiel','REASSORT.HTML':'reassort' }[pathname]||'');
+const active=mode||({'INDEX.HTML':'home','MATERIEL.HTML':'materiel','REASSORT.HTML':'reassort'}[pathname]||'');
 function desktopLink(doc,d,kind){const a=doc.createElement('a');a.href=route(d);a.dataset.ivMenuKey=d[3];if(d[3]===active)a.classList.add('active');
  if(kind==='shell')a.innerHTML='<span class="iv-ico">'+d[1]+'</span><span>'+d[0]+'</span>';
  else if(kind==='reassort')a.innerHTML='<span>'+d[1]+'</span>'+d[0];
@@ -29,9 +29,9 @@ function desktopLink(doc,d,kind){const a=doc.createElement('a');a.href=route(d);
  return a;}
 function renderDesktop(nav){if(!nav||nav.dataset.ivStableMenu==='1')return;const kind=nav.matches('#desktopNav,.iv-sidebar .iv-nav')?'shell':nav.matches('.side nav')?'reassort':'home';
  const fragment=document.createDocumentFragment();definitions.forEach(d=>fragment.appendChild(desktopLink(document,d,kind)));nav.replaceChildren(fragment);nav.dataset.ivStableMenu='1';}
-function renderMobile(nav){if(!nav||nav.dataset.ivStableMenu==='1')return;const shell=nav.matches('#mobileNav,.iv-mobile-nav');const items=definitions.filter(d=>['home','planning','infos','agents','variables'].includes(d[3]));const f=document.createDocumentFragment();
+function renderMobile(nav){if(!nav||nav.dataset.ivStableMenu==='1')return;const items=definitions.filter(d=>['home','planning','infos','agents','variables'].includes(d[3]));const f=document.createDocumentFragment();
  items.forEach(d=>{const a=document.createElement('a');a.href=route(d);a.dataset.ivMenuKey=d[3];if(d[3]===active)a.classList.add('active');a.innerHTML='<span>'+d[1]+'</span><span>'+({'home':'Accueil','planning':'Planning','infos':'Chantiers','agents':'Agents','variables':'Variables'}[d[3]]||d[0])+'</span>';f.appendChild(a)});
- const more=document.createElement('button');more.type='button';more.className=shell?'iv-more-menu':'iv-more-menu';more.setAttribute('aria-haspopup','dialog');more.setAttribute('aria-expanded','false');more.innerHTML='<span>☰</span><span>Menu</span>';more.addEventListener('click',()=>openDrawer(more));f.appendChild(more);nav.replaceChildren(f);nav.dataset.ivStableMenu='1';}
+ const more=document.createElement('button');more.type='button';more.className='iv-more-menu';more.setAttribute('aria-haspopup','dialog');more.setAttribute('aria-expanded','false');more.innerHTML='<span>☰</span><span>Menu</span>';more.addEventListener('click',()=>openDrawer(more));f.appendChild(more);nav.replaceChildren(f);nav.dataset.ivStableMenu='1';}
 let drawer=null,drawerSource=null;
 function closeDrawer(){if(!drawer)return;drawer.remove();drawer=null;if(drawerSource){drawerSource.setAttribute('aria-expanded','false');drawerSource.focus();drawerSource=null}}
 function openDrawer(source){if(drawer){closeDrawer();return}drawerSource=source;source.setAttribute('aria-expanded','true');drawer=document.createElement('div');drawer.className='iv-unified-menu-backdrop';drawer.innerHTML='<section role="dialog" aria-modal="true" aria-label="Toutes les rubriques" class="iv-unified-menu-panel"><header><strong>Toutes les rubriques</strong><button type="button" aria-label="Fermer le menu">×</button></header><nav aria-label="Toutes les rubriques"></nav></section>';
@@ -40,24 +40,27 @@ function ensureStyle(){if(document.getElementById('ivUnifiedUiStyle'))return;con
 function decorate(){ensureStyle();document.querySelectorAll('#desktopNav,.c3-nav,.iv-sidebar .iv-nav,.side nav,.m1-sidebar .m1-nav,.sidebar .nav').forEach(renderDesktop);document.querySelectorAll('#mobileNav,.iv-mobile-nav,.mobile-nav').forEach(renderMobile);}
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&drawer)closeDrawer()});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate,{once:true});else decorate();
-// Un seul dialogue de connexion, commun à toutes les rubriques authentifiées.
 const authRequired=!!document.querySelector('.iv-shell,.c3-app,.shell')&&(!mode||!['temps','salaire','essence'].includes(mode));
 if(!authRequired)return;
 document.body.classList.add('iv-unified-session');
-let overlay=null,auth=null,authBound=false,authUser=null,lastAuthError='';
-function hide(){if(overlay){overlay.remove();overlay=null}lastAuthError=''}
+let overlay=null,auth=null,authBound=false,firebaseSdk=null;
+function hide(){if(overlay){overlay.remove();overlay=null}}
 function show(message='Utilise le même compte Inovtec sur ton téléphone et ton ordinateur.'){
  if(!overlay){overlay=document.createElement('div');overlay.className='iv-session-overlay';overlay.innerHTML='<form class="iv-session-card"><h2>Connexion Inovtec</h2><p id="ivSessionMessage"></p><label for="ivSessionEmail">Adresse e-mail</label><input id="ivSessionEmail" type="email" autocomplete="username" required><label for="ivSessionPassword">Mot de passe</label><input id="ivSessionPassword" type="password" autocomplete="current-password" required><button type="submit">Se connecter</button><p class="iv-session-error" role="alert" id="ivSessionError"></p></form>';
- overlay.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const error=overlay?.querySelector('#ivSessionError');if(!auth){if(error)error.textContent='Firebase indisponible. Vérifie ta connexion réseau.';return}const button=overlay.querySelector('button');button.disabled=true;if(error)error.textContent='';try{await auth.setPersistence(auth.Auth.Persistence.LOCAL);await auth.signInWithEmailAndPassword(overlay.querySelector('#ivSessionEmail').value.trim(),overlay.querySelector('#ivSessionPassword').value)}catch(ex){if(error)error.textContent=ex?.code==='auth/invalid-credential'||ex?.code==='auth/wrong-password'||ex?.code==='auth/user-not-found'?'Adresse e-mail ou mot de passe incorrect.':'Connexion impossible : '+String(ex?.message||'vérifie le réseau.')}finally{button.disabled=false}});
+ overlay.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const dialog=overlay,error=dialog?.querySelector('#ivSessionError');if(!auth||!firebaseSdk){if(error)error.textContent='Firebase indisponible. Vérifie ta connexion réseau.';return}const button=dialog.querySelector('button');button.disabled=true;if(error)error.textContent='';try{
+  try{await auth.setPersistence(firebaseSdk.auth.Auth.Persistence.LOCAL)}catch(localError){await auth.setPersistence(firebaseSdk.auth.Auth.Persistence.SESSION);if(error)error.textContent='Connexion limitée à cette session du navigateur.'}
+  await auth.signInWithEmailAndPassword(dialog.querySelector('#ivSessionEmail').value.trim(),dialog.querySelector('#ivSessionPassword').value);
+ }catch(ex){if(error)error.textContent=['auth/invalid-credential','auth/wrong-password','auth/user-not-found'].includes(ex?.code)?'Adresse e-mail ou mot de passe incorrect.':'Connexion impossible : '+String(ex?.message||'vérifie le réseau.')}finally{button.disabled=false}});
  document.body.appendChild(overlay)}
  overlay.querySelector('#ivSessionMessage').textContent=message;
 }
 function suppressFrameLogin(){const frame=document.getElementById('legacyFrame')||document.getElementById('materialFrame');try{const d=frame?.contentDocument;if(!d?.head)return;if(!d.getElementById('ivSuppressDuplicateLogin')){const style=d.createElement('style');style.id='ivSuppressDuplicateLogin';style.textContent='#loginBox.login{display:none!important}';d.head.appendChild(style)}}catch{}}
-function bootAuth(){if(authBound)return;let firebase=window.firebase;
- if(!firebase&&pathname==='MATERIEL.HTML'){try{firebase=document.getElementById('materialFrame')?.contentWindow?.firebase}catch{}}
+let retry=0;
+function bootAuth(){if(authBound)return;let sdk=window.firebase;
+ if(!sdk&&pathname==='MATERIEL.HTML'){try{sdk=document.getElementById('materialFrame')?.contentWindow?.firebase}catch{}}
  const config=window.INOVTEC_FIREBASE_CONFIG||(()=>{try{return document.getElementById('materialFrame')?.contentWindow?.INOVTEC_FIREBASE_CONFIG}catch{return null}})();
- if(!firebase?.auth||!config){if(!window.__ivUiAuthRetry)window.__ivUiAuthRetry=0;if(++window.__ivUiAuthRetry<32)setTimeout(bootAuth,250);else show('Firebase indisponible. Vérifie ta connexion réseau avant de saisir des données.');return}
- try{if(!firebase.apps.length)firebase.initializeApp(config);auth=firebase.auth();authBound=true;auth.onAuthStateChanged(u=>{authUser=u||null;if(authUser){hide();suppressFrameLogin()}else show()},e=>show('Connexion Firebase impossible : '+String(e?.message||'erreur d’authentification')))}catch(e){show('Connexion Firebase impossible : '+String(e?.message||'erreur'))}
+ if(!sdk?.auth||!config){if(++retry<40)setTimeout(bootAuth,250);else show('Firebase indisponible. Vérifie ta connexion réseau avant de saisir des données.');return}
+ try{if(!sdk.apps.length)sdk.initializeApp(config);firebaseSdk=sdk;auth=sdk.auth();authBound=true;auth.onAuthStateChanged(u=>{if(u){hide();suppressFrameLogin()}else show()},e=>show('Connexion Firebase impossible : '+String(e?.message||'erreur d’authentification')))}catch(e){show('Connexion Firebase impossible : '+String(e?.message||'erreur'))}
 }
 const frame=document.getElementById('legacyFrame')||document.getElementById('materialFrame');frame?.addEventListener('load',()=>{suppressFrameLogin();if(!authBound)bootAuth()});
 bootAuth();
