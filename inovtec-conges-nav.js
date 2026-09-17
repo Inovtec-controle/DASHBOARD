@@ -24,4 +24,7 @@ if(mode==='planning'){
  const script=d.createElement('script');script.src='planning-replacement.js?v=20260815-1';script.dataset.ivReplacement='1';d.body.appendChild(script)};
  f?.addEventListener('load',()=>setTimeout(apply,120));setTimeout(apply,450);setTimeout(apply,1200);
 }
+if(document.querySelector('.c3-app')&&!document.querySelector('script[data-iv-home-day-detail="1"]')){
+ const s=document.createElement('script');s.src='dashboard-home-day-detail.js?v=20260918-home-day1';s.dataset.ivHomeDayDetail='1';s.async=false;document.body.appendChild(s);
+}
 })();
