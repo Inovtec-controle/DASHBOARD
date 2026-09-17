@@ -1,0 +1,17 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Test sélecteurs chantiers</title></head><body>
+<form id="orderForm"><label>Chantier / destination<input id="orderSite" value="Ancien chantier"></label></form>
+<form id="materialForm"><div><label>Chantier / site affecté</label><input id="site" value=""></div></form>
+<form id="siteForm"><label>Nom du chantier<input id="nom" value="Nouveau site"></label></form>
+<script>
+(()=>{
+ const user={uid:'fixture-user'};
+ const docs=[{id:'a1',data:()=>({nom:'Améthyste'})},{id:'a2',data:()=>({nom:'Le Clos'})},{id:'__hidden',data:()=>({nom:'Document système',_hidden:true})},{id:'a3',data:()=>({nom:'Améthyste'})}];
+ const auth={currentUser:user,onAuthStateChanged(callback){window.__authChange=callback;queueMicrotask(()=>callback(user));return()=>{}}};
+ window.firebase={apps:[{}],auth:()=>auth,firestore:()=>({collection:()=>({onSnapshot(callback){window.__sitesChange=callback;queueMicrotask(()=>callback({docs}));return()=>{}}})})};
+ window.INOVTEC_FIREBASE_CONFIG={};
+ window.__signOut=()=>{auth.currentUser=null;window.__authChange(null)};
+ window.__restoreSites=()=>window.__sitesChange({docs});
+})();
+</script>
+<script src="../inovtec-chantier-dropdown.js?v=20260917-1"></script>
+</body></html>
