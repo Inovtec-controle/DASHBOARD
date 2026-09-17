@@ -39,9 +39,10 @@ function protectAndShare(s,team,week,sourceId,initial=false){
   if(targetId===sourceId||exceptions.has(targetId))continue;
   const existing=entries(s,week,targetId),current=signature(existing);
   if(current===sig)continue;
-  const inherited=existing.length>0&&existing.every(e=>str(e._teamInheritedFrom)&&team.members.includes(str(e._teamInheritedFrom)));
-  // Aucun horaire individuel divergent n'est remplacé sans décision de l'utilisateur.
-  const safeToReplace=!existing.length||inherited||(old!=null&&current===old);
+  // Même un créneau auparavant partagé devient individuel s'il a été modifié.
+  // Seul un planning vide ou strictement identique à la précédente version
+  // commune peut être mis à jour sans risque d'effacer une intervention.
+  const safeToReplace=!existing.length||(old!=null&&current===old);
   if(!safeToReplace){exceptions.add(targetId);changed=true;continue}
   const keep=(Array.isArray(s.weeks[week])?s.weeks[week]:[]).filter(e=>str(e?.agentId)!==targetId);
   const clones=source.map(e=>({...e,id:uid('e'),agentId:targetId,_teamInheritedFrom:sourceId}));
