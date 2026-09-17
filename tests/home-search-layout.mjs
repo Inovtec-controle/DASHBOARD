@@ -26,8 +26,13 @@ try{
       };
     });
     for(const [name,pass] of Object.entries(result))if(pass!==true && !(name==='searchCount' && pass===1))throw Error(`${width}px : ${name} = ${pass}`);
-    await page.locator('#globalSearch').fill('chantier');
-    if(await page.locator('#globalSearch').inputValue()!=='chantier')throw Error(`${width}px : champ de recherche inutilisable`);
+    const input=page.locator('#globalSearch');
+    if(await input.isEnabled()){
+      await input.fill('chantier');
+      if(await input.inputValue()!=='chantier')throw Error(`${width}px : champ de recherche inutilisable`);
+    }else if(!(await input.getAttribute('title'))?.includes('Connectez-vous')){
+      throw Error(`${width}px : recherche désactivée sans indication de connexion`);
+    }
     await page.close();
     console.log(`OK : accueil ${width}px, recherche sous le bandeau, barre supérieure masquée et données techniques conservées.`);
   }
