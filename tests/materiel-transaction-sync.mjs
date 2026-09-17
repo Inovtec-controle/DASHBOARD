@@ -20,7 +20,8 @@ try{
  await page.route('https://www.gstatic.com/firebasejs/**',r=>r.fulfill({status:200,contentType:'application/javascript',body:''}));
  await page.route('**/firebase-config.js*',r=>r.fulfill({status:200,contentType:'application/javascript',body:'window.INOVTEC_FIREBASE_CONFIG={projectId:"fake"};const materialSync=document.createElement("script");materialSync.src="inovtec-materiel-transactional-sync.js";document.head.appendChild(materialSync);'}));
  await page.goto('http://127.0.0.1:8765/MATERIEL-LEGACY.html',{waitUntil:'domcontentloaded',timeout:30000});
- await page.waitForFunction(()=>document.querySelector('#syncStatus')?.textContent?.includes('serveur confirmé'));
+ try{await page.waitForFunction(()=>window.__INOVTEC_MATERIEL_TRANSACTIONAL_SYNC_V1__&&window.__materialTest.callbacks.length>=2&&document.querySelector('#rows tr'),null,{timeout:18000});}
+ catch(e){const details=await page.evaluate(()=>({loaded:!!window.__INOVTEC_MATERIEL_TRANSACTIONAL_SYNC_V1__,status:document.querySelector('#syncStatus')?.textContent,listeners:window.__materialTest?.callbacks.length,rows:document.querySelectorAll('#rows tr').length}));throw Error('Le module Matériel ne démarre pas : '+JSON.stringify(details)+' ; '+errors.join(' ; '));}
  assert(await page.locator('#rows tr').count()===1,'Inventaire Firebase non chargé');
  await page.locator('#name').fill('Balai neuf');await page.locator('#quantity').fill('2');await page.locator('#materialForm [type="submit"]').click();
  await page.waitForFunction(()=>JSON.parse(window.__materialTest.doc.moduleSyncV1.materiel.payload).items.length===2);
