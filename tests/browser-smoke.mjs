@@ -17,11 +17,16 @@ async function check(label, fn) {
   catch (error) { failures.push(label + ' : ' + String(error?.message || error).slice(0, 300)); console.error('ÉCHEC : ' + label + ' : ' + error?.message); }
 }
 
-await check('Accueil : recherche et navigation', async () => {
+await check('Accueil : recherche et navigation directe cohérente', async () => {
   await page.goto(base + '/index.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.locator('#globalSearch').waitFor({ state: 'visible', timeout: 15000 });
-  if (await page.locator('.c3-nav a[href*="PLANNINGS.html"]').count() !== 1) throw new Error('Lien Planning absent');
-  if (await page.locator('.c3-nav a[href*="VARIABLES.html"]').count() !== 1) throw new Error('Lien Variables absent');
+  await page.waitForFunction(() => document.querySelector('.c3-nav')?.dataset.ivStableMenu === '1', null, { timeout: 20000 });
+  const nav = page.locator('.c3-nav');
+  if (await nav.locator('a[data-iv-menu-key="planning"]').count() !== 1) throw new Error('Lien Planning absent ou dupliqué');
+  if (await nav.locator('a[data-iv-menu-key="variables"]').count() !== 1) throw new Error('Lien Variables absent ou dupliqué');
+  if (await nav.locator('a[data-iv-menu-key="reassort"]').count() !== 1) throw new Error('Lien Réassort absent ou dupliqué');
+  const url = await nav.locator('a[data-iv-menu-key="planning"]').getAttribute('href');
+  if (!url?.startsWith('inovtec-page-shell.html?') || !url.includes('mode=planning')) throw new Error('Le planning fait encore une redirection intermédiaire');
 });
 
 await check('Planning : chargement dans la rubrique principale', async () => {
@@ -34,13 +39,11 @@ await check('Planning : chargement dans la rubrique principale', async () => {
     const period = doc?.getElementById('periodLabel')?.textContent?.trim();
     return Boolean(period && period !== '—' && doc?.getElementById('week')?.value);
   }, null, { timeout: 30000 });
-  // Cette rubrique exige normalement une connexion Firebase : le test sans compte
-  // ne doit PAS essayer de cliquer derrière la fenêtre de connexion.
+  await page.waitForFunction(() => document.getElementById('desktopNav')?.dataset.ivStableMenu === '1', null, { timeout: 20000 });
+  if (await page.locator('#desktopNav a[data-iv-menu-key="reassort"]').count() !== 1) throw new Error('Menu Planning incomplet');
 });
 
 await check('Planning : changement des vues sans blocage', async () => {
-  // Contrôle des interactions de la même vue, hors de la fenêtre de connexion :
-  // accès direct à la page interne avec un navigateur de test sans identifiants.
   await page.goto(base + '/PLANNINGS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => {
     const period = document.getElementById('periodLabel')?.textContent?.trim();
@@ -72,7 +75,7 @@ await check('Variables : accès à l’éditeur', async () => {
 });
 
 await check('Pages métiers : réponses HTML', async () => {
-  for (const name of ['AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','CONGES.html','ORGA.html','MATERIEL.html']) {
+  for (const name of ['AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','CONGES.html','ORGA.html','MATERIEL.html','REASSORT.html']) {
     const response = await page.request.get(base + '/' + name, { timeout: 20000 });
     if (!response.ok()) throw new Error(name + ' : HTTP ' + response.status());
     if (!(await response.text()).toLowerCase().includes('<html')) throw new Error(name + ' : réponse HTML invalide');
