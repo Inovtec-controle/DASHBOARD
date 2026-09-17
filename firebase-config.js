@@ -23,7 +23,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
           site: item.site || "",
           date: item.date || "",
           niveau: item.niveau || "Observation",
-          statut: item.statut || "Ouvert",
+          statut: "Ouvert",
           responsable: item.resp || "",
           motif: item.motif || "",
           temoins: item.tem || "",
