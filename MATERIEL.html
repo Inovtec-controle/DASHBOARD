@@ -12,11 +12,19 @@
 <link rel="stylesheet" href="inovtec-shell.css?v=20260829-agentfull1">
 <link rel="stylesheet" href="inovtec-shell-v2.css?v=20260815-2">
 <style>
-html,body{min-height:100%}.iv-stage{padding:0!important}.iv-frame{width:100%;min-height:calc(100vh - 225px);border:0;background:#f4f8f6}.iv-tool-link{text-decoration:none}.iv-mobile-nav a span:first-child{font-size:18px}
-@media(max-width:760px){.iv-frame{min-height:calc(100vh - 190px)}}
+/* Cette adaptation ne concerne que la page Matériel : une seule page qui défile. */
+html,body.iv-materiel-full-page{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
+body.iv-materiel-full-page .iv-shell{height:auto!important;min-height:100dvh!important;align-items:start!important}
+body.iv-materiel-full-page .iv-sidebar{position:sticky!important;top:0;align-self:start!important}
+body.iv-materiel-full-page .iv-main{display:flex!important;flex-direction:column!important;height:auto!important;min-height:100dvh!important;overflow:visible!important;min-width:0!important}
+body.iv-materiel-full-page .iv-toolbar{display:flex!important;overflow:visible!important;flex-wrap:wrap!important}
+body.iv-materiel-full-page .iv-stage{flex:0 0 auto!important;min-height:0!important;height:auto!important;overflow:visible!important;padding:0!important}
+body.iv-materiel-full-page .iv-frame{display:block!important;width:100%!important;height:var(--iv-materiel-frame-height,900px)!important;min-height:0!important;border:0!important;overflow:hidden!important;background:#f4f8f6!important;border-radius:14px!important}
+.iv-tool-link{text-decoration:none}
+@media(max-width:760px){body.iv-materiel-full-page .iv-shell{display:block!important}body.iv-materiel-full-page .iv-main{height:auto!important;min-height:100dvh!important;padding-bottom:70px!important}body.iv-materiel-full-page .iv-stage{margin-bottom:12px!important}.iv-mobile-nav a span:first-child{font-size:18px}}
 </style>
 </head>
-<body>
+<body class="iv-materiel-full-page">
 <div class="iv-shell">
   <aside class="iv-sidebar">
     <a class="iv-brand" href="index.html"><span class="iv-brand-mark"></span><span class="iv-brand-copy"><strong>INOVTEC</strong><span>DASHBOARD</span></span></a>
@@ -41,7 +49,7 @@ html,body{min-height:100%}.iv-stage{padding:0!important}.iv-frame{width:100%;min
       <div class="iv-top-actions"><button id="refreshPage" class="iv-small-btn" type="button">↻ <span class="iv-hide-mobile">Actualiser</span></button><a class="iv-small-btn iv-tool-link" href="index.html">⌂ <span class="iv-hide-mobile">Accueil</span></a><span class="iv-avatar">IN</span></div>
     </header>
     <section class="iv-hero">
-      <div class="iv-hero-copy"><div class="iv-eyebrow">GESTION DU PARC</div><h1>Matériel & <em>fournisseurs</em></h1><p>Suivez précisément votre matériel, son affectation, son fournisseur, son coût, son état et ses échéances de maintenance.</p></div>
+      <div class="iv-hero-copy"><div class="iv-eyebrow">GESTION DU PARC</div><h1>Matériel &amp; <em>fournisseurs</em></h1><p>Suivez précisément votre matériel, son affectation, son fournisseur, son coût, son état et ses échéances de maintenance.</p></div>
       <div class="iv-date"><strong id="dateLabel">—</strong><span id="timeLabel">—</span></div>
       <div class="iv-geometry" aria-hidden="true"><span class="iv-dots"></span><span class="iv-circle a"></span><span class="iv-circle b"></span><span class="iv-rect a"></span><span class="iv-rect b"></span><span class="iv-diag one"></span><span class="iv-diag two"></span><span class="iv-diag three"></span></div>
     </section>
@@ -51,12 +59,53 @@ html,body{min-height:100%}.iv-stage{padding:0!important}.iv-frame{width:100%;min
       <button id="exportMaterial" class="iv-tool" type="button"><span>⇩</span><span>Exporter CSV</span></button>
       <span class="iv-spacer"></span><span id="liveMirror" class="iv-live">Inventaire synchronisé avec Firebase</span>
     </section>
-    <section class="iv-stage"><iframe id="materialFrame" class="iv-frame" title="Gestion du matériel" src="MATERIEL-LEGACY.html?v=20260915-materiel1"></iframe></section>
+    <section class="iv-stage"><iframe id="materialFrame" class="iv-frame" title="Gestion du matériel" src="MATERIEL-LEGACY.html?v=20260917-layout2" scrolling="no"></iframe></section>
   </section>
 </div>
 <nav class="iv-mobile-nav" aria-label="Navigation mobile"><a href="index.html"><span>⌂</span><span>Accueil</span></a><a href="PLANNINGS.html"><span>▦</span><span>Planning</span></a><a href="INFOCHANTIERS-V2.html"><span>ⓘ</span><span>Chantiers</span></a><a class="active" href="MATERIEL.html"><span>▣</span><span>Matériel</span></a><a href="AGENTS.html"><span>♙</span><span>Agents</span></a></nav>
 <script>
-(()=>{const frame=document.getElementById('materialFrame'),doc=()=>{try{return frame.contentDocument}catch{return null}};const df=new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),tf=new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit'});function tick(){const d=new Date();document.getElementById('dateLabel').textContent=df.format(d).replace(/^./,c=>c.toUpperCase());document.getElementById('timeLabel').textContent=tf.format(d)}tick();setInterval(tick,30000);document.getElementById('refreshPage').onclick=()=>frame.contentWindow.location.reload();document.getElementById('addMaterial').onclick=()=>{const d=doc();d?.getElementById('newBtn')?.click();d?.getElementById('name')?.focus()};document.getElementById('searchMaterial').onclick=()=>doc()?.getElementById('search')?.focus();document.getElementById('exportMaterial').onclick=()=>doc()?.getElementById('exportBtn')?.click();frame.addEventListener('load',()=>{setInterval(()=>{const d=doc(),s=d?.getElementById('syncStatus')?.textContent,c=d?.getElementById('count')?.textContent;if(s)document.getElementById('syncMirror').textContent=s;if(c)document.getElementById('liveMirror').textContent=c+' dans l’inventaire'},1200)})})();
+(()=>{
+  'use strict';
+  const frame=document.getElementById('materialFrame');
+  const doc=()=>{try{return frame.contentDocument}catch{return null}};
+  const df=new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const tf=new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  function tick(){const d=new Date();document.getElementById('dateLabel').textContent=df.format(d).replace(/^./,c=>c.toUpperCase());document.getElementById('timeLabel').textContent=tf.format(d)}
+  tick();setInterval(tick,30000);
+  document.getElementById('refreshPage').onclick=()=>frame.contentWindow.location.reload();
+  document.getElementById('addMaterial').onclick=()=>{const d=doc();d?.getElementById('newBtn')?.click();d?.getElementById('name')?.focus()};
+  document.getElementById('searchMaterial').onclick=()=>doc()?.getElementById('search')?.focus();
+  document.getElementById('exportMaterial').onclick=()=>doc()?.getElementById('exportBtn')?.click();
+  let observer=null,mutation=null,resizeQueued=false;
+  function fitHeight(){
+    resizeQueued=false;
+    const d=doc(),page=d?.querySelector('.page');if(!page)return;
+    const rect=page.getBoundingClientRect();
+    const h=Math.max(360,Math.ceil(Math.max(page.scrollHeight,rect.height)+Math.max(0,rect.top)+24));
+    const previous=Number.parseInt(frame.style.getPropertyValue('--iv-materiel-frame-height'),10)||0;
+    if(Math.abs(h-previous)>2)frame.style.setProperty('--iv-materiel-frame-height',h+'px');
+  }
+  function scheduleFit(){if(resizeQueued)return;resizeQueued=true;requestAnimationFrame(fitHeight)}
+  function prepareFrame(){
+    observer?.disconnect();mutation?.disconnect();
+    const d=doc();if(!d?.head||!d.body)return;
+    if(!d.querySelector('link[data-materiel-layout]')){
+      const style=d.createElement('link');style.rel='stylesheet';style.href='inovtec-materiel-layout.css?v=20260917-layout2';style.dataset.materielLayout='1';d.head.appendChild(style);style.addEventListener('load',scheduleFit);
+    }
+    const page=d.querySelector('.page');
+    if(page&&window.ResizeObserver){observer=new ResizeObserver(scheduleFit);observer.observe(page)}
+    if(page){mutation=new MutationObserver(scheduleFit);mutation.observe(page,{subtree:true,childList:true,characterData:true})}
+    d.fonts?.ready?.then(scheduleFit).catch(()=>{});
+    scheduleFit();setTimeout(scheduleFit,120);setTimeout(scheduleFit,500);setTimeout(scheduleFit,1200);
+  }
+  frame.addEventListener('load',prepareFrame);
+  window.addEventListener('resize',scheduleFit);
+  setInterval(()=>{
+    const d=doc(),s=d?.getElementById('syncStatus')?.textContent,c=d?.getElementById('count')?.textContent;
+    if(s)document.getElementById('syncMirror').textContent=s;
+    if(c)document.getElementById('liveMirror').textContent=c+' dans l’inventaire';
+  },1200);
+})();
 </script>
 </body>
 </html>
