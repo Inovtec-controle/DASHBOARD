@@ -23,14 +23,15 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
           site: item.site || "",
           date: item.date || "",
           niveau: item.niveau || "Observation",
-          statut: item.statut || "Ouvert",
+          statut: "Ouvert",
           responsable: item.resp || "",
           motif: item.motif || "",
           temoins: item.tem || "",
           description: item.desc || "",
           suite: "",
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          migratedFromLegacy: true
         }));
         localStorage.setItem("inovtec_discipline_v2", JSON.stringify(migrated));
       }
