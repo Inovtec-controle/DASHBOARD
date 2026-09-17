@@ -14,4 +14,8 @@ if($('searchAgent').value){$('searchAgent').value='';$('searchAgent').dispatchEv
 const btn=buttons[idx];if(!btn)return;done=true;btn.click();if(action==='new')$('newVariable')?.click();if(action==='detect')$('detectPlanning')?.click();}
 if(target){const observer=new MutationObserver(selectRequested);observer.observe($('agentList'),{childList:true,subtree:true});observer.observe($('formAgent'),{childList:true,subtree:true});selectRequested();const timer=setInterval(()=>{selectRequested();if(done||++attempts>90){clearInterval(timer);observer.disconnect()}},200)}
 else if(action==='new')$('newVariable')?.click();
+// La vue Variables autonome ne charge pas firebase-config.js : appliquer aussi ici le réglage sans CSV.
+if(!document.querySelector('script[data-iv-hide-csv="1"]')&&!window.__INOVTEC_HIDE_CSV_EXPORTS_V1__){
+ const csv=document.createElement('script');csv.src='inovtec-hide-csv-exports.js?v=20260917-no-csv1';csv.dataset.ivHideCsv='1';csv.async=false;document.head.appendChild(csv);
+}
 })();
