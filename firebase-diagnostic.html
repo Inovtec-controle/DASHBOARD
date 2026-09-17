@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<title>Diagnostic Firebase — Inovtec</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#123d30;background:#f2f8f5}*{box-sizing:border-box}body{margin:0;padding:22px 12px}main{max-width:740px;margin:auto;background:white;border:1px solid #dae8e0;border-radius:17px;padding:24px;box-shadow:0 15px 38px #064e3b12}h1{margin:0 0 7px;font-size:24px}p{line-height:1.5;font-size:14px;color:#52685b}a{color:#047857}button{border:0;background:#065f46;color:#fff;padding:11px 15px;border-radius:10px;font-weight:750;cursor:pointer;font-size:14px}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#e9f5ed;color:#14532d}section{margin:17px 0;padding:15px;border:1px solid #dcebe1;border-radius:12px}label{display:block;font-size:12px;font-weight:750;margin:8px 0 4px}input{width:100%;padding:11px;border:1px solid #bdcfc3;border-radius:9px;font-size:16px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.status{padding:10px 12px;border-radius:9px;background:#f1f5f9;font-size:13px;white-space:pre-wrap}.status.error{background:#fef2f2;color:#991b1b}.status.ok{background:#ecfdf5;color:#166534}pre{background:#f5f8f6;border-radius:9px;border:1px solid #e0eae4;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere;min-height:90px;font:12px/1.55 ui-monospace,Consolas,monospace}.note{font-size:12px}#login[hidden],#write[hidden]{display:none}
+</style>
+</head>
+<body>
+<main>
+<a href="PLANNINGS.html">← Retour au planning</a>
+<h1>Diagnostic Firebase</h1>
+<p>Ce contrôle sépare les problèmes de chargement, de connexion au compte, de lecture et de sauvegarde. <strong>Il ne supprime ni ne réinitialise tes plannings, agents ou chantiers.</strong></p>
+<div class="status" id="startup" role="status">Vérification du chargement de Firebase…</div>
+<section id="login" hidden>
+<h2>Connexion au compte Inovtec</h2>
+<p>Utilise le compte habituel de l’application. Les identifiants sont envoyés uniquement au service Firebase par son module de connexion ; ne les communique pas dans le chat.</p>
+<form id="loginForm"><label for="email">Adresse e-mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Mot de passe</label><input id="password" type="password" autocomplete="current-password" required><div class="actions"><button type="submit" id="loginButton">Se connecter</button></div></form>
+</section>
+<section>
+<h2>Vérifications</h2>
+<p>Commence par la lecture. Si elle réussit, tu peux déclencher un test d’écriture dans un <strong>champ temporaire portant un nom unique</strong> sur le document de ton compte. Il est relu depuis le serveur puis retiré uniquement si sa valeur correspond encore au test. Aucune donnée métier n’est remplacée.</p>
+<div class="actions"><button id="read" disabled>1. Tester la lecture</button><button id="write" disabled hidden>2. Tester l’écriture et la relecture</button><button id="copy" class="secondary" type="button">Copier le rapport</button></div>
+<pre id="report" role="status" aria-live="polite">En attente du chargement de Firebase.</pre>
+<p class="note">Le rapport ne contient ni mot de passe, ni adresse e-mail, ni identifiant de compte, ni contenu de tes documents. Si le test d’écriture échoue ou dépasse le délai, le résultat reste incertain : ne ressaisis pas tes données pour autant.</p>
+</section>
+</main>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),report=[],config={apiKey:'AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw',authDomain:'inovtec-chantiers.firebaseapp.com',projectId:'inovtec-chantiers',storageBucket:'inovtec-chantiers.firebasestorage.app',messagingSenderId:'313162345276',appId:'1:313162345276:web:1a270f797dd736a4060c39'};
+let auth=null,db=null,currentUser=null,readPassed=false,busy=false;
+const add=(label,detail)=>{report.push(label+(detail?' — '+detail:''));$('report').textContent=report.join('\n')};
+function status(text,error=false){$('startup').textContent=text;$('startup').className='status'+(error?' error':' ok')}
+function errorCode(e){return String(e?.code||'erreur-inconnue').replace(/[^a-z0-9/_-]/gi,'').slice(0,90)}
+function hint(code){if(/invalid-credential|wrong-password|user-not-found|invalid-login-credentials/.test(code))return 'Identifiants non validés : vérifier le compte habituel et la méthode e-mail/mot de passe dans Authentication.';if(/operation-not-allowed/.test(code))return 'Méthode de connexion désactivée : vérifier Authentication > Mode de connexion.';if(/permission-denied/.test(code))return 'Lecture ou écriture interdite : vérifier les règles Firestore réellement publiées pour ce compte.';if(/unavailable|network-request-failed|deadline-exceeded/.test(code))return 'Serveur inaccessible ou connexion interrompue : vérifier réseau, restrictions du navigateur et disponibilité du service.';if(/resource-exhausted/.test(code))return 'Quota ou limite Firebase atteint : vérifier les quotas et la taille du document.';if(/failed-precondition/.test(code))return 'Précondition Firebase non satisfaite : examiner la configuration et les index.';return 'Copier ce code pour identifier précisément la panne.'}
+function problem(stage,e){const code=errorCode(e);add('ÉCHEC '+stage,code+' ; '+hint(code));status('Le diagnostic a identifié une erreur à l’étape « '+stage+' ».',true)}
+const within=(promise,ms)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject({code:'diagnostic/timeout'}),ms))]);
+function updateAuth(user){currentUser=user||null;readPassed=false;$('read').disabled=!currentUser;$('write').disabled=true;$('write').hidden=true;$('login').hidden=!!currentUser;if(currentUser){$('password').value='';status('Compte Firebase connecté. Lance le test de lecture.');add('AUTH','session présente (identité masquée)')}else{status('Aucune session active : connecte-toi avec ton compte habituel.',true);add('AUTH','aucune session dans cette page')}}
+function loadScript(url){return within(new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=url;script.onload=resolve;script.onerror=()=>reject({code:'diagnostic/sdk-load-failed'});document.head.appendChild(script)}),12000)}
+async function boot(){
+try{
+  if(!navigator.onLine){add('RÉSEAU','navigateur hors ligne');status('Le navigateur indique qu’il est hors ligne.',true);return}
+  for(const part of ['app','auth','firestore'])await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-'+part+'-compat.js');
+  if(!window.firebase?.initializeApp||!firebase.auth||!firebase.firestore)throw{code:'diagnostic/sdk-incomplete'};
+  if(!firebase.apps.length)firebase.initializeApp(config);
+  auth=firebase.auth();db=firebase.firestore();add('SDK','Firebase chargé ; projet '+firebase.app().options.projectId);
+  auth.onAuthStateChanged(updateAuth,e=>problem('authentification',e));
+}catch(e){problem('chargement Firebase',e);$('login').hidden=true}
+}
+$('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!auth||busy)return;busy=true;$('loginButton').disabled=true;try{
+   await within(auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value),16000);
+   $('password').value='';add('CONNEXION','authentification acceptée');
+ }catch(err){problem('connexion au compte',err)}finally{busy=false;$('loginButton').disabled=false}
+});
+$('read').addEventListener('click',async()=>{
+ if(!db||!currentUser||busy)return;busy=true;readPassed=false;$('read').disabled=true;$('write').hidden=true;$('write').disabled=true;
+ const uid=currentUser.uid;try{
+   const doc=await within(db.collection('kanban').doc(uid).get({source:'server'}),18000);
+   add('LECTURE PERSONNELLE','OK depuis le serveur'+(doc.exists?' ; document présent':' ; document absent'));
+   await within(db.collection('chantiers').limit(1).get({source:'server'}),18000);
+   add('LECTURE CHANTIERS','OK depuis le serveur');readPassed=true;$('write').hidden=false;$('write').disabled=false;status('Lecture Firebase confirmée. Tu peux tester une écriture temporaire.');
+ }catch(err){problem('lecture Firestore',err)}finally{busy=false;$('read').disabled=!currentUser}
+});
+$('write').addEventListener('click',async()=>{
+ if(!db||!currentUser||!readPassed||busy)return;busy=true;$('write').disabled=true;$('read').disabled=true;
+ const uid=currentUser.uid,doc=db.collection('kanban').doc(uid),field='ivDiagnostic_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),nonce='probe-'+Math.random().toString(36).slice(2);let wrote=false;
+ try{
+   await within(doc.set({[field]:nonce},{merge:true}),20000);wrote=true;add('ÉCRITURE','OK ; champ temporaire isolé');
+   const check=await within(doc.get({source:'server'}),18000);
+   if(check.get(field)!==nonce)throw{code:'diagnostic/readback-mismatch'};
+   add('RELECTURE','OK ; valeur confirmée sur le serveur');status('Connexion, lecture, écriture et relecture confirmées.');
+ }catch(err){problem(wrote?'relecture après écriture':'écriture Firestore',err)}
+ finally{
+   if(wrote){try{const check=await within(doc.get({source:'server'}),12000);if(check.get(field)===nonce){await within(doc.update({[field]:firebase.firestore.FieldValue.delete()}),18000);add('NETTOYAGE','champ temporaire retiré')}else add('NETTOYAGE','champ changé : aucune suppression effectuée')}
+   catch(e){add('NETTOYAGE','non confirmé ('+errorCode(e)+') ; aucun document métier supprimé')}}
+   else add('NETTOYAGE','écriture non confirmée ; aucun effacement tenté');
+   busy=false;$('write').disabled=!readPassed;$('read').disabled=!currentUser
+ }
+});
+$('copy').addEventListener('click',async()=>{const text='Diagnostic Firebase Inovtec\n'+report.join('\n');try{await navigator.clipboard.writeText(text);$('copy').textContent='Rapport copié'}catch{const node=$('report');node.focus();window.getSelection()?.selectAllChildren(node);$('copy').textContent='Sélectionne et copie le rapport'}});
+add('DIAGNOSTIC','aucune donnée métier modifiée automatiquement');boot();
+})();
+</script>
+</body>
+</html>
