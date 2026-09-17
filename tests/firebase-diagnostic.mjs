@@ -17,7 +17,12 @@ async function scenario(denied=false){
       set:async (value,options)=>{if(deny)throw{code:'permission-denied'};if(options?.merge!==true)throw Error('La fusion est obligatoire');Object.assign(record,value);writes.push('set')},
       update:async value=>{if(deny)throw{code:'permission-denied'};for(const [key,v] of Object.entries(value)){if(v==='__DIAGNOSTIC_DELETE__')delete record[key];else record[key]=v}writes.push('update')}
     };
-    const firestore=()=>({collection:name=>name==='kanban'?{doc:uid=>{if(uid!=='fake-user')throw Error('Mauvais compte');return doc}}:{limit:()=>({get:async options=>{if(options?.source!=='server')throw Error('Lecture serveur requise');return {empty:true}})}}});
+    const firestore=()=>({
+      collection(name){
+        if(name==='kanban')return {doc(uid){if(uid!=='fake-user')throw Error('Mauvais compte');return doc}};
+        return {limit(){return {get:async options=>{if(options?.source!=='server')throw Error('Lecture serveur requise');return {empty:true}}}}};
+      }
+    });
     firestore.FieldValue={delete:()=> '__DIAGNOSTIC_DELETE__'};
     const auth=()=>({onAuthStateChanged:fn=>{fn({uid:'fake-user'});return()=>{}},signInWithEmailAndPassword:async()=>({user:{uid:'fake-user'}})});
     window.firebase={apps:[],initializeApp:config=>{window.firebase.apps.push({options:config})},app:()=>window.firebase.apps[0],auth,firestore};
