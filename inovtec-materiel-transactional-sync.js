@@ -46,8 +46,9 @@ async function change(kind){
    }
    tx.set(doc,{moduleSyncV1:{materiel:{...entry,payload:JSON.stringify({...current,items,updatedAt:now}),updatedAt:now,updatedAtMs:Date.now()}}},{merge:true});
   });
-  if(formSignature()===signature)reset();
-  report(formSignature()===signature?'Firebase synchronisé · enregistrement confirmé':'Firebase enregistré · vérifiez les modifications en cours');
+  const unchanged=formSignature()===signature;
+  if(unchanged)reset();
+  report(unchanged?'Firebase synchronisé · enregistrement confirmé':'Firebase enregistré · vérifiez les modifications en cours');
  }catch(e){console.warn('Matériel : transaction non enregistrée',e);report('Sauvegarde refusée : '+String(e?.message||e?.code||'Firebase indisponible'));}
  finally{busy=false;if(submit)submit.disabled=false;if(del)del.disabled=false;}
 }
