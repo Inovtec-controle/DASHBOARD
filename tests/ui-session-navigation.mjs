@@ -1,0 +1,31 @@
+import {chromium} from 'playwright';
+const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const context=await browser.newContext({viewport:{width:1200,height:800},serviceWorkers:'block'});
+const page=await context.newPage();
+const base='http://127.0.0.1:8765/tests/ui-session-fixture.html';
+try{
+ await page.goto(base+'?mode=variables',{waitUntil:'load'});
+ await page.locator('.iv-session-overlay').waitFor({state:'visible',timeout:10000});
+ if(await page.locator('.iv-session-overlay').count()!==1)throw Error('Connexion dupliquée');
+ await page.locator('#ivSessionEmail').fill('test@example.test');
+ await page.locator('#ivSessionPassword').fill('mot-de-passe-test');
+ await page.locator('.iv-session-overlay button[type="submit"]').click();
+ await page.locator('.iv-session-overlay').waitFor({state:'detached',timeout:10000});
+ const persist=await page.evaluate(()=>window.__fixture_persistence);
+ if(persist!=='local')throw Error('Persistance Firebase non configurée: '+persist);
+ const links=await page.locator('#desktopNav a').evaluateAll(els=>els.map(a=>({key:a.dataset.ivMenuKey,href:a.getAttribute('href')})));
+ if(links.length!==13||new Set(links.map(a=>a.key)).size!==13)throw Error('Rubriques manquantes ou dupliquées : '+links.length);
+ if(!links.find(a=>a.key==='planning')?.href.startsWith('inovtec-page-shell.html?'))throw Error('Navigation planning indirecte');
+ await page.goto(base+'?mode=planning',{waitUntil:'load'});
+ await page.locator('#desktopNav a').first().waitFor();
+ if(await page.locator('.iv-session-overlay').count())throw Error('La connexion est redemandée après navigation');
+ const links2=await page.locator('#desktopNav a').evaluateAll(els=>els.map(a=>a.dataset.ivMenuKey));
+ if(links.map(a=>a.key).join('|')!==links2.join('|'))throw Error('Le menu change entre les rubriques');
+ await page.setViewportSize({width:390,height:780});
+ await page.locator('#mobileNav .iv-more-menu').click();
+ await page.locator('.iv-unified-menu-panel nav a').first().waitFor();
+ if(await page.locator('.iv-unified-menu-panel nav a').count()!==13)throw Error('Menu mobile incomplet');
+ await page.locator('.iv-unified-menu-panel header button').click();
+ if(await page.locator('.iv-unified-menu-backdrop').count())throw Error('Menu mobile ne se ferme pas');
+ console.log('OK : Connexion directe Variables, session conservée entre deux rubriques, 13 liens identiques et menu mobile complet.');
+}finally{await browser.close()}
