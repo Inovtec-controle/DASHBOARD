@@ -10,7 +10,7 @@
 <title>Inovtec Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="inovtec-shell.css?v=20260829-agentfull1">
 <link rel="stylesheet" href="inovtec-shell-v2.css?v=20260815-2">
 <link rel="stylesheet" href="inovtec-toolbar-align.css?v=20260814-2">
@@ -42,12 +42,14 @@
   </section>
 </div>
 <nav id="mobileNav" class="iv-mobile-nav" aria-label="Navigation mobile"></nav>
+<!-- Initialiser l'iframe locale AVANT les services externes : une panne Firebase ne doit pas bloquer l'affichage. -->
+<script src="inovtec-shell.js?v=20260917-planning-start-first1"></script>
+<script src="inovtec-planning-recovery.js?v=20260917-planning-recovery1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js?v=20260829-operational1"></script>
 <script src="inovtec-data-hub.js?v=20260829-agentclean1"></script>
-<script src="inovtec-shell.js?v=20260916-shell-perf1"></script>
 <script>
 (function stripRemovedDisciplineNavigation(){
   const clean=()=>{
