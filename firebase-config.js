@@ -23,15 +23,14 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
           site: item.site || "",
           date: item.date || "",
           niveau: item.niveau || "Observation",
-          statut: "Ouvert",
+          statut: item.statut || "Ouvert",
           responsable: item.resp || "",
           motif: item.motif || "",
           temoins: item.tem || "",
           description: item.desc || "",
           suite: "",
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          migratedFromLegacy: true
+          updatedAt: new Date().toISOString()
         }));
         localStorage.setItem("inovtec_discipline_v2", JSON.stringify(migrated));
       }
@@ -44,13 +43,21 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
 (() => {
   try {
     if (window.top !== window) return;
-    if (document.querySelector('script[data-inovtec-firebase-operational="1"]')) return;
-    const script = document.createElement("script");
-    script.src = "inovtec-firebase-operational-guard.js?v=20260829-operational1";
-    script.dataset.inovtecFirebaseOperational = "1";
-    script.async = false;
-    (document.head || document.documentElement).appendChild(script);
+    if (!document.querySelector('script[data-inovtec-firebase-operational="1"]')) {
+      const script = document.createElement("script");
+      script.src = "inovtec-firebase-operational-guard.js?v=20260829-operational1";
+      script.dataset.inovtecFirebaseOperational = "1";
+      script.async = false;
+      (document.head || document.documentElement).appendChild(script);
+    }
+    if (!document.querySelector('script[data-iv-stable-ui="1"]') && !window.__INOVTEC_UI_STABILITY_V1__) {
+      const script = document.createElement("script");
+      script.src = "inovtec-ui-stability.js?v=20260917-ui-stable2";
+      script.dataset.ivStableUi = "1";
+      script.async = false;
+      (document.head || document.documentElement).appendChild(script);
+    }
   } catch (error) {
-    console.warn("Chargement du garde-fou Firebase ignoré", error);
+    console.warn("Chargement des services Firebase ignoré", error);
   }
 })();
