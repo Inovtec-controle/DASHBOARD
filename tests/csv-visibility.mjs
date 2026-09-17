@@ -18,10 +18,11 @@ try{
    if(!await page.locator('#'+id).isVisible())throw Error('Une fonction non CSV a été masquée : '+id);
  }
  const nested=page.frameLocator('#nested');
- await nested.locator('#nestedCsv').waitFor();
+ await nested.locator('#nestedCsv').waitFor({state:'attached'});
  await page.waitForFunction(()=>{
    const doc=document.querySelector('#nested')?.contentDocument;
-   return doc&&getComputedStyle(doc.getElementById('nestedCsv')).display==='none';
+   const button=doc?.getElementById('nestedCsv');
+   return button&&getComputedStyle(button).display==='none';
  });
  if(!await nested.locator('#nestedPdf').isVisible())throw Error('Export PDF du cadre masqué par erreur');
  await page.evaluate(()=>{
