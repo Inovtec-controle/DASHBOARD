@@ -6,6 +6,25 @@ window.__INOVTEC_COMMON_HEADER_V1__=true;
 const DATE=new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 const TIME=new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit'});
 const STYLES=`
+/* Le fond de Planning des équipes est la référence unique de tous les en-têtes. */
+.iv-shell .iv-hero,.c3-app .c3-hero-banner,.shell .hero{background:linear-gradient(110deg,#064e3b 0%,#056647 53%,#0c7a57 100%)!important;color:#fff!important;box-shadow:0 12px 28px rgba(4,78,59,.18)!important;border-color:rgba(255,255,255,.12)!important}
+.c3-app .c3-hero-banner .c3-hero-copy h1,.c3-app .c3-hero-banner .c3-hero-copy h1 span{color:#fff!important}
+.c3-app .c3-hero-banner .c3-hero-copy p{color:#e5f8ef!important}
+.c3-app .c3-hero-banner .c3-hero-kicker{color:#a7f3d0!important;background:rgba(3,63,50,.35)!important;border-color:rgba(167,243,208,.25)!important}
+.c3-app .c3-hero-banner .c3-hero-art{display:none!important}
+.c3-app .c3-hero-banner .c3-hero-copy{position:relative;z-index:4}
+.shell .hero>div:first-child,.shell .hero>a{position:relative;z-index:4}
+/* Reprise des mêmes ornements que .iv-geometry dans inovtec-shell.css. */
+.iv-shared-backdrop{position:absolute;inset:0 0 0 43%;z-index:1;overflow:hidden;opacity:.96;pointer-events:none}
+.iv-shared-backdrop .iv-circle{position:absolute;border:1px solid rgba(167,243,208,.42);border-radius:50%}
+.iv-shared-backdrop .iv-circle.a{width:180px;height:180px;left:17%;top:10px}
+.iv-shared-backdrop .iv-circle.b{width:260px;height:260px;right:-60px;bottom:-180px}
+.iv-shared-backdrop .iv-rect{position:absolute;border:1px solid rgba(255,255,255,.17);background:linear-gradient(135deg,rgba(110,231,183,.24),rgba(255,255,255,.03))}
+.iv-shared-backdrop .iv-rect.a{width:110px;height:126px;left:45%;top:35px}
+.iv-shared-backdrop .iv-rect.b{width:145px;height:85px;left:62%;top:75px}
+.iv-shared-backdrop .iv-dots{position:absolute;width:135px;height:85px;left:6%;top:40px;background-image:radial-gradient(rgba(167,243,208,.55) 1px,transparent 1px);background-size:10px 10px}
+.iv-shared-backdrop .iv-diag{position:absolute;height:1px;width:90%;background:rgba(255,255,255,.2);transform:rotate(-42deg);transform-origin:left}
+.iv-shared-backdrop .iv-diag.one{left:5%;top:95%}.iv-shared-backdrop .iv-diag.two{left:27%;top:75%}.iv-shared-backdrop .iv-diag.three{left:48%;top:56%}
 .iv-header-tile{box-sizing:border-box!important;position:absolute;right:22px;top:16px;bottom:auto!important;z-index:8;display:flex!important;flex-direction:column;justify-content:center;align-items:center;gap:3px;width:210px;min-width:0!important;min-height:94px;padding:11px 12px 8px;border-radius:13px;border:1px solid rgba(255,255,255,.1);background:#074735;color:#fff;text-align:center;box-shadow:0 7px 18px rgba(0,35,23,.13);font-family:Inter,system-ui,sans-serif;line-height:1.35;transform:none!important;backdrop-filter:none!important}
 .iv-header-tile .iv-head-date{display:block!important;font-size:12px!important;line-height:1.4!important;font-weight:800!important;letter-spacing:0!important;color:#fff!important;white-space:normal!important;text-align:center!important;margin:0!important}
 .iv-header-tile .iv-head-time{display:block!important;font-size:11px!important;line-height:1.4!important;font-weight:650!important;letter-spacing:0!important;color:#e1f7e9!important;margin:0!important}
@@ -17,6 +36,7 @@ const STYLES=`
 .shell .hero{position:relative;padding-right:250px;min-height:140px}
 .shell .hero .iv-header-tile{right:20px;top:18px}
 @media(max-width:800px){
+ .iv-shared-backdrop{inset:0 0 0 24%}
  .iv-shell .iv-hero{padding-right:18px!important;min-height:142px;display:flex;flex-direction:column;align-items:stretch;gap:12px}
  .iv-shell .iv-hero .iv-header-tile{position:relative;right:auto;top:auto;align-self:flex-end;width:168px;min-height:77px;padding:7px 9px 6px;margin:0;flex:0 0 auto}
  .c3-hero-banner{display:flex;flex-direction:column;gap:13px}
@@ -30,6 +50,12 @@ const STYLES=`
 `;
 function style(){if(document.getElementById('ivCommonHeaderStyle'))return;const s=document.createElement('style');s.id='ivCommonHeaderStyle';s.textContent=STYLES;(document.head||document.documentElement).appendChild(s)}
 let tile=null;
+function matchingBackdrop(hero){
+ if(hero.querySelector('.iv-shared-backdrop'))return;
+ const backdrop=document.createElement('div');backdrop.className='iv-shared-backdrop';backdrop.setAttribute('aria-hidden','true');
+ ['iv-dots','iv-circle a','iv-circle b','iv-rect a','iv-rect b','iv-diag one','iv-diag two','iv-diag three'].forEach(classes=>{const shape=document.createElement('span');shape.className=classes;backdrop.appendChild(shape)});
+ hero.appendChild(backdrop);
+}
 function init(){
  style();
  const shell=document.querySelector('.iv-shell .iv-hero');
@@ -37,6 +63,7 @@ function init(){
  const reassort=document.querySelector('.shell .hero');
  const hero=shell||home||reassort;
  if(!hero)return;
+ if(home||reassort)matchingBackdrop(hero);
  const existing=hero.querySelector('.iv-header-tile');
  if(existing){tile=existing;tick();return;}
  const old=shell?.querySelector('.iv-date');
