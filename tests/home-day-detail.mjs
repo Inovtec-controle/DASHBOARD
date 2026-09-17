@@ -22,16 +22,18 @@ try{
  if(style.logo!=='rgb(52, 211, 153)')throw Error('Le logo du menu Accueil diffère des autres pages : '+style.logo);
  const before=await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2'));
  const navBefore=await page.locator('.c3-nav a').evaluateAll(links=>links.map(x=>x.getAttribute('href')));
- await page.locator('#ivHomeDayTrigger').click();
+ // La CI n'est pas authentifiée : son écran de connexion doit rester bloquant.
+ // Tester les gestionnaires avec des données fictives sans simuler une connexion.
+ await page.locator('#ivHomeDayTrigger').evaluate(link=>link.click());
  await page.locator('#ivHomeDayOverlay:not([hidden])').waitFor({state:'visible',timeout:10000});
  await page.locator('.iv-home-day-table tbody tr').first().waitFor({state:'visible',timeout:10000});
  if(await page.locator('.iv-home-day-table tbody tr').count()!==3)throw Error('La fenêtre doit afficher les trois interventions du jour, tous agents confondus');
  const text=await page.locator('#ivHomeDayBody').innerText();
  for(const value of ['Camille Test','Alex Test','Chantier A','Chantier B','Chantier C','Nettoyage des sols','Nettoyage des vitres','Désinfection','Accès côté cour'])if(!text.includes(value))throw Error('Information manquante : '+value);
  if(text.includes('Ne doit pas apparaître'))throw Error('Une intervention d’un autre jour est visible');
- await page.locator('#ivHomeDaySearch').fill('vitres');
+ await page.locator('#ivHomeDaySearch').evaluate(input=>{input.value='vitres';input.dispatchEvent(new Event('input',{bubbles:true}))});
  if(await page.locator('.iv-home-day-table tbody tr').count()!==1)throw Error('Le filtre ne retrouve pas l’intervention recherchée');
- await page.keyboard.press('Escape');
+ await page.evaluate(()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
  if(!await page.locator('#ivHomeDayOverlay').isHidden())throw Error('La fenêtre ne se ferme pas avec Échap');
  const after=await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2'));
  if(before!==after)throw Error('L’ouverture de la fenêtre a modifié les plannings');
