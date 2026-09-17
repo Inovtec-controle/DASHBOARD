@@ -24,7 +24,7 @@ try{
  await page.locator('#entries .entry').filter({hasText:'Initial A'}).locator('.edit').click();
  await page.evaluate(()=>{const f=window.__varFixture,d=JSON.parse(f.doc.moduleSyncV1.variables.payload);d.entries.find(r=>r.id==='h-a').note='Téléphone';d.entries.find(r=>r.id==='h-a').updatedAt='2026-09-18T14:00:00.000Z';f.doc.moduleSyncV1.variables.payload=JSON.stringify(d);f.emit()});
  await page.fill('#formNote','Ancien ordinateur');await page.click('#variableForm [type=submit]');
- await page.waitForFunction(()=>document.querySelector('#variablesFirebaseNotice')?.textContent?.includes('changé'));
+ await page.waitForFunction(()=>document.querySelector('#variableModal')?.classList.contains('open'));
  assert.equal((await rows()).find(r=>r.id==='h-a').note,'Téléphone');
  console.log('OK : modifier une fiche ouverte avant la mise à jour du téléphone est refusé');
  await page.click('#cancelVariable');await page.locator('#entries .entry').filter({hasText:'Téléphone'}).locator('.edit').click();await page.fill('#formNote','Après actualisation');await page.click('#variableForm [type=submit]');
