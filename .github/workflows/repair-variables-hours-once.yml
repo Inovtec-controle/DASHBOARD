@@ -1,0 +1,35 @@
+name: Repair Variables hours synchronization once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-variables-hours-once.yml'
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Corriger les écritures heures et statuts sans toucher aux autres modules
+        run: |
+          set -euo pipefail
+          python3 scripts/repair-variables-hours-sync.py
+          node --check variables.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('variables.js').read_text(encoding='utf-8')
+          assert 'async function saveAndPush(reason)' in s
+          assert 'firestore().runTransaction(async tx=>' in s
+          assert 'if(reason==="migration"&&raw)' in s
+          assert 'mergeState(' not in s
+          assert 'variablesCloudReady=confirmed' in s
+          print('Source atomique et garde anti-écrasement vérifiées')
+          PY
+          git diff --check
+          git config user.name 'Inovtec Sync Bot'
+          git config user.email 'sync-bot@users.noreply.github.com'
+          git add variables.js
+          git commit -m 'Protège les heures et statuts Variables contre les écritures concurrentes'
+          git push origin HEAD:main
