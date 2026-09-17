@@ -50,7 +50,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
       if (doc.getElementById('materialFrame')?.contentWindow === window) {
         if (!doc.querySelector('script[data-iv-common-header="1"]') && !p.__INOVTEC_COMMON_HEADER_V1__) {
           const header = doc.createElement('script');
-          header.src = 'inovtec-common-header.js?v=20260917-common-header1';
+          header.src = 'inovtec-common-header.js?v=20260917-planning-background1';
           header.dataset.ivCommonHeader = '1';
           header.async = false;
           (doc.head || doc.documentElement).appendChild(header);
@@ -67,7 +67,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
     }
     if (!document.querySelector('script[data-iv-common-header="1"]') && !window.__INOVTEC_COMMON_HEADER_V1__) {
       const header = document.createElement('script');
-      header.src = 'inovtec-common-header.js?v=20260917-common-header1';
+      header.src = 'inovtec-common-header.js?v=20260917-planning-background1';
       header.dataset.ivCommonHeader = '1';
       header.async = false;
       (document.head || document.documentElement).appendChild(header);
