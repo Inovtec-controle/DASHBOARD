@@ -61,6 +61,19 @@ try{
  if(copies.length!==1||copies[0].task!=='Intervention commune'||copies[0]._teamInheritedFrom!=='test_team_agent_1')throw Error('Le planning commun n’a pas été recopié dans la semaine libre');
  if((result.weeks?.['2026-W37']||[]).length!==2)throw Error('Une intervention existante a été modifiée ou dupliquée');
  if((result.weeks?.['2026-W38']||[]).length!==2)throw Error('Une semaine libre a reçu un nombre incorrect d’interventions');
- console.log('OK : clic droit Classeur agents, équipe enregistrée, planning libre partagé et interventions individuelles préservées.');
+ // Le membre personnalise ensuite son créneau initialement partagé :
+ // réenregistrer l'équipe ne doit jamais effacer cette intervention.
+ await page.evaluate(()=>{
+  const s=JSON.parse(localStorage.getItem('inovtec_plannings_v2'));
+  s.weeks['2026-W38'].find(e=>e.agentId==='test_team_agent_2').start='10:45';
+  localStorage.setItem('inovtec_plannings_v2',JSON.stringify(s));
+ });
+ await frame.locator('#ivTeamModal').evaluate(()=>window.InovtecSafeTeamPlanning.open('test_team_agent_1'));
+ await frame.locator('#ivTeamSave').evaluate(button=>button.click());
+ const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('inovtec_plannings_v2')||'{}'));
+ const personalised=after.weeks['2026-W38'].find(e=>e.agentId==='test_team_agent_2');
+ if(personalised.start!=='10:45'||after.weeks['2026-W38'].length!==2)throw Error('Le créneau auparavant partagé puis personnalisé a été écrasé');
+ if(!after.teamPlanning.teams[0].exceptions?.['2026-W38']?.includes('test_team_agent_2'))throw Error('Le créneau personnalisé n’a pas été marqué comme exception');
+ console.log('OK : clic droit et planning d’équipe, créneaux libres partagés, interventions individuelles et personnalisations ultérieures préservées.');
  await browser.close();
 }catch(error){await browser.close();throw error}
