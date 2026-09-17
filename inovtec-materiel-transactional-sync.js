@@ -54,11 +54,14 @@ async function change(kind){
 }
 function interceptSubmit(event){if(event.target?.id!=='materialForm')return;event.preventDefault();event.stopImmediatePropagation();change('upsert').catch(e=>report('Sauvegarde refusée : '+String(e?.message||e)));}
 function interceptDelete(event){if(!event.target?.closest?.('#deleteBtn'))return;event.preventDefault();event.stopImmediatePropagation();change('delete').catch(e=>report('Suppression refusée : '+String(e?.message||e)));}
-// Les anciens gestionnaires réécrivent tout l'inventaire à partir du navigateur.
-// La capture les remplace, sans modifier la présentation ni le code Réassort.
+function interceptSaveClick(event){if(!event.target?.closest?.('#materialForm button[type="submit"]'))return;event.preventDefault();event.stopImmediatePropagation();change('upsert').catch(e=>report('Sauvegarde refusée : '+String(e?.message||e)));}
+// Interception en capture du clic et de la validation clavier, avant les anciens
+// gestionnaires qui écraseraient l'inventaire à partir du navigateur.
 document.addEventListener('submit',interceptSubmit,true);
+document.addEventListener('click',interceptSaveClick,true);
 document.addEventListener('click',interceptDelete,true);
 document.addEventListener('click',interceptEdit,true);
+function bindForm(){const form=$('materialForm');if(form&&!form.__ivTxBound){form.__ivTxBound=true;form.addEventListener('submit',interceptSubmit,true);}}
 function start(user){
  if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null;}
  uid=user?.uid||null;doc=null;confirmed=false;ready=false;editBase=null;
@@ -73,6 +76,7 @@ function start(user){
  },error=>{confirmed=false;ready=false;console.warn('Matériel : lecture Firebase',error);report('Connexion Firebase indisponible · modifications suspendues');});
 }
 function boot(){
+ bindForm();
  if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG||!firebase.auth||!firebase.firestore){setTimeout(boot,150);return;}
  try{if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();auth.onAuthStateChanged(start);
  window.addEventListener('offline',()=>{confirmed=false;report('Hors ligne · modifications suspendues pour éviter toute perte');});
