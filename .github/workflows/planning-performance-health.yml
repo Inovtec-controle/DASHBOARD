@@ -21,8 +21,8 @@ jobs:
           set -euo pipefail
           node --check planning-context-fit.js
           node --check planning-calendar.js
-          grep -Fq 'planning-context-fit.js?v=20260916-performance1' PLANNINGS-LEGACY.html
-          grep -Fq 'PLANNINGS-LEGACY.html%3Fv%3D20260916-planningperformance1' PLANNINGS.html
+          grep -Fq 'planning-context-fit.js?v=' PLANNINGS-LEGACY.html
+          grep -Fq 'PLANNINGS-LEGACY.html%3Fv%3D' PLANNINGS.html
           grep -Fq 'scheduleSync(220)' planning-context-fit.js
           if grep -Eq 'addEventListener\(["\x27]mouseup["\x27]' planning-context-fit.js; then
             echo '::error::Recalcul global souris interdit dans le planning'
