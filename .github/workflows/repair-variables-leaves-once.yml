@@ -1,0 +1,41 @@
+name: Repair Variables leaves synchronization once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-variables-leaves-once.yml'
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Apply scoped source correction
+        run: |
+          set -euo pipefail
+          python3 scripts/repair-variables-leaves-sync.py
+          node --check variables.js
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('variables.js').read_text()
+          assert 'async function saveLeaveChange(kind,record,expected)' in source
+          assert 'firestore().runTransaction(async tx=>' in source
+          assert 'pushLeaves(' not in source
+          assert 'includeMetadataChanges:true' in source
+          print('Variables: source transactionnel et syntaxe JavaScript vérifiés')
+          PY
+      - name: Commit targeted changes
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name 'Inovtec Sync Bot'
+          git config user.email 'sync-bot@users.noreply.github.com'
+          git add variables.js
+          git diff --cached --quiet && { echo 'No source changes'; exit 0; }
+          git commit -m 'Sécurise les absences Variables avec transactions Firebase et suppressions conservées'
+          git push origin HEAD:main
