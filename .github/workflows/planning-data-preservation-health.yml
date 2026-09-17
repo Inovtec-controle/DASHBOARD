@@ -1,0 +1,37 @@
+name: Planning data preservation health
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'PLANNINGS-LEGACY.html'
+      - 'PLANNINGS.html'
+      - 'planning-protect-existing.js'
+      - 'RECUPERATION-PLANNING.html'
+      - '.github/workflows/planning-data-preservation-health.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier la protection et la page de récupération
+        run: |
+          set -euo pipefail
+          node --check planning-protect-existing.js
+          node <<'NODE'
+          const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+          const planning=fs.readFileSync('PLANNINGS-LEGACY.html','utf8');
+          const diagnostic=fs.readFileSync('RECUPERATION-PLANNING.html','utf8');
+          const protection=fs.readFileSync('planning-protect-existing.js','utf8');
+          assert(planning.indexOf('planning-protect-existing.js')<planning.indexOf('planning-calendar.js'),'Protection chargée avant le calendrier');
+          assert(protection.includes('iv_planning_preservation_20260917_before_autosync'));
+          assert(protection.includes('__INOVTEC_PLANNING_TEAMS_V1__=true'));
+          assert(protection.includes('__INOVTEC_PLANNING_STANDARD_RECURRENCE_V2__=true'));
+          assert(!/localStorage\.setItem\s*\(\s*KEY\b/.test(diagnostic),'Le diagnostic ne doit pas modifier la clé métier');
+          const scripts=[...diagnostic.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(x=>x.trim());
+          assert(scripts.length>0,'Script de diagnostic absent');
+          scripts.forEach((js,i)=>new vm.Script(js,{filename:'RECUPERATION-PLANNING.html:inline-'+i}));
+          console.log('PASS : syntaxe, ordre de sauvegarde et lecture seule du diagnostic');
+          NODE
