@@ -1,0 +1,36 @@
+name: Refresh Firebase browser scripts once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/refresh-firebase-cache-once.yml'
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Versionner les scripts corrigés pour contourner les anciens caches
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          for name,old,new in [
+            ('VARIABLES-LEGACY.html','variables.js?v=20260825-1','variables.js?v=20260918-firebase-tx1'),
+            ('CONGES-LEGACY.html','conges.js?v=20260820-auth-recovery1','conges.js?v=20260918-firebase-tx2'),
+          ]:
+            p=Path(name); source=p.read_text(encoding='utf-8')
+            assert source.count(old)==1, f'{name}: version inattendue, aucune modification'
+            p.write_text(source.replace(old,new,1),encoding='utf-8')
+          print('Versions de scripts ordinateur et téléphone mises à jour')
+          PY
+          node --check variables.js
+          node --check conges.js
+          git diff --check
+          git config user.name 'Inovtec Sync Bot'
+          git config user.email 'sync-bot@users.noreply.github.com'
+          git add VARIABLES-LEGACY.html CONGES-LEGACY.html
+          git commit -m 'Rafraîchit les scripts Firebase des modules Variables et Congés'
+          git push origin HEAD:main
