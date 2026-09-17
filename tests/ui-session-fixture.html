@@ -1,0 +1,18 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Test connexion Inovtec</title></head><body><div class="iv-shell"><nav id="desktopNav" class="iv-nav" aria-label="Navigation principale"></nav><nav id="mobileNav" class="iv-mobile-nav" aria-label="Navigation mobile"></nav><iframe id="legacyFrame" title="Page interne"></iframe></div><script>
+(()=>{
+ const observers=[];
+ let current=localStorage.getItem('iv_fixture_signed_in')==='yes'?{uid:'fixture-user'}:null;
+ const authentication={
+ onAuthStateChanged(callback){observers.push(callback);queueMicrotask(()=>callback(current));return()=>{}},
+ async setPersistence(value){window.__fixture_persistence=value},
+ async signInWithEmailAndPassword(email,password){
+  if(email!=='test@example.test'||password!=='mot-de-passe-test'){const e=new Error('Identifiants incorrects');e.code='auth/invalid-credential';throw e}
+  current={uid:'fixture-user'};localStorage.setItem('iv_fixture_signed_in','yes');observers.forEach(callback=>callback(current));return{user:current};
+ }
+ };
+ function auth(){return authentication}
+ auth.Auth={Persistence:{LOCAL:'local',SESSION:'session'}};
+ window.firebase={apps:[],initializeApp(config){this.apps.push(config)},auth,firestore:()=>({})};
+ window.INOVTEC_FIREBASE_CONFIG={projectId:'fixture-only'};
+})();
+</script><script src="../inovtec-ui-stability.js"></script></body></html>
