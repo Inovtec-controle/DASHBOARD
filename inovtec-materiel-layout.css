@@ -1,0 +1,32 @@
+/* Mise en page exclusive au module Matériel. Aucune autre page n'est concernée. */
+html,body{height:auto!important;min-height:0!important;overflow-x:hidden!important;overflow-y:visible!important}
+.page{max-width:none!important;width:100%;padding:16px 18px 24px!important}
+.layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:16px!important}
+.layout>.panel{min-width:0}
+.panel.form-panel{order:0!important}
+.form-panel .grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.grid .full,.section-title{grid-column:1/-1!important}
+.table-wrap{overflow:visible!important;max-height:none!important}
+.table{width:100%!important;min-width:0!important}
+.table th,.table td{overflow-wrap:anywhere}
+.toolbar{flex-wrap:wrap!important}
+@media(max-width:1350px){
+ .table,.table tbody{display:block!important;width:100%!important;min-width:0!important}
+ .table thead{display:none!important}
+ .table tbody{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px;padding:12px}
+ .table tbody tr{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px 12px;align-content:start;border:1px solid #dce9e2;border-radius:14px;background:#fff;padding:14px;box-shadow:0 4px 12px rgba(15,23,42,.04);min-width:0}
+ .table tbody td{display:block!important;border:0!important;padding:0!important;min-width:0!important;font-size:12px;overflow-wrap:anywhere}
+ .table tbody td:first-child{grid-column:1/-1;font-size:14px;padding-bottom:8px!important;border-bottom:1px solid #edf3ef!important}
+ .table tbody td:last-child{grid-column:1/-1;justify-self:end}
+ .table tbody td:not(:first-child):not(:last-child)::before{display:block;color:#73887e;font-size:9px;letter-spacing:.04em;text-transform:uppercase;font-weight:800;margin-bottom:3px}
+ .table tbody td:nth-child(2)::before{content:'Catégorie'}
+ .table tbody td:nth-child(3)::before{content:'Référence'}
+ .table tbody td:nth-child(4)::before{content:'Quantité'}
+ .table tbody td:nth-child(5)::before{content:'Fournisseur'}
+ .table tbody td:nth-child(6)::before{content:'Affectation'}
+ .table tbody td:nth-child(7)::before{content:'État'}
+ .table tbody td:nth-child(8)::before{content:'Maintenance'}
+ .table tbody td:nth-child(9)::before{content:'Valeur'}
+}
+@media(max-width:900px){.form-panel .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}.page{padding:12px!important}}
+@media(max-width:520px){.form-panel .grid{grid-template-columns:1fr!important}.table tbody{grid-template-columns:1fr}.toolbar .search{min-width:0!important;width:100%!important}.filters{width:100%}.filters select{flex:1;min-width:0!important}.page{padding:8px!important}}
