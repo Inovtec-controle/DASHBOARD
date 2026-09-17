@@ -15,22 +15,30 @@ if(mode==="conges"&&!document.querySelector('script[data-iv-conges-full-list="1"
   s.async=false;
   document.head.appendChild(s);
 }
-// Matériel : le menu Accueil et le menu des pages sont recréés par plusieurs scripts.
-// Ajouter le lien après chaque reconstruction sans toucher à la présentation existante.
-function addMaterielLink(nav){
-  if(!nav||nav.querySelector('a[href^="MATERIEL.html"]'))return;
+// Les menus sont parfois reconstruits : rétablir les liens sans modifier les autres entrées.
+function ensureInventoryLinks(nav){
+  if(!nav)return;
   const shell=nav.id==="desktopNav"||nav.classList.contains("iv-nav");
-  const a=document.createElement("a");
-  a.href="MATERIEL.html";
-  a.dataset.ivMenuKey="materiel";
-  a.innerHTML=shell?'<span class="iv-ico">▣</span><span>Matériel</span>':'<span class="ico">▣</span><span>Matériel</span>';
-  const anchor=[...nav.querySelectorAll('a')].find(el=>/AGENTS\.html/i.test(el.getAttribute('href')||''));
-  if(anchor)anchor.insertAdjacentElement("afterend",a);else nav.appendChild(a);
+  const ico=shell?'iv-ico':'ico';
+  let materiel=nav.querySelector('a[href^="MATERIEL.html"]');
+  if(!materiel){
+    materiel=document.createElement('a');
+    materiel.href='MATERIEL.html';
+    materiel.dataset.ivMenuKey='materiel';
+    materiel.innerHTML=`<span class="${ico}">▣</span><span>Matériel</span>`;
+    const anchor=[...nav.querySelectorAll('a')].find(el=>/AGENTS\.html/i.test(el.getAttribute('href')||''));
+    if(anchor)anchor.insertAdjacentElement('afterend',materiel);else nav.appendChild(materiel);
+  }
+  if(!nav.querySelector('a[href^="REASSORT.html"]')){
+    const reassort=document.createElement('a');
+    reassort.href='REASSORT.html';
+    reassort.dataset.ivMenuKey='reassort';
+    reassort.innerHTML=`<span class="${ico}">↻</span><span>Réassort</span>`;
+    materiel.insertAdjacentElement('afterend',reassort);
+  }
 }
-function ensureMaterielNav(){
-  document.querySelectorAll('.c3-nav,#desktopNav,.m1-sidebar .m1-nav,.sidebar .nav').forEach(addMaterielLink);
-}
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",ensureMaterielNav);else ensureMaterielNav();
-const observer=new MutationObserver(ensureMaterielNav);
+function ensureNav(){document.querySelectorAll('.c3-nav,#desktopNav,.iv-nav,.m1-sidebar .m1-nav,.sidebar .nav').forEach(ensureInventoryLinks)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureNav);else ensureNav();
+const observer=new MutationObserver(ensureNav);
 observer.observe(document.documentElement,{childList:true,subtree:true});
 })();
