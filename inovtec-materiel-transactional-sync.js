@@ -19,7 +19,6 @@ async function change(kind){
  let item=null;
  if(kind==='upsert'){try{item=values()}catch(e){report(String(e?.message||e));return;}}
  if(kind==='delete'&&!id)return;
- if(kind==='delete'&&!confirm('Supprimer ce matériel ?'))return;
  const newId=id||('m_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,11));
  const signature=formSignature(),baseline=editBase?.id===id?editBase.record:null;
  busy=true;report('Enregistrement Firebase en cours…');
