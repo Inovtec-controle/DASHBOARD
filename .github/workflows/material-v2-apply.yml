@@ -1,0 +1,57 @@
+name: Apply Material V2 UI
+on:
+  push:
+    paths:
+      - '.github/workflows/material-v2-apply.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add the scoped visual layer and update existing browser checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          legacy=Path('MATERIEL-LEGACY.html')
+          text=legacy.read_text(encoding='utf-8')
+          css='<link rel="stylesheet" href="inovtec-materiel-redesign.css?v=20260919-v2">'
+          js='<script defer src="inovtec-materiel-redesign.js?v=20260919-v2"></script>'
+          assert text.count('</head>')==1 and text.count('</body></html>')==1
+          if css not in text:
+              text=text.replace('</head>',css+'\n</head>',1)
+          if js not in text:
+              text=text.replace('</body></html>',js+'\n</body></html>',1)
+          legacy.write_text(text,encoding='utf-8')
+          outer=Path('MATERIEL.html')
+          text=outer.read_text(encoding='utf-8')
+          assert 'MATERIEL-LEGACY.html?v=20260917-layout2' in text
+          text=text.replace('MATERIEL-LEGACY.html?v=20260917-layout2','MATERIEL-LEGACY.html?v=20260919-material-v2',1)
+          css_outer='body.iv-materiel-full-page #exportMaterial{display:none!important}'
+          if css_outer not in text:
+              text=text.replace('</style>',css_outer+'\n</style>',1)
+          outer.write_text(text,encoding='utf-8')
+          tests=Path('tests/materiel-transaction-sync.mjs')
+          text=tests.read_text(encoding='utf-8')
+          needle=" await page.locator('#name').fill('Balai neuf');"
+          assert text.count(needle)==1
+          text=text.replace(needle," await page.locator('#ivAddButton').click();\n"+needle,1)
+          tests.write_text(text,encoding='utf-8')
+          browser=Path('.github/workflows/browser-smoke.yml')
+          text=browser.read_text(encoding='utf-8')
+          needle='          node tests/materiel-transaction-sync.mjs'
+          assert text.count(needle)==1
+          text=text.replace(needle,needle+'\n          node tests/materiel-redesign.mjs',1)
+          browser.write_text(text,encoding='utf-8')
+          PY
+          node --check inovtec-materiel-redesign.js
+          node --check tests/materiel-redesign.mjs
+          git config user.name 'Inovtec UI automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add MATERIEL.html MATERIEL-LEGACY.html tests/materiel-transaction-sync.mjs .github/workflows/browser-smoke.yml
+          git commit -m 'feat(material): activate visual dashboard while preserving Firebase transactions'
+          git push origin HEAD:main
