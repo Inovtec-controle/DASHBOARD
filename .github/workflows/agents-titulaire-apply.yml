@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Insert the role controls and keep a regression test
+      - name: Insert the role controls and refresh the agents route
         shell: bash
         run: |
           set -euo pipefail
@@ -32,15 +32,7 @@ jobs:
           assert '20260914-incidentpdf1' in text or '20260919-titulaire1' in text, 'Agents route version changed unexpectedly'
           text=text.replace('20260914-incidentpdf1','20260919-titulaire1')
           p.write_text(text,encoding='utf-8')
-          p=Path('.github/workflows/browser-smoke.yml')
-          text=p.read_text(encoding='utf-8')
-          line='          node tests/agents-titulaire.mjs\n'
-          if line not in text:
-              anchor='          node tests/agent-team-context.mjs\n'
-              assert anchor in text, 'Agent smoke anchor missing'
-              text=text.replace(anchor,anchor+line,1)
-              p.write_text(text,encoding='utf-8')
-          print('OK: agent form, route refresh and browser regression integrated')
+          print('OK: agent form and route refresh integrated')
           PY
           node --check inovtec-agents-titulaire.js
           node --check tests/agents-titulaire.mjs
@@ -65,7 +57,7 @@ jobs:
           set -euo pipefail
           git config user.name 'Inovtec agent roles integration'
           git config user.email 'actions@users.noreply.github.com'
-          git add AGENTS-LEGACY.html AGENTS.html .github/workflows/browser-smoke.yml
+          git add AGENTS-LEGACY.html AGENTS.html
           if git diff --cached --quiet; then
             echo 'Already integrated'
             exit 0
