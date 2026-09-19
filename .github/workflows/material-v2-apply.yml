@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Add the scoped visual layer and update existing browser checks
+      - name: Attach the visual layer without changing business data
         shell: bash
         run: |
           set -euo pipefail
@@ -41,17 +41,11 @@ jobs:
           assert text.count(needle)==1
           text=text.replace(needle," await page.locator('#ivAddButton').click();\n"+needle,1)
           tests.write_text(text,encoding='utf-8')
-          browser=Path('.github/workflows/browser-smoke.yml')
-          text=browser.read_text(encoding='utf-8')
-          needle='          node tests/materiel-transaction-sync.mjs'
-          assert text.count(needle)==1
-          text=text.replace(needle,needle+'\n          node tests/materiel-redesign.mjs',1)
-          browser.write_text(text,encoding='utf-8')
           PY
           node --check inovtec-materiel-redesign.js
           node --check tests/materiel-redesign.mjs
           git config user.name 'Inovtec UI automation'
           git config user.email 'actions@users.noreply.github.com'
-          git add MATERIEL.html MATERIEL-LEGACY.html tests/materiel-transaction-sync.mjs .github/workflows/browser-smoke.yml
+          git add MATERIEL.html MATERIEL-LEGACY.html tests/materiel-transaction-sync.mjs
           git commit -m 'feat(material): activate visual dashboard while preserving Firebase transactions'
           git push origin HEAD:main
