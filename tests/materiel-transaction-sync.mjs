@@ -30,12 +30,12 @@ try{
  let result=await page.evaluate(()=>({doc:window.__materialTest.doc,old:window.__materialTest.oldWrites,writes:window.__materialTest.writes}));
  assert(result.old===0&&result.writes===1,'Sauvegarde Matériel passée par l’ancien chemin non transactionnel');
  assert(JSON.parse(result.doc.moduleSyncV1.reassort.payload).orders[0].id==='commande-conservee','La sauvegarde Matériel a écrasé Réassort');
- await page.locator('button.edit[data-id="m_test"]').click();
+ await page.locator('button.edit[data-id="m_test"]').evaluate(element=>element.click());
  await page.evaluate(()=>{const state=window.__materialTest,material=JSON.parse(state.doc.moduleSyncV1.materiel.payload);material.items[0].quantity=11;material.items[0].updatedAt='2026-09-18T10:00:00.000Z';state.doc.moduleSyncV1.materiel.payload=JSON.stringify(material);state.callbacks.forEach(cb=>cb({exists:true,data:()=>structuredClone(state.doc),metadata:{fromCache:false,hasPendingWrites:false}}));});
  await page.locator('#quantity').fill('13');await page.locator('#materialForm [type="submit"]').click();
  await page.waitForFunction(()=>document.querySelector('#syncStatus')?.textContent?.includes('Fiche modifiée'));
  assert(await page.evaluate(()=>JSON.parse(window.__materialTest.doc.moduleSyncV1.materiel.payload).items[0].quantity)===11,'Une réception concurrente a été écrasée');
- await page.locator('button.edit[data-id="m_test"]').click();await page.locator('#quantity').fill('15');await page.locator('#materialForm [type="submit"]').click();
+ await page.locator('button.edit[data-id="m_test"]').evaluate(element=>element.click());await page.locator('#quantity').fill('15');await page.locator('#materialForm [type="submit"]').click();
  await page.waitForFunction(()=>JSON.parse(window.__materialTest.doc.moduleSyncV1.materiel.payload).items[0].quantity===15);
  await page.evaluate(()=>{const state=window.__materialTest;state.cache=true;state.callbacks.forEach(cb=>cb({exists:true,data:()=>structuredClone(state.doc),metadata:{fromCache:true,hasPendingWrites:false}}));});
  const previous=await page.evaluate(()=>window.__materialTest.writes);

@@ -13,6 +13,7 @@
 @media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}.panel.form-panel{order:-1}}@media(max-width:650px){.page{padding:10px}.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.grid .full,.section-title{grid-column:1}.filters select{min-width:0;flex:1}.toolbar{align-items:stretch}.search{min-width:100%}}
 </style>
 <link rel="stylesheet" href="inovtec-materiel-redesign.css?v=20260919-v2">
+<link rel="stylesheet" href="inovtec-stock-bureau.css?v=20260919-bureau1">
 </head>
 <body>
 <div id="loginBox" class="login"><div class="login-card"><h2>Connexion Inovtec</h2><p>Connecte-toi pour retrouver et synchroniser le matériel.</p><input id="email" class="field" type="email" placeholder="Adresse e-mail"><input id="password" class="field" type="password" placeholder="Mot de passe"><div id="loginError" class="error"></div><button id="loginBtn" class="btn primary" style="width:100%">Se connecter</button></div></div>
@@ -111,4 +112,5 @@ loadLocal();render();resetForm();initFirebase();
 })();
 </script>
 <script defer src="inovtec-materiel-redesign.js?v=20260919-v2"></script>
+<script defer src="inovtec-stock-bureau.js?v=20260919-bureau1"></script>
 </body></html>

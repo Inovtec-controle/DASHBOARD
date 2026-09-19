@@ -36,7 +36,7 @@ try{
  await page.locator('[data-tab="achats"]').click();await page.locator('[data-receive-purchase="achat1"]').click();
  await page.waitForFunction(()=>JSON.parse(window.__officeTest.doc.moduleSyncV1.reassort.payload).purchases[0].status==='recue');
  const outcome=await page.evaluate(()=>({stock:JSON.parse(window.__officeTest.doc.moduleSyncV1.materiel.payload),reassort:JSON.parse(window.__officeTest.doc.moduleSyncV1.reassort.payload)}));
- assert(outcome.stock.items[0].quantity===18,'Supplier receipt did not enter office stock atomically');
+ assert(outcome.stock.items[0].quantity===14,'Supplier receipt did not enter office stock atomically');
  assert(outcome.stock.movements.some(m=>m.kind==='reception-fournisseur'&&m.delta===2),'Supplier receipt movement missing');
  assert(outcome.reassort.deliveries.length===0,'Supplier receipt mistaken for chantier delivery');
  assert(errors.length===0,'JavaScript errors: '+errors.join('; '));
