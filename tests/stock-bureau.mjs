@@ -1,0 +1,45 @@
+import {chromium} from 'playwright';
+const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const assert=(ok,msg)=>{if(!ok)throw Error(msg)};
+try{
+ const context=await browser.newContext({serviceWorkers:'block'});
+ await context.addInitScript(()=>{
+  const inventory={items:[{id:'m_bureau',name:'Frange microfibre',reference:'FR-1',supplier:'Hygiène',site:'Bureau',quantity:12,minStock:5,price:2},{id:'m_old',name:'Chiffon ancien',site:'Chantier Centre',quantity:7,minStock:2,price:1}],movements:[]};
+  const reassort={orders:[{id:'dem1',workflow:'chantier',materialId:'m_bureau',site:'Centre',name:'Frange microfibre',quantity:3,preparedQuantity:3,preparationSource:'stock',status:'commandee'}],deliveries:[],purchases:[{id:'achat1',supplier:'Hygiène',status:'commandee',reference:'BON-1',lines:[{id:'ligne1',materialId:'m_bureau',name:'Frange microfibre',quantity:2,received:0,allocations:[{orderId:'dem1',site:'Centre',quantity:2}]}],receipts:[]}]};
+  const s={doc:{moduleSyncV1:{materiel:{payload:JSON.stringify(inventory)},reassort:{payload:JSON.stringify(reassort)},agents:{payload:'[]'}}},listeners:[],writes:0};window.__officeTest=s;
+  const merge=(a,b)=>{for(const [k,v] of Object.entries(b))a[k]=v&&typeof v==='object'&&!Array.isArray(v)?merge({...a[k]},v):v;return a};
+  const snapshot=()=>({exists:true,data:()=>structuredClone(s.doc),metadata:{fromCache:false,hasPendingWrites:false}});
+  const ref={onSnapshot(opts,fn){const callback=typeof opts==='function'?opts:fn;s.listeners.push(callback);queueMicrotask(()=>callback(snapshot()));return()=>{s.listeners=s.listeners.filter(x=>x!==callback)}},get:async()=>snapshot(),set:async()=>{throw Error('Non-transactional write')}};
+  const db={collection(name){if(name==='chantiers')return {onSnapshot(fn){queueMicrotask(()=>fn({docs:[{id:'site1',data:()=>({nom:'Centre'})}]}));return()=>{}}};return{doc(id){if(name!=='kanban'||id!=='test-user')throw Error('Wrong path');return ref}}},async runTransaction(fn){let update;const tx={get:async()=>snapshot(),set:(r,changes,opts)=>{if(r!==ref||!opts?.merge)throw Error('Not atomic');update=changes}};await fn(tx);if(update){merge(s.doc,update);s.writes++;queueMicrotask(()=>s.listeners.forEach(cb=>cb(snapshot())))}}};
+  const auth={currentUser:{uid:'test-user',email:'bureau@example.fr'},onAuthStateChanged(cb){queueMicrotask(()=>cb(this.currentUser));return()=>{}},signInWithEmailAndPassword:async()=>{}};
+  window.firebase={apps:[],initializeApp(){this.apps.push({})},auth(){return auth},firestore(){return db}};
+  window.INOVTEC_FIREBASE_CONFIG={projectId:'fake'};
+ });
+ const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('https://www.gstatic.com/firebasejs/**',r=>r.fulfill({status:200,contentType:'application/javascript',body:''}));
+ await page.route('**/firebase-config.js*',r=>r.fulfill({status:200,contentType:'application/javascript',body:'window.INOVTEC_FIREBASE_CONFIG={projectId:"fake"};const t=document.createElement("script");t.src="inovtec-materiel-transactional-sync.js";document.head.appendChild(t);'}));
+ await page.goto('http://127.0.0.1:8765/MATERIEL-LEGACY.html',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>document.querySelector('#ivOfficeSync')?.textContent.includes('synchronisé')&&document.querySelector('#ivOfficeTotal')?.textContent==='12');
+ assert(await page.locator('#ivOfficeAvailable').textContent()==='9','Reservation not deducted from available stock');
+ assert(await page.locator('#ivOfficeLegacyCount').textContent()==='1','Legacy chantier stock silently migrated');
+ assert(await page.locator('#ivOfficeRows tr').count()===1,'Offsite material listed in office stock');
+ await page.locator('#ivOfficeIn').click();await page.locator('#ivOfficeQty').fill('4');await page.locator('#ivOfficeReason').fill('Retour physique confirmé');await page.locator('#ivOfficeSubmit').click();
+ await page.waitForFunction(()=>JSON.parse(window.__officeTest.doc.moduleSyncV1.materiel.payload).items[0].quantity===16);
+ assert(await page.locator('#ivOfficeAvailable').textContent()==='13','Office stock receipt not reflected');
+ assert(await page.evaluate(()=>JSON.parse(window.__officeTest.doc.moduleSyncV1.materiel.payload).movements.length)===1,'Movement not historized');
+ await page.locator('#ivOfficeOut').click();await page.locator('#ivOfficeQty').fill('14');await page.locator('#ivOfficeReason').fill('Test sortie refusée');await page.locator('#ivOfficeSubmit').click();
+ await page.waitForFunction(()=>document.querySelector('#ivOfficeError')?.textContent?.includes('insuffisant'));
+ assert(await page.evaluate(()=>JSON.parse(window.__officeTest.doc.moduleSyncV1.materiel.payload).items[0].quantity)===16,'Reserved inventory incorrectly deducted');
+ await page.locator('#ivOfficeCancel').click();
+ await page.goto('http://127.0.0.1:8765/REASSORT.html',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>document.querySelector('#purchaseList [data-receive-purchase="achat1"]'));
+ await page.locator('[data-tab="achats"]').click();await page.locator('[data-receive-purchase="achat1"]').click();
+ await page.waitForFunction(()=>JSON.parse(window.__officeTest.doc.moduleSyncV1.reassort.payload).purchases[0].status==='recue');
+ const outcome=await page.evaluate(()=>({stock:JSON.parse(window.__officeTest.doc.moduleSyncV1.materiel.payload),reassort:JSON.parse(window.__officeTest.doc.moduleSyncV1.reassort.payload)}));
+ assert(outcome.stock.items[0].quantity===18,'Supplier receipt did not enter office stock atomically');
+ assert(outcome.stock.movements.some(m=>m.kind==='reception-fournisseur'&&m.delta===2),'Supplier receipt movement missing');
+ assert(outcome.reassort.deliveries.length===0,'Supplier receipt mistaken for chantier delivery');
+ assert(errors.length===0,'JavaScript errors: '+errors.join('; '));
+ console.log('OK : bureau uniquement, réservations, mouvements atomiques, sorties protégées et réception fournisseur vers bureau.');
+ await context.close();
+}catch(error){console.error('ÉCHEC STOCK BUREAU : '+String(error?.stack||error));process.exitCode=1}finally{await browser.close()}
