@@ -47,6 +47,7 @@ jobs:
           node tests/chantier-dropdown.mjs
           node tests/csv-visibility.mjs
           node tests/reassort-smoke.mjs
+          node tests/reassort-workflow.mjs
           node tests/materiel-transaction-sync.mjs
           node tests/planning-fixture.mjs
           node tests/firebase-org-migration.mjs
