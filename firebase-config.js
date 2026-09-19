@@ -46,7 +46,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
 (() => {
   if (!/\bMATERIEL-LEGACY\.html$/i.test(location.pathname) || document.querySelector('script[data-iv-material-transaction="1"]')) return;
   const script = document.createElement('script');
-  script.src = 'inovtec-materiel-transactional-sync.js?v=20260918-tx1';
+  script.src = 'inovtec-materiel-transactional-sync.js?v=20260919-direct-delete2';
   script.dataset.ivMaterialTransaction = '1';
   script.async = false;
   (document.head || document.documentElement).appendChild(script);

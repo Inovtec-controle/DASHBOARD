@@ -41,6 +41,16 @@ try{
  const previous=await page.evaluate(()=>window.__materialTest.writes);
  await page.locator('#name').fill('Ne doit pas être enregistré');await page.locator('#materialForm [type="submit"]').click();
  assert(await page.evaluate(()=>window.__materialTest.writes)===previous,'Une écriture a été autorisée sans confirmation du serveur');
+ const dialogs=[];
+ page.on('dialog',dialog=>{dialogs.push(dialog.message());dialog.dismiss();});
+ await page.evaluate(()=>{const state=window.__materialTest;state.cache=false;state.callbacks.forEach(cb=>cb({exists:true,data:()=>structuredClone(state.doc),metadata:{fromCache:false,hasPendingWrites:false}}));});
+ await page.locator('button.edit[data-id="m_test"]').evaluate(element=>element.click());
+ await page.waitForFunction(()=>document.querySelector('#id')?.value==='m_test');
+ await page.locator('#deleteBtn').evaluate(element=>element.click());
+ await page.waitForFunction(()=>!JSON.parse(window.__materialTest.doc.moduleSyncV1.materiel.payload).items.some(item=>item.id==='m_test'),null,{timeout:7000});
+ assert(dialogs.length===0,'Une fenêtre de confirmation apparaît lors de la suppression : '+dialogs.join('; '));
+ assert(await page.evaluate(()=>window.__materialTest.oldWrites)===0,'La suppression ne doit pas utiliser une écriture locale ancienne');
+ assert(await page.evaluate(()=>JSON.parse(window.__materialTest.doc.moduleSyncV1.reassort.payload).orders[0].id)==='commande-conservee','La suppression Matériel a modifié Réassort');
  assert(errors.length===0,'Erreurs JavaScript navigateur : '+errors.join(' ; '));
  console.log('OK : transactions Matériel, préservation Réassort, conflit inter-appareils détecté et sauvegardes hors ligne bloquées.');
  await context.close();
