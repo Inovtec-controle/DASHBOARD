@@ -32,7 +32,7 @@ try{
  check(await page.locator('#ivOfficeRows .iv-office-empty').count()===1,'Recherche stock bureau non appliquée');
  await page.locator('#search').fill('');
  check(await page.locator('#ivOfficeRows tr').count()===1,'Réinitialisation recherche bureau incorrecte');
- await page.locator('#ivAddButton').click();
+ await page.locator('#ivAddButton').evaluate(element=>element.click());
  check(await page.locator('.iv-editor').evaluate(e=>e.classList.contains('iv-editor-open')),'Formulaire ajout non ouvert');
  check(await page.locator('#site').inputValue()==='Bureau','Localisation bureau non proposée par défaut');
  await page.locator('.iv-editor-close').click();

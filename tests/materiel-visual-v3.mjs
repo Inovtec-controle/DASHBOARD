@@ -22,6 +22,9 @@ try{
  await page.waitForFunction(()=>document.querySelector('#materialFrame')?.contentDocument?.querySelector('#ivOfficeRows tr[data-iv-visual="1"]'));
  check(await page.locator('.iv-hero-actions a').count()===2,'Supplier and chantier actions missing');
  check(await page.locator('.iv-hero-actions button').count()===1,'New item action missing');
+ await page.locator('.iv-hero-actions button').click();
+ check(await inner.locator('.iv-editor').evaluate(e=>e.classList.contains('iv-editor-open')),'New article button does not open the real form');
+ await inner.locator('.iv-editor-close').click();
  check(await inner.locator('#ivOfficeTotal').textContent()==='20','Office total not real inventory');
  check(await inner.locator('#ivOfficeAvailable').textContent()==='17','Reservations not reflected');
  check(await inner.locator('#ivVisualAvailable').textContent()==='Disponible : 17 unités','Available indicator not updated');

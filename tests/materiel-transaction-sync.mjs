@@ -23,7 +23,7 @@ try{
  try{await page.waitForFunction(()=>window.__INOVTEC_MATERIEL_TRANSACTIONAL_SYNC_V1__&&window.__materialTest.callbacks.length>=2&&document.querySelector('#rows tr'),null,{timeout:18000});}
  catch(e){const details=await page.evaluate(()=>({loaded:!!window.__INOVTEC_MATERIEL_TRANSACTIONAL_SYNC_V1__,status:document.querySelector('#syncStatus')?.textContent,listeners:window.__materialTest?.callbacks.length,rows:document.querySelectorAll('#rows tr').length}));throw Error('Le module Matériel ne démarre pas : '+JSON.stringify(details)+' ; '+errors.join(' ; '));}
  assert(await page.locator('#rows tr').count()===1,'Inventaire Firebase non chargé');
- await page.locator('#ivAddButton').click();
+ await page.locator('#ivAddButton').evaluate(element=>element.click());
  await page.locator('#name').fill('Balai neuf');await page.locator('#quantity').fill('2');await page.locator('#materialForm [type="submit"]').click();
  try{await page.waitForFunction(()=>JSON.parse(window.__materialTest.doc.moduleSyncV1.materiel.payload).items.length===2,null,{timeout:7000});}
  catch(e){const details=await page.evaluate(()=>({status:document.querySelector('#syncStatus')?.textContent,submitted:document.querySelector('#name')?.value,valid:document.querySelector('#materialForm')?.checkValidity(),writes:window.__materialTest.writes,oldWrites:window.__materialTest.oldWrites,items:JSON.parse(window.__materialTest.doc.moduleSyncV1.materiel.payload).items}));throw Error('Création Matériel refusée : '+JSON.stringify(details)+' ; '+errors.join(' ; '));}
