@@ -1,0 +1,77 @@
+name: Apply material direct deletion without confirmation
+on:
+  push:
+    paths:
+      - '.github/workflows/material-delete-no-confirm-apply.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove both dialogs and refresh cached material scripts
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          def replace_one(name,old,new):
+              p=Path(name)
+              source=p.read_text(encoding='utf-8')
+              assert source.count(old)==1, f'Unexpected source for {name}: {old}'
+              p.write_text(source.replace(old,new),encoding='utf-8')
+          replace_one('MATERIEL-LEGACY.html',"if(!id||!confirm('Supprimer ce matériel ?'))return;","if(!id)return;")
+          replace_one('MATERIEL-LEGACY.html','firebase-config.js?v=20260829-operational1','firebase-config.js?v=20260919-direct-delete2')
+          replace_one('firebase-config.js','inovtec-materiel-transactional-sync.js?v=20260918-tx1','inovtec-materiel-transactional-sync.js?v=20260919-direct-delete2')
+          replace_one('MATERIEL.html','MATERIEL-LEGACY.html?v=20260919-visual-v3','MATERIEL-LEGACY.html?v=20260919-direct-delete2')
+          p=Path('inovtec-materiel-transactional-sync.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace(" if(kind==='delete'&&!confirm('Supprimer ce matériel ?'))return;\n",'')
+          assert "confirm('Supprimer ce matériel ?')" not in s
+          p.write_text(s,encoding='utf-8')
+          test=Path('tests/materiel-transaction-sync.mjs')
+          s=test.read_text(encoding='utf-8')
+          anchor=" assert(errors.length===0,'Erreurs JavaScript navigateur : '+errors.join(' ; '));"
+          assert s.count(anchor)==1
+          addition=''' const dialogs=[];
+ page.on('dialog',dialog=>{dialogs.push(dialog.message());dialog.dismiss();});
+ await page.evaluate(()=>{const state=window.__materialTest;state.cache=false;state.callbacks.forEach(cb=>cb({exists:true,data:()=>structuredClone(state.doc),metadata:{fromCache:false,hasPendingWrites:false}}));});
+ await page.locator('button.edit[data-id="m_test"]').evaluate(element=>element.click());
+ await page.waitForFunction(()=>document.querySelector('#id')?.value==='m_test');
+ await page.locator('#deleteBtn').evaluate(element=>element.click());
+ await page.waitForFunction(()=>!JSON.parse(window.__materialTest.doc.moduleSyncV1.materiel.payload).items.some(item=>item.id==='m_test'),null,{timeout:7000});
+ assert(dialogs.length===0,'Une fenêtre de confirmation apparaît lors de la suppression : '+dialogs.join('; '));
+ assert(await page.evaluate(()=>window.__materialTest.oldWrites)===0,'La suppression ne doit pas utiliser une écriture locale ancienne');
+ assert(await page.evaluate(()=>JSON.parse(window.__materialTest.doc.moduleSyncV1.reassort.payload).orders[0].id)==='commande-conservee','La suppression Matériel a modifié Réassort');
+'''
+          test.write_text(s.replace(anchor,addition+anchor),encoding='utf-8')
+          assert "confirm('Supprimer ce matériel ?')" not in Path('MATERIEL-LEGACY.html').read_text(encoding='utf-8')
+          print('OK : les deux confirmations sont supprimées et les versions de cache ont changé.')
+          PY
+          node --check inovtec-materiel-transactional-sync.js
+          node --check tests/materiel-transaction-sync.mjs
+      - name: Browser and inventory regression tests
+        run: |
+          set -euo pipefail
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install chromium
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/iv-material-delete-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/MATERIEL.html -o /dev/null; then break; fi
+            sleep 1
+          done
+          node tests/materiel-transaction-sync.mjs
+          node tests/materiel-visual-v3.mjs
+          node tests/stock-bureau.mjs
+          node tests/materiel-redesign.mjs
+      - name: Publish verified fix
+        run: |
+          set -euo pipefail
+          git config user.name 'Inovtec direct deletion fix'
+          git config user.email 'actions@users.noreply.github.com'
+          git add MATERIEL-LEGACY.html MATERIEL.html firebase-config.js inovtec-materiel-transactional-sync.js tests/materiel-transaction-sync.mjs
+          git commit -m 'fix(material): remove remaining delete dialog and invalidate browser cache'
+          git push origin HEAD:main
