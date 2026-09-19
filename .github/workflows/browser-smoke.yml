@@ -49,6 +49,7 @@ jobs:
           node tests/reassort-smoke.mjs
           node tests/reassort-workflow.mjs
           node tests/materiel-transaction-sync.mjs
+          node tests/materiel-redesign.mjs
           node tests/planning-fixture.mjs
           node tests/firebase-org-migration.mjs
           node tests/planning-loading-regression.mjs
