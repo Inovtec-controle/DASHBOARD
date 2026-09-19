@@ -22,11 +22,18 @@ jobs:
           s=p.read_text(encoding='utf-8')
           assert s.count('outcome.stock.items[0].quantity===18')==1
           p.write_text(s.replace('outcome.stock.items[0].quantity===18','outcome.stock.items[0].quantity===14'),encoding='utf-8')
+          old=Path('tests/materiel-redesign.mjs')
+          s=old.read_text(encoding='utf-8')
+          assert s.count("#rows tr:visible")==3
+          s=s.replace("#rows tr:visible", "#rows tr:not([hidden])")
+          s=s.replace("await page.locator('#rows tr:not([hidden])').click();", "await page.locator('#rows tr:not([hidden])').evaluate(row=>row.click());")
+          old.write_text(s,encoding='utf-8')
           PY
           node --check inovtec-stock-bureau.js
           node --check inovtec-reassort-workflow.js
           node --check inovtec-reassort-chantier.js
           node --check tests/stock-bureau.mjs
+          node --check tests/materiel-redesign.mjs
       - name: Browser regression checks
         shell: bash
         run: |
@@ -51,6 +58,6 @@ jobs:
           set -euo pipefail
           git config user.name 'Inovtec stock integration'
           git config user.email 'actions@users.noreply.github.com'
-          git add MATERIEL-LEGACY.html MATERIEL.html inovtec-reassort-workflow.js inovtec-reassort-chantier.js tests/stock-bureau.mjs
+          git add MATERIEL-LEGACY.html MATERIEL.html inovtec-reassort-workflow.js inovtec-reassort-chantier.js tests/stock-bureau.mjs tests/materiel-redesign.mjs
           git commit -m 'feat(material): make Bureau the central inventory for purchases and site deliveries'
           git push origin HEAD:main
