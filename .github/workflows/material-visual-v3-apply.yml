@@ -1,0 +1,47 @@
+name: Publish material visual dashboard V3
+on:
+  push:
+    paths:
+      - '.github/workflows/material-visual-v3-apply.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Activate visual presentation
+        run: |
+          set -euo pipefail
+          python3 scripts/apply-materiel-visual-v3.py
+          node --check inovtec-materiel-visual-v3.js
+          node --check inovtec-materiel-visual-shell-v3.js
+          node --check inovtec-stock-bureau.js
+          node --check tests/materiel-visual-v3.mjs
+      - name: Browser integration and regression tests
+        run: |
+          set -euo pipefail
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install chromium
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/iv-materiel-v3-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/MATERIEL.html -o /dev/null; then break; fi
+            sleep 1
+          done
+          node tests/materiel-visual-v3.mjs
+          node tests/stock-bureau.mjs
+          node tests/materiel-redesign.mjs
+          node tests/materiel-transaction-sync.mjs
+          node tests/reassort-workflow.mjs
+          node tests/reassort-smoke.mjs
+      - name: Publish tested page on main
+        run: |
+          set -euo pipefail
+          git config user.name 'Inovtec visual integration'
+          git config user.email 'actions@users.noreply.github.com'
+          git add MATERIEL.html MATERIEL-LEGACY.html inovtec-stock-bureau.js inovtec-materiel-visual-shell-v3.js
+          git commit -m 'feat(material): integrate new visual presentation with office inventory'
+          git push origin HEAD:main
