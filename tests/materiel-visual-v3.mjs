@@ -1,0 +1,44 @@
+import {chromium} from 'playwright';
+const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const check=(ok,message)=>{if(!ok)throw Error(message)};
+try{
+ const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1440,height:900}});
+ await context.addInitScript(()=>{
+  const data={moduleSyncV1:{materiel:{payload:JSON.stringify({items:[{id:'m1',name:'Frange microfibre',site:'Bureau',reference:'FR-01',supplier:'Hygiène Pro',location:'A1 · Étagère 1',quantity:20,minStock:5},{id:'old',name:'Chiffon chantier',site:'Améthyste',quantity:8,minStock:3}],movements:[{id:'mv1',name:'Frange microfibre',delta:5,kind:'entree-bureau',reason:'Inventaire',at:new Date().toISOString()}]})},reassort:{payload:JSON.stringify({orders:[{id:'o1',workflow:'chantier',site:'Améthyste',materialId:'m1',quantity:3,preparedQuantity:3,preparationSource:'stock',status:'commandee'}],deliveries:[],purchases:[]})},agents:{payload:'[]'}}};
+  const state={doc:data,listeners:[]};window.__visualTest=state;
+  const snap=()=>({exists:true,data:()=>structuredClone(state.doc),metadata:{fromCache:false,hasPendingWrites:false}});
+  const ref={onSnapshot(opts,cb){const fn=typeof opts==='function'?opts:cb;state.listeners.push(fn);queueMicrotask(()=>fn(snap()));return()=>{}},get:async()=>snap()};
+  const db={collection(name){if(name==='chantiers')return {onSnapshot(cb){queueMicrotask(()=>cb({docs:[{id:'site1',data:()=>({nom:'Améthyste'})}]}));return()=>{}}};return {doc(uid){if(name!=='kanban'||uid!=='test-user')throw Error('Bad path');return ref}}},runTransaction:async()=>{throw Error('Smoke test is read-only')}};
+  const auth={currentUser:{uid:'test-user',email:'visual@example.fr'},onAuthStateChanged(cb){queueMicrotask(()=>cb(this.currentUser));return()=>{}},signInWithEmailAndPassword:async()=>{}};
+  window.firebase={apps:[],initializeApp(){this.apps.push({})},auth(){return auth},firestore(){return db}};
+  window.INOVTEC_FIREBASE_CONFIG={projectId:'fake'};
+ });
+ const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.route('https://www.gstatic.com/firebasejs/**',r=>r.fulfill({status:200,contentType:'application/javascript',body:''}));
+ await page.route('**/firebase-config.js*',r=>r.fulfill({status:200,contentType:'application/javascript',body:'window.INOVTEC_FIREBASE_CONFIG={projectId:"fake"};const script=document.createElement("script");script.src="inovtec-materiel-transactional-sync.js";document.head.appendChild(script);'}));
+ await page.goto('http://127.0.0.1:8765/MATERIEL.html',{waitUntil:'domcontentloaded'});
+ const inner=page.frameLocator('#materialFrame');
+ await inner.locator('#ivOfficeTotal').waitFor();
+ await page.waitForFunction(()=>document.querySelector('#materialFrame')?.contentDocument?.querySelector('#ivOfficeRows tr[data-iv-visual="1"]'));
+ check(await page.locator('.iv-hero-actions a').count()===2,'Supplier and chantier actions missing');
+ check(await page.locator('.iv-hero-actions button').count()===1,'New item action missing');
+ check(await inner.locator('#ivOfficeTotal').textContent()==='20','Office total not real inventory');
+ check(await inner.locator('#ivOfficeAvailable').textContent()==='17','Reservations not reflected');
+ check(await inner.locator('#ivVisualAvailable').textContent()==='Disponible : 17 unités','Available indicator not updated');
+ check(await inner.locator('#ivOfficeRows tr').count()===1,'Legacy chantier inventory included');
+ check(await inner.locator('#ivOfficeRows tr td').count()===9,'New inventory column layout missing');
+ check((await inner.locator('#ivOfficeRows tr').textContent()).includes('Hygiène Pro'),'Supplier not shown');
+ check((await inner.locator('#ivOfficeRows tr').textContent()).includes('A1 · Étagère 1'),'Storage location not shown');
+ check((await inner.locator('#ivVisualPreparations').textContent()).includes('Améthyste'),'Live chantier preparations missing');
+ check((await inner.locator('#ivVisualRecent').textContent()).includes('Frange microfibre'),'Recent movement missing');
+ await page.locator('#ivVisualGlobalSearch').fill('introuvable');
+ await page.waitForFunction(()=>document.querySelector('#materialFrame')?.contentDocument?.getElementById('ivOfficeRows')?.textContent?.includes('Aucune référence'));
+ await page.locator('#ivVisualGlobalSearch').fill('frange');
+ await page.waitForFunction(()=>document.querySelector('#materialFrame')?.contentDocument?.querySelector('#ivOfficeRows tr[data-iv-visual="1"]'));
+ await page.setViewportSize({width:390,height:844});
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+ check(overflow<4,'Outer page overflows on mobile: '+overflow);
+ check(errors.length===0,'Browser JavaScript errors: '+errors.join('; '));
+ console.log('OK : présentation complète, KPIs et préparations Firebase, fournisseur/emplacement, recherche et mobile.');
+ await context.close();
+}catch(error){console.error('ÉCHEC PRÉSENTATION MATÉRIEL V3 : '+String(error?.stack||error));process.exitCode=1}finally{await browser.close()}
