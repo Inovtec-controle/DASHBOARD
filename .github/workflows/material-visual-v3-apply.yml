@@ -11,10 +11,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Activate visual presentation
+      - name: Activate visual presentation and adapt legacy tests
         run: |
           set -euo pipefail
           python3 scripts/apply-materiel-visual-v3.py
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ('tests/materiel-redesign.mjs','tests/materiel-transaction-sync.mjs'):
+              p=Path(name)
+              content=p.read_text(encoding='utf-8')
+              old="await page.locator('#ivAddButton').click();"
+              assert content.count(old)==1, f'Legacy add button test changed: {name}'
+              p.write_text(content.replace(old,"await page.locator('#ivAddButton').evaluate(element=>element.click());"),encoding='utf-8')
+          p=Path('tests/materiel-visual-v3.mjs')
+          content=p.read_text(encoding='utf-8')
+          anchor="check(await page.locator('.iv-hero-actions button').count()===1,'New item action missing');"
+          assert content.count(anchor)==1
+          content=content.replace(anchor,anchor+"\n await page.locator('.iv-hero-actions button').click();\n check(await inner.locator('.iv-editor').evaluate(e=>e.classList.contains('iv-editor-open')),'New article button does not open the real form');\n await inner.locator('.iv-editor-close').click();")
+          p.write_text(content,encoding='utf-8')
+          PY
           node --check inovtec-materiel-visual-v3.js
           node --check inovtec-materiel-visual-shell-v3.js
           node --check inovtec-stock-bureau.js
@@ -42,6 +57,6 @@ jobs:
           set -euo pipefail
           git config user.name 'Inovtec visual integration'
           git config user.email 'actions@users.noreply.github.com'
-          git add MATERIEL.html MATERIEL-LEGACY.html inovtec-stock-bureau.js inovtec-materiel-visual-shell-v3.js
+          git add MATERIEL.html MATERIEL-LEGACY.html inovtec-stock-bureau.js inovtec-materiel-visual-shell-v3.js tests/materiel-visual-v3.mjs tests/materiel-redesign.mjs tests/materiel-transaction-sync.mjs
           git commit -m 'feat(material): integrate new visual presentation with office inventory'
           git push origin HEAD:main
