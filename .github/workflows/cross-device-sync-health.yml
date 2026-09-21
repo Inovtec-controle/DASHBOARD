@@ -1,0 +1,42 @@
+name: Cross-device synchronization health
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inovtec-cloud-sync.js'
+      - 'inovtec-cloud-sync-v2.js'
+      - '.github/workflows/cross-device-sync-health.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sync-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: JavaScript syntax
+        run: |
+          node --check inovtec-cloud-sync.js
+          node --check inovtec-cloud-sync-v2.js
+      - name: Three-way merge regression tests
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+          const src=fs.readFileSync('inovtec-cloud-sync-v2.js','utf8');
+          const begin=src.indexOf('const ABSENT=Symbol('),end=src.indexOf('function mergePayload(',begin);
+          assert.ok(begin>0&&end>begin,'Merge implementation exists');
+          const merge=vm.runInNewContext('const json=JSON.stringify;const same=(a,b)=>json(a)===json(b);'+src.slice(begin,end)+';merge3');
+          const b={agents:[{id:'a',name:'A'}],weeks:{w:[{id:'x',time:'09:00'}]}};
+          const l={agents:[{id:'a',name:'A'}],weeks:{w:[{id:'x',time:'10:00'}]}};
+          const r={agents:[{id:'a',name:'A'},{id:'b',name:'B'}],weeks:{w:[{id:'x',time:'09:00'},{id:'y',time:'11:00'}]}};
+          const m=merge(b,l,r);
+          assert.equal(m.weeks.w.find(x=>x.id==='x').time,'10:00');
+          assert.ok(m.weeks.w.some(x=>x.id==='y'),'Retain a shift added on other device');
+          assert.ok(m.agents.some(x=>x.id==='b'),'Retain an agent added on other device');
+          const deleted=merge(b,{agents:b.agents,weeks:{w:[]}},{agents:b.agents,weeks:{w:[{id:'x',time:'09:00'},{id:'y',time:'11:00'}]}});
+          assert.ok(!deleted.weeks.w.some(x=>x.id==='x'),'Do not resurrect a deleted shift');
+          assert.ok(deleted.weeks.w.some(x=>x.id==='y'),'Keep concurrent unrelated shift');
+          const split=merge({x:{a:1,b:1}},{x:{a:2,b:1}},{x:{a:1,b:3}});
+          assert.equal(split.x.a,2);assert.equal(split.x.b,3);
+          console.log('Cross-device merge regression tests passed');
+          NODE
