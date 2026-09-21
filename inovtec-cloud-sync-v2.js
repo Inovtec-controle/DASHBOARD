@@ -1,0 +1,240 @@
+/* Cross-device sync: Firestore is authoritative; localStorage is an offline working copy. */
+(()=>{
+'use strict';
+const mode=(new URLSearchParams(location.search).get('mode')||'').toLowerCase();
+const keys={planning:'inovtec_plannings_v2',agents:'kontrol_agents_classeur_v2',heures:'HSUPP_DUR_APP_V1',kontrol:'cq_app_state_bottomnote_v1'};
+const key=keys[mode];
+if(!key)return;
+const frame=document.getElementById('legacyFrame');
+const client=sessionStorage.ivCloudClient||(sessionStorage.ivCloudClient='c'+Date.now()+Math.random().toString(36).slice(2));
+const LIMIT=420000;
+const parse=s=>{try{return JSON.parse(s)}catch{return null}};
+const json=v=>JSON.stringify(v);
+const same=(a,b)=>json(a)===json(b);
+const hash=s=>{s=String(s||'');let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(36)+':'+s.length};
+const local=()=>localStorage.getItem(key)||'';
+const size=s=>new Blob([s]).size;
+let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,generation=0;
+let lastStatus='';
+const baseKey=uid=>'iv_cloud_base_v2_'+mode+'_'+uid;
+const oldMetaKey='iv_cloud_meta_'+mode;
+function report(message,ok=false){
+  if(message===lastStatus)return;lastStatus=message;
+  for(const id of ['syncMirror','liveMirror']){const el=document.getElementById(id);if(el)el.textContent=message}
+  const doc=(()=>{try{return frame?.contentDocument}catch{return null}})();
+  if(mode==='planning'&&doc){
+    const label=[...doc.querySelectorAll('label')].find(x=>x.textContent.trim().toLowerCase()==='sauvegarde');
+    const status=label?.parentElement?.querySelector('.status');
+    if(status){status.textContent=message;status.classList.toggle('ok',ok);status.classList.toggle('warning',!ok)}
+    const notice=[...doc.querySelectorAll('.notice')].find(x=>/navigateur|exporter|firebase/i.test(x.textContent||''));
+    if(notice){notice.textContent=ok?'Sauvegarde confirmée sur Firebase. Copie locale conservée.':'La sauvegarde Firebase n’est pas encore confirmée. Ne ferme pas cette page avant synchronisation.';notice.classList.toggle('warning',!ok)}
+  }
+}
+function normalizeAgents(list){
+  if(!Array.isArray(list))return list;
+  const m=new Map();for(const a of list){if(!a||typeof a!=='object'||!a.id)continue;const id=String(a.id),old=m.get(id);if(old?._deleted&&!a._deleted)continue;m.set(id,a._deleted?{...a,_deleted:true}:a)}return [...m.values()];
+}
+function packed(raw){
+  if(!raw)return '';
+  if(size(raw)<=LIMIT)return raw;
+  if(mode==='agents'){
+    const agents=normalizeAgents(parse(raw));if(!Array.isArray(agents))throw Error('Agents locaux illisibles');
+    const lean=agents.map(a=>a._deleted?a:({...a,docs:(a.docs||[]).map(d=>{const x={...d};delete x.dataUrl;return x}),incidents:(a.incidents||[]).map(i=>({...i,photos:(i.photos||[]).map(p=>{const x={...p};delete x.dataUrl;return x})}))}));
+    const result=json(lean);if(size(result)<=LIMIT)return result;
+  }
+  if(mode==='kontrol'){
+    const state=parse(raw);if(state&&typeof state==='object'){const result=json({...state,photos:[]});if(size(result)<=LIMIT)return result}
+  }
+  throw Error('Document trop volumineux pour Firebase ; sauvegarde locale conservée');
+}
+function preserveBinary(cloud,previous){
+  if(mode!=='agents')return cloud;
+  const a=parse(cloud),b=parse(previous);if(!Array.isArray(a)||!Array.isArray(b))return cloud;
+  const saved=new Map(b.map(x=>[String(x?.id||''),x]));
+  return json(a.map(item=>{
+    if(item?._deleted)return item;
+    const old=saved.get(String(item?.id||''));if(!old||old._deleted)return item;
+    return {...item,docs:(item.docs||[]).map(d=>{const x=(old.docs||[]).find(y=>y.id===d.id);return x?.dataUrl&&!d.dataUrl?{...d,dataUrl:x.dataUrl}:d}),incidents:(item.incidents||[]).map(i=>{const x=(old.incidents||[]).find(y=>y.id===i.id);return {...i,photos:(i.photos||[]).map(p=>{const y=(x?.photos||[]).find(z=>z.id===p.id);return y?.dataUrl&&!p.dataUrl?{...p,dataUrl:y.dataUrl}:p})}})};
+  }));
+}
+function backup(uid,old){
+  if(!old)return;
+  try{const k='iv_cloud_backup_v2_'+mode+'_'+uid;if(!localStorage.getItem(k))localStorage.setItem(k,old)}catch(e){console.warn('Sauvegarde locale indisponible',e)}
+}
+function render(){
+  clearTimeout(reloadTimer);
+  const run=()=>{
+    let doc;try{doc=frame?.contentDocument}catch{}
+    const active=doc?.activeElement;
+    if((active&&/^(INPUT|SELECT|TEXTAREA)$/i.test(active.tagName))||(Date.now()-activity<1800)){reloadTimer=setTimeout(run,1900);return}
+    try{if(mode==='planning'){const w=frame?.contentWindow;w?.dispatchEvent(new w.CustomEvent('inovtec:planning-cloud-updated'))}else frame?.contentWindow?.location.reload()}catch(e){console.warn('Actualisation après synchronisation',e)}
+  };
+  reloadTimer=setTimeout(run,300);
+}
+function apply(payload){
+  const old=local(),value=preserveBinary(payload,old);
+  if(old===value)return;
+  backup(user.uid,old);
+  applying=true;
+  try{localStorage.setItem(key,value)}finally{applying=false}
+  render();
+}
+// Three-way merge: only changed local fields are uploaded; untouched fields remain remote.
+// Deletions win over an old copy, so removing a shift or agent cannot resurrect it.
+const ABSENT=Symbol('absent');
+function merge3(b,l,r){
+  if(same(l,b))return r;
+  if(same(r,b))return l;
+  if(same(l,r))return l;
+  if(l===ABSENT||r===ABSENT)return ABSENT;
+  if(Array.isArray(l)&&Array.isArray(r)&&Array.isArray(b)){
+    const rows=[...b,...l,...r];
+    if(rows.every(x=>x&&typeof x==='object'&&x.id!=null)){
+      const ids=new Set(rows.map(x=>String(x.id)));
+      const index=a=>new Map(a.map(x=>[String(x.id),x]));
+      const B=index(b),L=index(l),R=index(r),out=[];
+      for(const id of ids){const v=merge3(B.has(id)?B.get(id):ABSENT,L.has(id)?L.get(id):ABSENT,R.has(id)?R.get(id):ABSENT);if(v!==ABSENT)out.push(v)}
+      return out;
+    }
+    return l;
+  }
+  if(l&&r&&typeof l==='object'&&typeof r==='object'&&!Array.isArray(l)&&!Array.isArray(r)){
+    const B=b&&typeof b==='object'&&!Array.isArray(b)?b:{};
+    const out={};for(const k of new Set([...Object.keys(B),...Object.keys(l),...Object.keys(r)])){
+      const v=merge3(Object.hasOwn(B,k)?B[k]:ABSENT,Object.hasOwn(l,k)?l[k]:ABSENT,Object.hasOwn(r,k)?r[k]:ABSENT);
+      if(v!==ABSENT)out[k]=v;
+    }return out;
+  }
+  // Conflicting scalar changes use this device's new edit; no silent stale overwrite.
+  return l;
+}
+function mergePayload(b,l,r){
+  const B=parse(b),L=parse(l),R=parse(r);
+  if(B==null||L==null||R==null)throw Error('Fusion impossible : document illisible');
+  return json(merge3(B,L,R));
+}
+function remember(payload){
+  base=payload;
+  try{localStorage.setItem(baseKey(user.uid),payload);localStorage.setItem(oldMetaKey,json({hash:hash(payload),ts:Date.now(),uid:user.uid,verified:true}))}catch(e){console.warn('Métadonnées de synchronisation non conservées',e)}
+}
+function schedule(delay=350){
+  clearTimeout(writeTimer);
+  if(!user||!initialized||applying)return;
+  report('Firebase — sauvegarde en cours…');
+  writeTimer=setTimeout(()=>{void send()},delay);
+}
+async function send(){
+  if(!user||!ref||!initialized||applying)return;
+  if(busy){queued=true;return}
+  let draft;
+  try{draft=packed(local())}catch(e){report('Firebase — '+e.message);return}
+  if(draft===base){report('Firebase — synchronisé',true);return}
+  busy=true;const token=generation,doc=ref,prior=base;
+  report('Firebase — enregistrement sur le serveur…');
+  try{
+    let written='';
+    await firebase.firestore().runTransaction(async tx=>{
+      const snap=await tx.get(doc),entry=snap.exists?snap.data()?.moduleSyncV1?.[mode]:null;
+      const remote=entry&&typeof entry.payload==='string'?entry.payload:null;
+      if(entry&&remote===null)throw Error('Document Firebase illisible');
+      if(remote===null){written=draft}
+      else if(remote===prior){written=draft}
+      else if(!prior){
+        // First connection: existing server data takes precedence over a stale browser copy.
+        throw Error('Version serveur modifiée : actualisation nécessaire');
+      }else written=mergePayload(prior,draft,remote);
+      if(size(written)>LIMIT)throw Error('Planning trop volumineux pour Firebase');
+      tx.set(doc,{moduleSyncV1:{[mode]:{payload:written,updatedAtMs:Date.now(),client,reason:'confirmed-cross-device',version:5}}},{merge:true});
+    });
+    if(token!==generation)return;
+    const check=await doc.get({source:'server'});
+    if(token!==generation)return;
+    const actual=check.data()?.moduleSyncV1?.[mode]?.payload;
+    if(actual!==written){report('Firebase — nouvelle version distante détectée');await receive(actual);return}
+    remember(written);
+    if(packed(local())===draft&&written!==draft)apply(written);
+    if(packed(local())!==written)schedule(150);
+    else report('Firebase — synchronisé',true);
+  }catch(e){
+    if(token!==generation)return;
+    console.warn('Échec sauvegarde Firebase '+mode,e);
+    report('Firebase — sauvegarde non confirmée : '+(e.code||e.message||'erreur'));
+    if(/actualisation nécessaire/.test(e.message||''))void refresh();
+  }finally{
+    busy=false;
+    if(queued){queued=false;schedule(100)}
+  }
+}
+async function receive(remote){
+  if(!user||!initialized||typeof remote!=='string')return;
+  let current;
+  try{current=packed(local())}catch(e){report('Firebase — '+e.message);return}
+  if(remote===base){if(current!==base)schedule(100);return}
+  if(current!==base){queued=true;schedule(100);return}
+  remember(remote);apply(remote);report('Firebase — synchronisé',true);
+}
+async function refresh(){
+  if(!ref||!user||!initialized)return;
+  try{const snap=await ref.get({source:'server'}),entry=snap.data()?.moduleSyncV1?.[mode];
+    if(entry&&typeof entry.payload==='string')await receive(entry.payload);
+    else if(!entry&&packed(local())!==base)schedule(100);
+  }catch(e){report('Firebase — lecture impossible : '+(e.code||e.message||'erreur'))}
+}
+async function boot(uid,token){
+  const doc=firebase.firestore().collection('kanban').doc(uid);
+  try{
+    const snap=await doc.get({source:'server'});
+    if(token!==generation)return;
+    ref=doc;
+    const entry=snap.data()?.moduleSyncV1?.[mode];
+    if(entry&&typeof entry.payload!=='string')throw Error('Données serveur illisibles');
+    const remote=entry?entry.payload:null;
+    const stored=localStorage.getItem(baseKey(uid));
+    const browser=packed(local());
+    if(remote!==null){
+      if(stored!==null&&stored!==browser){
+        // Recover a genuine unconfirmed local edit against the last acknowledged version.
+        base=stored;initialized=true;schedule(20);
+      }else{
+        initialized=true;remember(remote);apply(remote);report('Firebase — synchronisé',true);
+      }
+    }else{
+      initialized=true;base='';
+      if(browser)schedule(20);
+      else{remember('');report('Firebase — synchronisé',true)}
+    }
+    unsubscribe=doc.onSnapshot(s=>{
+      if(token!==generation||s.metadata.fromCache||s.metadata.hasPendingWrites)return;
+      const data=s.data()?.moduleSyncV1?.[mode];if(data&&typeof data.payload==='string')void receive(data.payload);
+    },e=>{if(token===generation)report('Firebase — écoute interrompue : '+(e.code||e.message||'erreur'))});
+  }catch(e){if(token===generation){console.warn('Firebase init '+mode,e);report('Firebase — connexion ou lecture impossible : '+(e.code||e.message||'erreur'))}}
+}
+function login(){
+  let box=document.getElementById('ivCloudLogin');if(box)return box;
+  box=document.createElement('div');box.id='ivCloudLogin';box.style.cssText='position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#0f172a77;padding:18px';
+  box.innerHTML='<form style="width:min(390px,100%);background:white;border-radius:16px;padding:24px;font:14px system-ui"><h2>Connexion Inovtec</h2><p>Connecte-toi au même compte sur chaque appareil.</p><label>Adresse e-mail<input type="email" name="email" required autocomplete="username" style="display:block;width:100%;padding:10px;margin:6px 0 12px"></label><label>Mot de passe<input type="password" name="password" required autocomplete="current-password" style="display:block;width:100%;padding:10px;margin:6px 0 12px"></label><button type="submit" style="padding:10px;background:#065f46;color:white;border:0;border-radius:8px">Se connecter</button><p data-error style="color:#b91c1c"></p></form>';
+  document.body.appendChild(box);
+  box.querySelector('form').addEventListener('submit',async ev=>{
+    ev.preventDefault();const form=ev.currentTarget;form.querySelector('[data-error]').textContent='';
+    try{await firebase.auth().signInWithEmailAndPassword(form.elements.email.value.trim(),form.elements.password.value);form.elements.password.value=''}
+    catch(e){form.querySelector('[data-error]').textContent='Connexion impossible : '+(e.code||e.message)}
+  });return box;
+}
+function start(u){
+  generation++;if(unsubscribe){unsubscribe();unsubscribe=null}clearTimeout(writeTimer);clearTimeout(reloadTimer);
+  user=u||null;ref=null;initialized=false;busy=false;queued=false;base='';lastStatus='';
+  if(!user){report('Firebase — connexion requise');if(['planning','agents','heures'].includes(mode))login().style.display='grid';return}
+  const box=document.getElementById('ivCloudLogin');if(box)box.style.display='none';
+  report('Firebase — lecture du serveur…');void boot(user.uid,generation);
+}
+if(!window.firebase?.auth||!window.firebase?.firestore||!window.INOVTEC_FIREBASE_CONFIG){report('Firebase — configuration manquante');return}
+if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+firebase.auth().onAuthStateChanged(start);
+frame?.addEventListener('load',()=>{
+  try{frame.contentDocument?.addEventListener('input',()=>{activity=Date.now();setTimeout(()=>schedule(),200)},true)}catch{}
+  lastStatus='';report(initialized?(base===packed(local())?'Firebase — synchronisé':'Firebase — sauvegarde en attente'):'Firebase — connexion au serveur…',initialized&&base===packed(local()));
+});
+setInterval(()=>{if(user&&initialized&&!applying){try{if(packed(local())!==base)schedule(50)}catch(e){report('Firebase — '+e.message)}}},6000);
+window.addEventListener('online',()=>{if(user){if(!initialized)void boot(user.uid,generation);else void refresh()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user){if(!initialized)void boot(user.uid,generation);else void refresh()}});
+})();
