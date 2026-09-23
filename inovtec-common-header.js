@@ -29,6 +29,11 @@ const STYLES=`
 .iv-header-tile .iv-head-date{display:block!important;font-size:12px!important;line-height:1.4!important;font-weight:800!important;letter-spacing:0!important;color:#fff!important;white-space:normal!important;text-align:center!important;margin:0!important}
 .iv-header-tile .iv-head-time{display:block!important;font-size:11px!important;line-height:1.4!important;font-weight:650!important;letter-spacing:0!important;color:#e1f7e9!important;margin:0!important}
 .iv-header-tile .iv-head-mark{box-sizing:border-box;display:grid!important;place-items:center;width:37px;height:37px;min-width:37px;margin-top:2px;border-radius:50%;border:1px solid rgba(127,226,181,.3);background:#176648;box-shadow:0 0 0 5px rgba(83,185,136,.12);font-family:Inter,system-ui,sans-serif;font-size:25px!important;line-height:1!important;font-weight:400!important;color:#b8f5d1!important}
+.iv-header-tile .iv-head-mark[data-state="loading"]{position:relative;color:transparent!important;background:rgba(255,255,255,.10)!important;border-color:rgba(255,255,255,.28)!important;box-shadow:0 0 0 5px rgba(255,255,255,.07)!important}
+.iv-header-tile .iv-head-mark[data-state="loading"]::before{content:"";box-sizing:border-box;width:21px;height:21px;border-radius:50%;border:3px solid rgba(167,243,208,.28);border-top-color:#a7f3d0;border-right-color:#34d399;animation:ivHeaderSyncSpin .82s linear infinite}
+.iv-header-tile .iv-head-mark[data-state="connected"]{background:#176648!important;border-color:rgba(127,226,181,.42)!important;box-shadow:0 0 0 5px rgba(83,185,136,.15)!important;color:#b8f5d1!important}
+.iv-header-tile .iv-head-mark[data-state="error"]{background:rgba(153,27,27,.72)!important;border-color:rgba(254,202,202,.55)!important;box-shadow:0 0 0 5px rgba(239,68,68,.11)!important;color:#fecaca!important}
+@keyframes ivHeaderSyncSpin{to{transform:rotate(360deg)}}
 .iv-shell .iv-hero{padding-right:255px!important}
 .c3-hero-banner{position:relative}
 .c3-hero-banner .iv-header-tile{right:19px;top:19px}
@@ -75,7 +80,7 @@ function init(){
  else date.classList.add('iv-head-date');
  if(!time){time=document.createElement('span');time.className='iv-head-time'}
  else time.classList.add('iv-head-time');
- const mark=document.createElement('span');mark.className='iv-head-mark';mark.textContent='✓';mark.setAttribute('aria-hidden','true');
+ const mark=document.createElement('span');mark.className='iv-head-mark';mark.textContent='';mark.dataset.state='loading';mark.setAttribute('role','status');mark.setAttribute('aria-live','polite');mark.setAttribute('aria-label','Vérification de la synchronisation et de l’affichage');mark.title='Vérification de la synchronisation et de l’affichage';
  tile.replaceChildren(date,time,mark);
  tile.className='iv-header-tile';
  tile.setAttribute('role','group');tile.setAttribute('aria-label','Date et heure actuelles');
@@ -83,6 +88,86 @@ function init(){
  tick();
 }
 function tick(){if(!tile?.isConnected)return;const now=new Date();const date=tile.querySelector('.iv-head-date');const time=tile.querySelector('.iv-head-time');if(date)date.textContent=DATE.format(now).replace(/^./,s=>s.toUpperCase());if(time)time.textContent=TIME.format(now)}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+let syncReadyAfter=Date.now()+650,lastLocalState='',syncTimer=null;
+function inferSync(text){
+ const raw=String(text||'').trim(),t=raw.toLowerCase();if(!t)return null;
+ if(/erreur|impossible|indisponible|hors[ -]?ligne|échec|echec|déconnect|deconnect|non connecté|non connecte|permission|refus/.test(t))return{state:'error',message:raw};
+ if(/connexion|chargement|synchronisation en cours|synchronisation…|synchronisation\.\.\.|sauvegarde en cours|envoi en cours|patiente/.test(t)&&!/connecté|connecte|synchronisé|synchronise/.test(t))return{state:'loading',message:raw};
+ if(/synchronisé|synchronise|connecté|connecte|en ligne|firebase.*(?:ok|actif)|données synchronisées|donnees synchronisees|inventaire synchronisé|inventaire synchronise/.test(t))return{state:'connected',message:raw};
+ return null;
+}
+function visible(el){
+ if(!el)return false;
+ try{const s=getComputedStyle(el);return s.display!=='none'&&s.visibility!=='hidden'&&Number(s.opacity||1)!==0}catch{return true}
+}
+function docsForSync(){
+ const docs=[document],seen=new Set([document]);
+ const visit=doc=>{
+  let frames=[];try{frames=[...doc.querySelectorAll('iframe')]}catch{}
+  frames.forEach(frame=>{try{const d=frame.contentDocument;if(d&&d.documentElement&&!seen.has(d)){seen.add(d);docs.push(d);visit(d)}}catch{}});
+ };
+ visit(document);return docs;
+}
+function localSyncState(){
+ const selectors=['#syncStatus','#sharedStatus','#ivKontrolCloudState','.status.ok','.status.warning','.status.error'];
+ let connected=null;
+ for(const d of docsForSync()){
+  for(const sel of selectors){
+   let els=[];try{els=[...d.querySelectorAll(sel)]}catch{}
+   for(const el of els){if(!visible(el))continue;const r=inferSync(el.textContent);if(!r)continue;if(r.state==='error')return r;if(r.state==='loading')return r;if(r.state==='connected')connected=r}
+  }
+ }
+ return connected;
+}
+function frameDisplayReady(){
+ const topLoading=document.getElementById('loading');
+ if(topLoading&&visible(topLoading)&&!topLoading.classList.contains('hidden'))return{ok:false,message:'Affichage de la page en cours'};
+ const frames=[...document.querySelectorAll('iframe')];
+ for(const frame of frames){
+  try{
+   const d=frame.contentDocument;
+   if(!d||d.readyState!=='complete'||!d.body||!String(d.body.textContent||'').trim())return{ok:false,message:'Affichage de la page en cours'};
+   const nested=[...d.querySelectorAll('iframe')];
+   for(const sub of nested){const sd=sub.contentDocument;if(!sd||sd.readyState!=='complete'||!sd.body||!String(sd.body.textContent||'').trim())return{ok:false,message:'Affichage de la page en cours'}}
+  }catch{return{ok:false,message:'Affichage de la page non vérifiable'}}
+ }
+ return{ok:true,message:'Affichage de la page vérifié'};
+}
+function setMarkState(state,message){
+ const m=tile?.querySelector('.iv-head-mark');if(!m)return;
+ m.dataset.state=state;m.textContent=state==='connected'?'✓':state==='error'?'×':'';
+ m.setAttribute('aria-label',message);m.title=message;
+ window.InovtecHeaderSyncState={state,message,checkedAt:new Date().toISOString()};
+}
+function evaluateSyncMark(){
+ if(!tile?.isConnected)return;
+ if(!navigator.onLine){setMarkState('error','Pas de connexion réseau');return}
+ const local=localSyncState();
+ if(local?.state!==lastLocalState){lastLocalState=local?.state||'';if(local?.state==='connected')syncReadyAfter=Date.now()+300}
+ if(local?.state==='error'){setMarkState('error',local.message);return}
+ if(local?.state==='loading'){setMarkState('loading',local.message);return}
+ const health=window.InovtecFirebaseOperational;
+ if(health?.ok===false){setMarkState('error','Firebase inaccessible : '+String(health.error||'lecture refusée'));return}
+ let authKnown=false,signedIn=false;
+ try{if(window.firebase?.auth){authKnown=true;signedIn=!!firebase.auth().currentUser}}catch{}
+ const firebaseConfirmed=health?.ok===true||local?.state==='connected';
+ if(authKnown&&!signedIn&&!firebaseConfirmed){setMarkState('loading','Connexion au compte Firebase en cours');return}
+ if(!firebaseConfirmed){setMarkState('loading','Synchronisation Firebase non encore confirmée');return}
+ const display=frameDisplayReady();
+ if(!display.ok){setMarkState('loading',display.message);return}
+ if(Date.now()<syncReadyAfter){setMarkState('loading','Vérification de l’affichage après synchronisation');return}
+ setMarkState('connected','Firebase synchronisé · affichage de la page vérifié');
+}
+function bindSyncChecks(){
+ const arm=()=>{syncReadyAfter=Date.now()+550;setMarkState('loading','Vérification de la synchronisation et de l’affichage');setTimeout(evaluateSyncMark,80)};
+ document.querySelectorAll('iframe').forEach(f=>f.addEventListener('load',arm));
+ window.addEventListener('inovtec:firebase-operational',evaluateSyncMark);
+ window.addEventListener('inovtec:firebase-status',evaluateSyncMark);
+ window.addEventListener('online',arm);window.addEventListener('offline',evaluateSyncMark);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)evaluateSyncMark()});
+ clearInterval(syncTimer);syncTimer=setInterval(()=>{if(!document.hidden)evaluateSyncMark()},700);
+ evaluateSyncMark();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{init();bindSyncChecks()},{once:true});else{init();bindSyncChecks()}
 setInterval(()=>{if(!document.hidden)tick()},30000);
 })();
