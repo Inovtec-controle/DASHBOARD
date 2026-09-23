@@ -1,16 +1,15 @@
 (()=>{
 "use strict";
-if(window.__INOVTEC_PLANNING_EDITOR_FIT_V2__)return;
-window.__INOVTEC_PLANNING_EDITOR_FIT_V2__=true;
+if(window.__INOVTEC_PLANNING_EDITOR_FIT_V5__)return;
+window.__INOVTEC_PLANNING_EDITOR_FIT_V5__=true;
 
 const pop=document.getElementById("editorPopover");
 if(!pop)return;
 
 const style=document.createElement("style");
-style.id="ivPlanningEditorFitStyleV2";
+style.id="ivPlanningEditorFitStyleV5";
 style.textContent=`
 #editorPopover{
-  max-height:calc(100dvh - 24px)!important;
   overflow-y:auto!important;
   overscroll-behavior:contain;
   scrollbar-gutter:stable;
@@ -19,13 +18,12 @@ style.textContent=`
   position:sticky!important;
   bottom:0!important;
   z-index:20!important;
-  background:rgba(255,255,255,.98)!important;
+  background:rgba(255,255,255,.99)!important;
   margin-left:-13px;
   margin-right:-13px;
   margin-bottom:-13px;
   padding:10px 13px 13px;
-  backdrop-filter:blur(12px);
-  box-shadow:0 -6px 12px rgba(15,23,42,.04);
+  box-shadow:0 -6px 12px rgba(15,23,42,.05);
 }
 @media (max-height:760px){
   #editorPopover{padding:9px!important}
@@ -57,81 +55,78 @@ style.textContent=`
 `;
 document.head.appendChild(style);
 
-let fitting=false;
-function viewport(){
-  const vv=window.visualViewport;
-  if(vv){
-    return{
-      left:vv.offsetLeft||0,
-      top:vv.offsetTop||0,
-      width:vv.width||window.innerWidth,
-      height:vv.height||window.innerHeight
-    };
-  }
-  return{left:0,top:0,width:window.innerWidth,height:window.innerHeight};
-}
-function forcePx(prop,value){
-  pop.style.setProperty(prop,`${Math.round(value)}px`,"important");
-}
-function fitEditor(){
-  if(fitting||!pop.classList.contains("open"))return;
-  fitting=true;
+function bounds(){
+  const margin=12;
+  let top=margin,left=margin,right=window.innerWidth-margin,bottom=window.innerHeight-margin;
   try{
-    const v=viewport();
-    const margin=12;
-    const availableW=Math.max(220,v.width-margin*2);
-    const availableH=Math.max(160,v.height-margin*2);
-
-    pop.style.setProperty("max-height",`${Math.floor(availableH)}px`,"important");
-    pop.style.setProperty("overflow-y","auto","important");
-
-    let r=pop.getBoundingClientRect();
-    if(r.width>availableW){
-      pop.style.setProperty("width",`${Math.floor(availableW)}px`,"important");
-      r=pop.getBoundingClientRect();
+    if(parent!==window){
+      const frame=parent.document.getElementById("legacyFrame");
+      if(frame?.contentWindow===window){
+        const fr=frame.getBoundingClientRect();
+        const vv=parent.visualViewport;
+        const pvTop=vv?.offsetTop||0;
+        const pvLeft=vv?.offsetLeft||0;
+        const pvHeight=vv?.height||parent.innerHeight;
+        const pvWidth=vv?.width||parent.innerWidth;
+        top=Math.max(margin,pvTop-fr.top+margin);
+        left=Math.max(margin,pvLeft-fr.left+margin);
+        bottom=Math.min(window.innerHeight-margin,pvTop+pvHeight-fr.top-margin);
+        right=Math.min(window.innerWidth-margin,pvLeft+pvWidth-fr.left-margin);
+      }
     }
-
-    let left=r.left;
-    let top=r.top;
-    const minLeft=v.left+margin;
-    const maxRight=v.left+v.width-margin;
-    const minTop=v.top+margin;
-    const maxBottom=v.top+v.height-margin;
-
-    if(r.right>maxRight)left-=r.right-maxRight;
-    if(left<minLeft)left=minLeft;
-    if(r.bottom>maxBottom)top-=r.bottom-maxBottom;
-    if(top<minTop)top=minTop;
-
-    pop.style.setProperty("right","auto","important");
-    pop.style.setProperty("bottom","auto","important");
-    forcePx("left",left);
-    forcePx("top",top);
-
-    requestAnimationFrame(()=>{
-      const rr=pop.getBoundingClientRect();
-      if(rr.bottom>maxBottom)forcePx("top",Math.max(minTop,maxBottom-rr.height));
-      if(rr.top<minTop)forcePx("top",minTop);
-      if(rr.right>maxRight)forcePx("left",Math.max(minLeft,maxRight-rr.width));
-      if(rr.left<minLeft)forcePx("left",minLeft);
-    });
-  }finally{
-    fitting=false;
-  }
+  }catch{}
+  if(bottom<=top+120){top=margin;bottom=window.innerHeight-margin}
+  if(right<=left+180){left=margin;right=window.innerWidth-margin}
+  return{top,left,right,bottom};
 }
-function scheduleFit(){requestAnimationFrame(()=>requestAnimationFrame(fitEditor));}
 
-const observer=new MutationObserver(mutations=>{
-  if(mutations.some(m=>m.attributeName==="class"))scheduleFit();
-});
-observer.observe(pop,{attributes:true,attributeFilter:["class"]});
+function fitOnce(){
+  if(!pop.classList.contains("open"))return;
+  /* Sur mobile, le CSS dédié gère déjà la fenêtre et le clavier virtuel. */
+  if(window.matchMedia?.("(max-width:720px)")?.matches)return;
 
-window.addEventListener("resize",scheduleFit,{passive:true});
-window.addEventListener("orientationchange",scheduleFit,{passive:true});
-window.visualViewport?.addEventListener("resize",scheduleFit,{passive:true});
-window.visualViewport?.addEventListener("scroll",scheduleFit,{passive:true});
-document.addEventListener("pointerup",scheduleFit,true);
-document.addEventListener("focusin",e=>{if(pop.contains(e.target))scheduleFit()},true);
+  const b=bounds();
+  const h=Math.max(160,b.bottom-b.top);
+  const w=Math.max(220,b.right-b.left);
 
-scheduleFit();
+  pop.style.setProperty("max-height",Math.floor(h)+"px","important");
+  pop.style.setProperty("overflow-y","auto","important");
+
+  let r=pop.getBoundingClientRect();
+  if(r.width>w){
+    pop.style.setProperty("width",Math.floor(w)+"px","important");
+    r=pop.getBoundingClientRect();
+  }
+
+  let left=r.left;
+  let top=r.top;
+  if(r.right>b.right)left-=r.right-b.right;
+  if(left<b.left)left=b.left;
+  if(r.bottom>b.bottom)top-=r.bottom-b.bottom;
+  if(top<b.top)top=b.top;
+
+  pop.style.setProperty("right","auto","important");
+  pop.style.setProperty("bottom","auto","important");
+  pop.style.setProperty("left",Math.round(left)+"px","important");
+  pop.style.setProperty("top",Math.round(top)+"px","important");
+}
+
+/* Important : aucune surveillance de scroll, pointer, focus ou redimensionnement du
+   contenu pendant l'édition. La bulle ne bouge donc jamais entre mousedown/mouseup,
+   ce qui garantit le clic sur Terminé/Supprimer. On l'ajuste uniquement à l'ouverture. */
+let token=0;
+function fitOnOpen(){
+  const mine=++token;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(mine!==token)return;
+    fitOnce();
+  }));
+}
+new MutationObserver(mutations=>{
+  if(!mutations.some(m=>m.attributeName==="class"))return;
+  if(pop.classList.contains("open"))fitOnOpen();
+  else token++;
+}).observe(pop,{attributes:true,attributeFilter:["class"]});
+
+if(pop.classList.contains("open"))fitOnOpen();
 })();
