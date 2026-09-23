@@ -39,7 +39,9 @@ try{
   await frame.locator('.agent-row[data-agent-id="shell-agent"]').click();
 
   const col=frame.locator('.day-column').first();
-  await col.dblclick({position:{x:70,y:250},timeout:10000});
+  const colBox=await col.boundingBox();
+  if(!colBox)throw Error('Impossible de mesurer une vraie case du Planning');
+  await page.mouse.click(colBox.x+Math.min(70,colBox.width/2),colBox.y+Math.min(250,colBox.height/2),{clickCount:2,delay:80});
   await frame.locator('#editorPopover.open').waitFor({state:'visible',timeout:10000});
   await frame.locator('#edTitle').selectOption('shell-site');
   await frame.locator('#edStart').fill('09:00');
