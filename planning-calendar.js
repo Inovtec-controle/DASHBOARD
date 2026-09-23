@@ -279,7 +279,17 @@ $("addTaskBtn").onclick=()=>{
   if(!state.selected){alert("Sélectionne d’abord un agent dans la liste de gauche.");return}
   beginCreateForDate(cloneDate(currentDate),9*60,Math.min(innerWidth-40,Math.max(20,innerWidth*.58)),90);
 };
-$("edTitle").addEventListener("change",applySelectedChantier);$("edDone").onclick=saveEditor;$("edDelete").onclick=deleteEdited;
+$("edTitle").addEventListener("change",applySelectedChantier);
+{
+  const done=$("edDone");
+  done.onclick=null;
+  done.addEventListener("click",ev=>{
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    saveEditor();
+  },true);
+}
+$("edDelete").onclick=deleteEdited;
 $("editorPopover").addEventListener("mousedown",e=>e.stopPropagation());
 $("exportBtn").onclick=exportData;$("importFile").onchange=e=>{const f=e.target.files?.[0];if(f)importData(f);e.target.value=""};$("printBtn").onclick=()=>window.print();
 document.addEventListener("mousedown",e=>{if(!e.target.closest("#contextMenu"))closeContext();if(!e.target.closest("#editorPopover")&&!e.target.closest(".event-card")&&!e.target.closest(".month-event")&&!e.target.closest(".list-item"))closeEditor()});
