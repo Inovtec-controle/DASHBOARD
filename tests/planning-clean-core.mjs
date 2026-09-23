@@ -90,11 +90,13 @@ try{
   await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
   let state=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
   let rows=Object.values(state.weeks||{}).flat();
-  assert(rows.some(e=>e.note==='Modification OK'&&e.start==='10:00'&&e.end==='11:30'),'Terminé n’enregistre pas les modifications');
+  const modified=rows.find(e=>e.note==='Modification OK'&&e.start==='10:00'&&e.end==='11:30');
+  assert(!!modified,'Terminé n’enregistre pas les modifications');
+  const modifiedId=modified.id;
 
-  // Déplacement souris d'une tâche
-  let card=page.locator('.event-card').first();
-  let cb=await card.boundingBox();assert(!!cb,'Tâche introuvable avant déplacement');
+  // Déplacement souris de la même tâche
+  let card=page.locator('.event-card[data-id="'+modifiedId+'"]');
+  let cb=await card.boundingBox();assert(!!cb,'Tâche modifiée introuvable avant déplacement');
   const target=page.locator('.day-column').nth(2);const tb=await target.boundingBox();assert(!!tb,'Cible déplacement introuvable');
   await page.mouse.move(cb.x+20,cb.y+14);
   await page.mouse.down();
@@ -103,13 +105,14 @@ try{
   await page.waitForTimeout(250);
   state=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
   rows=Object.values(state.weeks||{}).flat();
-  assert(rows.some(e=>Number(e.day)===Number(target===null?2:2)),'Déplacement de tâche non enregistré');
+  const moved=rows.find(e=>e.id===modifiedId);
+  assert(moved&&Number(moved.day)===2,'Déplacement de tâche non enregistré');
 
-  // Redimensionnement
-  card=page.locator('.event-card').first();
+  // Redimensionnement de la même tâche
+  card=page.locator('.event-card[data-id="'+modifiedId+'"]');
   const handle=card.locator('.event-resize');
   const hb=await handle.boundingBox();assert(!!hb,'Poignée de redimensionnement absente');
-  const beforeEnd=rows.find(e=>e.note==='Modification OK')?.end||'';
+  const beforeEnd=moved.end||'';
   await page.mouse.move(hb.x+hb.width/2,hb.y+hb.height/2);
   await page.mouse.down();
   await page.mouse.move(hb.x+hb.width/2,hb.y+hb.height/2+56,{steps:6});
@@ -117,7 +120,7 @@ try{
   await page.waitForTimeout(200);
   state=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
   rows=Object.values(state.weeks||{}).flat();
-  const resized=rows.find(e=>e.note==='Modification OK');
+  const resized=rows.find(e=>e.id===modifiedId);
   assert(resized&&resized.end!==beforeEnd,'Redimensionnement non enregistré');
 
   // Menu agent : couleur et rythme uniquement
