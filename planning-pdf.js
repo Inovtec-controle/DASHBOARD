@@ -42,8 +42,7 @@ function agentData(state,week,agent){
   const dayTotals=groups.map(g=>g.reduce((n,item)=>n+workedDurationMin(item),0));
   const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
   const nightTotal=groups.reduce((total,g)=>total+g.reduce((n,item)=>n+nightDurationMin(item),0),0);
-  const sundayTotal=dayTotals[6]||0;
-  return{agent:agent.name||"Agent",start,end,groups,dayTotals,weekTotal,nightTotal,sundayTotal};
+  return{agent:agent.name||"Agent",start,end,groups,dayTotals,weekTotal,nightTotal};
 }
 function jsPDFClass(){return window.jspdf?.jsPDF||window.jsPDF||null}
 function fitLine(doc,value,maxWidth){let s=String(value||"").replace(/\s+/g," ").trim();if(!s)return"";if(doc.getTextWidth(s)<=maxWidth)return s;const ell="...";while(s.length>1&&doc.getTextWidth(s+ell)>maxWidth)s=s.slice(0,-1);return(s.trim()||"")+ell}
@@ -64,46 +63,29 @@ function timeRange(data){
   return{start:first,end:last};
 }
 function drawHeader(doc,data){
-  doc.setFillColor(255,255,255);doc.setDrawColor(6,78,59);doc.setLineWidth(1.1);doc.roundedRect(8,7,281,23,4,4,"FD");
-  doc.setTextColor(20,57,45);doc.setFont("helvetica","bold");doc.setFontSize(7);doc.text("PLANNING HEBDOMADAIRE",15,13);
+  doc.setFillColor(6,78,59);doc.roundedRect(8,7,281,23,4,4,"F");
+  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7);doc.text("PLANNING HEBDOMADAIRE",15,13);
   doc.setFontSize(18);doc.text(String(data.agent||"Agent"),15,21,{maxWidth:178});
   doc.setFontSize(9);doc.setFont("helvetica","normal");doc.text(rangeLabel(data.start,data.end),15,27);
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text("TOTAL SEMAINE",281,14,{align:"right"});doc.setFontSize(15);doc.text(totalLabel(data.weekTotal),281,22.5,{align:"right"});
-  const extras=[];
-  if(data.nightTotal>0)extras.push(`TRAVAIL DE NUIT (21H-6H) : ${totalLabel(data.nightTotal)}`);
-  if(data.sundayTotal>0)extras.push(`TRAVAIL LE DIMANCHE : ${totalLabel(data.sundayTotal)}`);
-  if(extras.length){
-    doc.setFont("helvetica","bold");doc.setFontSize(extras.length>1?5.8:6.5);
-    extras.forEach((label,i)=>doc.text(label,281,extras.length>1?26.5+i*2.6:28,{align:"right"}));
-  }
-  doc.setLineWidth(.25);doc.setFont("helvetica","normal");doc.setTextColor(0,0,0);
+  if(data.nightTotal>0){doc.setFontSize(6.5);doc.setFont("helvetica","bold");doc.text(`TRAVAIL DE NUIT (21H-6H) : ${totalLabel(data.nightTotal)}`,281,28,{align:"right"})}
+  doc.setFont("helvetica","normal");doc.setTextColor(0,0,0);
 }
 function layoutDay(list,range,bodyY,bodyH){
   if(!list.length)return[];
   const n=list.length;
   const gap=n>=10?.35:n>=7?.55:n>=5?.8:1.1;
   const bodyBottom=bodyY+bodyH;
-  const fittedH=Math.max(5.2,(bodyH-gap*(n-1))/Math.max(1,n));
+  const fittedH=Math.max(5.8,(bodyH-gap*(n-1))/Math.max(1,n));
+  const dense=n>=7||fittedH<10.8;
+  const minH=dense?Math.max(5.8,Math.min(9.4,fittedH)):Math.max(10.8,Math.min(15,fittedH));
   const span=Math.max(60,range.end-range.start);
-
-  /* Quand la journée contient beaucoup de prestations, on utilise toute la
-     hauteur réellement disponible. Les bulles ne débordent jamais dans la
-     ligne du total journalier et le texte ne se compacte que si nécessaire. */
-  if(n>=5){
-    return list.map((item,i)=>({
-      item,
-      top:bodyY+i*(fittedH+gap),
-      h:fittedH,
-      compact:fittedH<11
-    }));
-  }
-
-  const minH=Math.max(10.8,Math.min(15,fittedH));
   const pos=list.map(item=>{
     const start=timeToMin(item.start),end=Math.max(start+15,timeToMin(item.end));
     const desiredTop=bodyY+Math.max(0,Math.min(1,(start-range.start)/span))*bodyH;
-    const naturalH=Math.max(minH,Math.min(30,((end-start)/span)*bodyH));
-    return{item,top:desiredTop,h:naturalH,compact:naturalH<11};
+    let naturalH=Math.max(minH,Math.min(30,((end-start)/span)*bodyH));
+    if(dense)naturalH=Math.min(naturalH,fittedH);
+    return{item,top:desiredTop,h:naturalH,compact:dense||naturalH<11};
   });
   const occupied=pos.reduce((sum,p)=>sum+p.h,0)+gap*Math.max(0,n-1);
   if(occupied>bodyH){
@@ -180,7 +162,7 @@ function drawGrid(doc,data){
     const cx=x+i*dayW+dayW/2;
     doc.setFont("helvetica","bold");doc.setFontSize(8.2);doc.setTextColor(25,45,38);doc.text(totalLabel(mins),cx,totalY+6.8,{align:"center"});
   });
-  doc.setFont("helvetica","normal");doc.setFontSize(5.8);doc.setTextColor(105,116,110);
+  doc.setFont("helvetica","normal");doc.setFontSize(5.8);doc.setTextColor(105,116,110);doc.text(`Amplitude affichee : ${displayTime(`${Math.floor(range.start/60)}:${pad(range.start%60)}`)} - ${displayTime(`${Math.floor(range.end/60)}:${pad(range.end%60)}`)}`,8,207);
   doc.text("Document genere depuis Inovtec Dashboard",289,207,{align:"right"});
 }
 function drawPage(doc,data){drawHeader(doc,data);drawGrid(doc,data)}

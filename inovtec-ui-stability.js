@@ -40,7 +40,7 @@ function ensureStyle(){if(document.getElementById('ivUnifiedUiStyle'))return;con
 function decorate(){ensureStyle();document.querySelectorAll('#desktopNav,.c3-nav,.iv-sidebar .iv-nav,.side nav,.m1-sidebar .m1-nav,.sidebar .nav').forEach(renderDesktop);document.querySelectorAll('#mobileNav,.iv-mobile-nav,.mobile-nav').forEach(renderMobile);}
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&drawer)closeDrawer()});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate,{once:true});else decorate();
-const authRequired=!!document.querySelector('.iv-shell,.c3-app,.shell')&&(!mode||!['temps','salaire','essence'].includes(mode));
+const authRequired=!!document.querySelector('.iv-shell,.c3-app,.shell')&&mode!=='planning'&&(!mode||!['temps','salaire','essence'].includes(mode));
 if(!authRequired)return;
 document.body.classList.add('iv-unified-session');if(mode==='planning')document.body.classList.add('iv-planning-session-nonblocking');
 let overlay=null,auth=null,authBound=false,firebaseSdk=null;
