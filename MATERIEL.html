@@ -12,7 +12,6 @@
 <link rel="stylesheet" href="inovtec-shell.css?v=20260829-agentfull1">
 <link rel="stylesheet" href="inovtec-shell-v2.css?v=20260815-2">
 <link rel="stylesheet" href="inovtec-materiel-visual-shell-v3.css?v=20260919-v3">
-<link rel="stylesheet" href="inovtec-mobile-global.css?v=20260923-mobile1">
 <style>
 /* Cette adaptation ne concerne que la page Matériel : une seule page qui défile. */
 html,body.iv-materiel-full-page{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
@@ -94,9 +93,6 @@ body.iv-materiel-full-page #exportMaterial{display:none!important}
     const d=doc();if(!d?.head||!d.body)return;
     if(!d.querySelector('link[data-materiel-layout]')){
       const style=d.createElement('link');style.rel='stylesheet';style.href='inovtec-materiel-layout.css?v=20260917-layout2';style.dataset.materielLayout='1';d.head.appendChild(style);style.addEventListener('load',scheduleFit);
-    }
-    if(!d.querySelector('link[data-inovtec-mobile-embedded]')){
-      const mobile=d.createElement('link');mobile.rel='stylesheet';mobile.href='inovtec-mobile-embedded.css?v=20260923-mobile1';mobile.dataset.inovtecMobileEmbedded='1';d.head.appendChild(mobile);mobile.addEventListener('load',scheduleFit);
     }
     const page=d.querySelector('.page');
     if(page&&window.ResizeObserver){observer=new ResizeObserver(scheduleFit);observer.observe(page)}
