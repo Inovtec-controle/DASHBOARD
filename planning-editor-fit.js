@@ -109,6 +109,12 @@ function fitOnce(){
   pop.style.setProperty("bottom","auto","important");
   pop.style.setProperty("left",Math.round(left)+"px","important");
   pop.style.setProperty("top",Math.round(top)+"px","important");
+
+  /* Une alerte ou un contenu ajouté après l'ouverture ne doit jamais pousser
+     les boutons hors écran. La hauteur maximale dépend donc de la position
+     finale de la bulle, pas seulement de la hauteur totale du viewport. */
+  const roomBelow=Math.max(160,b.bottom-top);
+  pop.style.setProperty("max-height",Math.floor(roomBelow)+"px","important");
 }
 
 /* Important : aucune surveillance de scroll, pointer, focus ou redimensionnement du
