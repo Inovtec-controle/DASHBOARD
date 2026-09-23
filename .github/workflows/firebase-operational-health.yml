@@ -21,11 +21,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          files=(firebase-config.js firestore.rules storage.rules inovtec-firebase-operational-guard.js inovtec-cloud-sync.js inovtec-data-hub.js inovtec-shared-workspace.js inovtec-cross-page-data.js conges.js variables.js ORGA-LEGACY.html INFOCHANTIERS-V2-LEGACY.html inovtec-info-persistence-stable.js inovtec-info-control-history.js inovtec-site-management-layout.js inovtec-container-schedule.js discipline-firestore-bridge.js kontrol-cloud.js inovtec-kontrol-shared-archive.js AGENTS-LEGACY.html PLANNINGS.html AGENTS.html CONGES.html VARIABLES.html ORGA.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html)
+          files=(firebase-config.js firestore.rules storage.rules inovtec-firebase-operational-guard.js inovtec-cloud-sync.js inovtec-cloud-sync-v2.js inovtec-common-header.js inovtec-data-hub.js inovtec-shared-workspace.js inovtec-cross-page-data.js conges.js variables.js ORGA-LEGACY.html INFOCHANTIERS-V2-LEGACY.html inovtec-info-persistence-stable.js inovtec-info-control-history.js inovtec-site-management-layout.js inovtec-container-schedule.js discipline-firestore-bridge.js kontrol-cloud.js inovtec-kontrol-shared-archive.js AGENTS-LEGACY.html PLANNINGS.html AGENTS.html CONGES.html VARIABLES.html ORGA.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html)
           for f in "${files[@]}"; do
             test -s "$f" || { echo "::error file=$f::Fichier Firebase absent ou vide"; exit 1; }
           done
-          for f in firebase-config.js inovtec-firebase-operational-guard.js inovtec-cloud-sync.js inovtec-data-hub.js inovtec-shared-workspace.js inovtec-cross-page-data.js inovtec-info-persistence-stable.js inovtec-info-control-history.js inovtec-info-agent-planning.js inovtec-site-management-layout.js inovtec-container-schedule.js conges.js variables.js discipline-firestore-bridge.js kontrol-cloud.js inovtec-kontrol-shared-archive.js dashboard-index.js inovtec-contract-reminders.js; do
+          for f in firebase-config.js inovtec-firebase-operational-guard.js inovtec-cloud-sync.js inovtec-cloud-sync-v2.js inovtec-common-header.js inovtec-data-hub.js inovtec-shared-workspace.js inovtec-cross-page-data.js inovtec-info-persistence-stable.js inovtec-info-control-history.js inovtec-info-agent-planning.js inovtec-site-management-layout.js inovtec-container-schedule.js conges.js variables.js discipline-firestore-bridge.js kontrol-cloud.js inovtec-kontrol-shared-archive.js dashboard-index.js inovtec-contract-reminders.js; do
             node --check "$f"
           done
 
@@ -38,7 +38,9 @@ jobs:
           checks={
             'firebase-config.js':['projectId: "inovtec-chantiers"','inovtec-firebase-operational-guard.js?v='],
             'inovtec-page-shell.html':['firebase-config.js?v=','inovtec-cloud-sync.js?v=','inovtec-data-hub.js?v='],
-            'inovtec-cloud-sync.js':['planning:"inovtec_plannings_v2"','agents:"kontrol_agents_classeur_v2"','heures:"HSUPP_DUR_APP_V1"','onSnapshot','isDeletedAgent'],
+            'inovtec-cloud-sync.js':['inovtec-cloud-sync-v2.js?v=','script.async=false'],
+            'inovtec-cloud-sync-v2.js':["planning:'inovtec_plannings_v2'","agents:'kontrol_agents_classeur_v2'","heures:'HSUPP_DUR_APP_V1'",'onSnapshot','_deleted'],
+            'inovtec-common-header.js':['evaluateSyncMark','frameDisplayReady','localSyncState','Firebase synchronisé · affichage de la page vérifié'],
             'inovtec-data-hub.js':['collection("kanban").doc(user.uid)','collection("chantiers").orderBy("nom").onSnapshot','_deleted:true'],
             'inovtec-firebase-operational-guard.js':['const VARIABLE_MODE="variables"','agentBinaryChunk','ivBinaryV1','__inovtec_shared_workspace_v1__'],
             'conges.js':['moduleSyncV1:{conges:'],
