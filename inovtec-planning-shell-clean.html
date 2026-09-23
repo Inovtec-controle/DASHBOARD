@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b6b43">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="0">
+<title>Inovtec — Planning</title>
+<style>
+:root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#18372c;background:#f4f7f5}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{min-height:100dvh}
+.iv-planning-shell{height:100dvh;display:grid;grid-template-rows:58px minmax(0,1fr);background:#f4f7f5}
+.iv-planning-top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 16px;background:#fff;border-bottom:1px solid #dce6e1;box-shadow:0 2px 12px rgba(15,23,42,.04);z-index:2}
+.iv-planning-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.iv-planning-logo{width:30px;height:30px;border-radius:9px;background:#0b6b43;color:#fff;display:grid;place-items:center;font-weight:800}
+.iv-planning-title{font-weight:800;font-size:15px;white-space:nowrap}
+.iv-planning-nav{display:flex;align-items:center;gap:7px}
+.iv-planning-nav a{color:#315e4c;text-decoration:none;border:1px solid #dce6e1;background:#fff;border-radius:9px;padding:7px 10px;font-size:12px;font-weight:700}
+.iv-planning-nav a:hover{background:#f3f8f5}
+#syncMirror{font-size:11px;color:#74837c;white-space:nowrap}
+.iv-planning-stage{min-height:0;position:relative}
+#legacyFrame{display:block;width:100%;height:100%;border:0;background:#f6f8f7}
+@media(max-width:700px){
+ .iv-planning-top{padding:0 9px;height:54px}
+ .iv-planning-shell{grid-template-rows:54px minmax(0,1fr)}
+ .iv-planning-nav a:not(:first-child){display:none}
+ #syncMirror{display:none}
+ .iv-planning-title{font-size:14px}
+}
+</style>
+</head>
+<body>
+<div class="iv-planning-shell">
+  <header class="iv-planning-top">
+    <div class="iv-planning-brand">
+      <div class="iv-planning-logo">I</div>
+      <div class="iv-planning-title">Planning des équipes</div>
+    </div>
+    <nav class="iv-planning-nav" aria-label="Navigation Planning">
+      <a href="index.html">Accueil</a>
+      <a href="INFOCHANTIERS-V2.html">Chantiers</a>
+      <a href="AGENTS.html">Agents</a>
+      <span id="syncMirror">Firebase — connexion…</span>
+    </nav>
+  </header>
+  <main class="iv-planning-stage">
+    <iframe id="legacyFrame" title="Planning Inovtec" src="PLANNINGS-LEGACY.html?v=20260923-clean-core1"></iframe>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+window.INOVTEC_FIREBASE_CONFIG=Object.freeze({
+  apiKey:"AIzaSyCd_A1V-CRWGxbEmGFDadNFbGqXLocBDPw",
+  authDomain:"inovtec-chantiers.firebaseapp.com",
+  projectId:"inovtec-chantiers",
+  storageBucket:"inovtec-chantiers.firebasestorage.app",
+  messagingSenderId:"313162345276",
+  appId:"1:313162345276:web:1a270f797dd736a4060c39"
+});
+</script>
+<script src="inovtec-data-hub.js?v=20260923-clean-core1"></script>
+<script src="inovtec-cloud-sync-v2.js?v=20260923-clean-core1"></script>
+</body>
+</html>
