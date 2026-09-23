@@ -15,14 +15,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Vérifier le moteur de couverture
+      - name: Vérifier le noyau Planning propre
         shell: bash
         run: |
           set -euo pipefail
-          test -s inovtec-planning-coverage.js
-          grep -q 'inovtec-planning-coverage.js' PLANNINGS-LEGACY.html
-          grep -q 'cahierDesChargesV1' inovtec-planning-coverage.js
-          grep -q 'chantierId' inovtec-planning-coverage.js
-          grep -q 'Fréquence à préciser' inovtec-planning-coverage.js
-          grep -q 'Couverture des opérations' inovtec-planning-coverage.js
-          node --check inovtec-planning-coverage.js
+          test -s PLANNINGS.html
+          test -s PLANNINGS-LEGACY.html
+          test -s planning-calendar.js
+          test -s planning-calendar.css
+          test -s inovtec-planning-shell-clean.html
+          grep -q 'inovtec-planning-shell-clean.html' PLANNINGS.html
+          grep -q 'planning-calendar.js' PLANNINGS-LEGACY.html
+          grep -q 'id="addTaskBtn"' PLANNINGS-LEGACY.html
+          grep -q 'id="edDone"' PLANNINGS-LEGACY.html
+          grep -q 'id="editorPopover"' PLANNINGS-LEGACY.html
+          grep -q 'captureCalendarDoubleClick' planning-calendar.js
+          grep -q 'saveEditor' planning-calendar.js
+          grep -q 'inovtec-data-hub.js' inovtec-planning-shell-clean.html
+          grep -q 'inovtec-cloud-sync-v2.js' inovtec-planning-shell-clean.html
+          ! grep -q 'inovtec-planning-coverage.js' PLANNINGS-LEGACY.html
+          ! grep -q 'planning-replacement.js' PLANNINGS-LEGACY.html
+          ! grep -q 'planning-pdf.js' PLANNINGS-LEGACY.html
+          ! grep -q 'planning-legal-guard.js' PLANNINGS-LEGACY.html
+          node --check planning-calendar.js
