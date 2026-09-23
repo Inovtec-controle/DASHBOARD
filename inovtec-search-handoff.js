@@ -40,15 +40,3 @@ function apply(){
 frame.addEventListener("load",()=>{setTimeout(apply,80);setTimeout(apply,500)});
 setTimeout(apply,400);
 })();
-
-// Le Classeur agents réutilise le véritable éditeur des équipes du Planning.
-// Ce chargement est volontairement limité à ces deux pages.
-(()=>{
-  const mode=(new URLSearchParams(location.search).get('mode')||'').toLowerCase();
-  if(mode!=='agents'&&mode!=='planning')return;
-  if(document.querySelector('script[data-iv-agent-team-context]'))return;
-  const script=document.createElement('script');
-  script.src='inovtec-agents-team-context.js?v=20260917-restore-team1';
-  script.dataset.ivAgentTeamContext='1';
-  (document.head||document.documentElement).appendChild(script);
-})();
