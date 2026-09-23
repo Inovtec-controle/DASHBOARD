@@ -367,8 +367,24 @@ function renderLive(){
 function escapeHtml(v){
   return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 }
-/* Les alertes légales restent visibles dans la bulle mais ne doivent jamais
-   empêcher la validation. Le bouton Terminé doit toujours pouvoir enregistrer puis fermer. */
+function confirmText(warnings){
+  return "⚠️ ALERTE LÉGALITÉ DU PLANNING\n\n"+
+    warnings.map(w=>"• "+w.title+"\n  "+w.detail+"\n  "+w.law).join("\n\n")+
+    "\n\nEnregistrer quand même ?";
+}
+function onDone(e){
+  const btn=e.target.closest?.("#edDone");
+  if(!btn)return;
+  const c=candidateFromEditor();
+  if(!c)return;
+  const warnings=warningsFor(c);
+  if(!warnings.length)return;
+  const ok=confirm(confirmText(warnings));
+  if(!ok){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+}
 
 const editor=$("editorPopover");
 ensureBox();
@@ -378,6 +394,7 @@ ensureBox();
   el.addEventListener("input",()=>requestAnimationFrame(renderLive));
   el.addEventListener("change",()=>requestAnimationFrame(renderLive));
 });
+document.addEventListener("click",onDone,true);
 
 if(editor){
   const obs=new MutationObserver(()=>{
