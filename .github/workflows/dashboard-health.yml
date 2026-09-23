@@ -56,7 +56,7 @@ jobs:
               if not any(urlsplit(src).path==name for src in planning.scripts):issues.append(f'Script Planning non chargé : {name}')
           for path,markers in {
               'planning-calendar.js':('sanitizePlanningState','ensureParityForCurrentView','inovtec:planning-cloud-updated'),
-              'planning-context-fit.js':('ensureStandardWeek','inovtec:planning-cloud-updated'),
+              'planning-context-fit.js':('visibleBounds','fitContextMenu'),
               'inovtec-cloud-sync.js':('onSnapshot','moduleSyncV1'),
               'dashboard-index-shared.js':('openIncidentCount','kontrolPdfMeta'),
           }.items():
