@@ -15,7 +15,7 @@ let currentKind="";
 
 function norm(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim()}
 function kindFromLabel(v){
-  const n=norm(v);
+  const n=norm(v).replace(/\s+[—-]\s+ancien planning$/,"");
   if(n==="deplacement")return "travel";
   if(n==="pause")return "break";
   return "";
@@ -32,11 +32,13 @@ function ensureStyle(){
   s.id="ivPlanningTravelPauseStyle";
   s.textContent=`
     #ivPlanningSiteInfo.iv-planning-special-choices{margin:-2px 8px 7px 28px;display:grid;grid-template-columns:1fr 1fr;gap:7px;background:transparent!important;border:0!important;padding:0!important;color:inherit!important}
-    #ivPlanningSiteInfo .iv-planning-special-btn{appearance:none;border:1px solid #cfe7db;background:#f4fbf7;color:#245a45;border-radius:10px;min-height:34px;padding:7px 10px;font:600 11px/1.15 Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease,transform .05s ease}
+    #ivPlanningSiteInfo .iv-planning-special-btn{appearance:none;border:1px solid #cfe7db;background:#f4fbf7;color:#245a45;border-radius:10px;min-height:38px;padding:8px 10px;font:700 11px/1.15 Inter,system-ui,sans-serif;display:flex!important;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease,transform .05s ease;visibility:visible!important}
     #ivPlanningSiteInfo .iv-planning-special-btn:hover{background:#eaf7f0;border-color:#add8c3}
     #ivPlanningSiteInfo .iv-planning-special-btn:active{transform:translateY(1px)}
-    #ivPlanningSiteInfo .iv-planning-special-btn.active{background:#dff3e8;border-color:#79bf98;color:#0b6b43;box-shadow:0 0 0 2px rgba(11,107,67,.08) inset}
+    #ivPlanningSiteInfo .iv-planning-special-btn.active{background:#08744b!important;border-color:#065f46!important;color:#fff!important;box-shadow:0 0 0 2px rgba(8,116,75,.18),0 3px 8px rgba(6,95,70,.16)}
+    #ivPlanningSiteInfo .iv-planning-special-btn.active::after{content:"✓";font-size:12px;font-weight:900;line-height:1}
     #ivPlanningSiteInfo .iv-planning-special-icon{font-size:14px;line-height:1}
+    @media(max-width:480px){#ivPlanningSiteInfo.iv-planning-special-choices{margin-left:8px;margin-right:8px}}
   `;
   document.head.appendChild(s);
 }
@@ -73,23 +75,35 @@ function syncButtons(){
     btn.setAttribute("aria-pressed",on?"true":"false");
   });
 }
+/* La liste des chantiers peut être reconstruite par Firebase pendant une édition.
+   Conserver l'option spéciale évite de perdre une sélection non encore enregistrée. */
+function restoreSpecialSelection(){
+  if(!currentKind||!pop.classList.contains("open"))return;
+  const label=SPECIAL[currentKind].label;
+  const o=ensureLegacyOption();
+  if(o.textContent!==label)o.textContent=label;
+  if(title.dataset.legacyTitle!==label)title.dataset.legacyTitle=label;
+  if(title.value!=="__legacy__")title.value="__legacy__";
+  syncButtons();
+}
 function setKind(kind){
   const item=SPECIAL[kind];
   if(!item)return;
   currentKind=kind;
   const o=ensureLegacyOption();
-  o.textContent="Choisir un chantier…";
+  o.textContent=item.label;
   title.dataset.legacyTitle=item.label;
   title.value="__legacy__";
   syncButtons();
   title.dispatchEvent(new Event("change",{bubbles:true}));
+  restoreSpecialSelection();
 }
 function detectFromEditor(){
-  const label=title.dataset.legacyTitle||((title.value==="__legacy__"&&legacyOption())?legacyOption().textContent:"");
+  const label=title.value==="__legacy__"?(title.dataset.legacyTitle||legacyOption()?.textContent||""):"";
   currentKind=kindFromLabel(label);
   if(currentKind){
     const o=ensureLegacyOption();
-    o.textContent="Choisir un chantier…";
+    o.textContent=SPECIAL[currentKind].label;
     title.dataset.legacyTitle=SPECIAL[currentKind].label;
     title.value="__legacy__";
   }
@@ -104,13 +118,17 @@ function clearSpecialIfChantier(){
     currentKind="";
     title.dataset.legacyTitle="";
     const o=legacyOption();
-    if(o&&title.value!=="__legacy__")o.remove();
+    if(o)o.remove();
   }
   syncButtons();
 }
 
 ensureChoices();
 title.addEventListener("change",clearSpecialIfChantier);
+const selectObserver=new MutationObserver(()=>{
+  if(currentKind&&pop.classList.contains("open"))restoreSpecialSelection();
+});
+selectObserver.observe(title,{childList:true});
 const popObserver=new MutationObserver(()=>{
   ensureChoices();
   if(pop.classList.contains("open"))requestAnimationFrame(detectFromEditor);
