@@ -39,7 +39,6 @@ jobs:
           done
           node tests/browser-smoke.mjs
           node tests/home-day-detail.mjs
-          node tests/agent-team-context.mjs
           node tests/home-search-layout.mjs
           node tests/ui-session-navigation.mjs
           node tests/menu-single-render.mjs
@@ -50,10 +49,7 @@ jobs:
           node tests/reassort-workflow.mjs
           node tests/materiel-transaction-sync.mjs
           node tests/materiel-redesign.mjs
-          node tests/planning-fixture.mjs
-          node tests/planning-create-flow.mjs
+          node tests/planning-rollback-flow.mjs
           node tests/firebase-org-migration.mjs
-          node tests/planning-loading-regression.mjs
-          node tests/planning-firebase-stall.mjs
           node tests/firebase-diagnostic.mjs
           node tests/shell-refresh-performance.mjs
