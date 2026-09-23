@@ -1,0 +1,91 @@
+/*
+ * Correctifs d'affichage des pages métiers intégrées.
+ * Strictement mobile : le desktop n'est jamais touché.
+ */
+@media (max-width:760px){
+  html,body{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    overflow-x:hidden!important;-webkit-text-size-adjust:100%;
+  }
+  body{overscroll-behavior-x:none!important}
+  *,*:before,*:after{box-sizing:border-box}
+  main,.page,.app,.wrap,.container,.content,.panel,.card,.cardBody,.section{
+    min-width:0!important;max-width:100%;
+  }
+  input,select,textarea,button{
+    min-width:0!important;max-width:100%!important;font-size:16px;
+  }
+  input[type="checkbox"],input[type="radio"]{font-size:initial}
+  button,.btn,a.btn,[role="button"]{min-height:42px}
+  textarea{max-height:45dvh}
+
+  .grid-2,.grid-3,.grid2,.grid3,.cols,.columns,.two,.forms,.form-grid{
+    grid-template-columns:1fr!important;
+  }
+  .actions,.form-actions,.filters,.toolbar,.topbar-actions{
+    max-width:100%!important;flex-wrap:wrap!important;
+  }
+  .actions>*,.form-actions>*,.filters>*{min-width:0!important}
+
+  .table-wrap,.tablewrap,.table-container,.table-scroll,[data-table-scroll]{
+    width:100%!important;max-width:100%!important;overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch!important;overscroll-behavior-x:contain!important;
+  }
+  .table-wrap table,.tablewrap table,.table-container table,.table-scroll table{
+    width:max-content!important;min-width:100%!important;max-width:none!important;
+  }
+  th,td{overflow-wrap:normal}
+  img,canvas,svg,video{max-width:100%}
+
+  /* Dialogues, menus et popovers : toujours entièrement accessibles */
+  .modal,.dialog,[role="dialog"],.popup,.modal-card,.dialog-card,.modal-content,
+  .sheet,.drawer,.popover.open,#editorPopover.open{
+    max-width:calc(100vw - 16px)!important;
+    max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;
+  }
+  .modal,.dialog,[role="dialog"],.popup,.sheet,.drawer{
+    overflow:auto!important;-webkit-overflow-scrolling:touch!important;
+  }
+  .modal-card,.dialog-card,.modal-content{
+    overflow:auto!important;-webkit-overflow-scrolling:touch!important;
+  }
+  #editorPopover.open{
+    position:fixed!important;left:8px!important;right:8px!important;top:max(8px,env(safe-area-inset-top))!important;
+    bottom:max(8px,env(safe-area-inset-bottom))!important;width:auto!important;height:auto!important;
+    overflow:auto!important;-webkit-overflow-scrolling:touch!important;
+  }
+
+  /* Classeur agents / listes */
+  #agentList,.list,.results,.items{max-width:100%!important}
+  .agent-row,.list-item,.item{min-width:0!important}
+
+  /* Planning : on conserve sa grille mais on évite toute coupure horizontale */
+  body.iv-mode-planning .planner-shell,
+  body.iv-mode-planning .calendar-pane,
+  body.iv-mode-planning .calendar-scroll{width:100%!important;min-width:0!important;max-width:100%!important}
+  body.iv-mode-planning .agent-list{max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  body.iv-mode-planning .month-view{min-width:0!important}
+  body.iv-mode-planning .month-cell{min-width:0!important}
+  body.iv-mode-planning .month-event{overflow:hidden!important;text-overflow:ellipsis!important}
+
+  /* KONTROL : boutons et photos restent atteignables */
+  body.iv-mode-kontrol .sticky-actions,
+  body.iv-mode-kontrol-cloud .sticky-actions{
+    left:0!important;right:0!important;bottom:0!important;
+    padding:8px max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important;
+  }
+  body.iv-mode-kontrol .photos-grid,
+  body.iv-mode-kontrol-cloud .photos-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+
+  /* Variables et formulaires : lecture verticale sans éléments hors écran */
+  body.iv-mode-variables{padding:10px!important}
+  body.iv-mode-variables .kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.iv-mode-variables .tabs{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;white-space:nowrap!important}
+  body.iv-mode-variables .tab{flex:0 0 auto!important}
+}
+
+@media (max-width:390px){
+  body.iv-mode-variables .kpis{grid-template-columns:1fr!important}
+  body.iv-mode-kontrol .photos-grid,
+  body.iv-mode-kontrol-cloud .photos-grid{grid-template-columns:1fr!important}
+}
