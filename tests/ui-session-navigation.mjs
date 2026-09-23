@@ -15,7 +15,7 @@ try{
  if(persist!=='local')throw Error('Persistance Firebase non configurée: '+persist);
  const links=await page.locator('#desktopNav a').evaluateAll(els=>els.map(a=>({key:a.dataset.ivMenuKey,href:a.getAttribute('href')})));
  if(links.length!==13||new Set(links.map(a=>a.key)).size!==13)throw Error('Rubriques manquantes ou dupliquées : '+links.length);
- if(!links.find(a=>a.key==='planning')?.href.startsWith('inovtec-page-shell.html?'))throw Error('Navigation planning indirecte');
+ if(!links.find(a=>a.key==='planning')?.href.startsWith('PLANNINGS.html'))throw Error('Navigation Planning non isolée');
  await page.goto(base+'?mode=planning',{waitUntil:'load'});
  await page.locator('#desktopNav a').first().waitFor();
  if(await page.locator('.iv-session-overlay').count())throw Error('La connexion est redemandée après navigation');
