@@ -84,7 +84,11 @@ function freezeParityCopies(a){normalizeParityAgent(a);Object.keys(state.weeks||
 function ensureParityWeek(week,a){if(!a)return false;normalizeParityAgent(a);if(a.parityMode!=="alternating")return false;initializeParityTemplates(a);const kind=parityKind(week),source=a.parityTemplates[kind];if(!source||source===week||source>week)return false;const mine=agentRowsForWeek(week,a.id),marker=a.parityInheritedWeeks[week],markerSource=typeof marker==="string"?marker:marker?.source||"",markerSig=typeof marker==="object"?marker?.signature||"":"";if(!marker&&mine.length)return false;const sourceSig=paritySignature(source,a.id);if(markerSource===source&&markerSig===sourceSig)return false;const keep=entriesForWeek(week).filter(e=>String(e.agentId)!==String(a.id));const clones=agentRowsForWeek(source,a.id).map(src=>{const e={...src,id:uid("e"),agentId:a.id,_parityInheritedFrom:source};return e});state.weeks[week]=keep.concat(clones);a.parityInheritedWeeks[week]={source,signature:sourceSig};return true}
 function ensureParityForCurrentView(){const a=agentById(state.selected);if(!a||a.parityMode!=="alternating")return false;let changed=false;if(view==="month"){const first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),seen=new Set();for(let i=0;i<42;i++){const w=isoWeekKey(addDays(start,i));if(seen.has(w))continue;seen.add(w);if(ensureParityWeek(w,a))changed=true}}else{if(ensureParityWeek(isoWeekKey(currentDate),a))changed=true}if(changed)localStorage.setItem(KEY,JSON.stringify(state));return changed}
 function parityModelText(a,kind){normalizeParityAgent(a);const key=a.parityTemplates[kind];return key?`semaine ${weekNumber(key)}`:"aucun modèle"}
-function save(){localStorage.setItem(KEY,JSON.stringify(state));updateMeta()}
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(state));
+  try{window.dispatchEvent(new CustomEvent("inovtec:planning-local-saved",{detail:{at:Date.now()}}))}catch{}
+  updateMeta();
+}
 function load(){const firstOpen=isFirstTopLevelOpen();let parsed=null;try{const raw=localStorage.getItem(KEY);if(raw)parsed=JSON.parse(raw)}catch(e){console.warn("Planning local illisible, attente de la copie Firebase",e)}state=sanitizePlanningState(parsed);state.agents.forEach((a,i)=>{if(!a.color)a.color=COLORS[i%COLORS.length];normalizeParityAgent(a)});if(firstOpen||!state.agents.some(a=>String(a.id)===String(state.selected)))state.selected=null;enforceSingleAgent()}
 function syncAgentsFromHub(){const h=dataHub();if(!h?.readyAgents)return false;const masters=Array.from(h.agents||[]),old=Array.isArray(state.agents)?state.agents:[],used=new Set(),next=[];masters.forEach((m,i)=>{const name=masterName(m),match=old.find(a=>!used.has(a.id)&&(a.refId===m.id||a.id===m.id||norm(a.name)===norm(name)));if(match)used.add(match.id);const parityMode=match?.parityMode==="alternating"?"alternating":"standard",parityTemplates={even:match?.parityTemplates?.even||"",odd:match?.parityTemplates?.odd||""},parityInheritedWeeks={...(match?.parityInheritedWeeks||{})};next.push({id:match?.id||m.id,name,refId:m.id,color:match?.color||COLORS[i%COLORS.length],copies:match?.copies||2,parityMode,parityTemplates,parityInheritedWeeks})});const before=JSON.stringify(old.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks])),after=JSON.stringify(next.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks]));if(before===after)return false;state.agents=next;if(!state.agents.some(a=>a.id===state.selected))state.selected=null;enforceSingleAgent();localStorage.setItem(KEY,JSON.stringify(state));return true}
 function bindHub(){const h=dataHub();if(!h){setTimeout(bindHub,300);return}if(hubBound)return;hubBound=true;h.subscribe(()=>{const pop=$("editorPopover"),editorOpen=pop.classList.contains("open"),active=document.activeElement,editing=editorOpen&&pop.contains(active),changed=syncAgentsFromHub();if(changed){if(!editing)render()}else if(editorOpen&&active!==$("edTitle")){const e=eventRef(pop.dataset.week,pop.dataset.id);if(e)fillChantierSelect(e)}});if(syncAgentsFromHub())render()}
@@ -196,9 +200,20 @@ function saveEditor(){
   state.selected=next.agentId;
   enforceSingleAgent();
   draftEvent=null;
+  const savedId=next.id;
   save();
   closeEditor();
   render();
+  requestAnimationFrame(()=>{
+    const card=document.querySelector('.event-card[data-id="'+CSS.escape(savedId)+'"]');
+    if(card){
+      card.classList.add("just-saved");
+      try{card.scrollIntoView({block:"nearest",inline:"nearest"})}catch{}
+      setTimeout(()=>card.classList.remove("just-saved"),2200);
+    }else{
+      console.error("Planning : tâche enregistrée mais carte non rendue",savedId,newWeek,next);
+    }
+  });
 }
 function deleteEdited(){
   const pop=$("editorPopover");
