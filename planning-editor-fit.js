@@ -1,13 +1,13 @@
 (()=>{
 "use strict";
-if(window.__INOVTEC_PLANNING_EDITOR_FIT_V5__)return;
+if(window.__INOVTEC_PLANNING_EDITOR_FIT_V6__)return;
 window.__INOVTEC_PLANNING_EDITOR_FIT_V5__=true;
 
 const pop=document.getElementById("editorPopover");
 if(!pop)return;
 
 const style=document.createElement("style");
-style.id="ivPlanningEditorFitStyleV5";
+style.id="ivPlanningEditorFitStyleV6";
 style.textContent=`
 #editorPopover{
   overflow-y:auto!important;
@@ -86,10 +86,9 @@ function fitOnce(){
   if(window.matchMedia?.("(max-width:720px)")?.matches)return;
 
   const b=bounds();
-  const h=Math.max(160,b.bottom-b.top);
+  const fullH=Math.max(160,b.bottom-b.top);
   const w=Math.max(220,b.right-b.left);
 
-  pop.style.setProperty("max-height",Math.floor(h)+"px","important");
   pop.style.setProperty("overflow-y","auto","important");
 
   let r=pop.getBoundingClientRect();
@@ -102,9 +101,17 @@ function fitOnce(){
   let top=r.top;
   if(r.right>b.right)left-=r.right-b.right;
   if(left<b.left)left=b.left;
-  if(r.bottom>b.bottom)top-=r.bottom-b.bottom;
+
+  /* La bulle ne doit jamais pouvoir grandir sous le bas visible de l'écran.
+     On place d'abord la fenêtre, puis sa hauteur maximale devient l'espace
+     réellement disponible sous cette position. Si une alerte apparaît ensuite,
+     le contenu défile à l'intérieur et les actions sticky restent accessibles. */
+  const initialVisibleHeight=Math.min(r.height,fullH);
+  if(top+initialVisibleHeight>b.bottom)top=b.bottom-initialVisibleHeight;
   if(top<b.top)top=b.top;
 
+  const availableBelow=Math.max(160,b.bottom-top);
+  pop.style.setProperty("max-height",Math.floor(Math.min(fullH,availableBelow))+"px","important");
   pop.style.setProperty("right","auto","important");
   pop.style.setProperty("bottom","auto","important");
   pop.style.setProperty("left",Math.round(left)+"px","important");
