@@ -6,7 +6,7 @@
   const loading=document.getElementById('loading');
   const summary=document.getElementById('pageSummary');
   if(!frame||!loading)return;
-  const directUrl='PLANNINGS-LEGACY.html?v=20260923-editor-reset1';
+  const directUrl='PLANNINGS-LEGACY.html?v=20260923-editor-reset2';
   const cardSpecs=[
     ['♙','Agent actif','Aucun agent','Référentiel partagé'],
     ['▦','Semaine','—','Période affichée'],
