@@ -12,7 +12,7 @@ const hash=s=>{s=String(s||'');let h=2166136261;for(let i=0;i<s.length;i++){h^=s
 const local=()=>localStorage.getItem(key)||'',size=s=>new Blob([s]).size;
 const baseKey=uid=>'iv_cloud_base_v2_'+mode+'_'+uid;
 const activeKey='iv_cloud_active_user_v2_'+mode;
-let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,generation=0,lastStatus='',switching=false;
+let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,lastLocalPlanningSave=0,generation=0,lastStatus='',switching=false;
 function report(message,ok=false){
   if(message===lastStatus)return;lastStatus=message;
   for(const id of ['syncMirror','liveMirror']){const el=document.getElementById(id);if(el)el.textContent=message}
@@ -164,7 +164,11 @@ async function boot(uid,token){
     const stored=switching?null:localStorage.getItem(baseKey(uid));
     const browser=switching?'':packed(local());
     if(remote!==null){
-      if(stored!==null&&stored!==browser){base=stored;initialized=true;schedule(20)}
+      if(mode==='planning'&&browser&&Date.now()-lastLocalPlanningSave<5000){
+        base=stored!==null?stored:remote;
+        initialized=true;
+        schedule(20);
+      }else if(stored!==null&&stored!==browser){base=stored;initialized=true;schedule(20)}
       else{initialized=true;remember(remote);apply(remote);report('Firebase — synchronisé',true)}
     }else{
       initialized=true;base='';
@@ -211,5 +215,11 @@ if(mode==='planning'&&!frame){
 }
 setInterval(()=>{if(user&&initialized&&!applying){try{if(packed(local())!==base)schedule(50)}catch(e){report('Firebase — '+e.message)}}},6000);
 window.addEventListener('online',()=>{if(user){if(!initialized)void boot(user.uid,generation);else void refresh()}});
+window.addEventListener('inovtec:planning-local-saved',()=>{
+  if(mode!=='planning')return;
+  lastLocalPlanningSave=Date.now();
+  activity=Date.now();
+  if(initialized)schedule(20);
+});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user){if(!initialized)void boot(user.uid,generation);else void refresh()}});
 })();
