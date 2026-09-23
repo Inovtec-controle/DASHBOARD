@@ -42,7 +42,7 @@ await check('Planning : chargement dans la rubrique principale', async () => {
   await page.waitForFunction(() => document.getElementById('desktopNav')?.dataset.ivStableMenu === '1', null, { timeout: 20000 });
   if (await page.locator('#desktopNav a[data-iv-menu-key="reassort"]').count() !== 1) throw new Error('Menu Planning incomplet');
   const frameUrl=await page.locator('#legacyFrame').getAttribute('src')||'';
-  if(!frameUrl.includes('PLANNINGS-LEGACY.html?v=20260923-editor-reset2')) throw new Error('Ancienne version du Planning chargée dans le Dashboard : '+frameUrl);
+  if(!frameUrl.includes('PLANNINGS-LEGACY.html?v=20260923-editor-reset3')) throw new Error('Ancienne version du Planning chargée dans le Dashboard : '+frameUrl);
   const calendarSrc=await page.frameLocator('#legacyFrame').locator('script[src^="planning-calendar.js"]').getAttribute('src');
   if(calendarSrc!=='planning-calendar.js?v=20260923-editor-reset2') throw new Error('Ancien moteur Planning chargé : '+calendarSrc);
 });
