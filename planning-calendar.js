@@ -128,7 +128,34 @@ function applySelectedChantier(){
   const field=$("edSite");
   if(isSameLocation(field.value,c))field.value="";
 }
-function openEditor(week,e,x,y){selectedEvent=e.id;fillAgentSelect();fillChantierSelect(e);const d=dateFromWeek(week,Number(e.day)||0);$("edSite").value=e.site||"";$("edDate").value=dateInput(d);$("edStart").value=e.start||"09:00";$("edEnd").value=e.end||"10:00";$("edNote").value=e.note||"";$("edAgent").value=e.agentId||state.selected;const c=selectedChantier();if(c&&isSameLocation($("edSite").value,c))$("edSite").value="";const pop=$("editorPopover");pop.dataset.week=week;pop.dataset.id=e.id;pop.classList.add("open");requestAnimationFrame(()=>{let minTop=8,maxBottom=innerHeight-8,minLeft=8,maxRight=innerWidth-8;try{if(parent!==window){const frame=window.frameElement||parent.document.getElementById("legacyFrame");if(frame){const fr=frame.getBoundingClientRect(),vv=parent.visualViewport,pTop=vv?.offsetTop||0,pLeft=vv?.offsetLeft||0,pHeight=vv?.height||parent.innerHeight,pWidth=vv?.width||parent.innerWidth;minTop=Math.max(8,pTop-fr.top+8);maxBottom=Math.min(innerHeight-8,pTop+pHeight-fr.top-8);minLeft=Math.max(8,pLeft-fr.left+8);maxRight=Math.min(innerWidth-8,pLeft+pWidth-fr.left-8)}}}catch{}const visibleH=Math.max(160,maxBottom-minTop),visibleW=Math.max(220,maxRight-minLeft);pop.style.maxHeight=visibleH+"px";pop.style.overflowY="auto";pop.style.top=minTop+"px";const r=pop.getBoundingClientRect();const left=Math.max(minLeft,Math.min(x+12,maxRight-Math.min(r.width,visibleW)));pop.style.left=left+"px"});render()}
+function openEditor(week,e,x,y){
+  selectedEvent=e.id;
+  fillAgentSelect();
+  fillChantierSelect(e);
+  const d=dateFromWeek(week,Number(e.day)||0);
+  $("edSite").value=e.site||"";
+  $("edDate").value=dateInput(d);
+  $("edStart").value=e.start||"09:00";
+  $("edEnd").value=e.end||"10:00";
+  $("edNote").value=e.note||"";
+  $("edAgent").value=e.agentId||state.selected;
+  const c=selectedChantier();
+  if(c&&isSameLocation($("edSite").value,c))$("edSite").value="";
+  const pop=$("editorPopover");
+  pop.dataset.week=week;
+  pop.dataset.id=e.id;
+  pop.classList.add("open");
+  requestAnimationFrame(()=>{
+    pop.style.maxHeight=Math.max(220,innerHeight-16)+"px";
+    pop.style.overflowY="auto";
+    const r=pop.getBoundingClientRect();
+    const px=Number.isFinite(x)?x+12:Math.round((innerWidth-r.width)/2);
+    const py=Number.isFinite(y)?y+12:16;
+    pop.style.left=Math.max(8,Math.min(px,innerWidth-r.width-8))+"px";
+    pop.style.top=Math.max(8,Math.min(py,innerHeight-r.height-8))+"px";
+  });
+  render();
+}
 function closeEditor(){selectedEvent=null;$("editorPopover").classList.remove("open");document.querySelectorAll(".event-card.selected").forEach(x=>x.classList.remove("selected"))}
 function saveEditor(){const pop=$("editorPopover"),oldWeek=pop.dataset.week,id=pop.dataset.id,e=eventRef(oldWeek,id);if(!e){closeEditor();return}const oldAgentId=e.agentId,d=parseDateInput($("edDate").value);if(!d)return;const start=$("edStart").value,end=$("edEnd").value;if(timeToMin(end)<=timeToMin(start)){alert("L’heure de fin doit être après le début.");return}const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__";if(!chosen&&!legacy){alert("Choisis un chantier dans la liste.");$("edTitle").focus();return}const newWeek=isoWeekKey(d);e.agentId=$("edAgent").value;e.day=mondayIndex(d);e.start=start;e.end=end;if(chosen){e.chantierId=chosen.id;e.task=chosen.nom||chosen.adresse||"Chantier";e.site=$("edSite").value.trim()}else{e.chantierId="";e.task=$("edTitle").dataset.legacyTitle||e.task||"Intervention";e.site=$("edSite").value.trim()}e.note=$("edNote").value.trim();if(newWeek!==oldWeek){state.weeks[oldWeek]=entriesForWeek(oldWeek).filter(x=>x.id!==id);entriesForWeek(newWeek).push(e)}if(oldWeek!==newWeek||String(oldAgentId)!==String(e.agentId))markParityEdited(oldWeek,oldAgentId);markParityEdited(newWeek,e.agentId);state.selected=e.agentId;enforceSingleAgent();save();closeEditor();render()}
 function deleteEdited(){const pop=$("editorPopover"),week=pop.dataset.week,id=pop.dataset.id,e=eventRef(week,id);if(!e)return;if(confirm(`Supprimer « ${e.task||"cette intervention"} » ?`)){const agentId=e.agentId;state.weeks[week]=entriesForWeek(week).filter(x=>x.id!==id);markParityEdited(week,agentId);save();closeEditor();render()}}
@@ -143,6 +170,7 @@ $("agentSearch").addEventListener("input",renderAgents);
 
 document.querySelectorAll(".view-tab").forEach(b=>b.onclick=()=>{view=b.dataset.view;closeEditor();render()});
 $("prevBtn").onclick=()=>navigate(-1);$("nextBtn").onclick=()=>navigate(1);$("todayBtn").onclick=()=>{currentDate=new Date();closeEditor();render()};
+$("addTaskBtn").onclick=()=>{if(!state.selected){alert("Sélectionne d’abord un agent dans la liste de gauche.");return}const d=cloneDate(currentDate);createDefaultForDate(d,Math.round(innerWidth/2),80)};
 $("edTitle").addEventListener("change",applySelectedChantier);$("edDone").onclick=saveEditor;$("edDelete").onclick=deleteEdited;
 $("editorPopover").addEventListener("mousedown",e=>e.stopPropagation());
 $("exportBtn").onclick=exportData;$("importFile").onchange=e=>{const f=e.target.files?.[0];if(f)importData(f);e.target.value=""};$("printBtn").onclick=()=>window.print();
