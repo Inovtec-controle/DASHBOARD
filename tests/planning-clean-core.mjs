@@ -25,12 +25,15 @@ await context.addInitScript(()=>{
   }));
 });
 const page=await context.newPage();
+await page.route('**/inovtec-data-hub.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
+await page.route('**/inovtec-cloud-sync-v2.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
+await page.route('https://www.gstatic.com/firebasejs/**',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
 page.on('dialog',async d=>{if(d.type()==='confirm')await d.accept();else await d.dismiss()});
 const errors=[];page.on('pageerror',e=>errors.push(String(e?.message||e)));
 const assert=(ok,msg)=>{if(!ok)throw Error(msg)};
 
 try{
-  await page.goto(base+'/PLANNINGS-LEGACY.html?v=test-clean',{waitUntil:'domcontentloaded',timeout:30000});
+  await page.goto(base+'/PLANNINGS.html?mode=planning&v=test-direct',{waitUntil:'domcontentloaded',timeout:30000});
   await page.locator('.agent-row[data-agent-id="agent-a"]').waitFor({state:'visible',timeout:15000});
 
   // Recherche et sélection agent
@@ -53,30 +56,24 @@ try{
   assert(period1!==period0,'Période suivante inactive');
   await page.locator('#prevBtn').click();
 
-  // Création via bouton
-  await page.locator('#addTaskBtn').click();
-  await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:5000});
-  await page.locator('#edTitle').selectOption('site-a');
-  await page.locator('#edSite').fill('Nettoyage bureaux');
-  await page.locator('#edStart').fill('09:00');
-  await page.locator('#edEnd').fill('10:00');
-  await page.locator('#edNote').fill('Note test');
-  await page.locator('#edDone').click();
-  await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
-  assert(await page.locator('.event-card').count()>=1,'Création via + Tâche absente');
+  assert(await page.locator('#addTaskBtn').count()===0,'Le bouton + Tâche ne doit plus exister');
 
-  // Création par vraie souris / double-clic
+  // Création uniquement par vraie souris / double-clic
   const col=page.locator('.day-column').nth(1);
   const box=await col.boundingBox();assert(!!box,'Colonne Planning non mesurable');
+  const beforeDraft=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
+  const beforeDraftCount=Object.values(beforeDraft.weeks||{}).flat().length;
   await page.mouse.click(box.x+Math.min(60,box.width/2),box.y+220,{clickCount:2,delay:90});
   await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:5000});
+  const whileDraft=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
+  assert(Object.values(whileDraft.weeks||{}).flat().length===beforeDraftCount,'Le double-clic enregistre avant Terminé');
   await page.locator('#edTitle').selectOption('site-b');
   await page.locator('#edSite').fill('Contrôle sanitaires');
   await page.locator('#edStart').fill('11:00');
   await page.locator('#edEnd').fill('12:00');
   await page.locator('#edDone').click();
   await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
-  assert(await page.locator('.event-card').count()>=2,'Création par double-clic absente');
+  assert(await page.locator('.event-card').count()===1,'La tâche créée au double-clic n’apparaît pas après Terminé');
 
   // Edition d'une tâche existante + Terminé
   const first=page.locator('.event-card').first();
@@ -149,7 +146,7 @@ try{
   assert((await page.locator('#periodLabel').innerText()).trim().length>0,'Bouton Aujourd’hui inactif');
 
   if(errors.length)throw Error('Erreur JavaScript : '+errors.join(' | '));
-  console.log('OK : Planning propre — recherche, vues, navigation, +Tâche, double-clic réel, édition, Terminé, déplacement, redimensionnement, rythme et suppression.');
+  console.log('OK : Planning direct — sans +Tâche, double-clic réel, brouillon, bulle, Terminé, édition, déplacement, redimensionnement, rythme et suppression.');
 }catch(e){
   console.error('::error::Planning propre : '+e.message);
   process.exitCode=1;
