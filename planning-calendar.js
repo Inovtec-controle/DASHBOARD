@@ -84,16 +84,7 @@ function freezeParityCopies(a){normalizeParityAgent(a);Object.keys(state.weeks||
 function ensureParityWeek(week,a){if(!a)return false;normalizeParityAgent(a);if(a.parityMode!=="alternating")return false;initializeParityTemplates(a);const kind=parityKind(week),source=a.parityTemplates[kind];if(!source||source===week||source>week)return false;const mine=agentRowsForWeek(week,a.id),marker=a.parityInheritedWeeks[week],markerSource=typeof marker==="string"?marker:marker?.source||"",markerSig=typeof marker==="object"?marker?.signature||"":"";if(!marker&&mine.length)return false;const sourceSig=paritySignature(source,a.id);if(markerSource===source&&markerSig===sourceSig)return false;const keep=entriesForWeek(week).filter(e=>String(e.agentId)!==String(a.id));const clones=agentRowsForWeek(source,a.id).map(src=>{const e={...src,id:uid("e"),agentId:a.id,_parityInheritedFrom:source};return e});state.weeks[week]=keep.concat(clones);a.parityInheritedWeeks[week]={source,signature:sourceSig};return true}
 function ensureParityForCurrentView(){const a=agentById(state.selected);if(!a||a.parityMode!=="alternating")return false;let changed=false;if(view==="month"){const first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),seen=new Set();for(let i=0;i<42;i++){const w=isoWeekKey(addDays(start,i));if(seen.has(w))continue;seen.add(w);if(ensureParityWeek(w,a))changed=true}}else{if(ensureParityWeek(isoWeekKey(currentDate),a))changed=true}if(changed)localStorage.setItem(KEY,JSON.stringify(state));return changed}
 function parityModelText(a,kind){normalizeParityAgent(a);const key=a.parityTemplates[kind];return key?`semaine ${weekNumber(key)}`:"aucun modèle"}
-function save(){
-  try{localStorage.setItem(KEY,JSON.stringify(state))}
-  catch(error){
-    console.error("Planning : enregistrement local impossible",error);
-    alert("L’enregistrement du planning a échoué. Réessaie après avoir actualisé la page.");
-    return false;
-  }
-  try{updateMeta()}catch(error){console.warn("Planning : mise à jour visuelle après sauvegarde",error)}
-  return true;
-}
+function save(){localStorage.setItem(KEY,JSON.stringify(state));updateMeta()}
 function load(){const firstOpen=isFirstTopLevelOpen();let parsed=null;try{const raw=localStorage.getItem(KEY);if(raw)parsed=JSON.parse(raw)}catch(e){console.warn("Planning local illisible, attente de la copie Firebase",e)}state=sanitizePlanningState(parsed);state.agents.forEach((a,i)=>{if(!a.color)a.color=COLORS[i%COLORS.length];normalizeParityAgent(a)});if(firstOpen||!state.agents.some(a=>String(a.id)===String(state.selected)))state.selected=null;enforceSingleAgent()}
 function syncAgentsFromHub(){const h=dataHub();if(!h?.readyAgents)return false;const masters=Array.from(h.agents||[]),old=Array.isArray(state.agents)?state.agents:[],used=new Set(),next=[];masters.forEach((m,i)=>{const name=masterName(m),match=old.find(a=>!used.has(a.id)&&(a.refId===m.id||a.id===m.id||norm(a.name)===norm(name)));if(match)used.add(match.id);const parityMode=match?.parityMode==="alternating"?"alternating":"standard",parityTemplates={even:match?.parityTemplates?.even||"",odd:match?.parityTemplates?.odd||""},parityInheritedWeeks={...(match?.parityInheritedWeeks||{})};next.push({id:match?.id||m.id,name,refId:m.id,color:match?.color||COLORS[i%COLORS.length],copies:match?.copies||2,parityMode,parityTemplates,parityInheritedWeeks})});const before=JSON.stringify(old.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks])),after=JSON.stringify(next.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks]));if(before===after)return false;state.agents=next;if(!state.agents.some(a=>a.id===state.selected))state.selected=null;enforceSingleAgent();localStorage.setItem(KEY,JSON.stringify(state));return true}
 function bindHub(){const h=dataHub();if(!h){setTimeout(bindHub,300);return}if(hubBound)return;hubBound=true;h.subscribe(()=>{const pop=$("editorPopover"),editorOpen=pop.classList.contains("open"),active=document.activeElement,editing=editorOpen&&pop.contains(active),changed=syncAgentsFromHub();if(changed){if(!editing)render()}else if(editorOpen&&active!==$("edTitle")){const e=eventRef(pop.dataset.week,pop.dataset.id);if(e)fillChantierSelect(e)}});if(syncAgentsFromHub())render()}
@@ -137,59 +128,7 @@ function applySelectedChantier(){
 }
 function openEditor(week,e,x,y){selectedEvent=e.id;fillAgentSelect();fillChantierSelect(e);const d=dateFromWeek(week,Number(e.day)||0);$("edSite").value=e.site||"";$("edDate").value=dateInput(d);$("edStart").value=e.start||"09:00";$("edEnd").value=e.end||"10:00";$("edNote").value=e.note||"";$("edAgent").value=e.agentId||state.selected;const c=selectedChantier();if(c&&isSameLocation($("edSite").value,c))$("edSite").value="";const pop=$("editorPopover");pop.dataset.week=week;pop.dataset.id=e.id;pop.classList.add("open");requestAnimationFrame(()=>{const r=pop.getBoundingClientRect();pop.style.left=Math.max(8,Math.min(x+12,innerWidth-r.width-8))+"px";pop.style.top=Math.max(8,Math.min(y+12,innerHeight-r.height-8))+"px"});render()}
 function closeEditor(){selectedEvent=null;$("editorPopover").classList.remove("open");document.querySelectorAll(".event-card.selected").forEach(x=>x.classList.remove("selected"))}
-function saveEditor(){
-  const pop=$("editorPopover"),oldWeek=pop.dataset.week,id=pop.dataset.id,e=eventRef(oldWeek,id);
-  if(!e){closeEditor();return false}
-  const oldAgentId=e.agentId,d=parseDateInput($("edDate").value);
-  if(!d){alert("La date de l’intervention est invalide.");$("edDate").focus();return false}
-  const start=$("edStart").value,end=$("edEnd").value;
-  if(timeToMin(end)<=timeToMin(start)){alert("L’heure de fin doit être après le début.");return false}
-  const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__";
-  const existingTask=safeText(e.task).trim();
-  const keepExisting=!chosen&&!legacy&&existingTask&&existingTask!=="Nouvelle intervention";
-  if(!chosen&&!legacy&&!keepExisting){
-    alert("Choisis un chantier dans la liste.");
-    $("edTitle").focus();
-    return false;
-  }
-  const newWeek=isoWeekKey(d);
-  e.agentId=$("edAgent").value;
-  e.day=mondayIndex(d);
-  e.start=start;
-  e.end=end;
-  if(chosen){
-    e.chantierId=chosen.id;
-    e.task=chosen.nom||chosen.adresse||"Chantier";
-    e.site=$("edSite").value.trim();
-  }else if(legacy){
-    e.chantierId="";
-    e.task=$("edTitle").dataset.legacyTitle||existingTask||"Intervention";
-    e.site=$("edSite").value.trim();
-  }else{
-    /* Si Firebase rafraîchit momentanément la liste des chantiers pendant une
-       édition existante, on conserve le chantier/titre déjà enregistré au lieu
-       de bloquer Terminé. */
-    e.task=existingTask||"Intervention";
-    e.site=$("edSite").value.trim();
-  }
-  e.note=$("edNote").value.trim();
-  if(newWeek!==oldWeek){
-    state.weeks[oldWeek]=entriesForWeek(oldWeek).filter(x=>x.id!==id);
-    entriesForWeek(newWeek).push(e);
-  }
-  if(oldWeek!==newWeek||String(oldAgentId)!==String(e.agentId))markParityEdited(oldWeek,oldAgentId);
-  markParityEdited(newWeek,e.agentId);
-  state.selected=e.agentId;
-  enforceSingleAgent();
-
-  /* La donnée est prioritaire : dès qu'elle est écrite, on ferme l'éditeur.
-     Un éventuel problème de rafraîchissement visuel ne doit jamais donner
-     l'impression que Terminé n'a rien fait. */
-  if(!save())return false;
-  closeEditor();
-  render();
-  return true;
-}
+function saveEditor(){const pop=$("editorPopover"),oldWeek=pop.dataset.week,id=pop.dataset.id,e=eventRef(oldWeek,id);if(!e){closeEditor();return}const oldAgentId=e.agentId,d=parseDateInput($("edDate").value);if(!d)return;const start=$("edStart").value,end=$("edEnd").value;if(timeToMin(end)<=timeToMin(start)){alert("L’heure de fin doit être après le début.");return}const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__";if(!chosen&&!legacy){alert("Choisis un chantier dans la liste.");$("edTitle").focus();return}const newWeek=isoWeekKey(d);e.agentId=$("edAgent").value;e.day=mondayIndex(d);e.start=start;e.end=end;if(chosen){e.chantierId=chosen.id;e.task=chosen.nom||chosen.adresse||"Chantier";e.site=$("edSite").value.trim()}else{e.chantierId="";e.task=$("edTitle").dataset.legacyTitle||e.task||"Intervention";e.site=$("edSite").value.trim()}e.note=$("edNote").value.trim();if(newWeek!==oldWeek){state.weeks[oldWeek]=entriesForWeek(oldWeek).filter(x=>x.id!==id);entriesForWeek(newWeek).push(e)}if(oldWeek!==newWeek||String(oldAgentId)!==String(e.agentId))markParityEdited(oldWeek,oldAgentId);markParityEdited(newWeek,e.agentId);state.selected=e.agentId;enforceSingleAgent();save();closeEditor();render()}
 function deleteEdited(){const pop=$("editorPopover"),week=pop.dataset.week,id=pop.dataset.id,e=eventRef(week,id);if(!e)return;if(confirm(`Supprimer « ${e.task||"cette intervention"} » ?`)){const agentId=e.agentId;state.weeks[week]=entriesForWeek(week).filter(x=>x.id!==id);markParityEdited(week,agentId);save();closeEditor();render()}}
 function render(){try{syncAgentsFromHub();enforceSingleAgent();ensureParityForCurrentView();renderToolbar();renderAgents();updateMeta();if(view==="month")renderMonth();else if(view==="list")renderList();else if(view==="day")renderTimeGrid([cloneDate(currentDate)]);else{const s=weekStart(currentDate);renderTimeGrid(Array.from({length:7},(_,i)=>addDays(s,i)))}}catch(error){console.error("Rendu Planning interrompu",error);const viewport=$("calendarViewport");if(viewport&&!viewport.querySelector(".planning-render-error")){viewport.innerHTML='<div class="empty-state planning-render-error">Le planning récupère ses données. Réessaie dans quelques instants.</div>'}}}
 function navigate(dir){if(view==="month")currentDate=new Date(currentDate.getFullYear(),currentDate.getMonth()+dir,1);else currentDate=addDays(currentDate,dir*(view==="day"?1:7));closeEditor();render()}
