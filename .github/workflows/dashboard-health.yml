@@ -42,9 +42,9 @@ jobs:
                   if tag=='a' and a.get('href'):self.links.append(a['href'])
                   if tag=='script' and a.get('src'):self.scripts.append(a['src'])
           pages={}
-          for name in ('index.html','inovtec-page-shell.html','PLANNINGS-LEGACY.html','VARIABLES-DASHBOARD.html'):
+          for name in ('index.html','inovtec-page-shell.html','PLANNINGS.html','VARIABLES-DASHBOARD.html'):
               parser=Refs();parser.feed(Path(name).read_text(encoding='utf-8'));pages[name]=parser
-          home=pages['index.html'];shell=pages['inovtec-page-shell.html'];planning=pages['PLANNINGS-LEGACY.html']
+          home=pages['index.html'];shell=pages['inovtec-page-shell.html'];planning=pages['PLANNINGS.html']
           for page in ('PLANNINGS.html','KONTROL-CLOUD.html','INFOCHANTIERS-V2.html','AGENTS.html','CONGES.html','VARIABLES.html','ORGA.html','MATERIEL.html','REASSORT.html'):
               if not any(urlsplit(h).path==page for h in home.links):issues.append(f'Navigation accueil absente : {page}')
           if any('discipline' in urlsplit(h).path.lower() for h in home.links):issues.append('Ancien module Discipline encore lié depuis l’accueil')
@@ -52,12 +52,11 @@ jobs:
               if name not in home.ids:issues.append(f'Identifiant du tableau de bord absent : {name}')
           for name in ('legacyFrame','pageSummary','desktopNav','mobileNav'):
               if name not in shell.ids:issues.append(f'Conteneur principal absent : {name}')
-          for name in ('planning-calendar.js','planning-context-fit.js','planning-autoheight.js','planning-pdf.js'):
-              if not any(urlsplit(src).path==name for src in planning.scripts):issues.append(f'Script Planning non chargé : {name}')
+          for name in ('planning-calendar.js','inovtec-data-hub.js','inovtec-cloud-sync-v2.js'):
+              if not any(urlsplit(src).path==name for src in planning.scripts):issues.append(f'Script Planning direct non chargé : {name}')
           for path,markers in {
-              'planning-calendar.js':('sanitizePlanningState','ensureParityForCurrentView','inovtec:planning-cloud-updated'),
-              'planning-context-fit.js':('visibleBounds','fitContextMenu'),
-              'inovtec-cloud-sync.js':('onSnapshot','moduleSyncV1'),
+              'planning-calendar.js':('sanitizePlanningState','captureCalendarDoubleClick','draftEvent','saveEditor'),
+              'inovtec-cloud-sync-v2.js':('onSnapshot','moduleSyncV1','planning-cloud-updated'),
               'dashboard-index-shared.js':('openIncidentCount','kontrolPdfMeta'),
           }.items():
               contents=Path(path).read_text(encoding='utf-8')
@@ -71,7 +70,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in dashboard-index.js dashboard-index-shared.js dashboard-global-search.js inovtec-shell.js inovtec-data-hub.js inovtec-cloud-sync.js planning-calendar.js planning-context-fit.js planning-pdf.js variables.js variables-monthly-planning.js; do
+          for f in dashboard-index.js dashboard-index-shared.js dashboard-global-search.js inovtec-shell.js inovtec-data-hub.js inovtec-cloud-sync-v2.js planning-calendar.js variables.js variables-monthly-planning.js; do
             node --check "$f"
           done
 
@@ -103,7 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           base='https://inovtec-controle.github.io/DASHBOARD'
-          for page in index.html PLANNINGS.html PLANNINGS-LEGACY.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html REASSORT.html inovtec-page-shell.html planning-calendar.js; do
+          for page in index.html PLANNINGS.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html REASSORT.html inovtec-page-shell.html planning-calendar.js inovtec-cloud-sync-v2.js; do
             curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null || { echo "::error::$page inaccessible sur le site public";exit 1; }
           done
           for attempt in $(seq 1 12); do
