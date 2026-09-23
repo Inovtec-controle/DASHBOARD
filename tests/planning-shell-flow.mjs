@@ -63,7 +63,7 @@ try{
   });
   console.log('DIAG AVANT TERMINE '+JSON.stringify(beforeDone));
   const dialogs=[];
-  page.on('dialog',async d=>{dialogs.push(d.message());await d.dismiss()});
+  page.on('dialog',async d=>{dialogs.push(d.message());if(d.type()==='confirm')await d.accept();else await d.dismiss()});
   await frame.locator('#edDone').click();
   await page.waitForTimeout(500);
   const afterDone=await frame.locator('body').evaluate(()=>{
