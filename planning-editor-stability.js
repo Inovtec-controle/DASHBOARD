@@ -63,25 +63,8 @@ const popObserver=new MutationObserver(()=>{
 });
 popObserver.observe(pop,{attributes:true,attributeFilter:["class"]});
 
-/* planning-calendar.js utilisait jusqu'ici l'adresse du chantier dans e.site.
-   Au clic sur Terminé, on masque l'adresse le temps de l'enregistrement afin que
-   la valeur de la zone "tâche du jour" soit enregistrée et affichée sous le nom. */
-done.addEventListener("click",()=>{
-  const id=title.value;
-  if(!id||id==="__legacy__")return;
-  const site=siteById(id);
-  if(!site)return;
-  const hadAddress=Object.prototype.hasOwnProperty.call(site,"adresse");
-  const hadGps=Object.prototype.hasOwnProperty.call(site,"gps");
-  const address=site.adresse;
-  const gps=site.gps;
-  site.adresse="";
-  site.gps="";
-  setTimeout(()=>{
-    if(hadAddress)site.adresse=address;else delete site.adresse;
-    if(hadGps)site.gps=gps;else delete site.gps;
-  },0);
-},true);
+/* Le bouton Terminé est désormais entièrement géré par planning-calendar.js.
+   Aucun script annexe ne doit intercepter ou modifier les données au clic. */
 
 /* Si le hub modifie la liste pendant que l'utilisateur écrit, la valeur choisie
    reste prioritaire et la saisie n'est pas touchée. */
