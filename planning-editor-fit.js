@@ -1,16 +1,15 @@
 (()=>{
 "use strict";
-if(window.__INOVTEC_PLANNING_EDITOR_FIT_V4__)return;
-window.__INOVTEC_PLANNING_EDITOR_FIT_V4__=true;
+if(window.__INOVTEC_PLANNING_EDITOR_FIT_V5__)return;
+window.__INOVTEC_PLANNING_EDITOR_FIT_V5__=true;
 
 const pop=document.getElementById("editorPopover");
 if(!pop)return;
 
 const style=document.createElement("style");
-style.id="ivPlanningEditorFitStyleV4";
+style.id="ivPlanningEditorFitStyleV5";
 style.textContent=`
 #editorPopover{
-  max-height:calc(100dvh - 24px)!important;
   overflow-y:auto!important;
   overscroll-behavior:contain;
   scrollbar-gutter:stable;
@@ -19,13 +18,12 @@ style.textContent=`
   position:sticky!important;
   bottom:0!important;
   z-index:20!important;
-  background:rgba(255,255,255,.98)!important;
+  background:rgba(255,255,255,.99)!important;
   margin-left:-13px;
   margin-right:-13px;
   margin-bottom:-13px;
   padding:10px 13px 13px;
-  backdrop-filter:blur(12px);
-  box-shadow:0 -6px 12px rgba(15,23,42,.04);
+  box-shadow:0 -6px 12px rgba(15,23,42,.05);
 }
 @media (max-height:760px){
   #editorPopover{padding:9px!important}
@@ -57,98 +55,78 @@ style.textContent=`
 `;
 document.head.appendChild(style);
 
-let scheduled=false;
-
-function visibleBounds(){
+function bounds(){
   const margin=12;
-  let top=margin;
-  let bottom=window.innerHeight-margin;
-  let left=margin;
-  let right=window.innerWidth-margin;
-
+  let top=margin,left=margin,right=window.innerWidth-margin,bottom=window.innerHeight-margin;
   try{
     if(parent!==window){
       const frame=parent.document.getElementById("legacyFrame");
       if(frame?.contentWindow===window){
         const fr=frame.getBoundingClientRect();
         const vv=parent.visualViewport;
-        const pTop=vv?.offsetTop||0;
-        const pLeft=vv?.offsetLeft||0;
-        const pHeight=vv?.height||parent.innerHeight;
-        const pWidth=vv?.width||parent.innerWidth;
-
-        top=Math.max(margin,pTop-fr.top+margin);
-        bottom=Math.min(window.innerHeight-margin,pTop+pHeight-fr.top-margin);
-        left=Math.max(margin,pLeft-fr.left+margin);
-        right=Math.min(window.innerWidth-margin,pLeft+pWidth-fr.left-margin);
+        const pvTop=vv?.offsetTop||0;
+        const pvLeft=vv?.offsetLeft||0;
+        const pvHeight=vv?.height||parent.innerHeight;
+        const pvWidth=vv?.width||parent.innerWidth;
+        top=Math.max(margin,pvTop-fr.top+margin);
+        left=Math.max(margin,pvLeft-fr.left+margin);
+        bottom=Math.min(window.innerHeight-margin,pvTop+pvHeight-fr.top-margin);
+        right=Math.min(window.innerWidth-margin,pvLeft+pvWidth-fr.left-margin);
       }
     }
   }catch{}
-
-  if(bottom-top<160){
-    top=margin;
-    bottom=Math.max(top+160,window.innerHeight-margin);
-  }
-  if(right-left<220){
-    left=margin;
-    right=Math.max(left+220,window.innerWidth-margin);
-  }
-  return{top,bottom,left,right};
+  if(bottom<=top+120){top=margin;bottom=window.innerHeight-margin}
+  if(right<=left+180){left=margin;right=window.innerWidth-margin}
+  return{top,left,right,bottom};
 }
 
-function fitEditor(){
-  scheduled=false;
+function fitOnce(){
   if(!pop.classList.contains("open"))return;
+  /* Sur mobile, le CSS dédié gère déjà la fenêtre et le clavier virtuel. */
+  if(window.matchMedia?.("(max-width:720px)")?.matches)return;
 
-  const b=visibleBounds();
-  const availableHeight=Math.max(160,b.bottom-b.top);
-  const availableWidth=Math.max(220,b.right-b.left);
+  const b=bounds();
+  const h=Math.max(160,b.bottom-b.top);
+  const w=Math.max(220,b.right-b.left);
 
-  pop.style.setProperty("max-height",Math.floor(availableHeight)+"px","important");
+  pop.style.setProperty("max-height",Math.floor(h)+"px","important");
   pop.style.setProperty("overflow-y","auto","important");
 
   let r=pop.getBoundingClientRect();
-
-  if(r.width>availableWidth){
-    pop.style.setProperty("width",Math.floor(availableWidth)+"px","important");
+  if(r.width>w){
+    pop.style.setProperty("width",Math.floor(w)+"px","important");
     r=pop.getBoundingClientRect();
   }
 
-  let nextLeft=r.left;
-  let nextTop=r.top;
-
-  if(r.right>b.right)nextLeft-=r.right-b.right;
-  if(nextLeft<b.left)nextLeft=b.left;
-
-  if(r.bottom>b.bottom)nextTop-=r.bottom-b.bottom;
-  if(nextTop<b.top)nextTop=b.top;
+  let left=r.left;
+  let top=r.top;
+  if(r.right>b.right)left-=r.right-b.right;
+  if(left<b.left)left=b.left;
+  if(r.bottom>b.bottom)top-=r.bottom-b.bottom;
+  if(top<b.top)top=b.top;
 
   pop.style.setProperty("right","auto","important");
   pop.style.setProperty("bottom","auto","important");
-  pop.style.setProperty("left",Math.round(nextLeft)+"px","important");
-  pop.style.setProperty("top",Math.round(nextTop)+"px","important");
+  pop.style.setProperty("left",Math.round(left)+"px","important");
+  pop.style.setProperty("top",Math.round(top)+"px","important");
 }
 
-function scheduleFit(){
-  if(scheduled)return;
-  scheduled=true;
-  requestAnimationFrame(()=>requestAnimationFrame(fitEditor));
+/* Important : aucune surveillance de scroll, pointer, focus ou redimensionnement du
+   contenu pendant l'édition. La bulle ne bouge donc jamais entre mousedown/mouseup,
+   ce qui garantit le clic sur Terminé/Supprimer. On l'ajuste uniquement à l'ouverture. */
+let token=0;
+function fitOnOpen(){
+  const mine=++token;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(mine!==token)return;
+    fitOnce();
+  }));
 }
-
 new MutationObserver(mutations=>{
-  if(mutations.some(m=>m.attributeName==="class")&&pop.classList.contains("open")){
-    scheduleFit();
-  }
+  if(!mutations.some(m=>m.attributeName==="class"))return;
+  if(pop.classList.contains("open"))fitOnOpen();
+  else token++;
 }).observe(pop,{attributes:true,attributeFilter:["class"]});
 
-window.addEventListener("orientationchange",scheduleFit,{passive:true});
-window.visualViewport?.addEventListener("resize",scheduleFit,{passive:true});
-
-try{
-  parent.addEventListener("scroll",scheduleFit,{passive:true});
-  parent.addEventListener("resize",scheduleFit,{passive:true});
-  parent.visualViewport?.addEventListener("resize",scheduleFit,{passive:true});
-}catch{}
-
-scheduleFit();
+if(pop.classList.contains("open"))fitOnOpen();
 })();
