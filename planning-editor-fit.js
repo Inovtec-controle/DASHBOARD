@@ -1,7 +1,7 @@
 (()=>{
 "use strict";
 if(window.__INOVTEC_PLANNING_EDITOR_FIT_V6__)return;
-window.__INOVTEC_PLANNING_EDITOR_FIT_V5__=true;
+window.__INOVTEC_PLANNING_EDITOR_FIT_V6__=true;
 
 const pop=document.getElementById("editorPopover");
 if(!pop)return;
