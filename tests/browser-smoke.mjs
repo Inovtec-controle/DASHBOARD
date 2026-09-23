@@ -29,18 +29,17 @@ await check('Accueil : recherche et navigation directe cohérente', async () => 
   if (!url || !url.startsWith('PLANNINGS.html')) throw new Error('Le lien Planning ne pointe pas vers la page dédiée');
 });
 
-await check('Planning : chargement dans la rubrique principale', async () => {
-  await page.goto(base + '/PLANNINGS.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.frameLocator('#legacyFrame').locator('#calendarViewport').waitFor({ state: 'attached', timeout: 45000 });
-  await page.frameLocator('#legacyFrame').locator('#prevBtn').waitFor({ state: 'attached', timeout: 10000 });
-  await page.frameLocator('#legacyFrame').locator('#agentList').waitFor({ state: 'attached', timeout: 10000 });
+await check('Planning : chargement direct sans iframe', async () => {
+  await page.goto(base + '/PLANNINGS.html?mode=planning', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.locator('#calendarViewport').waitFor({ state: 'attached', timeout: 45000 });
+  await page.locator('#prevBtn').waitFor({ state: 'attached', timeout: 10000 });
+  await page.locator('#agentList').waitFor({ state: 'attached', timeout: 10000 });
+  if (await page.locator('#legacyFrame').count()) throw new Error('Le Planning utilise encore une iframe');
+  if (await page.locator('#addTaskBtn').count()) throw new Error('Le bouton + Tâche est encore présent');
   await page.waitForFunction(() => {
-    const doc = document.querySelector('#legacyFrame')?.contentDocument;
-    const period = doc?.getElementById('periodLabel')?.textContent?.trim();
-    return Boolean(period && period !== '—' && doc?.getElementById('week')?.value);
+    const period = document.getElementById('periodLabel')?.textContent?.trim();
+    return Boolean(period && period !== '—' && document.getElementById('week')?.value);
   }, null, { timeout: 30000 });
-  await page.locator('#syncMirror').waitFor({ state: 'attached', timeout: 10000 });
-  if (!page.url().includes('inovtec-planning-shell-clean.html')) throw new Error('Le Planning n’utilise pas le shell dédié propre');
 });
 
 await check('Planning : changement des vues sans blocage', async () => {
