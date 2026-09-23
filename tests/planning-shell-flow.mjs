@@ -45,7 +45,37 @@ try{
   await frame.locator('#edTitle').selectOption('shell-site');
   await frame.locator('#edStart').fill('09:00');
   await frame.locator('#edEnd').fill('10:00');
+  const beforeDone=await frame.locator('body').evaluate(()=>{
+    const pop=document.getElementById('editorPopover');
+    return{
+      title:document.getElementById('edTitle')?.value,
+      titleOptions:[...document.getElementById('edTitle')?.options||[]].map(o=>({value:o.value,text:o.textContent})),
+      agent:document.getElementById('edAgent')?.value,
+      date:document.getElementById('edDate')?.value,
+      start:document.getElementById('edStart')?.value,
+      end:document.getElementById('edEnd')?.value,
+      draft:pop?.dataset?.draft,
+      week:pop?.dataset?.week,
+      id:pop?.dataset?.id,
+      hubReady:!!parent.InovtecDataHub?.readyChantiers,
+      hubSites:(parent.InovtecDataHub?.chantiers||[]).map(x=>({id:x.id,nom:x.nom}))
+    };
+  });
+  console.log('DIAG AVANT TERMINE '+JSON.stringify(beforeDone));
+  const dialogs=[];
+  page.on('dialog',async d=>{dialogs.push(d.message());await d.dismiss()});
   await frame.locator('#edDone').click();
+  await page.waitForTimeout(500);
+  const afterDone=await frame.locator('body').evaluate(()=>{
+    const pop=document.getElementById('editorPopover');
+    const s=JSON.parse(localStorage.getItem('inovtec_plannings_v2')||'{}');
+    return{
+      open:pop?.classList.contains('open'),
+      title:document.getElementById('edTitle')?.value,
+      events:Object.values(s.weeks||{}).flat()
+    };
+  });
+  console.log('DIAG APRES TERMINE '+JSON.stringify(afterDone)+' DIALOGUES '+JSON.stringify(dialogs));
   await frame.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
 
   const saved=await page.evaluate(()=>{
