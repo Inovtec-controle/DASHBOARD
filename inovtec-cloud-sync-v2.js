@@ -16,7 +16,7 @@ let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,app
 function report(message,ok=false){
   if(message===lastStatus)return;lastStatus=message;
   for(const id of ['syncMirror','liveMirror']){const el=document.getElementById(id);if(el)el.textContent=message}
-  let doc;try{doc=frame?.contentDocument}catch{}
+  let doc;try{doc=frame?.contentDocument||(mode==='planning'?document:null)}catch{}
   if(mode==='planning'&&doc){
     const label=[...doc.querySelectorAll('label')].find(x=>x.textContent.trim().toLowerCase()==='sauvegarde');
     const status=label?.parentElement?.querySelector('.status');if(status){status.textContent=message;status.classList.toggle('ok',ok);status.classList.toggle('warning',!ok)}
@@ -56,7 +56,7 @@ function render(){
     let doc;try{doc=frame?.contentDocument}catch{}
     const active=doc?.activeElement;
     if((active&&/^(INPUT|SELECT|TEXTAREA)$/i.test(active.tagName))||Date.now()-activity<1800){reloadTimer=setTimeout(run,1900);return}
-    try{if(mode==='planning'){const w=frame?.contentWindow;w?.dispatchEvent(new w.CustomEvent('inovtec:planning-cloud-updated'))}else frame?.contentWindow?.location.reload()}catch(e){console.warn('Actualisation après synchronisation',e)}
+    try{if(mode==='planning'){const w=frame?.contentWindow||window;w?.dispatchEvent(new w.CustomEvent('inovtec:planning-cloud-updated'))}else frame?.contentWindow?.location.reload()}catch(e){console.warn('Actualisation après synchronisation',e)}
   };reloadTimer=setTimeout(run,300);
 }
 function apply(payload){
@@ -206,6 +206,9 @@ frame?.addEventListener('load',()=>{
   try{const ok=initialized&&base===packed(local());lastStatus='';report(initialized?(ok?'Firebase — synchronisé':'Firebase — sauvegarde en attente'):'Firebase — connexion au serveur…',ok)}
   catch(e){report('Firebase — '+e.message)}
 });
+if(mode==='planning'&&!frame){
+  document.addEventListener('input',()=>{activity=Date.now();setTimeout(()=>schedule(),200)},true);
+}
 setInterval(()=>{if(user&&initialized&&!applying){try{if(packed(local())!==base)schedule(50)}catch(e){report('Firebase — '+e.message)}}},6000);
 window.addEventListener('online',()=>{if(user){if(!initialized)void boot(user.uid,generation);else void refresh()}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user){if(!initialized)void boot(user.uid,generation);else void refresh()}});
