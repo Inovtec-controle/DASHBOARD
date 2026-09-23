@@ -26,7 +26,7 @@ await check('Accueil : recherche et navigation directe cohérente', async () => 
   if (await nav.locator('a[data-iv-menu-key="variables"]').count() !== 1) throw new Error('Lien Variables absent ou dupliqué');
   if (await nav.locator('a[data-iv-menu-key="reassort"]').count() !== 1) throw new Error('Lien Réassort absent ou dupliqué');
   const url = await nav.locator('a[data-iv-menu-key="planning"]').getAttribute('href');
-  if (!url?.startsWith('inovtec-page-shell.html?') || !url.includes('mode=planning')) throw new Error('Le planning fait encore une redirection intermédiaire');
+  if (!url || !url.startsWith('PLANNINGS.html')) throw new Error('Le lien Planning ne pointe pas vers la page dédiée');
 });
 
 await check('Planning : chargement dans la rubrique principale', async () => {
@@ -39,8 +39,8 @@ await check('Planning : chargement dans la rubrique principale', async () => {
     const period = doc?.getElementById('periodLabel')?.textContent?.trim();
     return Boolean(period && period !== '—' && doc?.getElementById('week')?.value);
   }, null, { timeout: 30000 });
-  await page.waitForFunction(() => document.getElementById('desktopNav')?.dataset.ivStableMenu === '1', null, { timeout: 20000 });
-  if (await page.locator('#desktopNav a[data-iv-menu-key="reassort"]').count() !== 1) throw new Error('Menu Planning incomplet');
+  await page.locator('#syncMirror').waitFor({ state: 'attached', timeout: 10000 });
+  if (!page.url().includes('inovtec-planning-shell-clean.html')) throw new Error('Le Planning n’utilise pas le shell dédié propre');
 });
 
 await check('Planning : changement des vues sans blocage', async () => {
