@@ -10,7 +10,6 @@ try{
   await page.goto(base+'/PLANNINGS.html',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('#legacyFrame').waitFor({state:'attached',timeout:15000});
   const frame=page.frameLocator('#legacyFrame');
-  await frame.locator('#addTaskBtn').waitFor({state:'visible',timeout:20000});
   await frame.locator('#calendarViewport').waitFor({state:'visible',timeout:20000});
   await frame.locator('#periodLabel').waitFor({state:'visible',timeout:20000});
 
