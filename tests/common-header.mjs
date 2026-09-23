@@ -1,7 +1,7 @@
 import {chromium} from 'playwright';
 import {readFileSync} from 'node:fs';
 const config=readFileSync('firebase-config.js','utf8');
-if(!config.includes('inovtec-common-header.js?v=20260917-planning-background1'))throw Error('Nouvelle version de l’en-tête non chargée via la configuration commune');
+if(!config.includes('inovtec-common-header.js?v=20260923-sync-integrity2'))throw Error('Version Firebase + affichage de l’en-tête non chargée via la configuration commune');
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 try{
  const page=await browser.newPage({viewport:{width:1280,height:850}});
@@ -14,7 +14,15 @@ try{
   if(await tile.count()!==1)throw Error(kind+': composant absent ou dupliqué');
   const date=await tile.locator('.iv-head-date').innerText(),time=await tile.locator('.iv-head-time').innerText();
   if(!date.match(/\d{4}/)||!time.match(/\d{2}:\d{2}/))throw Error(kind+': date ou heure absente '+date+' '+time);
-  if(await tile.locator('.iv-head-mark').innerText()!=='✓')throw Error(kind+': coche absente');
+  const mark=tile.locator('.iv-head-mark');
+  if(await mark.getAttribute('data-state')!=='loading'||await mark.innerText()==='✓')throw Error(kind+': la coche ne doit pas être validée avant confirmation Firebase + affichage');
+  await page.evaluate(()=>{
+    const s=document.createElement('span');s.id='syncStatus';s.textContent='Firebase — synchronisé';document.body.appendChild(s);
+    window.InovtecFirebaseOperational={ok:true,checkedAt:new Date().toISOString()};
+    window.dispatchEvent(new CustomEvent('inovtec:firebase-operational',{detail:window.InovtecFirebaseOperational}));
+  });
+  await page.waitForFunction(()=>document.querySelector('.iv-head-mark')?.dataset.state==='connected',{timeout:2500});
+  if(await mark.innerText()!=='✓')throw Error(kind+': coche absente après confirmation Firebase + affichage');
   if(['shell','material'].includes(kind)){
    if(await tile.locator('#dateLabel').count()!==1||await tile.locator('#timeLabel').count()!==1)throw Error(kind+': identifiants de l’horloge détruits');
   }
@@ -35,5 +43,5 @@ try{
   if(!fits)throw Error(kind+': le cadre déborde de l’écran mobile');
   await page.setViewportSize({width:1280,height:850});
  }
- console.log('OK : fond et motifs du Planning identiques sur Accueil, pages communes, Matériel et Réassort ; horloge unique, textes lisibles, mobile sans débordement.');
+ console.log('OK : en-tête commun stable ; coche bloquée avant Firebase + affichage puis validée après confirmation ; fond, horloge et mobile préservés.');
 }finally{await browser.close()}
