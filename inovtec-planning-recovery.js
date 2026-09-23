@@ -14,6 +14,7 @@
     ['◷','Volume prévu','0 h','Calcul des horaires']
   ];
   let fallbackShown=false;
+  let frameLoaded=false;
   let ownCards=[];
   function frameDocument(){
     try{return frame.contentDocument||null}catch{return null}
@@ -67,8 +68,20 @@
     loading.setAttribute('aria-hidden','true');
     return true;
   }
+  frame.addEventListener('load',()=>{
+    frameLoaded=true;
+    loading.classList.add('hidden');
+    loading.setAttribute('aria-hidden','true');
+  });
   function showFallback(){
-    if(reveal()||fallbackShown)return;
+    if(frameLoaded||reveal()||fallbackShown)return;
+    const doc=frameDocument();
+    if(doc?.readyState==='complete'){
+      frameLoaded=true;
+      loading.classList.add('hidden');
+      loading.setAttribute('aria-hidden','true');
+      return;
+    }
     fallbackShown=true;
     loading.classList.remove('hidden');
     loading.setAttribute('role','alert');
@@ -98,5 +111,5 @@
     }
   },600);
   window.addEventListener('pagehide',()=>clearInterval(heartbeat),{once:true});
-  setTimeout(showFallback,12000);
+  setTimeout(showFallback,20000);
 })();
