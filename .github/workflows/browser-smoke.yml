@@ -49,8 +49,7 @@ jobs:
           node tests/reassort-workflow.mjs
           node tests/materiel-transaction-sync.mjs
           node tests/materiel-redesign.mjs
-          node tests/planning-rollback-flow.mjs
-          node tests/planning-shell-flow.mjs
+          node tests/planning-clean-core.mjs
           node tests/firebase-org-migration.mjs
           node tests/firebase-diagnostic.mjs
           node tests/shell-refresh-performance.mjs
