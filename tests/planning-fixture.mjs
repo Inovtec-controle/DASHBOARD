@@ -30,9 +30,30 @@ try{
   await page.locator('#edStart').fill('09:30');
   await page.locator('#edEnd').fill('10:30');
   await page.locator('#edDone').click({timeout:10000});
+  await page.waitForFunction(()=>!document.getElementById('editorPopover')?.classList.contains('open'),null,{timeout:5000});
   const edited=await page.evaluate(([storage,w])=>JSON.parse(localStorage.getItem(storage)).weeks[w].find(e=>e.id==='audit-intervention'),[key,week]);
   assert(edited?.start==='09:30'&&edited?.end==='10:30','La modification des heures n’a pas été sauvegardée');
-  console.log('OK : modification et sauvegarde des horaires dans le planning');
+  console.log('OK : Terminé enregistre puis ferme la bulle');
+
+  // Vérifie que les alertes légales restent informatives et ne bloquent jamais Terminé.
+  await page.locator('.event-card[data-id="audit-intervention"]').dblclick({timeout:10000});
+  await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:10000});
+  await page.locator('#edStart').fill('06:00');
+  await page.locator('#edEnd').fill('19:00');
+  await page.waitForFunction(()=>document.getElementById('ivLegalGuardBox')?.classList.contains('open'),null,{timeout:5000});
+  await page.locator('#edDone').click({timeout:10000});
+  await page.waitForFunction(()=>!document.getElementById('editorPopover')?.classList.contains('open'),null,{timeout:5000});
+  const legallyWarned=await page.evaluate(([storage,w])=>JSON.parse(localStorage.getItem(storage)).weeks[w].find(e=>e.id==='audit-intervention'),[key,week]);
+  assert(legallyWarned?.start==='06:00'&&legallyWarned?.end==='19:00','Une alerte légale a bloqué la sauvegarde');
+  console.log('OK : alerte légale visible mais Terminé sauvegarde et ferme quand même');
+
+  // Remet les heures de référence avant de tester le report pair/impair.
+  await page.locator('.event-card[data-id="audit-intervention"]').dblclick({timeout:10000});
+  await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:10000});
+  await page.locator('#edStart').fill('09:30');
+  await page.locator('#edEnd').fill('10:30');
+  await page.locator('#edDone').click({timeout:10000});
+  await page.waitForFunction(()=>!document.getElementById('editorPopover')?.classList.contains('open'),null,{timeout:5000});
 
   await page.locator('#nextBtn').click({timeout:10000});
   await page.locator('#nextBtn').click({timeout:10000});
