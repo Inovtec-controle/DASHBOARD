@@ -8,7 +8,7 @@ const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,"0");
 const uid=p=>p+"_"+Date.now()+"_"+Math.random().toString(16).slice(2);
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 let state={agents:[],weeks:{},selected:null};
-let currentDate=new Date(),view="week",visibleAgents=new Set(),selectedEvent=null,suppressClickUntil=0,hubBound=false;
+let currentDate=new Date(),view="week",visibleAgents=new Set(),selectedEvent=null,draftEvent=null,suppressClickUntil=0,hubBound=false;
 const fmtDay=new Intl.DateTimeFormat("fr-FR",{weekday:"short",day:"numeric",month:"short"});
 const fmtLong=new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"long",year:"numeric"});
 const fmtMonth=new Intl.DateTimeFormat("fr-FR",{month:"long",year:"numeric"});
@@ -107,14 +107,14 @@ function minuteFromPointer(col,y){const r=col.getBoundingClientRect(),raw=START_
 function eventPosition(e){const s=timeToMin(e.start),en=Math.max(s+15,timeToMin(e.end));return{top:((s-START_HOUR*60)/60)*HOUR_PX,height:Math.max(24,((en-s)/60)*HOUR_PX)}}
 function createEventCard(week,e){const a=agentById(e.agentId),pos=eventPosition(e),card=document.createElement("article");card.className="event-card"+(selectedEvent===e.id?" selected":"");card.dataset.id=e.id;card.dataset.week=week;card.style.setProperty("--event-color",a?.color||"#4f9f57");card.style.top=pos.top+"px";card.style.height=pos.height+"px";card.innerHTML=`<div class="event-time">${e.start||""} – ${e.end||""}</div><div class="event-title"></div><div class="event-site"></div><div class="event-resize"></div>`;card.querySelector(".event-title").textContent=e.task||"Intervention";card.querySelector(".event-site").textContent=e.site||"";card.ondblclick=ev=>{if(Date.now()<suppressClickUntil)return;ev.preventDefault();ev.stopPropagation();selectedEvent=e.id;openEditor(week,e,ev.clientX,ev.clientY)};card.oncontextmenu=ev=>{ev.preventDefault();ev.stopPropagation();openEditor(week,e,ev.clientX,ev.clientY)};card.addEventListener("mousedown",ev=>{if(ev.button!==0)return;ev.stopPropagation();if(ev.target.classList.contains("event-resize"))startResize(ev,week,e,card);else startMove(ev,week,e,card)});return card}
 function renderTimeGrid(dates){$("calendarViewport").innerHTML='<div class="week-head" id="weekHead"></div><div class="calendar-body"><div class="time-rail" id="timeRail"></div><div class="days-layer" id="daysLayer"></div></div>';headerForDates(dates);const rail=$("timeRail");for(let h=START_HOUR;h<=END_HOUR;h++){const l=document.createElement("div");l.className="time-label";l.style.top=((h-START_HOUR)*HOUR_PX)+"px";l.textContent=pad(h)+":00";rail.appendChild(l)}const layer=$("daysLayer");layer.style.gridTemplateColumns=`repeat(${dates.length},1fr)`;const now=new Date();dates.forEach(d=>{const col=document.createElement("div");col.className="day-column"+([5,6].includes(mondayIndex(d))?" weekend":"");col.dataset.date=dateInput(d);col.dataset.week=isoWeekKey(d);col.dataset.day=mondayIndex(d);col.addEventListener("dblclick",createOnDoubleClick);layer.appendChild(col);entriesForDate(d).filter(e=>visibleAgents.has(e.agentId)).forEach(e=>col.appendChild(createEventCard(isoWeekKey(d),e)));if(sameDate(d,now)){const mins=now.getHours()*60+now.getMinutes();if(mins>=START_HOUR*60&&mins<=END_HOUR*60){const line=document.createElement("div");line.className="now-line";line.style.top=(((mins-START_HOUR*60)/60)*HOUR_PX)+"px";col.appendChild(line)}}})}
-function createFromTimeColumn(col,clientX,clientY){if(!col)return;if(!state.selected){alert("Sélectionne d’abord un agent dans la liste de gauche.");return}closeEditor();closeContext();try{window.getSelection()?.removeAllRanges()}catch{}const start=minuteFromPointer(col,clientY),end=Math.min(END_HOUR*60,start+60),week=col.dataset.week,day=Number(col.dataset.day),event={id:uid("e"),agentId:state.selected,day,start:minToTime(start),end:minToTime(end),task:"Nouvelle intervention",site:"",chantierId:"",note:""};entriesForWeek(week).push(event);markParityEdited(week,state.selected);save();selectedEvent=event.id;render();setTimeout(()=>openEditor(week,event,clientX,clientY),20)}
+function createFromTimeColumn(col,clientX,clientY){if(!col)return;if(!state.selected){alert("Sélectionne d’abord un agent dans la liste de gauche.");return}closeEditor();closeContext();try{window.getSelection()?.removeAllRanges()}catch{}const start=minuteFromPointer(col,clientY),end=Math.min(END_HOUR*60,start+60),week=col.dataset.week,day=Number(col.dataset.day);draftEvent={id:uid("e"),agentId:state.selected,day,start:minToTime(start),end:minToTime(end),task:"Nouvelle intervention",site:"",chantierId:"",note:""};openEditor(week,draftEvent,clientX,clientY,true)}
 function createOnDoubleClick(ev){if(ev.button!==0||ev.target.closest(".event-card"))return;ev.preventDefault();ev.stopPropagation();createFromTimeColumn(ev.currentTarget,ev.clientX,ev.clientY)}
 function captureCalendarDoubleClick(ev){if(ev.button!==0||ev.target.closest(".event-card"))return;const viewport=$("calendarViewport"),layer=ev.target.closest?.(".days-layer")||document.elementFromPoint(ev.clientX,ev.clientY)?.closest?.(".days-layer");if(!viewport||!layer||!viewport.contains(layer))return;const rect=layer.getBoundingClientRect();if(ev.clientX<rect.left||ev.clientX>rect.right||ev.clientY<rect.top||ev.clientY>rect.bottom)return;const cols=[...layer.querySelectorAll(":scope > .day-column")];if(!cols.length)return;let col=ev.target.closest?.(".day-column");if(!col||!layer.contains(col)){const index=Math.max(0,Math.min(cols.length-1,Math.floor((ev.clientX-rect.left)/(rect.width/cols.length))));col=cols[index]}ev.preventDefault();ev.stopImmediatePropagation();createFromTimeColumn(col,ev.clientX,ev.clientY)}
 function startMove(ev,week,e,card){const duration=Math.max(15,timeToMin(e.end)-timeToMin(e.start)),originX=ev.clientX,originY=ev.clientY;card.style.opacity=".65";let moved=false,target=null,start=timeToMin(e.start);const move=me=>{if(Math.abs(me.clientX-originX)+Math.abs(me.clientY-originY)>5)moved=true;const col=document.elementFromPoint(me.clientX,me.clientY)?.closest(".day-column");document.querySelectorAll(".day-column.drag-target").forEach(x=>x.classList.remove("drag-target"));if(col){col.classList.add("drag-target");target=col;start=Math.min(END_HOUR*60-duration,minuteFromPointer(col,me.clientY));card.style.transform=`translateY(${(start-timeToMin(e.start))/60*HOUR_PX}px)`}};const up=()=>{document.removeEventListener("mousemove",move);document.removeEventListener("mouseup",up);document.querySelectorAll(".day-column.drag-target").forEach(x=>x.classList.remove("drag-target"));card.style.opacity="";card.style.transform="";if(moved&&target){const oldWeek=week,oldAgent=e.agentId,oldArr=entriesForWeek(oldWeek),idx=oldArr.findIndex(x=>x.id===e.id);if(idx>=0)oldArr.splice(idx,1);const newWeek=target.dataset.week;e.day=Number(target.dataset.day);e.start=minToTime(start);e.end=minToTime(start+duration);entriesForWeek(newWeek).push(e);if(oldWeek!==newWeek)markParityEdited(oldWeek,oldAgent);markParityEdited(newWeek,e.agentId);save();suppressClickUntil=Date.now()+250;render()}};document.addEventListener("mousemove",move);document.addEventListener("mouseup",up)}
 function startResize(ev,week,e,card){const start=timeToMin(e.start);let end=timeToMin(e.end),moved=false;card.style.opacity=".7";const move=me=>{const col=card.closest(".day-column");end=Math.max(start+15,minuteFromPointer(col,me.clientY));card.style.height=Math.max(24,((end-start)/60)*HOUR_PX)+"px";moved=true};const up=()=>{document.removeEventListener("mousemove",move);document.removeEventListener("mouseup",up);card.style.opacity="";if(moved){e.end=minToTime(Math.min(END_HOUR*60,end));markParityEdited(week,e.agentId);save();suppressClickUntil=Date.now()+250;render()}};document.addEventListener("mousemove",move);document.addEventListener("mouseup",up)}
 function renderMonth(){$("calendarViewport").innerHTML='<div class="month-view" id="monthView"></div>';const box=$("monthView"),first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),today=new Date();for(let i=0;i<42;i++){const d=addDays(start,i),cell=document.createElement("div");cell.className="month-cell"+(d.getMonth()!==currentDate.getMonth()?" out":"")+(sameDate(d,today)?" today":"");cell.dataset.date=dateInput(d);const n=document.createElement("div");n.className="month-number";n.textContent=d.getDate();cell.appendChild(n);entriesForDate(d).filter(e=>visibleAgents.has(e.agentId)).slice(0,4).forEach(e=>{const p=document.createElement("div"),a=agentById(e.agentId);p.className="month-event";p.style.setProperty("--event-color",a?.color||COLORS[0]);p.textContent=`${e.start} ${e.task||"Intervention"}`;p.ondblclick=ev=>{ev.preventDefault();ev.stopPropagation();openEditor(isoWeekKey(d),e,ev.clientX,ev.clientY)};cell.appendChild(p)});cell.ondblclick=ev=>{if(ev.target!==cell&&ev.target!==n)return;createDefaultForDate(d,ev.clientX,ev.clientY)};box.appendChild(cell)}}
 function renderList(){const box=document.createElement("div");box.className="list-view";$("calendarViewport").innerHTML="";$("calendarViewport").appendChild(box);const start=weekStart(currentDate);let total=0;for(let i=0;i<7;i++){const d=addDays(start,i),items=entriesForDate(d).filter(e=>visibleAgents.has(e.agentId)).sort((a,b)=>String(a.start).localeCompare(String(b.start)));if(!items.length)continue;total+=items.length;const g=document.createElement("section");g.className="list-group";g.innerHTML=`<h3>${fmtDay.format(d)}</h3>`;items.forEach(e=>{const a=agentById(e.agentId),r=document.createElement("div");r.className="list-item";r.innerHTML='<span class="list-color"></span><span class="list-time"></span><span class="list-title"></span><span class="list-agent"></span>';r.querySelector(".list-color").style.background=a?.color||COLORS[0];r.querySelector(".list-time").textContent=`${e.start} – ${e.end}`;r.querySelector(".list-title").textContent=e.task||"Intervention";r.querySelector(".list-agent").textContent=a?.name||"Agent";r.ondblclick=ev=>openEditor(isoWeekKey(d),e,ev.clientX,ev.clientY);g.appendChild(r)});box.appendChild(g)}if(!total)box.innerHTML='<div class="empty-state">Aucune intervention sur cette semaine.</div>'}
-function createDefaultForDate(d,x,y){if(!state.selected){alert("Sélectionne d’abord un agent.");return}const start=9*60,event={id:uid("e"),agentId:state.selected,day:mondayIndex(d),start:minToTime(start),end:minToTime(start+60),task:"Nouvelle intervention",site:"",chantierId:"",note:""},week=isoWeekKey(d);entriesForWeek(week).push(event);markParityEdited(week,state.selected);save();render();setTimeout(()=>openEditor(week,event,x,y),20)}
+function createDefaultForDate(d,x,y){if(!state.selected){alert("Sélectionne d’abord un agent.");return}const start=9*60,week=isoWeekKey(d);draftEvent={id:uid("e"),agentId:state.selected,day:mondayIndex(d),start:minToTime(start),end:minToTime(start+60),task:"Nouvelle intervention",site:"",chantierId:"",note:""};openEditor(week,draftEvent,x,y,true)}
 function fillAgentSelect(){const s=$("edAgent");s.innerHTML=state.agents.map(a=>`<option value="${a.id}"></option>`).join("");[...s.options].forEach((o,i)=>o.textContent=state.agents[i].name)}
 function matchChantier(e){const sites=hubSites();if(e?.chantierId){const c=sites.find(x=>String(x.id)===String(e.chantierId));if(c)return c}const nt=norm(e?.task),ns=norm(e?.site);return sites.find(c=>nt&&norm(c.nom)===nt)||sites.find(c=>ns&&(norm(c.adresse)===ns||norm(c.nom)===ns))||null}
 function fillChantierSelect(e){const s=$("edTitle"),sites=hubSites(),match=matchChantier(e);s.innerHTML='<option value="">Choisir un chantier…</option>';sites.forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.nom||c.adresse||"Chantier sans nom";if(c.adresse)o.textContent+=" — "+c.adresse;s.appendChild(o)});s.dataset.legacyTitle="";if(match)s.value=match.id;else if(e?.task&&e.task!=="Nouvelle intervention"){const o=document.createElement("option");o.value="__legacy__";o.textContent=e.task+" — ancien planning";s.appendChild(o);s.value="__legacy__";s.dataset.legacyTitle=e.task}else s.value="";if(!sites.length&&dataHub()?.readyChantiers){const o=document.createElement("option");o.disabled=true;o.textContent="Aucun chantier dans Infos chantier";s.appendChild(o)}}
@@ -128,8 +128,8 @@ function applySelectedChantier(){
   const field=$("edSite");
   if(isSameLocation(field.value,c))field.value="";
 }
-function openEditor(week,e,x,y){
-  selectedEvent=e.id;
+function openEditor(week,e,x,y,isDraft=false){
+  selectedEvent=isDraft?null:e.id;
   fillAgentSelect();
   fillChantierSelect(e);
   const d=dateFromWeek(week,Number(e.day)||0);
@@ -139,26 +139,81 @@ function openEditor(week,e,x,y){
   $("edEnd").value=e.end||"10:00";
   $("edNote").value=e.note||"";
   $("edAgent").value=e.agentId||state.selected;
-  const c=selectedChantier();
-  if(c&&isSameLocation($("edSite").value,c))$("edSite").value="";
+  const chosen=selectedChantier();
+  if(chosen&&isSameLocation($("edSite").value,chosen))$("edSite").value="";
   const pop=$("editorPopover");
   pop.dataset.week=week;
   pop.dataset.id=e.id;
+  pop.dataset.draft=isDraft?"1":"0";
   pop.classList.add("open");
+  pop.style.maxHeight="calc(100vh - 16px)";
+  pop.style.overflowY="auto";
   requestAnimationFrame(()=>{
-    pop.style.maxHeight=Math.max(220,innerHeight-16)+"px";
-    pop.style.overflowY="auto";
-    const r=pop.getBoundingClientRect();
-    const px=Number.isFinite(x)?x+12:Math.round((innerWidth-r.width)/2);
+    const rect=pop.getBoundingClientRect();
+    const px=Number.isFinite(x)?x+12:Math.round((innerWidth-rect.width)/2);
     const py=Number.isFinite(y)?y+12:16;
-    pop.style.left=Math.max(8,Math.min(px,innerWidth-r.width-8))+"px";
-    pop.style.top=Math.max(8,Math.min(py,innerHeight-r.height-8))+"px";
+    pop.style.left=Math.max(8,Math.min(px,innerWidth-rect.width-8))+"px";
+    pop.style.top=Math.max(8,Math.min(py,innerHeight-rect.height-8))+"px";
   });
+}
+function closeEditor(){
+  selectedEvent=null;
+  draftEvent=null;
+  const pop=$("editorPopover");
+  pop.classList.remove("open");
+  pop.dataset.draft="0";
+  document.querySelectorAll(".event-card.selected").forEach(x=>x.classList.remove("selected"));
+}
+function saveEditor(){
+  const pop=$("editorPopover"),oldWeek=pop.dataset.week,isDraft=pop.dataset.draft==="1";
+  let e=isDraft?draftEvent:eventRef(oldWeek,pop.dataset.id);
+  if(!e){closeEditor();return}
+  const d=parseDateInput($("edDate").value);
+  if(!d)return;
+  const start=$("edStart").value,end=$("edEnd").value;
+  if(timeToMin(end)<=timeToMin(start)){alert("L’heure de fin doit être après le début.");return}
+  const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__";
+  if(!chosen&&!legacy){alert("Choisis un chantier dans la liste.");$("edTitle").focus();return}
+  const oldAgentId=e.agentId,newWeek=isoWeekKey(d);
+  const next={...e,agentId:$("edAgent").value,day:mondayIndex(d),start,end,note:$("edNote").value.trim()};
+  if(chosen){
+    next.chantierId=chosen.id;
+    next.task=chosen.nom||chosen.adresse||"Chantier";
+    next.site=$("edSite").value.trim();
+  }else{
+    next.chantierId="";
+    next.task=$("edTitle").dataset.legacyTitle||e.task||"Intervention";
+    next.site=$("edSite").value.trim();
+  }
+  if(isDraft){
+    entriesForWeek(newWeek).push(next);
+  }else{
+    state.weeks[oldWeek]=entriesForWeek(oldWeek).filter(x=>x.id!==e.id);
+    entriesForWeek(newWeek).push(next);
+  }
+  if(!isDraft&&(oldWeek!==newWeek||String(oldAgentId)!==String(next.agentId)))markParityEdited(oldWeek,oldAgentId);
+  markParityEdited(newWeek,next.agentId);
+  state.selected=next.agentId;
+  enforceSingleAgent();
+  draftEvent=null;
+  save();
+  closeEditor();
   render();
 }
-function closeEditor(){selectedEvent=null;$("editorPopover").classList.remove("open");document.querySelectorAll(".event-card.selected").forEach(x=>x.classList.remove("selected"))}
-function saveEditor(){const pop=$("editorPopover"),oldWeek=pop.dataset.week,id=pop.dataset.id,e=eventRef(oldWeek,id);if(!e){closeEditor();return}const oldAgentId=e.agentId,d=parseDateInput($("edDate").value);if(!d)return;const start=$("edStart").value,end=$("edEnd").value;if(timeToMin(end)<=timeToMin(start)){alert("L’heure de fin doit être après le début.");return}const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__";if(!chosen&&!legacy){alert("Choisis un chantier dans la liste.");$("edTitle").focus();return}const newWeek=isoWeekKey(d);e.agentId=$("edAgent").value;e.day=mondayIndex(d);e.start=start;e.end=end;if(chosen){e.chantierId=chosen.id;e.task=chosen.nom||chosen.adresse||"Chantier";e.site=$("edSite").value.trim()}else{e.chantierId="";e.task=$("edTitle").dataset.legacyTitle||e.task||"Intervention";e.site=$("edSite").value.trim()}e.note=$("edNote").value.trim();if(newWeek!==oldWeek){state.weeks[oldWeek]=entriesForWeek(oldWeek).filter(x=>x.id!==id);entriesForWeek(newWeek).push(e)}if(oldWeek!==newWeek||String(oldAgentId)!==String(e.agentId))markParityEdited(oldWeek,oldAgentId);markParityEdited(newWeek,e.agentId);state.selected=e.agentId;enforceSingleAgent();save();closeEditor();render()}
-function deleteEdited(){const pop=$("editorPopover"),week=pop.dataset.week,id=pop.dataset.id,e=eventRef(week,id);if(!e)return;if(confirm(`Supprimer « ${e.task||"cette intervention"} » ?`)){const agentId=e.agentId;state.weeks[week]=entriesForWeek(week).filter(x=>x.id!==id);markParityEdited(week,agentId);save();closeEditor();render()}}
+function deleteEdited(){
+  const pop=$("editorPopover");
+  if(pop.dataset.draft==="1"){closeEditor();return}
+  const week=pop.dataset.week,id=pop.dataset.id,e=eventRef(week,id);
+  if(!e)return;
+  if(confirm(`Supprimer « ${e.task||"cette intervention"} » ?`)){
+    const agentId=e.agentId;
+    state.weeks[week]=entriesForWeek(week).filter(x=>x.id!==id);
+    markParityEdited(week,agentId);
+    save();
+    closeEditor();
+    render();
+  }
+}
 function render(){try{syncAgentsFromHub();enforceSingleAgent();ensureParityForCurrentView();renderToolbar();renderAgents();updateMeta();if(view==="month")renderMonth();else if(view==="list")renderList();else if(view==="day")renderTimeGrid([cloneDate(currentDate)]);else{const s=weekStart(currentDate);renderTimeGrid(Array.from({length:7},(_,i)=>addDays(s,i)))}}catch(error){console.error("Rendu Planning interrompu",error);const viewport=$("calendarViewport");if(viewport&&!viewport.querySelector(".planning-render-error")){viewport.innerHTML='<div class="empty-state planning-render-error">Le planning récupère ses données. Réessaie dans quelques instants.</div>'}}}
 function navigate(dir){if(view==="month")currentDate=new Date(currentDate.getFullYear(),currentDate.getMonth()+dir,1);else currentDate=addDays(currentDate,dir*(view==="day"?1:7));closeEditor();render()}
 function exportData(){const b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="inovtec_plannings_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u)}
@@ -170,7 +225,6 @@ $("agentSearch").addEventListener("input",renderAgents);
 
 document.querySelectorAll(".view-tab").forEach(b=>b.onclick=()=>{view=b.dataset.view;closeEditor();render()});
 $("prevBtn").onclick=()=>navigate(-1);$("nextBtn").onclick=()=>navigate(1);$("todayBtn").onclick=()=>{currentDate=new Date();closeEditor();render()};
-$("addTaskBtn").onclick=()=>{if(!state.selected){alert("Sélectionne d’abord un agent dans la liste de gauche.");return}const d=cloneDate(currentDate);createDefaultForDate(d,Math.round(innerWidth/2),80)};
 $("edTitle").addEventListener("change",applySelectedChantier);$("edDone").onclick=saveEditor;$("edDelete").onclick=deleteEdited;
 $("editorPopover").addEventListener("mousedown",e=>e.stopPropagation());
 $("exportBtn").onclick=exportData;$("importFile").onchange=e=>{const f=e.target.files?.[0];if(f)importData(f);e.target.value=""};$("printBtn").onclick=()=>window.print();
