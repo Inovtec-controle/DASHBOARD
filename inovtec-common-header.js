@@ -109,7 +109,7 @@ function docsForSync(){
  visit(document);return docs;
 }
 function localSyncState(){
- const selectors=['#syncStatus','#sharedStatus','#ivKontrolCloudState','.status.ok','.status.warning','.status.error'];
+ const selectors=['#syncStatus','#sharedStatus','#syncMirror','#liveMirror','#heroSyncText','#ivKontrolCloudState','.status.ok','.status.warning','.status.error'];
  let connected=null;
  for(const d of docsForSync()){
   for(const sel of selectors){
@@ -143,7 +143,7 @@ function evaluateSyncMark(){
  if(!tile?.isConnected)return;
  if(!navigator.onLine){setMarkState('error','Pas de connexion réseau');return}
  const local=localSyncState();
- if(local?.state!==lastLocalState){lastLocalState=local?.state||'';if(local?.state==='connected')syncReadyAfter=Date.now()+300}
+ if(local?.state!==lastLocalState){lastLocalState=local?.state||'';if(local?.state==='connected')syncReadyAfter=Date.now()+900}
  if(local?.state==='error'){setMarkState('error',local.message);return}
  if(local?.state==='loading'){setMarkState('loading',local.message);return}
  const health=window.InovtecFirebaseOperational;
