@@ -6,7 +6,7 @@ const mode=(params.get("mode")||"planning").toLowerCase();
 const legacyPage=params.get("page")||"PLANNINGS-LEGACY.html";
 const fuelIcon='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto"><path d="M5 21V4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v17"/><path d="M7 6h5v5H7z"/><path d="M14 8h2l2 2v7a2 2 0 1 0 4 0v-6l-2-2"/><path d="M3 21h13"/></svg>';
 const configs={
- planning:{label:"Planning",eyebrow:"PLANNING",title:'Planning des <em>équipes</em>',subtitle:"Organisez et suivez les interventions de vos agents sur l’ensemble de vos chantiers.",route:"PLANNINGS.html?v=20260923-editor-reset1",icon:"▦"},
+ planning:{label:"Planning",eyebrow:"PLANNING",title:'Planning des <em>équipes</em>',subtitle:"Organisez et suivez les interventions de vos agents sur l’ensemble de vos chantiers.",route:"PLANNINGS.html?v=20260923-editor-reset2",icon:"▦"},
  kontrol:{label:"KONTROL",eyebrow:"CONTRÔLES QUALITÉ",title:"KONTROL",subtitle:"Réalisez vos contrôles qualité sans modifier les critères, réponses, calculs ni archives déjà en place.",route:"KONTROL-CLOUD.html?v=20260830-pdfphotos1",icon:"✓"},
  discipline:{label:"Discipline",eyebrow:"DISCIPLINE",title:"Gestion des dossiers <em>disciplinaires</em>",subtitle:"Consultez, enregistrez et suivez vos dossiers, photos et PDF avec la même logique de sauvegarde.",route:"DISCIPLINE-V9.html",icon:"⚑"},
  infos:{label:"Infos chantier",eyebrow:"INFOS CHANTIER",title:"Informations <em>chantiers</em>",subtitle:"Retrouvez les accès, contacts, plannings et consignes de chaque résidence dans une présentation plus lisible.",route:"INFOCHANTIERS-V2.html?v=20260923-mobile2",icon:"ⓘ"},
@@ -22,7 +22,7 @@ const cfg=configs[mode]||configs.planning;
 // Ces destinations et leur ordre correspondent au référentiel de inovtec-ui-stability.js.
 const navDefinitions=[
  ['Accueil','⌂','index.html','home'],
- ['Planning','▦','PLANNINGS.html','planning','PLANNINGS-LEGACY.html?v=20260923-editor-reset1'],
+ ['Planning','▦','PLANNINGS.html','planning','PLANNINGS-LEGACY.html?v=20260923-editor-reset2'],
  ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20260913-width1'],
  ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos','INFOCHANTIERS-V2-LEGACY.html?v=20260923-mobile2'],
  ['Classeur agents','♙','AGENTS.html','agents','AGENTS-LEGACY.html?v=20260914-incidentpdf1'],
