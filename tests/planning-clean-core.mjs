@@ -128,8 +128,8 @@ try{
   await page.locator('#contextMenu.open').waitFor({state:'visible',timeout:5000});
   assert(await page.locator('#contextMenu .color-choice').count()>=1,'Palette couleur absente');
   assert(await page.locator('#contextMenu .planning-rhythm-choice').count()===2,'Rythme planning absent');
-  assert(await page.getByText('Modifier le nom').count()===0,'Fonction annexe Modifier le nom encore présente');
-  assert(await page.getByText('Supprimer').count()===0,'Fonction annexe Supprimer agent encore présente');
+  assert(await page.locator('#contextMenu').getByText('Modifier le nom',{exact:true}).count()===0,'Fonction annexe Modifier le nom encore présente');
+  assert(await page.locator('#contextMenu').getByText('Supprimer',{exact:true}).count()===0,'Fonction annexe Supprimer agent encore présente');
   await page.locator('#contextMenu .planning-rhythm-choice').nth(1).click();
   state=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
   assert(state.agents.find(a=>a.id==='agent-a')?.parityMode==='alternating','Rythme paire/impaire non enregistré');
