@@ -21,6 +21,44 @@ try{
   });
   if(!ready)throw Error('Le calendrier intégré ne termine pas son rendu');
 
+  await page.evaluate(()=>{
+    window.InovtecDataHub={
+      readyAgents:true,
+      readyChantiers:true,
+      agents:[{id:'shell-agent',identity:{prenom:'Agent',nom:'Shell'}}],
+      chantiers:[{id:'shell-site',nom:'Chantier Shell',adresse:'1 rue Test'}],
+      subscribe(){return()=>{}}
+    };
+    localStorage.setItem('inovtec_plannings_v2',JSON.stringify({
+      agents:[{id:'shell-agent',refId:'shell-agent',name:'Agent Shell',color:'#4f9f57',copies:2,parityMode:'standard',parityTemplates:{even:'',odd:''},parityInheritedWeeks:{}}],
+      weeks:{},selected:null
+    }));
+    const f=document.getElementById('legacyFrame');
+    f.contentWindow.location.reload();
+  });
+  await frame.locator('.agent-row[data-agent-id="shell-agent"]').waitFor({state:'visible',timeout:15000});
+  await frame.locator('.agent-row[data-agent-id="shell-agent"]').click();
+
+  const col=frame.locator('.day-column').first();
+  await col.dblclick({position:{x:70,y:250},timeout:10000});
+  await frame.locator('#editorPopover.open').waitFor({state:'visible',timeout:10000});
+  await frame.locator('#edTitle').selectOption('shell-site');
+  await frame.locator('#edStart').fill('09:00');
+  await frame.locator('#edEnd').fill('10:00');
+  await frame.locator('#edDone').click();
+  await frame.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
+
+  const saved=await page.evaluate(()=>{
+    const s=JSON.parse(localStorage.getItem('inovtec_plannings_v2')||'{}');
+    return Object.values(s.weeks||{}).flat().some(e=>e.agentId==='shell-agent'&&e.chantierId==='shell-site');
+  });
+  if(!saved)throw Error('Terminé n’enregistre pas dans le Planning intégré');
+
+  await frame.locator('.event-card').first().dblclick({timeout:10000});
+  await frame.locator('#editorPopover.open').waitFor({state:'visible',timeout:10000});
+  await frame.locator('#edDelete').click();
+  await frame.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
+
   await page.waitForTimeout(21000);
 
   const fallback=await page.getByText('Le planning ne parvient pas à s’ouvrir dans le tableau de bord.').count();
