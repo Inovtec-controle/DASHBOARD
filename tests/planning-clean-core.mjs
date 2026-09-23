@@ -74,6 +74,21 @@ try{
   await page.locator('#edDone').click();
   await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
   assert(await page.locator('.event-card').count()===1,'La tâche créée au double-clic n’apparaît pas après Terminé');
+  const visibleCard=page.locator('.event-card').first();
+  const visual=await visibleCard.evaluate(el=>{
+    const r=el.getBoundingClientRect(),s=getComputedStyle(el);
+    const cx=Math.max(0,Math.min(innerWidth-1,r.left+r.width/2));
+    const cy=Math.max(0,Math.min(innerHeight-1,r.top+Math.min(r.height/2,20)));
+    const top=document.elementFromPoint(cx,cy);
+    return{
+      width:r.width,height:r.height,top:r.top,left:r.left,
+      display:s.display,visibility:s.visibility,opacity:s.opacity,zIndex:s.zIndex,
+      hit:top===el||el.contains(top)
+    };
+  });
+  assert(visual.width>10&&visual.height>10,'La carte existe mais n’a aucune taille visible');
+  assert(visual.display!=='none'&&visual.visibility!=='hidden'&&Number(visual.opacity)>0,'La carte existe mais est cachée');
+  assert(visual.hit,'La carte est rendue derrière un autre calque du Planning');
 
   // Edition d'une tâche existante + Terminé
   const first=page.locator('.event-card').first();
