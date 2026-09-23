@@ -35,7 +35,7 @@ const navDefinitions=[
  ['Salaire','€','SALAIRE.html','salaire','SALAIRE-LEGACY.html?v=20260829-operational1'],
  ['Dépense carburant','⛽','ESSENCE.html','essence','ESSENCE-LEGACY.html?v=20260829-operational1']
 ];
-const navRoute=item=>item[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:item[3],page:item[4],build:'20260917-ui-stable1'}).toString():item[2];
+const navRoute=item=>item[3]==='planning'?'PLANNINGS.html':(item[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:item[3],page:item[4],build:'20260917-ui-stable1'}).toString():item[2]);
 function makeNav(target,mobile=false){
  const items=mobile?navDefinitions.filter(item=>['home','planning','infos','agents','variables'].includes(item[3])):navDefinitions;
  const fragment=document.createDocumentFragment();
