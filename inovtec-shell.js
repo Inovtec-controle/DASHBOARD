@@ -22,7 +22,7 @@ const cfg=configs[mode]||configs.planning;
 // Ces destinations et leur ordre correspondent au référentiel de inovtec-ui-stability.js.
 const navDefinitions=[
  ['Accueil','⌂','index.html','home'],
- ['Planning','▦','PLANNINGS.html','planning','PLANNINGS-LEGACY.html?v=20260909-legalguard2'],
+ ['Planning','▦','PLANNINGS.html','planning','PLANNINGS-LEGACY.html?v=20260923-core-viewport1'],
  ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20260913-width1'],
  ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos','INFOCHANTIERS-V2-LEGACY.html?v=20260923-mobile2'],
  ['Classeur agents','♙','AGENTS.html','agents','AGENTS-LEGACY.html?v=20260914-incidentpdf1'],
