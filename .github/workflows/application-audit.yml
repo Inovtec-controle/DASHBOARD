@@ -110,9 +110,9 @@ jobs:
           pages=['index.html','PLANNINGS.html','PLANNINGS-LEGACY.html','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','MATERIEL.html','CONGES.html','ORGA.html']
           missing=[p for p in pages if not Path(p).is_file() or Path(p).stat().st_size==0]
           for p in missing:print(f'::error file={p}::Page absente ou vide')
-          src=Path('PLANNINGS-LEGACY.html').read_text()
-          for path in ('planning-calendar.js','planning-context-fit.js','planning-autoheight.js'):
-              if f'src="{path}?' not in src:missing.append(path);print(f'::error file=PLANNINGS-LEGACY.html::Script non chargé : {path}')
+          src=Path('PLANNINGS.html').read_text()
+          for path in ('planning-calendar.js','inovtec-data-hub.js','inovtec-cloud-sync-v2.js'):
+              if f'src="{path}?' not in src:missing.append(path);print(f'::error file=PLANNINGS.html::Script direct non chargé : {path}')
           if missing:raise SystemExit(1)
-          print(f'Pages principales : {len(pages)} présentes ; scripts du planning : 3 liés')
+          print(f'Pages principales : {len(pages)} présentes ; Planning direct : 3 scripts essentiels liés')
           PY
