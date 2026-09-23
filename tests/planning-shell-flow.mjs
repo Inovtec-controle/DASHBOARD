@@ -60,6 +60,26 @@ try{
       hubSites:(parent.InovtecDataHub?.chantiers||[]).map(x=>({id:x.id,nom:x.nom}))
     };
   });
+  const geometry=await frame.locator('body').evaluate(()=>{
+    const pop=document.getElementById('editorPopover');
+    const done=document.getElementById('edDone');
+    const pr=pop?.getBoundingClientRect();
+    const dr=done?.getBoundingClientRect();
+    let fr=null,pv=null;
+    try{
+      const f=parent.document.getElementById('legacyFrame');
+      fr=f?.getBoundingClientRect()||null;
+      pv=parent.visualViewport?{offsetTop:parent.visualViewport.offsetTop,offsetLeft:parent.visualViewport.offsetLeft,width:parent.visualViewport.width,height:parent.visualViewport.height}:null;
+    }catch{}
+    return{
+      inner:{w:innerWidth,h:innerHeight,scrollY},
+      pop:pr&&{top:pr.top,bottom:pr.bottom,left:pr.left,right:pr.right,width:pr.width,height:pr.height},
+      done:dr&&{top:dr.top,bottom:dr.bottom,left:dr.left,right:dr.right},
+      frame:fr&&{top:fr.top,bottom:fr.bottom,left:fr.left,right:fr.right,width:fr.width,height:fr.height},
+      parentViewport:pv
+    };
+  });
+  console.log('DIAG GEOMETRIE '+JSON.stringify(geometry));
   console.log('DIAG AVANT TERMINE '+JSON.stringify(beforeDone));
   const dialogs=[];
   page.on('dialog',async d=>{dialogs.push(d.message());if(d.type()==='confirm')await d.accept();else await d.dismiss()});
