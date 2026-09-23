@@ -78,7 +78,10 @@ try{
       pop:pr&&{top:pr.top,bottom:pr.bottom,left:pr.left,right:pr.right,width:pr.width,height:pr.height},
       done:dr&&{top:dr.top,bottom:dr.bottom,left:dr.left,right:dr.right},
       frame:fr&&{top:fr.top,bottom:fr.bottom,left:fr.left,right:fr.right,width:fr.width,height:fr.height},
-      parentViewport:pv
+      parentViewport:pv,
+      sameParent:parent===window,
+      frameElementExists:!!window.frameElement,
+      frameElementRect:window.frameElement?(()=>{const x=window.frameElement.getBoundingClientRect();return{top:x.top,bottom:x.bottom,left:x.left,right:x.right,width:x.width,height:x.height}})():null
     };
   });
   console.log('DIAG GEOMETRIE '+JSON.stringify(geometry));
