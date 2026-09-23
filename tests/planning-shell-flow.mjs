@@ -60,6 +60,8 @@ try{
       hubSites:(parent.InovtecDataHub?.chantiers||[]).map(x=>({id:x.id,nom:x.nom}))
     };
   });
+  const loadedScripts=await frame.locator('body').evaluate(()=>[...document.scripts].map(s=>s.src).filter(Boolean));
+  console.log('DIAG SCRIPTS '+JSON.stringify(loadedScripts.filter(x=>/planning-calendar|PLANNINGS-LEGACY|planning-editor/i.test(x))));
   const geometry=await frame.locator('body').evaluate(()=>{
     const pop=document.getElementById('editorPopover');
     const done=document.getElementById('edDone');
