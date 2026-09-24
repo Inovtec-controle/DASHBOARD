@@ -132,6 +132,14 @@ function previewFromEditor(){
     week:isoWeekKey(d)
   };
 }
+let draftPreviewFrame=0;
+function scheduleDraftPreview(){
+  if(draftPreviewFrame)return;
+  draftPreviewFrame=requestAnimationFrame(()=>{
+    draftPreviewFrame=0;
+    renderDraftPreview();
+  });
+}
 function renderDraftPreview(){
   removeDraftPreview();
   const e=previewFromEditor();if(!e)return;
@@ -248,7 +256,7 @@ function saveEditor(){
   save();
   closeEditor();
   release();
-  render();
+  renderCalendarOnly();
   requestAnimationFrame(()=>{
     const card=document.querySelector('.event-card[data-id="'+CSS.escape(savedId)+'"]');
     if(card){
@@ -274,7 +282,16 @@ function deleteEdited(){
     render();
   }
 }
-function render(){try{syncAgentsFromHub();enforceSingleAgent();ensureParityForCurrentView();renderToolbar();renderAgents();updateMeta();if(view==="month")renderMonth();else if(view==="list")renderList();else if(view==="day")renderTimeGrid([cloneDate(currentDate)]);else{const s=weekStart(currentDate);renderTimeGrid(Array.from({length:7},(_,i)=>addDays(s,i)))}if(draftEvent&&$("editorPopover")?.dataset.draft==="1")renderDraftPreview()}catch(error){console.error("Rendu Planning interrompu",error);const viewport=$("calendarViewport");if(viewport&&!viewport.querySelector(".planning-render-error")){viewport.innerHTML='<div class="empty-state planning-render-error">Le planning récupère ses données. Réessaie dans quelques instants.</div>'}}}
+function renderCalendarOnly(){
+  renderToolbar();
+  updateMeta();
+  if(view==="month")renderMonth();
+  else if(view==="list")renderList();
+  else if(view==="day")renderTimeGrid([cloneDate(currentDate)]);
+  else{const s=weekStart(currentDate);renderTimeGrid(Array.from({length:7},(_,i)=>addDays(s,i)))}
+  if(draftEvent&&$("editorPopover")?.dataset.draft==="1")renderDraftPreview();
+}
+function render(){try{syncAgentsFromHub();enforceSingleAgent();ensureParityForCurrentView();renderAgents();renderCalendarOnly()}catch(error){console.error("Rendu Planning interrompu",error);const viewport=$("calendarViewport");if(viewport&&!viewport.querySelector(".planning-render-error")){viewport.innerHTML='<div class="empty-state planning-render-error">Le planning récupère ses données. Réessaie dans quelques instants.</div>'}}}
 function navigate(dir){if(view==="month")currentDate=new Date(currentDate.getFullYear(),currentDate.getMonth()+dir,1);else currentDate=addDays(currentDate,dir*(view==="day"?1:7));closeEditor();render()}
 function exportData(){const b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="inovtec_plannings_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u)}
 function importData(file){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.agents)||!x.weeks)throw Error("format incompatible");state=x;state.agents.forEach((a,i)=>{if(!a.color)a.color=COLORS[i%COLORS.length];normalizeParityAgent(a)});syncAgentsFromHub();if(!state.agents.some(a=>a.id===state.selected))state.selected=state.agents[0]?.id;save();render();alert("Import réussi.")}catch(err){alert("Import impossible : "+err.message)}};r.readAsText(file)}
@@ -285,10 +302,10 @@ $("agentSearch").addEventListener("input",renderAgents);
 
 document.querySelectorAll(".view-tab").forEach(b=>b.onclick=()=>{view=b.dataset.view;closeEditor();render()});
 $("prevBtn").onclick=()=>navigate(-1);$("nextBtn").onclick=()=>navigate(1);$("todayBtn").onclick=()=>{currentDate=new Date();closeEditor();render()};
-$("edTitle").addEventListener("change",()=>{applySelectedChantier();renderDraftPreview()});
+$("edTitle").addEventListener("change",()=>{applySelectedChantier();scheduleDraftPreview()});
 ["edSite","edDate","edStart","edEnd","edAgent","edNote"].forEach(id=>{
-  $(id)?.addEventListener("input",renderDraftPreview);
-  $(id)?.addEventListener("change",renderDraftPreview);
+  $(id)?.addEventListener("input",scheduleDraftPreview);
+  $(id)?.addEventListener("change",scheduleDraftPreview);
 });
 $("edDone").addEventListener("click",e=>{
   e.preventDefault();
