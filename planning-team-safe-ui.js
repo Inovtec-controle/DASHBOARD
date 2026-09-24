@@ -25,7 +25,12 @@ const teamFor=(s,id)=>s.teamPlanning.teams.find(t=>Array.isArray(t.members)&&t.m
 const entries=(s,week,id)=>(Array.isArray(s.weeks[week])?s.weeks[week]:[]).filter(e=>str(e?.agentId)===id);
 const shape=e=>({day:Number(e.day)||0,start:str(e.start),end:str(e.end),task:str(e.task),site:str(e.site),chantierId:str(e.chantierId),note:str(e.note)});
 const signature=list=>JSON.stringify(list.map(shape).sort((a,b)=>a.day-b.day||a.start.localeCompare(b.start)||a.end.localeCompare(b.end)||a.task.localeCompare(b.task)||a.site.localeCompare(b.site)));
-const persist=s=>{localStorage.setItem(KEY,JSON.stringify(s));window.dispatchEvent(new Event('inovtec:planning-cloud-updated'))};
+const persist=s=>{
+  const payload=JSON.stringify(s);
+  try{localStorage.setItem(KEY,payload)}catch(e){console.warn('Planning équipe : copie locale indisponible',e)}
+  window.dispatchEvent(new CustomEvent('inovtec:planning-local-saved',{detail:{at:Date.now(),payload,stored:true,source:'team'}}));
+  window.dispatchEvent(new Event('inovtec:planning-cloud-updated'));
+};
 function protectAndShare(s,team,week,sourceId,initial=false){
  if(!Array.isArray(team.members)||team.members.length<2||!team.members.includes(sourceId))return false;
  const source=entries(s,week,sourceId),meta=team.weeks?.[week]||null;
@@ -159,7 +164,7 @@ function bind(){
  if(list)new MutationObserver(()=>decorate()).observe(list,{childList:true});
  if(menu)new MutationObserver(()=>{
   if(!menu.classList.contains('open')||menu.querySelector('[data-iv-safe-team]'))return;
-  const s=read(),a=s&&agent(s,s.selected);if(!a)return;
+  const s=read(),contextId=str(menu.dataset.agentId||s?.selected),a=s&&agent(s,contextId);if(!a)return;
   const action=document.createElement('button');action.type='button';action.className='context-item';action.dataset.ivSafeTeam='1';
   action.textContent=teamFor(s,str(a.id))?'👥 Gérer le planning d’équipe':'👥 Lier des agents au même planning';
   action.onclick=()=>{menu.classList.remove('open');open(a.id)};
