@@ -85,8 +85,29 @@ function ensureParityWeek(week,a){if(!a)return false;normalizeParityAgent(a);if(
 function ensureParityForCurrentView(){const a=agentById(state.selected);if(!a||a.parityMode!=="alternating")return false;let changed=false;if(view==="month"){const first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),seen=new Set();for(let i=0;i<42;i++){const w=isoWeekKey(addDays(start,i));if(seen.has(w))continue;seen.add(w);if(ensureParityWeek(w,a))changed=true}}else{if(ensureParityWeek(isoWeekKey(currentDate),a))changed=true}if(changed)localStorage.setItem(KEY,JSON.stringify(state));return changed}
 function parityModelText(a,kind){normalizeParityAgent(a);const key=a.parityTemplates[kind];return key?`semaine ${weekNumber(key)}`:"aucun modèle"}
 function save(){
-  localStorage.setItem(KEY,JSON.stringify(state));
-  try{window.dispatchEvent(new CustomEvent("inovtec:planning-local-saved",{detail:{at:Date.now()}}))}catch{}
+  const payload=JSON.stringify(state);
+  let stored=false,error=null;
+  try{
+    localStorage.setItem(KEY,payload);
+    stored=true;
+  }catch(e){
+    error=e;
+    console.warn("Planning : stockage local indisponible, envoi Firebase direct",e);
+    try{
+      for(let i=localStorage.length-1;i>=0;i--){
+        const k=localStorage.key(i)||"";
+        if(k.startsWith("iv_cloud_backup_v2_planning_")||k.startsWith("iv_cloud_meta_planning"))localStorage.removeItem(k);
+      }
+      localStorage.setItem(KEY,payload);
+      stored=true;
+      error=null;
+    }catch(retryError){
+      error=retryError;
+      console.warn("Planning : stockage local toujours indisponible après nettoyage des caches",retryError);
+    }
+  }
+  try{window.dispatchEvent(new CustomEvent("inovtec:planning-local-saved",{detail:{at:Date.now(),payload,stored}}))}catch{}
+  return{stored,error,payload};
 }
 function reloadStoredPlanning(preferredAgentId=state.selected){
   const preferred=safeText(preferredAgentId);
@@ -285,19 +306,17 @@ function saveEditor(){
   draftEvent=null;
   const savedId=next.id;
   currentDate=cloneDate(d);
-  try{
-    save();
-  }catch(error){
-    console.error("Planning : sauvegarde locale impossible",error);
-    release();
-    alert("La tâche n’a pas pu être enregistrée. Réessaie.");
-    return;
-  }
+  const saveResult=save();
   closeEditor();
   release();
-  reloadStoredPlanning(next.agentId);
-  state.selected=next.agentId;
-  enforceSingleAgent();
+  if(saveResult.stored){
+    reloadStoredPlanning(next.agentId);
+    state.selected=next.agentId;
+    enforceSingleAgent();
+  }else{
+    state.selected=next.agentId;
+    enforceSingleAgent();
+  }
   renderAgents();
   renderCalendarOnly();
   requestAnimationFrame(()=>{
