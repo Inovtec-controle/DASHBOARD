@@ -27,7 +27,7 @@ function nightDurationMin(item){
 }
 function durationLabel(mins){const h=Math.floor(mins/60),m=mins%60;return h?`${h}h${pad(m)}`:`${m} min`}
 function totalLabel(mins){const h=Math.floor(mins/60),m=mins%60;return`${h}h${pad(m)}`}
-function loadState(){try{const s=JSON.parse(localStorage.getItem(KEY)||"{}");return s&&Array.isArray(s.agents)&&s.weeks?s:{agents:[],weeks:{},selected:null}}catch{return{agents:[],weeks:{},selected:null}}}
+function loadState(){try{const s=window.InovtecPlanningAPI?.getState?.()||{};return s&&Array.isArray(s.agents)&&s.weeks?s:{agents:[],weeks:{},selected:null}}catch{return{agents:[],weeks:{},selected:null}}}
 function hubAgents(){try{return parent?.InovtecDataHub?.readyAgents?Array.from(parent.InovtecDataHub.agents||[]):[]}catch{return[]}}
 function hubName(a){return[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ").trim()||a?.displayName||a?.name||"Agent sans nom"}
 function copiesFor(agent){const masters=hubAgents();const m=masters.find(x=>String(x.id)===String(agent.refId||agent.id)||norm(hubName(x))===norm(agent.name));const raw=m?.job?.planningCopies,cloud=Math.round(Number(raw)),local=Math.round(Number(agent?.copies));if(Number.isFinite(cloud)&&cloud>=2)return Math.min(10,cloud);if(Number.isFinite(local)&&local>=2)return Math.min(10,local);return 2}
