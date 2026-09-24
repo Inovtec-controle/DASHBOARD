@@ -144,13 +144,13 @@ try{
   const resized=rows.find(e=>e.id===modifiedId);
   assert(resized&&resized.end!==beforeEnd,'Redimensionnement non enregistré');
 
-  // Menu agent : couleur et rythme uniquement
+  // Menu agent : fonctions historiques restaurées + couleur et rythme
   await page.locator('.agent-row[data-agent-id="agent-a"]').click({button:'right'});
   await page.locator('#contextMenu.open').waitFor({state:'visible',timeout:5000});
   assert(await page.locator('#contextMenu .color-choice').count()>=1,'Palette couleur absente');
   assert(await page.locator('#contextMenu .planning-rhythm-choice').count()===2,'Rythme planning absent');
-  assert(await page.locator('#contextMenu').getByText('Modifier le nom',{exact:true}).count()===0,'Fonction annexe Modifier le nom encore présente');
-  assert(await page.locator('#contextMenu').getByText('Supprimer',{exact:true}).count()===0,'Fonction annexe Supprimer agent encore présente');
+  assert(await page.locator('#contextMenu').getByText('Modifier le nom',{exact:true}).count()===1,'Fonction Modifier le nom absente');
+  assert(await page.locator('#contextMenu').getByText('Supprimer',{exact:true}).count()===1,'Fonction Supprimer agent absente');
   await page.locator('#contextMenu .planning-rhythm-choice').nth(1).click();
   state=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
   assert(state.agents.find(a=>a.id==='agent-a')?.parityMode==='alternating','Rythme paire/impaire non enregistré');
