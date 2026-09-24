@@ -5,7 +5,7 @@ const failures = [];
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 const context = await browser.newContext({ viewport: { width: 1365, height: 900 }, serviceWorkers: 'block' });
 const page = await context.newPage();
-await page.route('**/planning-firebase-direct.js*', route=>route.fulfill({
+await page.route('**/planning-firebase-direct-v2.js*', route=>route.fulfill({
   status:200,
   contentType:'application/javascript',
   body:'window.__INOVTEC_PLANNING_FIREBASE_DIRECT_V1__=true;'
