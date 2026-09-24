@@ -50,6 +50,7 @@ jobs:
           node tests/materiel-transaction-sync.mjs
           node tests/materiel-redesign.mjs
           node tests/planning-clean-core.mjs
+          node tests/planning-recurrence-direct.mjs
           node tests/firebase-org-migration.mjs
           node tests/firebase-diagnostic.mjs
           node tests/shell-refresh-performance.mjs
