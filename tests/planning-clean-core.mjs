@@ -78,6 +78,10 @@ try{
   await page.locator('#edSite').fill('Contrôle sanitaires');
   await page.locator('#edStart').fill('11:00');
   await page.locator('#edEnd').fill('12:00');
+  await page.waitForFunction(()=>{
+    const text=(document.querySelector('.event-card.draft-preview')?.innerText||'').replace(/\s+/g,' ');
+    return text.includes('11:00')&&text.includes('12:00')&&text.includes('Chantier Beta');
+  },null,{timeout:3000});
   const previewText=(await page.locator('.event-card.draft-preview').innerText()).replace(/\s+/g,' ');
   assert(previewText.includes('11:00')&&previewText.includes('12:00')&&previewText.includes('Chantier Beta'),'L’aperçu provisoire ne suit pas les modifications de la bulle');
   await page.locator('#edDone').click();
