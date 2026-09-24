@@ -290,17 +290,10 @@ $("edTitle").addEventListener("change",()=>{applySelectedChantier();renderDraftP
   $(id)?.addEventListener("input",renderDraftPreview);
   $(id)?.addEventListener("change",renderDraftPreview);
 });
-let donePointerHandled=false;
-$("edDone").addEventListener("pointerdown",e=>{
-  if(e.button!=null&&e.button!==0)return;
-  donePointerHandled=true;
-  e.preventDefault();e.stopPropagation();
-  saveEditor();
-  setTimeout(()=>{donePointerHandled=false},0);
-});
 $("edDone").addEventListener("click",e=>{
-  e.preventDefault();e.stopPropagation();
-  if(!donePointerHandled&&$("editorPopover").classList.contains("open"))saveEditor();
+  e.preventDefault();
+  e.stopPropagation();
+  saveEditor();
 });
 $("edDelete").onclick=deleteEdited;
 $("editorPopover").addEventListener("mousedown",e=>e.stopPropagation());
