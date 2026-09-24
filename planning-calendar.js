@@ -467,13 +467,13 @@ function payloadEventIds(payload){
     return ids;
   }catch{return null}
 }
-function guardFreshlySavedEvents(payload){
+function guardFreshlySavedEvents(payload,source=""){
   if(!protectedSavedEvents.size)return true;
   const ids=payloadEventIds(payload);
   if(!ids)return false;
   const missing=[...protectedSavedEvents.keys()].filter(id=>!ids.has(String(id)));
   if(!missing.length){
-    protectedSavedEvents.clear();
+    if(/^firebase/.test(String(source||"")))protectedSavedEvents.clear();
     return true;
   }
   const now=Date.now();
@@ -486,9 +486,9 @@ function guardFreshlySavedEvents(payload){
   console.warn("Planning : payload ignoré car il ne contient pas encore la tâche fraîchement enregistrée",missing);
   return false;
 }
-function receiveCloudPayload(payload){
+function receiveCloudPayload(payload,source=""){
   if(typeof payload!=="string"||!payload)return;
-  if(!guardFreshlySavedEvents(payload))return;
+  if(!guardFreshlySavedEvents(payload,source))return;
   const token=++cloudPayloadEpoch;
   pendingCloudPayload={payload,token};
   const attempt=()=>{
@@ -512,16 +512,16 @@ function refreshFromCloud(){
     if(busy){cloudRefreshTimer=setTimeout(attempt,500);return}
     let raw="";
     try{raw=localStorage.getItem(KEY)||""}catch{}
-    if(raw)receiveCloudPayload(raw);
+    if(raw)receiveCloudPayload(raw,"local-refresh");
   };
   cloudRefreshTimer=setTimeout(attempt,50);
 }
-window.addEventListener("inovtec:planning-cloud-payload",e=>receiveCloudPayload(e?.detail?.payload));
+window.addEventListener("inovtec:planning-cloud-payload",e=>receiveCloudPayload(e?.detail?.payload,e?.detail?.source||""));
 window.addEventListener("inovtec:planning-cloud-save-failed",e=>{
   const msg=e?.detail?.message||"erreur inconnue";
   alert("Sauvegarde Firebase impossible pour le moment : "+msg+"\nLa modification reste affichée et sera retentée automatiquement.");
 });
 window.addEventListener("inovtec:planning-cloud-updated",refreshFromCloud);
-window.addEventListener("storage",e=>{if(e.key===KEY&&typeof e.newValue==="string"&&e.newValue)receiveCloudPayload(e.newValue)});
+window.addEventListener("storage",e=>{if(e.key===KEY&&typeof e.newValue==="string"&&e.newValue)receiveCloudPayload(e.newValue,"storage")});
 render();bindHub();setInterval(()=>{if(!document.hidden&&(view==="week"||view==="day"))render()},60000);
 })();
