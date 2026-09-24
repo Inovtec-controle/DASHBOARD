@@ -84,7 +84,7 @@ function apply(payload){
     }finally{applying=false}
   }
   if(mode==='planning'){
-    window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload:value,stored}}));
+    window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload:value,stored,source:'firebase-remote'}}));
   }else if(old!==value&&stored){
     render();
   }
@@ -171,7 +171,7 @@ async function send(){
         console.warn('Planning Firebase confirmé mais copie locale indisponible',e);
       }
       report('Firebase — synchronisé',true);
-      window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload:written,stored:true}}));
+      window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload:written,stored:true,source:'firebase-confirmed'}}));
       window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-saved',{detail:{at:Date.now(),payload:written}}));
     }else{
       if(packed(local())===draft&&written!==draft)apply(written);
