@@ -7,11 +7,13 @@ let absences=[],cloudBound=false,observers=[],panelState=null;
 const pwin=(()=>{try{return parent&&parent!==window?parent:window}catch{return window}})();
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 function parse(s,f){try{return JSON.parse(s)||f}catch{return f}}
-function plan(){const p=parse(localStorage.getItem(PLAN_KEY)||"{}",{});return p&&p.weeks?p:{agents:[],weeks:{}}}
+function plan(){const p=window.InovtecPlanningAPI?.getState?.()||{};return p&&p.weeks?p:{agents:[],weeks:{}}}
 function savePlan(p){
-  const payload=JSON.stringify(p);
-  try{localStorage.setItem(PLAN_KEY,payload)}catch(e){console.warn("Planning remplacement : copie locale indisponible",e)}
-  window.dispatchEvent(new CustomEvent("inovtec:planning-local-saved",{detail:{at:Date.now(),payload,stored:true,source:"replacement"}}));
+  if(window.InovtecPlanningAPI?.replaceState){
+    window.InovtecPlanningAPI.replaceState(p,{persist:true,source:"replacement"});
+  }else{
+    window.dispatchEvent(new CustomEvent("inovtec:planning-save-request",{detail:{at:Date.now(),payload:JSON.stringify(p),source:"replacement"}}));
+  }
 }
 function loadAbs(){const a=parse(localStorage.getItem(ABS_KEY)||"[]",[]);absences=Array.isArray(a)?a:[]}
 function dateISO(d){return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
