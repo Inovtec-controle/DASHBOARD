@@ -148,15 +148,23 @@ async function writeFirebase(payload,source="planning"){
     const data=check.exists?(check.data()||{}):{};
     const entry=data?.moduleSyncV1?.planning||null;
     const backup=data?.planningDirectV1||null;
-    const actual=entry?.payload;
-    if(typeof actual!=="string"||actual!==payload||backup?.payload!==payload){
-      throw new Error("Firebase n’a pas confirmé exactement la version enregistrée");
+    const actual=typeof entry?.payload==="string"&&validPayload(entry.payload)?entry.payload:"";
+    const direct=typeof backup?.payload==="string"&&validPayload(backup.payload)?backup.payload:"";
+    const confirmed=direct===payload||actual===payload;
+    if(!confirmed){
+      throw new Error("Firebase n’a pas confirmé la modification enregistrée");
     }
-    lastConfirmedPayload=actual;
+    // planningDirectV1 est la copie Firebase de référence. Si elle confirme
+    // notre écriture mais que le champ principal a déjà été touché derrière,
+    // on valide l'utilisateur puis on répare le champ principal sans alerte.
+    lastConfirmedPayload=payload;
     directProtocolActive=true;
     report("Firebase — synchronisé",true);
-    emitPayload(actual,"firebase-confirmed");
-    window.dispatchEvent(new CustomEvent("inovtec:planning-cloud-saved",{detail:{at:Date.now(),payload:actual}}));
+    emitPayload(payload,"firebase-confirmed");
+    window.dispatchEvent(new CustomEvent("inovtec:planning-cloud-saved",{detail:{at:Date.now(),payload}}));
+    if(direct===payload&&actual!==payload){
+      setTimeout(()=>{if(!saving&&lastConfirmedPayload===payload)void writeFirebase(payload,"repair-primary-after-confirm")},80);
+    }
   }catch(e){
     console.error("Planning Firebase direct",e);
     report("Firebase — sauvegarde non confirmée : "+(e.code||e.message||"erreur"));
