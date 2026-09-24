@@ -71,7 +71,7 @@ function ensureStyle(){
     }
 
     /* Historique résidence — présentation dashboard */
-    #ivControlHistoryCard{overflow:hidden;border:1px solid #dce8e2!important;background:linear-gradient(180deg,#ffffff 0%,#fbfdfc 100%)!important}
+    #ivControlHistoryCard{grid-column:1/-1!important;width:100%!important;max-width:none!important;min-width:0!important;justify-self:stretch!important;box-sizing:border-box!important;overflow:hidden;border:1px solid #dce8e2!important;background:linear-gradient(180deg,#ffffff 0%,#fbfdfc 100%)!important}
     #ivControlHistoryCard .iv-history-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid #e8efeb}
     #ivControlHistoryCard .iv-history-title-wrap{display:flex;gap:11px;align-items:flex-start;min-width:0}
     #ivControlHistoryCard .iv-history-icon{width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:#eaf7ef;color:#0b6b43;display:grid;place-items:center;font-size:19px;font-weight:900}
