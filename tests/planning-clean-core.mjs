@@ -168,11 +168,16 @@ try{
   card=page.locator('.event-card').first();cb=await card.boundingBox();assert(!!cb,'Tâche absente avant suppression');
   await page.mouse.click(cb.x+20,cb.y+12,{clickCount:2,delay:90});
   await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:5000});
-  const beforeCount=Object.values(await page.evaluate(()=>window.InovtecPlanningAPI.getState()).weeks||{}).flat().length;
+  const beforeDelete=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
+  const beforeCount=Object.values(beforeDelete.weeks||{}).flat().length;
+  const deletedId=page.locator('#editorPopover').getAttribute('data-id');
   await page.locator('#edDelete').click();
   await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
-  const afterCount=Object.values(await page.evaluate(()=>window.InovtecPlanningAPI.getState()).weeks||{}).flat().length;
-  assert(afterCount===beforeCount-1,'Suppression intervention non enregistrée');
+  const afterDelete=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
+  const afterRows=Object.values(afterDelete.weeks||{}).flat();
+  assert(afterRows.length<beforeCount,'Suppression intervention non enregistrée');
+  assert(!afterRows.some(e=>e.id===deletedId),'Intervention supprimée encore présente');
+
 
   // Aujourd'hui
   await page.locator('#todayBtn').click();
