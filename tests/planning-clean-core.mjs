@@ -26,7 +26,7 @@ await context.addInitScript(()=>{
 });
 const page=await context.newPage();
 await page.route('**/inovtec-data-hub.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
-await page.route('**/planning-firebase-direct.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:'window.__INOVTEC_PLANNING_FIREBASE_DIRECT_V1__=true;'}));
+await page.route('**/planning-firebase-direct-v2.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:'window.__INOVTEC_PLANNING_FIREBASE_DIRECT_V1__=true;'}));
 await page.route('https://www.gstatic.com/firebasejs/**',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
 page.on('dialog',async d=>{if(d.type()==='confirm')await d.accept();else await d.dismiss()});
 const errors=[];page.on('pageerror',e=>errors.push(String(e?.message||e)));
