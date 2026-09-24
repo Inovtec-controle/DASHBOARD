@@ -15,26 +15,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Vérifier le Planning direct au double-clic
+      - name: Vérifier le Planning restauré et Firebase direct
         shell: bash
         run: |
           set -euo pipefail
           test -s PLANNINGS.html
+          test -s PLANNINGS-APP.html
           test -s planning-calendar.js
           test -s planning-calendar.css
-          grep -q 'planning-calendar.js' PLANNINGS.html
-          grep -q 'id="editorPopover"' PLANNINGS.html
-          grep -q 'id="edDone"' PLANNINGS.html
+          grep -q 'inovtec-page-shell.html' PLANNINGS.html
+          grep -q 'PLANNINGS-APP.html' PLANNINGS.html
+          grep -q 'planning-calendar.js' PLANNINGS-APP.html
+          grep -q 'id="editorPopover"' PLANNINGS-APP.html
+          grep -q 'id="edDone"' PLANNINGS-APP.html
           grep -q 'captureCalendarDoubleClick' planning-calendar.js
           grep -q 'draftEvent' planning-calendar.js
           grep -q 'saveEditor' planning-calendar.js
-          grep -q 'inovtec-data-hub.js' PLANNINGS.html
-          grep -q 'inovtec-cloud-sync-v2.js' PLANNINGS.html
-          ! grep -q 'id="addTaskBtn"' PLANNINGS.html
-          ! grep -q 'legacyFrame' PLANNINGS.html
-          ! grep -q 'inovtec-planning-coverage.js' PLANNINGS.html
-          ! grep -q 'planning-replacement.js' PLANNINGS.html
-          ! grep -q 'planning-pdf.js' PLANNINGS.html
-          ! grep -q 'planning-legal-guard.js' PLANNINGS.html
+          grep -q 'inovtec-data-hub.js' PLANNINGS-APP.html
+          grep -q 'inovtec-cloud-sync-v2.js' PLANNINGS-APP.html
+          grep -q 'planning-replacement.js' PLANNINGS-APP.html
+          grep -q 'planning-pdf.js' PLANNINGS-APP.html
+          grep -q 'planning-legal-guard.js' PLANNINGS-APP.html
+          grep -q 'planning-team-safe-ui.js' PLANNINGS-APP.html
+          grep -q 'planning-copy-count.js' PLANNINGS-APP.html
+          ! grep -q 'id="addTaskBtn"' PLANNINGS-APP.html
           node --check planning-calendar.js
           node --check inovtec-cloud-sync-v2.js
+          node --check planning-team-safe-ui.js
+          node --check planning-replacement.js
