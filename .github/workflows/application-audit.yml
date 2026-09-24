@@ -107,12 +107,12 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          pages=['index.html','PLANNINGS.html','PLANNINGS-LEGACY.html','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','MATERIEL.html','CONGES.html','ORGA.html']
+          pages=['index.html','PLANNINGS.html','PLANNINGS-APP.html','PLANNINGS-LEGACY.html','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','MATERIEL.html','CONGES.html','ORGA.html']
           missing=[p for p in pages if not Path(p).is_file() or Path(p).stat().st_size==0]
           for p in missing:print(f'::error file={p}::Page absente ou vide')
-          src=Path('PLANNINGS.html').read_text()
-          for path in ('planning-calendar.js','inovtec-data-hub.js','inovtec-cloud-sync-v2.js'):
-              if f'src="{path}?' not in src:missing.append(path);print(f'::error file=PLANNINGS.html::Script direct non chargé : {path}')
+          src=Path('PLANNINGS-APP.html').read_text()
+          for path in ('planning-calendar.js','inovtec-data-hub.js','planning-firebase-direct.js'):
+              if f'src="{path}?' not in src:missing.append(path);print(f'::error file=PLANNINGS-APP.html::Script direct non chargé : {path}')
           if missing:raise SystemExit(1)
           print(f'Pages principales : {len(pages)} présentes ; Planning direct : 3 scripts essentiels liés')
           PY
