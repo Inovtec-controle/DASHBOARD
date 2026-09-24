@@ -144,13 +144,61 @@ function updateMeta(){
   tbody.innerHTML="";
   rows.forEach(e=>{const tr=document.createElement("tr");[DAYS[Number(e.day)||0],`${e.start||""} – ${e.end||""}`,e.task||"",e.site||"",e.note||""].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});tbody.appendChild(tr)});
 }
-function renderAgents(){const q=$("agentSearch").value.trim().toLowerCase(),box=$("agentList");box.innerHTML="";const list=state.agents.filter(a=>!q||safeText(a.name).toLowerCase().includes(q));if(!list.length){const empty=document.createElement("div");empty.className="empty-state";empty.style.padding="28px 12px";empty.textContent=dataHub()?.readyAgents?"Aucun agent dans le Classeur Agents.":"Chargement des agents…";box.appendChild(empty);return}list.forEach(a=>{const row=document.createElement("div");row.className="agent-row"+(a.id===state.selected?" active":"");row.dataset.agentId=a.id;const dot=document.createElement("button");dot.type="button";dot.className="agent-dot"+(a.id===state.selected?" visible":"");dot.style.color=a.color;dot.title="Afficher uniquement le calendrier de "+a.name;dot.onclick=e=>{e.stopPropagation();selectAgent(a.id)};const name=document.createElement("div");name.className="agent-name";name.textContent=a.name;row.append(dot,name);row.onclick=()=>selectAgent(a.id);row.oncontextmenu=e=>{e.preventDefault();state.selected=a.id;enforceSingleAgent();renderAgents();renderCalendarOnly();openAgentMenu(a,e.clientX,e.clientY)};let press=null;row.addEventListener("touchstart",e=>{const t=e.touches[0];press=setTimeout(()=>openAgentMenu(a,t.clientX,t.clientY),520)},{passive:true});row.addEventListener("touchend",()=>clearTimeout(press));row.addEventListener("touchmove",()=>clearTimeout(press));box.appendChild(row)})}
+function prepareAgentContext(a){
+  state.selected=a.id;
+  enforceSingleAgent();
+  try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){console.warn("Planning : sélection agent non mise en cache",e)}
+  renderAgents();
+  renderCalendarOnly();
+}
+function renderAgents(){const q=$("agentSearch").value.trim().toLowerCase(),box=$("agentList");box.innerHTML="";const list=state.agents.filter(a=>!q||safeText(a.name).toLowerCase().includes(q));if(!list.length){const empty=document.createElement("div");empty.className="empty-state";empty.style.padding="28px 12px";empty.textContent=dataHub()?.readyAgents?"Aucun agent dans le Classeur Agents.":"Chargement des agents…";box.appendChild(empty);return}list.forEach(a=>{const row=document.createElement("div");row.className="agent-row"+(a.id===state.selected?" active":"");row.dataset.agentId=a.id;const dot=document.createElement("button");dot.type="button";dot.className="agent-dot"+(a.id===state.selected?" visible":"");dot.style.color=a.color;dot.title="Afficher uniquement le calendrier de "+a.name;dot.onclick=e=>{e.stopPropagation();selectAgent(a.id)};const name=document.createElement("div");name.className="agent-name";name.textContent=a.name;row.append(dot,name);row.onclick=()=>selectAgent(a.id);row.oncontextmenu=e=>{e.preventDefault();prepareAgentContext(a);openAgentMenu(a,e.clientX,e.clientY)};let press=null;row.addEventListener("touchstart",e=>{const t=e.touches[0];press=setTimeout(()=>{prepareAgentContext(a);openAgentMenu(a,t.clientX,t.clientY)},520)},{passive:true});row.addEventListener("touchend",()=>clearTimeout(press));row.addEventListener("touchmove",()=>clearTimeout(press));box.appendChild(row)})}
 async function addAgent(){const n=prompt("Nom du nouvel agent :");if(!n?.trim())return;const h=dataHub();try{if(h?.createAgent){const created=await h.createAgent(n.trim());syncAgentsFromHub();const a=state.agents.find(x=>x.refId===created.id);if(a)state.selected=a.id;save();render();return}}catch(e){console.error(e);alert("Création impossible dans le Classeur Agents.");return}const a={id:uid("a"),name:n.trim(),copies:2,color:COLORS[state.agents.length%COLORS.length],parityMode:"standard",parityTemplates:{even:"",odd:""},parityInheritedWeeks:{}};state.agents.push(a);state.selected=a.id;save();render()}
 async function renameAgent(a){const n=prompt("Nom de l’agent :",a.name);if(!n?.trim())return;const h=dataHub();try{if(a.refId&&h?.renameAgent){await h.renameAgent(a.refId,n.trim());syncAgentsFromHub();save();render();return}}catch(e){console.error(e);alert("Modification impossible dans le Classeur Agents.");return}a.name=n.trim();save();render()}
 async function deleteAgent(a){if(!confirm(`Supprimer ${a.name} du Classeur Agents et supprimer ses interventions du planning ?`))return;const h=dataHub();try{if(a.refId&&h?.deleteAgent){await h.deleteAgent(a.refId)}}catch(e){console.error(e);alert("Suppression impossible dans le Classeur Agents.");return}Object.keys(state.weeks).forEach(w=>state.weeks[w]=entriesForWeek(w).filter(e=>e.agentId!==a.id));state.agents=state.agents.filter(x=>x.id!==a.id);state.selected=state.agents[0]?.id||null;enforceSingleAgent();save();render()}
 function setParityMode(a,mode){normalizeParityAgent(a);if(mode==="alternating"){a.parityMode="alternating";initializeParityTemplates(a)}else{freezeParityCopies(a);a.parityMode="standard"}save();render()}
 function appendRhythmBlock(menu,a,x,y){normalizeParityAgent(a);const sep=document.createElement("div");sep.className="context-sep";menu.appendChild(sep);const wrap=document.createElement("div");wrap.className="planning-rhythm";const title=document.createElement("div");title.className="planning-rhythm-title";title.innerHTML='<span class="rhythm-icon">▣</span><span>Rythme du planning</span><span class="rhythm-chevron">⌃</span>';wrap.appendChild(title);const choice=(label,mode)=>{const b=document.createElement("button");b.type="button";b.className="planning-rhythm-choice"+(a.parityMode===mode?" active":"");b.innerHTML='<span class="planning-rhythm-radio"></span><span></span>';b.lastElementChild.textContent=label;b.onclick=e=>{e.stopPropagation();if(a.parityMode!==mode)setParityMode(a,mode);const fresh=agentById(a.id)||a;openAgentMenu(fresh,x,y)};wrap.appendChild(b)};choice("Standard","standard");choice("Semaines paires / impaires","alternating");if(a.parityMode==="alternating"){initializeParityTemplates(a);const info=document.createElement("div");info.className="planning-parity-info";const p1=document.createElement("p");p1.textContent="Le dernier planning modifié d'une semaine paire devient le modèle des prochaines semaines paires.";const p2=document.createElement("p");p2.textContent="Le dernier planning modifié d'une semaine impaire devient le modèle des prochaines semaines impaires.";const p3=document.createElement("p");p3.textContent="Aucun planning existant n'est écrasé automatiquement.";const models=document.createElement("div");models.className="planning-parity-models";const model=(label,kind)=>{const r=document.createElement("div");r.className="planning-parity-model";r.innerHTML='<span class="model-icon">▣</span><strong></strong><span></span>';r.children[1].textContent=label;r.children[2].textContent=parityModelText(a,kind);models.appendChild(r)};model("Modèle paire :","even");model("Modèle impaire :","odd");info.append(p1,p2,p3,models);wrap.appendChild(info)}menu.appendChild(wrap)}
-function openAgentMenu(a,x,y){normalizeParityAgent(a);const menu=$("contextMenu");menu.classList.add("agent-context");menu.innerHTML="";const colorLabel=document.createElement("div");colorLabel.className="context-item";colorLabel.textContent="Couleur du calendrier";menu.appendChild(colorLabel);const palette=document.createElement("div");palette.className="color-palette";COLORS.slice(0,6).forEach(c=>{const b=document.createElement("button");b.className="color-choice";b.style.background=c;b.title="Changer la couleur";b.onclick=()=>{a.color=c;closeContext();save();render()};palette.appendChild(b)});menu.appendChild(palette);appendRhythmBlock(menu,a,x,y);showContext(x,y)}
+function openAgentMenu(a,x,y){
+  normalizeParityAgent(a);
+  const menu=$("contextMenu");
+  menu.classList.add("agent-context");
+  menu.dataset.agentId=a.id;
+  menu.innerHTML="";
+  const item=(label,fn,danger=false)=>{
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="context-item"+(danger?" danger":"");
+    b.textContent=label;
+    b.onclick=e=>{e.stopPropagation();closeContext();fn()};
+    menu.appendChild(b);
+  };
+  item("Modifier le nom",()=>renameAgent(a));
+  const colorLabel=document.createElement("div");
+  colorLabel.className="context-item";
+  colorLabel.textContent="Couleur du calendrier";
+  menu.appendChild(colorLabel);
+  const palette=document.createElement("div");
+  palette.className="color-palette";
+  COLORS.slice(0,6).forEach(c=>{
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="color-choice";
+    b.style.background=c;
+    b.title="Changer la couleur";
+    b.onclick=e=>{e.stopPropagation();a.color=c;closeContext();save();render()};
+    palette.appendChild(b);
+  });
+  menu.appendChild(palette);
+  const copySlot=document.createElement("div");
+  copySlot.className="planning-copy-slot";
+  copySlot.dataset.agentId=a.id;
+  menu.appendChild(copySlot);
+  appendRhythmBlock(menu,a,x,y);
+  const sep=document.createElement("div");
+  sep.className="context-sep";
+  menu.appendChild(sep);
+  item("Supprimer",()=>deleteAgent(a),true);
+  showContext(x,y);
+}
 function openBlankMenu(x,y){const menu=$("contextMenu");menu.classList.remove("agent-context");menu.innerHTML="";const b=document.createElement("button");b.className="context-item";b.textContent="Nouvel agent";b.onclick=()=>{closeContext();addAgent()};menu.appendChild(b);showContext(x,y)}
 function showContext(x,y){const m=$("contextMenu");m.classList.add("open");requestAnimationFrame(()=>{const r=m.getBoundingClientRect();m.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+"px";m.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+"px"})}
 function closeContext(){$("contextMenu").classList.remove("open")}
