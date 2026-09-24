@@ -154,6 +154,11 @@ try{
   await page.locator('#contextMenu .planning-rhythm-choice').nth(1).click();
   state=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
   assert(state.agents.find(a=>a.id==='agent-a')?.parityMode==='alternating','Rythme paire/impaire non enregistré');
+  // Revenir au rythme standard avant le scénario de suppression afin que
+  // l'héritage paire/impaire ne recrée pas volontairement une intervention.
+  await page.locator('#contextMenu .planning-rhythm-choice').nth(0).click();
+  state=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
+  assert(state.agents.find(a=>a.id==='agent-a')?.parityMode==='standard','Retour au rythme standard non enregistré');
 
   // Suppression d'une intervention
   card=page.locator('.event-card').first();cb=await card.boundingBox();assert(!!cb,'Tâche absente avant suppression');
