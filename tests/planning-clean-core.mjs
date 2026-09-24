@@ -68,6 +68,9 @@ try{
   const beforeDraftCount=Object.values(beforeDraft.weeks||{}).flat().length;
   await page.mouse.click(box.x+Math.min(60,box.width/2),box.y+220,{clickCount:2,delay:90});
   await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:5000});
+  await page.evaluate(()=>window.dispatchEvent(new Event('resize')));
+  await page.waitForTimeout(120);
+  assert(await page.locator('#editorPopover.open').count()===1,'La bulle se ferme après redimensionnement du Dashboard');
   assert(await page.locator('.event-card.draft-preview').count()===1,'L’aperçu provisoire n’apparaît pas dès le double-clic');
   const whileDraft=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
   assert(Object.values(whileDraft.weeks||{}).flat().length===beforeDraftCount,'Le double-clic enregistre avant Terminé');
