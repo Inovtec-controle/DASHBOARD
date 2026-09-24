@@ -425,7 +425,14 @@ $("editorPopover").addEventListener("mousedown",e=>e.stopPropagation());
 $("exportBtn").onclick=exportData;$("importFile").onchange=e=>{const f=e.target.files?.[0];if(f)importData(f);e.target.value=""};$("printBtn").onclick=()=>window.print();
 document.addEventListener("mousedown",e=>{if(!e.target.closest("#contextMenu"))closeContext();if(!e.target.closest("#editorPopover")&&!e.target.closest(".event-card")&&!e.target.closest(".month-event")&&!e.target.closest(".list-item"))closeEditor()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeContext();closeEditor()}});
-window.addEventListener("resize",()=>{closeContext();if($("editorPopover").classList.contains("open"))closeEditor()});
+window.addEventListener("resize",()=>{
+  closeContext();
+  // L'enveloppe Dashboard ajuste la hauteur de l'iframe après l'ouverture
+  // de l'éditeur. Ce redimensionnement ne doit jamais fermer la bulle.
+  if($("editorPopover").classList.contains("open")){
+    scheduleDraftPreview();
+  }
+});
 let cloudRefreshTimer=0;
 function applyCloudPayload(payload){
   if(typeof payload!=="string"||!payload)return false;
