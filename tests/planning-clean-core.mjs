@@ -33,7 +33,7 @@ const errors=[];page.on('pageerror',e=>errors.push(String(e?.message||e)));
 const assert=(ok,msg)=>{if(!ok)throw Error(msg)};
 
 try{
-  await page.goto(base+'/PLANNINGS.html?mode=planning&v=test-direct',{waitUntil:'domcontentloaded',timeout:30000});
+  await page.goto(base+'/PLANNINGS-APP.html?mode=planning&v=test-direct',{waitUntil:'domcontentloaded',timeout:30000});
   await page.locator('.agent-row[data-agent-id="agent-a"]').waitFor({state:'visible',timeout:15000});
 
   // Recherche et sélection agent
