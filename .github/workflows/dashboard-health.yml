@@ -29,7 +29,7 @@ jobs:
           from pathlib import Path
           from html.parser import HTMLParser
           from urllib.parse import urlsplit
-          must_exist=['index.html','dashboard-index.js','dashboard-concept3.css','dashboard-index-shared.js','dashboard-global-search.js','inovtec-page-shell.html','inovtec-shell.js','inovtec-data-hub.js','inovtec-cloud-sync.js','firebase-config.js','PLANNINGS.html','PLANNINGS-APP.html','PLANNINGS-LEGACY.html','planning-calendar.js','planning-firebase-direct.js','planning-context-fit.js','planning-autoheight.js','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','CONGES.html','ORGA.html','MATERIEL.html','REASSORT.html']
+          must_exist=['index.html','dashboard-index.js','dashboard-concept3.css','dashboard-index-shared.js','dashboard-global-search.js','inovtec-page-shell.html','inovtec-shell.js','inovtec-data-hub.js','inovtec-cloud-sync.js','firebase-config.js','PLANNINGS.html','PLANNINGS-APP.html','PLANNINGS-LEGACY.html','planning-calendar.js','planning-firebase-direct-v2.js','planning-context-fit.js','planning-autoheight.js','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','CONGES.html','ORGA.html','MATERIEL.html','REASSORT.html']
           issues=[]
           for p in must_exist:
               f=Path(p)
@@ -52,11 +52,11 @@ jobs:
               if name not in home.ids:issues.append(f'Identifiant du tableau de bord absent : {name}')
           for name in ('legacyFrame','pageSummary','desktopNav','mobileNav'):
               if name not in shell.ids:issues.append(f'Conteneur principal absent : {name}')
-          for name in ('planning-calendar.js','inovtec-data-hub.js','planning-firebase-direct.js'):
+          for name in ('planning-calendar.js','inovtec-data-hub.js','planning-firebase-direct-v2.js'):
               if not any(urlsplit(src).path==name for src in planning.scripts):issues.append(f'Script Planning direct non chargé : {name}')
           for path,markers in {
               'planning-calendar.js':('sanitizePlanningState','captureCalendarDoubleClick','draftEvent','saveEditor'),
-              'planning-firebase-direct.js':('runTransaction','planningDirectV1','inovtec:planning-save-request','firebase-confirmed'),
+              'planning-firebase-direct-v2.js':('runTransaction','planningDirectV1','inovtec:planning-save-request','firebase-confirmed'),
               'dashboard-index-shared.js':('openIncidentCount','kontrolPdfMeta'),
           }.items():
               contents=Path(path).read_text(encoding='utf-8')
@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in dashboard-index.js dashboard-index-shared.js dashboard-global-search.js inovtec-shell.js inovtec-data-hub.js inovtec-cloud-sync-v2.js planning-firebase-direct.js planning-calendar.js variables.js variables-monthly-planning.js; do
+          for f in dashboard-index.js dashboard-index-shared.js dashboard-global-search.js inovtec-shell.js inovtec-data-hub.js inovtec-cloud-sync-v2.js planning-firebase-direct-v2.js planning-calendar.js variables.js variables-monthly-planning.js; do
             node --check "$f"
           done
 
@@ -102,7 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           base='https://inovtec-controle.github.io/DASHBOARD'
-          for page in index.html PLANNINGS.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html REASSORT.html inovtec-page-shell.html planning-calendar.js inovtec-cloud-sync-v2.js planning-firebase-direct.js; do
+          for page in index.html PLANNINGS.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html REASSORT.html inovtec-page-shell.html planning-calendar.js inovtec-cloud-sync-v2.js planning-firebase-direct-v2.js; do
             curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null || { echo "::error::$page inaccessible sur le site public";exit 1; }
           done
           for attempt in $(seq 1 12); do
