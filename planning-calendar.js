@@ -74,23 +74,177 @@ function hubSites(){const h=dataHub();return h?.readyChantiers?Array.from(h.chan
 function masterName(a){return[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ").trim()||a?.displayName||a?.name||"Agent sans nom"}
 function enforceSingleAgent(){visibleAgents=new Set(state.selected?[state.selected]:[])}
 function isFirstTopLevelOpen(){try{const token=String(parent?.performance?.timeOrigin||"");if(!token)return true;const key="ivPlanningTopPageToken",old=parent.sessionStorage.getItem(key)||"";parent.sessionStorage.setItem(key,token);return old!==token}catch{return true}}
-function normalizeParityAgent(a){if(!a)return;a.parityMode=a.parityMode==="alternating"?"alternating":"standard";if(!a.parityTemplates||typeof a.parityTemplates!=="object")a.parityTemplates={};a.parityTemplates.even=a.parityTemplates.even||"";a.parityTemplates.odd=a.parityTemplates.odd||"";if(!a.parityInheritedWeeks||typeof a.parityInheritedWeeks!=="object")a.parityInheritedWeeks={}}
+function normalizeParityAgent(a){
+  if(!a)return;
+  a.parityMode=a.parityMode==="alternating"?"alternating":"standard";
+  if(!a.parityTemplates||typeof a.parityTemplates!=="object")a.parityTemplates={};
+  a.parityTemplates.even=a.parityTemplates.even||"";
+  a.parityTemplates.odd=a.parityTemplates.odd||"";
+  if(!a.parityInheritedWeeks||typeof a.parityInheritedWeeks!=="object")a.parityInheritedWeeks={};
+}
 function parityKind(week){return weekNumber(week)%2?"odd":"even"}
 function agentRowsForWeek(week,agentId){return entriesForWeek(week).filter(e=>String(e.agentId)===String(agentId))}
-function paritySignature(week,agentId){return JSON.stringify(agentRowsForWeek(week,agentId).map(e=>({day:Number(e.day)||0,start:safeText(e.start),end:safeText(e.end),task:safeText(e.task),site:safeText(e.site),chantierId:safeText(e.chantierId),note:safeText(e.note)})).sort((a,b)=>a.day-b.day||String(a.start).localeCompare(String(b.start))||String(a.end).localeCompare(String(b.end))))}
-function latestEditedParityWeek(a,kind){const keys=Object.keys(state.weeks||{}).filter(w=>parityKind(w)===kind).sort().reverse();return keys.find(w=>agentRowsForWeek(w,a.id).some(e=>!e._parityInheritedFrom))||""}
-function initializeParityTemplates(a){normalizeParityAgent(a);if(!a.parityTemplates.even)a.parityTemplates.even=latestEditedParityWeek(a,"even");if(!a.parityTemplates.odd)a.parityTemplates.odd=latestEditedParityWeek(a,"odd")}
-function markParityEdited(week,agentId){const a=agentById(agentId);if(!a||a.parityMode!=="alternating")return;normalizeParityAgent(a);delete a.parityInheritedWeeks[week];agentRowsForWeek(week,agentId).forEach(e=>{delete e._parityInheritedFrom});a.parityTemplates[parityKind(week)]=week}
-function freezeParityCopies(a){normalizeParityAgent(a);Object.keys(state.weeks||{}).forEach(w=>agentRowsForWeek(w,a.id).forEach(e=>{delete e._parityInheritedFrom}));a.parityInheritedWeeks={}}
-function ensureParityWeek(week,a){if(!a)return false;normalizeParityAgent(a);if(a.parityMode!=="alternating")return false;initializeParityTemplates(a);const kind=parityKind(week),source=a.parityTemplates[kind];if(!source||source===week||source>week)return false;const mine=agentRowsForWeek(week,a.id),marker=a.parityInheritedWeeks[week],markerSource=typeof marker==="string"?marker:marker?.source||"",markerSig=typeof marker==="object"?marker?.signature||"":"";if(!marker&&mine.length)return false;const sourceSig=paritySignature(source,a.id);if(markerSource===source&&markerSig===sourceSig)return false;const keep=entriesForWeek(week).filter(e=>String(e.agentId)!==String(a.id));const clones=agentRowsForWeek(source,a.id).map(src=>{const e={...src,id:uid("e"),agentId:a.id,_parityInheritedFrom:source};return e});state.weeks[week]=keep.concat(clones);a.parityInheritedWeeks[week]={source,signature:sourceSig};return true}
-function ensureParityForCurrentView(){const a=agentById(state.selected);if(!a||a.parityMode!=="alternating")return false;let changed=false;if(view==="month"){const first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),seen=new Set();for(let i=0;i<42;i++){const w=isoWeekKey(addDays(start,i));if(seen.has(w))continue;seen.add(w);if(ensureParityWeek(w,a))changed=true}}else{if(ensureParityWeek(isoWeekKey(currentDate),a))changed=true}if(changed)save("parity-auto");return changed}
+function recurrenceSignature(week,agentId){
+  return JSON.stringify(agentRowsForWeek(week,agentId).map(e=>({
+    day:Number(e.day)||0,start:safeText(e.start),end:safeText(e.end),
+    task:safeText(e.task),site:safeText(e.site),chantierId:safeText(e.chantierId),note:safeText(e.note)
+  })).sort((a,b)=>a.day-b.day||String(a.start).localeCompare(String(b.start))||String(a.end).localeCompare(String(b.end))||String(a.task).localeCompare(String(b.task))));
+}
+function normalizeStandardRecurrence(){
+  if(!state.standardRecurrence||typeof state.standardRecurrence!=="object"||Array.isArray(state.standardRecurrence))state.standardRecurrence={};
+  return state.standardRecurrence;
+}
+function standardMeta(a){
+  const all=normalizeStandardRecurrence();
+  let meta=all[a.id];
+  if(!meta||typeof meta!=="object"||Array.isArray(meta))meta=all[a.id]={template:"",inheritedWeeks:{}};
+  meta.template=safeText(meta.template);
+  if(!meta.inheritedWeeks||typeof meta.inheritedWeeks!=="object"||Array.isArray(meta.inheritedWeeks))meta.inheritedWeeks={};
+  return meta;
+}
+function latestEditedParityWeek(a,kind){
+  const keys=Object.keys(state.weeks||{}).filter(w=>parityKind(w)===kind).sort().reverse();
+  return keys.find(w=>agentRowsForWeek(w,a.id).some(e=>!e._parityInheritedFrom&&!e._standardInheritedFrom))||"";
+}
+function latestEditedStandardWeek(a){
+  const keys=Object.keys(state.weeks||{}).sort().reverse();
+  return keys.find(w=>agentRowsForWeek(w,a.id).some(e=>!e._standardInheritedFrom&&!e._parityInheritedFrom))||"";
+}
+function initializeParityTemplates(a){
+  normalizeParityAgent(a);
+  if(!a.parityTemplates.even)a.parityTemplates.even=latestEditedParityWeek(a,"even");
+  if(!a.parityTemplates.odd)a.parityTemplates.odd=latestEditedParityWeek(a,"odd");
+}
+function initializeStandardTemplate(a){
+  const meta=standardMeta(a);
+  if(!meta.template)meta.template=latestEditedStandardWeek(a);
+  return meta;
+}
+function markParityEdited(week,agentId){
+  const a=agentById(agentId);if(!a)return;
+  normalizeParityAgent(a);
+  if(a.parityMode==="alternating"){
+    delete a.parityInheritedWeeks[week];
+    agentRowsForWeek(week,agentId).forEach(e=>{delete e._parityInheritedFrom;delete e._standardInheritedFrom});
+    a.parityTemplates[parityKind(week)]=week;
+    return;
+  }
+  const meta=standardMeta(a);
+  delete meta.inheritedWeeks[week];
+  agentRowsForWeek(week,agentId).forEach(e=>{delete e._standardInheritedFrom;delete e._parityInheritedFrom});
+  meta.template=week;
+}
+function clearParityInheritedCopies(a,keepWeek=""){
+  normalizeParityAgent(a);
+  for(const week of Object.keys(a.parityInheritedWeeks||{})){
+    if(week===keepWeek){
+      agentRowsForWeek(week,a.id).forEach(e=>delete e._parityInheritedFrom);
+      continue;
+    }
+    state.weeks[week]=entriesForWeek(week).filter(e=>String(e.agentId)!==String(a.id)||!e._parityInheritedFrom);
+  }
+  a.parityInheritedWeeks={};
+}
+function clearStandardInheritedCopies(a,keepWeek=""){
+  const meta=standardMeta(a);
+  for(const week of Object.keys(meta.inheritedWeeks||{})){
+    if(week===keepWeek){
+      agentRowsForWeek(week,a.id).forEach(e=>delete e._standardInheritedFrom);
+      continue;
+    }
+    state.weeks[week]=entriesForWeek(week).filter(e=>String(e.agentId)!==String(a.id)||!e._standardInheritedFrom);
+  }
+  delete normalizeStandardRecurrence()[a.id];
+}
+function ensureParityWeek(week,a){
+  if(!a)return false;
+  normalizeParityAgent(a);
+  if(a.parityMode!=="alternating")return false;
+  initializeParityTemplates(a);
+  const kind=parityKind(week),source=a.parityTemplates[kind];
+  if(!source||source===week||source>week)return false;
+  const mine=agentRowsForWeek(week,a.id),marker=a.parityInheritedWeeks[week];
+  const markerSource=typeof marker==="string"?marker:marker?.source||"";
+  const markerSig=typeof marker==="object"?marker?.signature||"":"";
+  if(!marker&&mine.length)return false;
+  const sourceSig=recurrenceSignature(source,a.id);
+  if(markerSource===source&&markerSig===sourceSig)return false;
+  const keep=entriesForWeek(week).filter(e=>String(e.agentId)!==String(a.id));
+  const clones=agentRowsForWeek(source,a.id).map(src=>{
+    const e={...src,id:uid("e"),agentId:a.id,_parityInheritedFrom:source};
+    delete e._standardInheritedFrom;delete e._teamInheritedFrom;
+    return e;
+  });
+  state.weeks[week]=keep.concat(clones);
+  a.parityInheritedWeeks[week]={source,signature:sourceSig};
+  return true;
+}
+function ensureStandardWeek(week,a){
+  if(!a)return false;
+  normalizeParityAgent(a);
+  if(a.parityMode!=="standard")return false;
+  const meta=initializeStandardTemplate(a),source=meta.template;
+  if(!source||source===week||source>week)return false;
+  const mine=agentRowsForWeek(week,a.id),marker=meta.inheritedWeeks[week];
+  const markerSource=typeof marker==="string"?marker:marker?.source||"";
+  const markerSig=typeof marker==="object"?marker?.signature||"":"";
+  if(!marker&&mine.length)return false;
+  const sourceSig=recurrenceSignature(source,a.id);
+  if(markerSource===source&&markerSig===sourceSig)return false;
+  const keep=entriesForWeek(week).filter(e=>String(e.agentId)!==String(a.id));
+  const clones=agentRowsForWeek(source,a.id).map(src=>{
+    const e={...src,id:uid("e"),agentId:a.id,_standardInheritedFrom:source};
+    delete e._parityInheritedFrom;delete e._teamInheritedFrom;
+    return e;
+  });
+  state.weeks[week]=keep.concat(clones);
+  meta.inheritedWeeks[week]={source,signature:sourceSig};
+  return true;
+}
+function refreshKnownRecurrenceCopies(){
+  let changed=false;
+  for(const a of state.agents){
+    normalizeParityAgent(a);
+    if(a.parityMode==="alternating"){
+      initializeParityTemplates(a);
+      for(const week of Object.keys(a.parityInheritedWeeks||{})){
+        if(ensureParityWeek(week,a))changed=true;
+      }
+    }else{
+      const meta=initializeStandardTemplate(a);
+      for(const week of Object.keys(meta.inheritedWeeks||{})){
+        if(ensureStandardWeek(week,a))changed=true;
+      }
+    }
+  }
+  return changed;
+}
+function ensureParityForCurrentView(){
+  const a=agentById(state.selected);if(!a)return false;
+  normalizeParityAgent(a);
+  let changed=false;
+  const ensureWeek=week=>a.parityMode==="alternating"?ensureParityWeek(week,a):ensureStandardWeek(week,a);
+  if(view==="month"){
+    const first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),seen=new Set();
+    for(let i=0;i<42;i++){
+      const w=isoWeekKey(addDays(start,i));if(seen.has(w))continue;seen.add(w);
+      if(ensureWeek(w))changed=true;
+    }
+  }else{
+    if(ensureWeek(isoWeekKey(currentDate)))changed=true;
+  }
+  if(changed)save(a.parityMode==="alternating"?"parity-auto":"standard-auto");
+  return changed;
+}
 function parityModelText(a,kind){normalizeParityAgent(a);const key=a.parityTemplates[kind];return key?`semaine ${weekNumber(key)}`:"aucun modèle"}
+function standardModelText(a){const key=initializeStandardTemplate(a).template;return key?`semaine ${weekNumber(key)}`:"aucun modèle"}
 function invalidateQueuedCloudPayload(){
   cloudPayloadEpoch++;
   pendingCloudPayload=null;
 }
 function save(source="planning"){
   invalidateQueuedCloudPayload();
+  refreshKnownRecurrenceCopies();
   const payload=JSON.stringify(state);
   try{
     window.dispatchEvent(new CustomEvent("inovtec:planning-save-request",{detail:{at:Date.now(),payload,source}}));
@@ -181,9 +335,29 @@ function prepareAgentContext(a){
 function renderAgents(){const q=$("agentSearch").value.trim().toLowerCase(),box=$("agentList");box.innerHTML="";const list=state.agents.filter(a=>!q||safeText(a.name).toLowerCase().includes(q));if(!list.length){const empty=document.createElement("div");empty.className="empty-state";empty.style.padding="28px 12px";empty.textContent=dataHub()?.readyAgents?"Aucun agent dans le Classeur Agents.":"Chargement des agents…";box.appendChild(empty);return}list.forEach(a=>{const row=document.createElement("div");row.className="agent-row"+(a.id===state.selected?" active":"");row.dataset.agentId=a.id;const dot=document.createElement("button");dot.type="button";dot.className="agent-dot"+(a.id===state.selected?" visible":"");dot.style.color=a.color;dot.title="Afficher uniquement le calendrier de "+a.name;dot.onclick=e=>{e.stopPropagation();selectAgent(a.id)};const name=document.createElement("div");name.className="agent-name";name.textContent=a.name;row.append(dot,name);row.onclick=()=>selectAgent(a.id);row.oncontextmenu=e=>{e.preventDefault();prepareAgentContext(a);openAgentMenu(a,e.clientX,e.clientY)};let press=null;row.addEventListener("touchstart",e=>{const t=e.touches[0];press=setTimeout(()=>{prepareAgentContext(a);openAgentMenu(a,t.clientX,t.clientY)},520)},{passive:true});row.addEventListener("touchend",()=>clearTimeout(press));row.addEventListener("touchmove",()=>clearTimeout(press));box.appendChild(row)})}
 async function addAgent(){const n=prompt("Nom du nouvel agent :");if(!n?.trim())return;const h=dataHub();try{if(h?.createAgent){const created=await h.createAgent(n.trim());syncAgentsFromHub();const a=state.agents.find(x=>x.refId===created.id);if(a)state.selected=a.id;save();render();return}}catch(e){console.error(e);alert("Création impossible dans le Classeur Agents.");return}const a={id:uid("a"),name:n.trim(),copies:2,color:COLORS[state.agents.length%COLORS.length],parityMode:"standard",parityTemplates:{even:"",odd:""},parityInheritedWeeks:{}};state.agents.push(a);state.selected=a.id;save();render()}
 async function renameAgent(a){const n=prompt("Nom de l’agent :",a.name);if(!n?.trim())return;const h=dataHub();try{if(a.refId&&h?.renameAgent){await h.renameAgent(a.refId,n.trim());syncAgentsFromHub();save();render();return}}catch(e){console.error(e);alert("Modification impossible dans le Classeur Agents.");return}a.name=n.trim();save();render()}
-async function deleteAgent(a){if(!confirm(`Supprimer ${a.name} du Classeur Agents et supprimer ses interventions du planning ?`))return;const h=dataHub();try{if(a.refId&&h?.deleteAgent){await h.deleteAgent(a.refId)}}catch(e){console.error(e);alert("Suppression impossible dans le Classeur Agents.");return}Object.keys(state.weeks).forEach(w=>state.weeks[w]=entriesForWeek(w).filter(e=>e.agentId!==a.id));state.agents=state.agents.filter(x=>x.id!==a.id);state.selected=state.agents[0]?.id||null;enforceSingleAgent();save();render()}
-function setParityMode(a,mode){normalizeParityAgent(a);if(mode==="alternating"){a.parityMode="alternating";initializeParityTemplates(a)}else{freezeParityCopies(a);a.parityMode="standard"}save();render()}
-function appendRhythmBlock(menu,a,x,y){normalizeParityAgent(a);const sep=document.createElement("div");sep.className="context-sep";menu.appendChild(sep);const wrap=document.createElement("div");wrap.className="planning-rhythm";const title=document.createElement("div");title.className="planning-rhythm-title";title.innerHTML='<span class="rhythm-icon">▣</span><span>Rythme du planning</span><span class="rhythm-chevron">⌃</span>';wrap.appendChild(title);const choice=(label,mode)=>{const b=document.createElement("button");b.type="button";b.className="planning-rhythm-choice"+(a.parityMode===mode?" active":"");b.innerHTML='<span class="planning-rhythm-radio"></span><span></span>';b.lastElementChild.textContent=label;b.onclick=e=>{e.stopPropagation();if(a.parityMode!==mode)setParityMode(a,mode);const fresh=agentById(a.id)||a;openAgentMenu(fresh,x,y)};wrap.appendChild(b)};choice("Standard","standard");choice("Semaines paires / impaires","alternating");if(a.parityMode==="alternating"){initializeParityTemplates(a);const info=document.createElement("div");info.className="planning-parity-info";const p1=document.createElement("p");p1.textContent="Le dernier planning modifié d'une semaine paire devient le modèle des prochaines semaines paires.";const p2=document.createElement("p");p2.textContent="Le dernier planning modifié d'une semaine impaire devient le modèle des prochaines semaines impaires.";const p3=document.createElement("p");p3.textContent="Aucun planning existant n'est écrasé automatiquement.";const models=document.createElement("div");models.className="planning-parity-models";const model=(label,kind)=>{const r=document.createElement("div");r.className="planning-parity-model";r.innerHTML='<span class="model-icon">▣</span><strong></strong><span></span>';r.children[1].textContent=label;r.children[2].textContent=parityModelText(a,kind);models.appendChild(r)};model("Modèle paire :","even");model("Modèle impaire :","odd");info.append(p1,p2,p3,models);wrap.appendChild(info)}menu.appendChild(wrap)}
+async function deleteAgent(a){if(!confirm(`Supprimer ${a.name} du Classeur Agents et supprimer ses interventions du planning ?`))return;const h=dataHub();try{if(a.refId&&h?.deleteAgent){await h.deleteAgent(a.refId)}}catch(e){console.error(e);alert("Suppression impossible dans le Classeur Agents.");return}Object.keys(state.weeks).forEach(w=>state.weeks[w]=entriesForWeek(w).filter(e=>e.agentId!==a.id));if(state.standardRecurrence&&typeof state.standardRecurrence==="object")delete state.standardRecurrence[a.id];state.agents=state.agents.filter(x=>x.id!==a.id);state.selected=state.agents[0]?.id||null;enforceSingleAgent();save();render()}
+function setParityMode(a,mode){
+  normalizeParityAgent(a);
+  const week=isoWeekKey(currentDate);
+  if(mode==="alternating"&&a.parityMode!=="alternating"){
+    const evenSeed=latestEditedParityWeek(a,"even"),oddSeed=latestEditedParityWeek(a,"odd");
+    clearStandardInheritedCopies(a,week);
+    a.parityMode="alternating";
+    a.parityTemplates={even:evenSeed,odd:oddSeed};
+    a.parityInheritedWeeks={};
+    if(agentRowsForWeek(week,a.id).length)a.parityTemplates[parityKind(week)]=week;
+  }else if(mode==="standard"&&a.parityMode!=="standard"){
+    const seed=agentRowsForWeek(week,a.id).length?week:latestEditedStandardWeek(a);
+    clearParityInheritedCopies(a,week);
+    a.parityMode="standard";
+    const meta=standardMeta(a);
+    meta.template=seed||latestEditedStandardWeek(a)||"";
+    meta.inheritedWeeks={};
+  }
+  save("rhythm");
+  render();
+}
+function appendRhythmBlock(menu,a,x,y){normalizeParityAgent(a);const sep=document.createElement("div");sep.className="context-sep";menu.appendChild(sep);const wrap=document.createElement("div");wrap.className="planning-rhythm";const title=document.createElement("div");title.className="planning-rhythm-title";title.innerHTML='<span class="rhythm-icon">▣</span><span>Rythme du planning</span><span class="rhythm-chevron">⌃</span>';wrap.appendChild(title);const choice=(label,mode)=>{const b=document.createElement("button");b.type="button";b.className="planning-rhythm-choice"+(a.parityMode===mode?" active":"");b.innerHTML='<span class="planning-rhythm-radio"></span><span></span>';b.lastElementChild.textContent=label;b.onclick=e=>{e.stopPropagation();if(a.parityMode!==mode)setParityMode(a,mode);const fresh=agentById(a.id)||a;openAgentMenu(fresh,x,y)};wrap.appendChild(b)};choice("Standard","standard");choice("Semaines paires / impaires","alternating");if(a.parityMode==="alternating"){initializeParityTemplates(a);const info=document.createElement("div");info.className="planning-parity-info";const p1=document.createElement("p");p1.textContent="Le dernier planning modifié d'une semaine paire devient le modèle des prochaines semaines paires.";const p2=document.createElement("p");p2.textContent="Le dernier planning modifié d'une semaine impaire devient le modèle des prochaines semaines impaires.";const p3=document.createElement("p");p3.textContent="Les semaines déjà modifiées individuellement restent intactes.";const models=document.createElement("div");models.className="planning-parity-models";const model=(label,kind)=>{const r=document.createElement("div");r.className="planning-parity-model";r.innerHTML='<span class="model-icon">▣</span><strong></strong><span></span>';r.children[1].textContent=label;r.children[2].textContent=parityModelText(a,kind);models.appendChild(r)};model("Modèle paire :","even");model("Modèle impaire :","odd");info.append(p1,p2,p3,models);wrap.appendChild(info)}else{const info=document.createElement("div");info.className="planning-parity-info";const p1=document.createElement("p");p1.textContent="Le dernier planning modifié devient le modèle des semaines suivantes.";const p2=document.createElement("p");p2.textContent="Les semaines déjà modifiées individuellement restent intactes.";const models=document.createElement("div");models.className="planning-parity-models";const r=document.createElement("div");r.className="planning-parity-model";r.innerHTML='<span class="model-icon">▣</span><strong>Modèle :</strong><span></span>';r.children[2].textContent=standardModelText(a);models.appendChild(r);info.append(p1,p2,models);wrap.appendChild(info)}menu.appendChild(wrap)}
 function openAgentMenu(a,x,y){
   normalizeParityAgent(a);
   const menu=$("contextMenu");
