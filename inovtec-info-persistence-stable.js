@@ -12,6 +12,35 @@ let lastDoc=null,observer=null,saveToken=0,loadToken=0;
 function doc(){try{return frame.contentDocument||null}catch{return null}}
 function hubSites(){try{return Array.from(window.InovtecDataHub?.chantiers||[])}catch{return[]}}
 function formValue(d,id){const e=d?.getElementById(id);return e&&"value" in e?String(e.value??"").trim():""}
+function materialRows(d){return Array.from(d?.querySelectorAll?.("#ivMaterialResidenceList .iv-material-item")||[])}
+function collectMaterialResidence(d,data){
+ const items=materialRows(d).filter(row=>row.querySelector(".iv-material-check")?.checked).map(row=>({
+  id:String(row.dataset.materialId||""),
+  label:String(row.dataset.label||""),
+  quantity:Math.max(1,Math.round(Number(row.querySelector(".iv-material-qty input")?.value)||1))
+ }));
+ if(!items.length&&!d.getElementById("ivMaterialResidenceList"))return data;
+ data.materielResidence=items;data.materielResidenceVersion=1;
+ const form=d.getElementById("siteForm"),hidden=d.getElementById("franges"),touched=form?.dataset.ivMaterialTouched==="1";
+ if(hidden&&(items.length||touched))hidden.value=items.map(x=>x.label+" x"+x.quantity).join(" ; ");
+ data.franges=String(hidden?.value||"").trim();
+ return data;
+}
+function applyMaterialResidence(d,site){
+ const rows=materialRows(d);if(!rows.length)return;
+ const list=Array.isArray(site?.materielResidence)?site.materielResidence:[],byId=new Map(list.map(x=>[String(x?.id||""),x]));
+ rows.forEach(row=>{
+  const item=byId.get(String(row.dataset.materialId||"")),cb=row.querySelector(".iv-material-check"),qty=row.querySelector(".iv-material-qty input"),buttons=row.querySelectorAll(".iv-material-qty button");
+  if(cb)cb.checked=!!item;
+  if(qty){qty.value=String(Math.max(1,Math.round(Number(item?.quantity)||1)));qty.disabled=!item}
+  buttons.forEach(b=>b.disabled=!item);row.classList.toggle("is-selected",!!item);
+ });
+ const badge=d.getElementById("ivMaterialCount");if(badge){const n=list.length;badge.textContent=n+" sélectionné"+(n>1?"s":"")}
+ const hidden=d.getElementById("franges"),legacy=String(site?.franges||"").trim(),note=d.getElementById("ivMaterialLegacyNote");
+ if(hidden)hidden.value=list.length?list.map(x=>String(x.label||"")+" x"+Math.max(1,Math.round(Number(x.quantity)||1))).join(" ; "):legacy;
+ if(note){note.hidden=!!list.length||!legacy;note.textContent=!list.length&&legacy?"Ancienne saisie conservée : "+legacy:""}
+ d.getElementById("siteForm")?.removeAttribute("data-iv-material-touched");
+}
 function activeHubSite(d){const n=formValue(d,"nom"),a=formValue(d,"adresse");if(!n&&!a)return null;const list=hubSites();return list.find(s=>norm(s.nom)===norm(n)&&a&&norm(s.adresse)===norm(a))||list.find(s=>n&&norm(s.nom)===norm(n))||list.find(s=>a&&norm(s.adresse)===norm(a))||null}
 async function resolveSite(d,{waitForNew=false,retries=24}={}){
  const form=d?.getElementById("siteForm");
@@ -44,13 +73,14 @@ function collect(d){
  });
  if(Object.keys(schedules).length){const now=Date.now(),uid=auth?.currentUser?.uid||"";data.conteneursPlanningV1={schemaVersion:2,...schedules,frequences:freqs,updatedAtMs:now,updatedBy:uid};data.conteneursFrequencesV1={schemaVersion:1,...freqs,updatedAtMs:now,updatedBy:uid}}
  const assignedSelect=d.getElementById("ivSiteAgentSelect");let assigned=null;try{const raw=form.dataset.ivAgentsAffectes;if(raw!==undefined){const parsed=JSON.parse(raw);if(Array.isArray(parsed))assigned=parsed}}catch{}if(!assigned&&assignedSelect)assigned=[...assignedSelect.selectedOptions].map(o=>o.value);if(Array.isArray(assigned)){data.agentsAffectes=[...new Set(assigned.map(v=>String(v||"").trim()).filter(Boolean))];let names=[];if(assignedSelect){const wanted=new Set(data.agentsAffectes);names=[...assignedSelect.options].filter(o=>wanted.has(String(o.value))).map(o=>String(o.textContent||"").trim()).filter(v=>v&&!/^agent indisponible/i.test(v))}if(!names.length){try{const rawNames=form.dataset.ivAgentsAffectesNoms,parsed=JSON.parse(rawNames||"[]");if(Array.isArray(parsed))names=parsed}catch{}}data.agentsAffectesNoms=[...new Set(names.map(v=>String(v||"").trim()).filter(Boolean))]};
+ collectMaterialResidence(d,data);
  data.infoUnifiedSaveVersion=1;data.infoUnifiedUpdatedAtMs=Date.now();data.infoUnifiedUpdatedBy=auth?.currentUser?.uid||"";
  return data;
 }
 function setStatus(d,text,ok=false){const s=d?.getElementById("recordState");if(!s)return;s.textContent=text;s.className="status"+(ok?" ok":"")}
 function saveButton(d){return d?.querySelector('#siteForm .sticky-save button[type="submit"]')||d?.querySelector('#siteForm button[type="submit"]')||null}
 function setSaveState(d,state){const b=saveButton(d);if(!b)return;const states={idle:["Enregistrer","Aucune sauvegarde en cours"],dirty:["Enregistrer •","Modifications non sauvegardées"],saving:["Enregistrer ⏳","Enregistrement Firebase en cours"],saved:["Enregistrer ✓","Sauvegarde confirmée par Firebase"],error:["Enregistrer ⚠","Échec de la sauvegarde Firebase"]},cfg=states[state]||states.idle;b.textContent=cfg[0];b.title=cfg[1];b.setAttribute("aria-label",cfg[1]);b.dataset.firebaseSaveState=state;b.disabled=state==="saving"}
-function primitiveMismatch(expected,actual){return Object.entries(expected).find(([key,value])=>{if(Array.isArray(value))return JSON.stringify(value.map(v=>String(v??"")))!==JSON.stringify((Array.isArray(actual?.[key])?actual[key]:[]).map(v=>String(v??"")));if(value!==null&&typeof value==="object")return false;return String(actual?.[key]??"")!==String(value??"")})||null}
+function primitiveMismatch(expected,actual){return Object.entries(expected).find(([key,value])=>{if(Array.isArray(value))return JSON.stringify(value)!==JSON.stringify(Array.isArray(actual?.[key])?actual[key]:[]);if(value!==null&&typeof value==="object")return false;return String(actual?.[key]??"")!==String(value??"")})||null}
 async function persist(d,wasNew,token,dataSnapshot=null){
  const data=dataSnapshot&&typeof dataSnapshot==="object"?dataSnapshot:collect(d);if(!data.nom)return;
  setSaveState(d,"saving");
@@ -75,6 +105,7 @@ function applyExtras(d,site){
  const values={ivTypeChantier:normalizedType(site.typeChantier),ivDateDebutPrestation:site.dateDebutPrestation||"",ivDateFinContrat:site.dateFinContrat||"",ivClientNom:site.clientNom||"",ivClientTelephone:site.clientTelephone||"",ivClientEmail:site.clientEmail||"",accesLocalNettoyage:site.accesLocalNettoyage||"",observationsTechniques:site.observationsTechniques||"",airePresentation:site.airePresentation||""};
  Object.entries(values).forEach(([id,v])=>{const e=d.getElementById(id);if(!e)return;if(id==="ivTypeChantier"&&v&&![...e.options].some(o=>o.value===v)){const o=d.createElement("option");o.value=v;o.textContent=v;e.appendChild(o)}e.value=String(v??"")});
  applyContactUi(d,site.contactType||"");
+ applyMaterialResidence(d,site);
 }
 async function loadSelected(d,force=false){
  const form=d?.getElementById("siteForm");if(!form||form.classList.contains("hidden"))return;if(!force&&form.dataset.ivInfoDirty==="1")return;
