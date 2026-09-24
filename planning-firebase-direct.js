@@ -63,7 +63,23 @@ async function readServer(source="firebase-refresh"){
     report("Firebase — lecture du serveur…");
     const snap=await ref.get({source:"server"});
     if(token!==generation)return;
-    const entry=snap.exists?snap.data()?.moduleSyncV1?.planning:null;
+    const data=snap.exists?(snap.data()||{}):{};
+    const entry=data?.moduleSyncV1?.planning||null;
+    const directBackup=data?.planningDirectV1||null;
+    const backupPayload=typeof directBackup?.payload==="string"&&validPayload(directBackup.payload)?directBackup.payload:"";
+    if(backupPayload){
+      const isDirect=Number(entry?.version)>=6&&entry?.protocol==="firebase-direct"&&entry?.payload===backupPayload;
+      directProtocolActive=true;
+      lastConfirmedPayload=backupPayload;
+      if(!isDirect){
+        report("Firebase — restauration de la version directe…");
+        void writeFirebase(backupPayload,"restore-direct-backup");
+        return;
+      }
+      emitPayload(backupPayload,source);
+      report("Firebase — synchronisé",true);
+      return;
+    }
     if(!entry){
       const empty=JSON.stringify({agents:[],weeks:{},selected:null});
       lastConfirmedPayload=empty;
@@ -107,21 +123,33 @@ async function writeFirebase(payload,source="planning"){
   try{
     await firebase.firestore().runTransaction(async tx=>{
       await tx.get(doc);
-      tx.set(doc,{moduleSyncV1:{planning:{
-        payload,
-        updatedAtMs:Date.now(),
-        client,
-        reason:String(source||"planning-direct"),
-        version:6,
-        protocol:"firebase-direct"
-      }}},{merge:true});
+      const stamp=Date.now();
+      tx.set(doc,{
+        moduleSyncV1:{planning:{
+          payload,
+          updatedAtMs:stamp,
+          client,
+          reason:String(source||"planning-direct"),
+          version:6,
+          protocol:"firebase-direct"
+        }},
+        planningDirectV1:{
+          payload,
+          updatedAtMs:stamp,
+          client,
+          version:1,
+          protocol:"firebase-direct"
+        }
+      },{merge:true});
     });
     if(token!==generation)return;
     const check=await doc.get({source:"server"});
     if(token!==generation)return;
-    const entry=check.exists?check.data()?.moduleSyncV1?.planning:null;
+    const data=check.exists?(check.data()||{}):{};
+    const entry=data?.moduleSyncV1?.planning||null;
+    const backup=data?.planningDirectV1||null;
     const actual=entry?.payload;
-    if(typeof actual!=="string"||actual!==payload){
+    if(typeof actual!=="string"||actual!==payload||backup?.payload!==payload){
       throw new Error("Firebase n’a pas confirmé exactement la version enregistrée");
     }
     lastConfirmedPayload=actual;
@@ -146,9 +174,25 @@ function bindSnapshot(doc,token){
   if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null}
   unsubscribe=doc.onSnapshot({includeMetadataChanges:true},snap=>{
     if(token!==generation||snap.metadata?.fromCache||snap.metadata?.hasPendingWrites)return;
-    const entry=snap.exists?snap.data()?.moduleSyncV1?.planning:null;
-    if(!entry||typeof entry.payload!=="string"||!validPayload(entry.payload))return;
+    const data=snap.exists?(snap.data()||{}):{};
+    const entry=data?.moduleSyncV1?.planning||null;
+    const backup=data?.planningDirectV1||null;
+    const backupPayload=typeof backup?.payload==="string"&&validPayload(backup.payload)?backup.payload:"";
     if(saving)return;
+    if(backupPayload){
+      directProtocolActive=true;
+      lastConfirmedPayload=backupPayload;
+      const isDirect=Number(entry?.version)>=6&&entry?.protocol==="firebase-direct"&&entry?.payload===backupPayload;
+      if(!isDirect){
+        report("Firebase — ancienne écriture détectée, restauration…");
+        void writeFirebase(backupPayload,"reject-legacy-snapshot");
+        return;
+      }
+      emitPayload(backupPayload,"firebase-snapshot");
+      report("Firebase — synchronisé",true);
+      return;
+    }
+    if(!entry||typeof entry.payload!=="string"||!validPayload(entry.payload))return;
     const isDirect=Number(entry.version)>=6&&entry.protocol==="firebase-direct";
     if(directProtocolActive&&!isDirect&&lastConfirmedPayload&&entry.payload!==lastConfirmedPayload){
       report("Firebase — ancienne écriture détectée, restauration…");
