@@ -26,7 +26,7 @@ await context.addInitScript(()=>{
 });
 const page=await context.newPage();
 await page.route('**/inovtec-data-hub.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
-await page.route('**/inovtec-cloud-sync-v2.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
+await page.route('**/planning-firebase-direct.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:'window.__INOVTEC_PLANNING_FIREBASE_DIRECT_V1__=true;'}));
 await page.route('https://www.gstatic.com/firebasejs/**',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
 page.on('dialog',async d=>{if(d.type()==='confirm')await d.accept();else await d.dismiss()});
 const errors=[];page.on('pageerror',e=>errors.push(String(e?.message||e)));
@@ -64,7 +64,7 @@ try{
   // Création uniquement par vraie souris / double-clic
   const col=page.locator('.day-column').nth(1);
   const box=await col.boundingBox();assert(!!box,'Colonne Planning non mesurable');
-  const beforeDraft=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
+  const beforeDraft=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
   const beforeDraftCount=Object.values(beforeDraft.weeks||{}).flat().length;
   await page.mouse.click(box.x+Math.min(60,box.width/2),box.y+220,{clickCount:2,delay:90});
   await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:5000});
@@ -72,7 +72,7 @@ try{
   await page.waitForTimeout(120);
   assert(await page.locator('#editorPopover.open').count()===1,'La bulle se ferme après redimensionnement du Dashboard');
   assert(await page.locator('.event-card.draft-preview').count()===1,'L’aperçu provisoire n’apparaît pas dès le double-clic');
-  const whileDraft=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
+  const whileDraft=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
   assert(Object.values(whileDraft.weeks||{}).flat().length===beforeDraftCount,'Le double-clic enregistre avant Terminé');
   await page.locator('#edTitle').selectOption('site-b');
   await page.locator('#edSite').fill('Contrôle sanitaires');
@@ -109,7 +109,7 @@ try{
   await page.locator('#edNote').fill('Modification OK');
   await page.locator('#edDone').click();
   await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
-  let state=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
+  let state=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
   let rows=Object.values(state.weeks||{}).flat();
   const modified=rows.find(e=>e.note==='Modification OK'&&e.start==='10:00'&&e.end==='11:30');
   assert(!!modified,'Terminé n’enregistre pas les modifications');
@@ -124,7 +124,7 @@ try{
   await page.mouse.move(tb.x+Math.min(50,tb.width/2),tb.y+280,{steps:8});
   await page.mouse.up();
   await page.waitForTimeout(250);
-  state=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
+  state=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
   rows=Object.values(state.weeks||{}).flat();
   const moved=rows.find(e=>e.id===modifiedId);
   assert(moved&&Number(moved.day)===2,'Déplacement de tâche non enregistré');
@@ -139,7 +139,7 @@ try{
   await page.mouse.move(hb.x+hb.width/2,hb.y+hb.height/2+56,{steps:6});
   await page.mouse.up();
   await page.waitForTimeout(200);
-  state=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
+  state=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
   rows=Object.values(state.weeks||{}).flat();
   const resized=rows.find(e=>e.id===modifiedId);
   assert(resized&&resized.end!==beforeEnd,'Redimensionnement non enregistré');
@@ -152,17 +152,17 @@ try{
   assert(await page.locator('#contextMenu').getByText('Modifier le nom',{exact:true}).count()===0,'Fonction annexe Modifier le nom encore présente');
   assert(await page.locator('#contextMenu').getByText('Supprimer',{exact:true}).count()===0,'Fonction annexe Supprimer agent encore présente');
   await page.locator('#contextMenu .planning-rhythm-choice').nth(1).click();
-  state=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
+  state=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
   assert(state.agents.find(a=>a.id==='agent-a')?.parityMode==='alternating','Rythme paire/impaire non enregistré');
 
   // Suppression d'une intervention
   card=page.locator('.event-card').first();cb=await card.boundingBox();assert(!!cb,'Tâche absente avant suppression');
   await page.mouse.click(cb.x+20,cb.y+12,{clickCount:2,delay:90});
   await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:5000});
-  const beforeCount=Object.values(JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2'))).weeks||{}).flat().length;
+  const beforeCount=Object.values(await page.evaluate(()=>window.InovtecPlanningAPI.getState()).weeks||{}).flat().length;
   await page.locator('#edDelete').click();
   await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
-  const afterCount=Object.values(JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2'))).weeks||{}).flat().length;
+  const afterCount=Object.values(await page.evaluate(()=>window.InovtecPlanningAPI.getState()).weeks||{}).flat().length;
   assert(afterCount===beforeCount-1,'Suppression intervention non enregistrée');
 
   // Aujourd'hui
