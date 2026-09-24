@@ -29,21 +29,19 @@ await check('Accueil : recherche et navigation directe cohérente', async () => 
   if (!url || !url.startsWith('PLANNINGS.html')) throw new Error('Le lien Planning ne pointe pas vers la page dédiée');
 });
 
-await check('Planning : chargement direct sans iframe', async () => {
+await check('Planning : présentation Dashboard et moteur intégré', async () => {
   await page.goto(base + '/PLANNINGS.html?mode=planning', { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.locator('#calendarViewport').waitFor({ state: 'attached', timeout: 45000 });
-  await page.locator('#prevBtn').waitFor({ state: 'attached', timeout: 10000 });
-  await page.locator('#agentList').waitFor({ state: 'attached', timeout: 10000 });
-  if (await page.locator('#legacyFrame').count()) throw new Error('Le Planning utilise encore une iframe');
-  if (await page.locator('#addTaskBtn').count()) throw new Error('Le bouton + Tâche est encore présent');
-  await page.waitForFunction(() => {
-    const period = document.getElementById('periodLabel')?.textContent?.trim();
-    return Boolean(period && period !== '—' && document.getElementById('week')?.value);
-  }, null, { timeout: 30000 });
+  await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 45000 });
+  const frame = page.frameLocator('#legacyFrame');
+  await frame.locator('#calendarViewport').waitFor({ state: 'attached', timeout: 45000 });
+  await frame.locator('#prevBtn').waitFor({ state: 'attached', timeout: 10000 });
+  await frame.locator('#agentList').waitFor({ state: 'attached', timeout: 10000 });
+  if (await frame.locator('#addTaskBtn').count()) throw new Error('Le bouton + Tâche est encore présent');
+  await frame.locator('#periodLabel').waitFor({ state: 'attached', timeout: 10000 });
 });
 
 await check('Planning : changement des vues sans blocage', async () => {
-  await page.goto(base + '/PLANNINGS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/PLANNINGS-APP.html?mode=planning', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => {
     const period = document.getElementById('periodLabel')?.textContent?.trim();
     return Boolean(period && period !== '—' && document.getElementById('week')?.value);
