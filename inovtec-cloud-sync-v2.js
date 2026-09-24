@@ -51,16 +51,26 @@ function backup(uid,value){
   try{const k='iv_cloud_backup_v2_'+mode+'_'+uid;if(!localStorage.getItem(k))localStorage.setItem(k,value)}catch(e){console.warn('Copie de sécurité indisponible',e)}
 }
 function render(){
+  // Le Planning reçoit déjà le payload Firebase directement.
+  // Un second rafraîchissement différé de localStorage créait une course qui
+  // pouvait remettre brièvement puis supprimer définitivement une nouvelle tâche.
+  if(mode==='planning')return;
   clearTimeout(reloadTimer);
   const run=()=>{
     let doc;try{doc=frame?.contentDocument}catch{}
     const active=doc?.activeElement;
     if((active&&/^(INPUT|SELECT|TEXTAREA)$/i.test(active.tagName))||Date.now()-activity<1800){reloadTimer=setTimeout(run,1900);return}
-    try{if(mode==='planning'){const w=frame?.contentWindow||window;w?.dispatchEvent(new w.CustomEvent('inovtec:planning-cloud-updated'))}else frame?.contentWindow?.location.reload()}catch(e){console.warn('Actualisation après synchronisation',e)}
+    try{frame?.contentWindow?.location.reload()}catch(e){console.warn('Actualisation après synchronisation',e)}
   };reloadTimer=setTimeout(run,300);
 }
 function apply(payload){
   const old=local(),value=preserveBinary(payload,switching?'':old);
+  if(mode==='planning'&&pendingPlanningPayload&&value!==pendingPlanningPayload){
+    // Une lecture Firebase arrivée pendant qu'une sauvegarde locale est encore
+    // en attente ne doit jamais écraser cette sauvegarde.
+    schedule(20);
+    return;
+  }
   let stored=old===value;
   if(old!==value){
     backup(user.uid,old);
@@ -75,7 +85,6 @@ function apply(payload){
   }
   if(mode==='planning'){
     window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload:value,stored}}));
-    if(stored)render();
   }else if(old!==value&&stored){
     render();
   }
