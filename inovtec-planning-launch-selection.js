@@ -11,7 +11,9 @@ function requested(){
   return{direct,replacement};
 }
 function planAgentId(req){
-  const state=parse(localStorage.getItem(KEY)||"{}"),agents=Array.isArray(state.agents)?state.agents:[];
+  let state={};
+  try{state=frame?.contentWindow?.InovtecPlanningAPI?.getState?.()||{}}catch{}
+  const agents=Array.isArray(state.agents)?state.agents:[];
   if(req.direct){const a=agents.find(x=>String(x.id)===String(req.direct)||String(x.refId||"")===String(req.direct));if(a)return String(a.id)}
   if(req.replacement){const a=agents.find(x=>String(x.refId||x.id)===String(req.replacement)||String(x.id)===String(req.replacement));if(a)return String(a.id)}
   return"";
