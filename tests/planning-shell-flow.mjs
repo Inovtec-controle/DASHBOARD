@@ -110,6 +110,19 @@ try{
   });
   if(!saved)throw Error('Terminé n’enregistre pas dans le Planning intégré');
 
+  const srcBefore=await page.locator('#legacyFrame').getAttribute('src');
+  await frame.locator('.event-card').first().waitFor({state:'visible',timeout:5000});
+  await page.waitForTimeout(1800);
+  const persistedVisible=await frame.locator('.event-card').count();
+  const stillSaved=await page.evaluate(()=>{
+    const s=JSON.parse(localStorage.getItem('inovtec_plannings_v2')||'{}');
+    return Object.values(s.weeks||{}).flat().some(e=>e.agentId==='shell-agent'&&e.chantierId==='shell-site');
+  });
+  const srcAfter=await page.locator('#legacyFrame').getAttribute('src');
+  if(!persistedVisible)throw Error('La carte créée disparaît après le rafraîchissement du Dashboard');
+  if(!stillSaved)throw Error('La tâche créée disparaît du stockage après le rafraîchissement du Dashboard');
+  if(srcBefore!==srcAfter)throw Error('Le Dashboard change la source de l’iframe après Enregistrer');
+
   await frame.locator('.event-card').first().dblclick({timeout:10000});
   await frame.locator('#editorPopover.open').waitFor({state:'visible',timeout:10000});
   await frame.locator('#edDelete').click();
