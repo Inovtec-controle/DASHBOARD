@@ -12,7 +12,7 @@ const hash=s=>{s=String(s||'');let h=2166136261;for(let i=0;i<s.length;i++){h^=s
 const local=()=>localStorage.getItem(key)||'',size=s=>new Blob([s]).size;
 const baseKey=uid=>'iv_cloud_base_v2_'+mode+'_'+uid;
 const activeKey='iv_cloud_active_user_v2_'+mode;
-let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,lastLocalPlanningSave=0,generation=0,lastStatus='',switching=false;
+let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,lastLocalPlanningSave=0,generation=0,lastStatus='',switching=false,pendingPlanningPayload='';
 function report(message,ok=false){
   if(message===lastStatus)return;lastStatus=message;
   for(const id of ['syncMirror','liveMirror']){const el=document.getElementById(id);if(el)el.textContent=message}
@@ -107,8 +107,19 @@ function schedule(delay=350){
 async function send(){
   if(!user||!ref||!initialized||applying)return;
   if(busy){queued=true;return}
-  let draft;try{draft=packed(local())}catch(e){report('Firebase — '+e.message);return}
-  if(draft===base){report('Firebase — synchronisé',true);return}
+  const directPlanningPayload=mode==='planning'&&pendingPlanningPayload?pendingPlanningPayload:'';
+  let draft;
+  try{draft=packed(directPlanningPayload||local())}catch(e){
+    report('Firebase — '+e.message);
+    if(mode==='planning')window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-save-failed',{detail:{message:e.message||String(e)}}));
+    return;
+  }
+  if(draft===base){
+    if(directPlanningPayload&&pendingPlanningPayload===directPlanningPayload)pendingPlanningPayload='';
+    report('Firebase — synchronisé',true);
+    if(mode==='planning')window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-saved',{detail:{at:Date.now(),payload:draft}}));
+    return;
+  }
   busy=true;const token=generation,doc=ref,prior=base;
   report('Firebase — enregistrement sur le serveur…');
   try{
@@ -128,13 +139,25 @@ async function send(){
     const actual=check.data()?.moduleSyncV1?.[mode]?.payload;
     if(actual!==written){report('Firebase — modification distante détectée');await receive(actual);return}
     remember(written);
-    if(packed(local())===draft&&written!==draft)apply(written);
-    if(packed(local())!==written)schedule(150);
-    else report('Firebase — synchronisé',true);
+    if(mode==='planning'){
+      if(directPlanningPayload&&pendingPlanningPayload===directPlanningPayload)pendingPlanningPayload='';
+      try{
+        if(local()!==written)localStorage.setItem(key,written);
+      }catch(e){
+        console.warn('Planning Firebase confirmé mais copie locale indisponible',e);
+      }
+      report('Firebase — synchronisé',true);
+      window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-saved',{detail:{at:Date.now(),payload:written}}));
+    }else{
+      if(packed(local())===draft&&written!==draft)apply(written);
+      if(packed(local())!==written)schedule(150);
+      else report('Firebase — synchronisé',true);
+    }
   }catch(e){
     if(token!==generation)return;
     console.warn('Échec sauvegarde Firebase '+mode,e);
     report('Firebase — sauvegarde non confirmée : '+(e.code||e.message||'erreur'));
+    if(mode==='planning')window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-save-failed',{detail:{message:e.code||e.message||'erreur'}}));
     if(/actualisation nécessaire/.test(e.message||''))void refresh();
   }finally{busy=false;if(queued){queued=false;schedule(100)}}
 }
@@ -162,9 +185,13 @@ async function boot(uid,token){
     if(entry&&typeof entry.payload!=='string')throw Error('Données serveur illisibles');
     const remote=entry?entry.payload:null;
     const stored=switching?null:localStorage.getItem(baseKey(uid));
-    const browser=switching?'':packed(local());
+    const browser=switching?'':packed(mode==='planning'&&pendingPlanningPayload?pendingPlanningPayload:local());
     if(remote!==null){
-      if(mode==='planning'&&browser&&Date.now()-lastLocalPlanningSave<5000){
+      if(mode==='planning'&&pendingPlanningPayload){
+        base=stored!==null?stored:remote;
+        initialized=true;
+        schedule(20);
+      }else if(mode==='planning'&&browser&&Date.now()-lastLocalPlanningSave<5000){
         base=stored!==null?stored:remote;
         initialized=true;
         schedule(20);
@@ -217,10 +244,14 @@ if(mode==='planning'&&!frame){
 }
 setInterval(()=>{if(user&&initialized&&!applying){try{if(packed(local())!==base)schedule(50)}catch(e){report('Firebase — '+e.message)}}},6000);
 window.addEventListener('online',()=>{if(user){if(!initialized)void boot(user.uid,generation);else void refresh()}});
-window.addEventListener('inovtec:planning-local-saved',()=>{
+window.addEventListener('inovtec:planning-local-saved',ev=>{
   if(mode!=='planning')return;
   lastLocalPlanningSave=Date.now();
   activity=Date.now();
+  const payload=ev?.detail?.payload;
+  if(typeof payload==='string'&&payload){
+    pendingPlanningPayload=payload;
+  }
   if(initialized)schedule(20);
 });
 window.addEventListener('inovtec:planning-request-cloud-refresh',()=>{
