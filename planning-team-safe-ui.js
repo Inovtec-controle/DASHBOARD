@@ -10,7 +10,7 @@ const str=x=>x==null?'':String(x);
 const uid=prefix=>prefix+'_'+Date.now()+'_'+Math.random().toString(16).slice(2);
 const read=()=>{
  try{
-  const s=JSON.parse(localStorage.getItem(KEY)||'null');
+  const s=window.InovtecPlanningAPI?.getState?.();
   if(!s||typeof s!=='object'||Array.isArray(s))return null;
   if(!Array.isArray(s.agents))s.agents=[];
   if(!s.weeks||typeof s.weeks!=='object'||Array.isArray(s.weeks))s.weeks={};
@@ -26,10 +26,12 @@ const entries=(s,week,id)=>(Array.isArray(s.weeks[week])?s.weeks[week]:[]).filte
 const shape=e=>({day:Number(e.day)||0,start:str(e.start),end:str(e.end),task:str(e.task),site:str(e.site),chantierId:str(e.chantierId),note:str(e.note)});
 const signature=list=>JSON.stringify(list.map(shape).sort((a,b)=>a.day-b.day||a.start.localeCompare(b.start)||a.end.localeCompare(b.end)||a.task.localeCompare(b.task)||a.site.localeCompare(b.site)));
 const persist=s=>{
-  const payload=JSON.stringify(s);
-  try{localStorage.setItem(KEY,payload)}catch(e){console.warn('Planning équipe : copie locale indisponible',e)}
-  window.dispatchEvent(new CustomEvent('inovtec:planning-local-saved',{detail:{at:Date.now(),payload,stored:true,source:'team'}}));
-  window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload,stored:true,source:'team-local'}}));
+  if(window.InovtecPlanningAPI?.replaceState){
+    window.InovtecPlanningAPI.replaceState(s,{persist:true,source:'team'});
+  }else{
+    const payload=JSON.stringify(s);
+    window.dispatchEvent(new CustomEvent('inovtec:planning-save-request',{detail:{at:Date.now(),payload,source:'team'}}));
+  }
 };
 function protectAndShare(s,team,week,sourceId,initial=false){
  if(!Array.isArray(team.members)||team.members.length<2||!team.members.includes(sourceId))return false;
