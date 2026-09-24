@@ -87,14 +87,45 @@ function parityModelText(a,kind){normalizeParityAgent(a);const key=a.parityTempl
 function save(){
   localStorage.setItem(KEY,JSON.stringify(state));
   try{window.dispatchEvent(new CustomEvent("inovtec:planning-local-saved",{detail:{at:Date.now()}}))}catch{}
-  updateMeta();
+}
+function reloadStoredPlanning(preferredAgentId=state.selected){
+  const preferred=safeText(preferredAgentId);
+  load();
+  syncAgentsFromHub();
+  if(preferred&&agentById(preferred))state.selected=preferred;
+  enforceSingleAgent();
+}
+function requestCloudRefresh(){
+  try{window.dispatchEvent(new CustomEvent("inovtec:planning-request-cloud-refresh"))}catch{}
 }
 function load(){const firstOpen=isFirstTopLevelOpen();let parsed=null;try{const raw=localStorage.getItem(KEY);if(raw)parsed=JSON.parse(raw)}catch(e){console.warn("Planning local illisible, attente de la copie Firebase",e)}state=sanitizePlanningState(parsed);state.agents.forEach((a,i)=>{if(!a.color)a.color=COLORS[i%COLORS.length];normalizeParityAgent(a)});if(firstOpen||!state.agents.some(a=>String(a.id)===String(state.selected)))state.selected=null;enforceSingleAgent()}
 function syncAgentsFromHub(){const h=dataHub();if(!h?.readyAgents)return false;const masters=Array.from(h.agents||[]),old=Array.isArray(state.agents)?state.agents:[],used=new Set(),next=[];masters.forEach((m,i)=>{const name=masterName(m),match=old.find(a=>!used.has(a.id)&&(a.refId===m.id||a.id===m.id||norm(a.name)===norm(name)));if(match)used.add(match.id);const parityMode=match?.parityMode==="alternating"?"alternating":"standard",parityTemplates={even:match?.parityTemplates?.even||"",odd:match?.parityTemplates?.odd||""},parityInheritedWeeks={...(match?.parityInheritedWeeks||{})};next.push({id:match?.id||m.id,name,refId:m.id,color:match?.color||COLORS[i%COLORS.length],copies:match?.copies||2,parityMode,parityTemplates,parityInheritedWeeks})});const before=JSON.stringify(old.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks])),after=JSON.stringify(next.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks]));if(before===after)return false;state.agents=next;if(!state.agents.some(a=>a.id===state.selected))state.selected=null;enforceSingleAgent();localStorage.setItem(KEY,JSON.stringify(state));return true}
 function bindHub(){const h=dataHub();if(!h){setTimeout(bindHub,300);return}if(hubBound)return;hubBound=true;h.subscribe(()=>{const pop=$("editorPopover"),editorOpen=pop.classList.contains("open"),active=document.activeElement,editing=editorOpen&&pop.contains(active),changed=syncAgentsFromHub();if(changed){if(!editing)render()}else if(editorOpen&&active!==$("edTitle")){const e=eventRef(pop.dataset.week,pop.dataset.id);if(e)fillChantierSelect(e)}});if(syncAgentsFromHub())render()}
-function selectAgent(id){if(!agentById(id))return;state.selected=id;enforceSingleAgent();save();closeEditor();closeContext();render()}
-function updateMeta(){const key=isoWeekKey(currentDate),selected=agentById(state.selected),rows=entriesForWeek(key).filter(e=>e.agentId===state.selected).sort((a,b)=>Number(a.day)-Number(b.day)||String(a.start).localeCompare(String(b.start)));$("week").value=key;$("weekInfo").textContent=`Semaine ${weekNumber(key)} · ${weekNumber(key)%2?"impaire":"paire"}`;$("title").textContent="Planning — "+(selected?.name||"Aucun agent");$("count").textContent=rows.length+" intervention"+(rows.length>1?"s":"");const tbody=$("rows");tbody.innerHTML="";rows.forEach(e=>{const tr=document.createElement("tr");[DAYS[Number(e.day)||0],`${e.start||""} – ${e.end||""}`,e.task||"",e.site||"",e.note||""].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});tbody.appendChild(tr)})}
-function renderAgents(){const q=$("agentSearch").value.trim().toLowerCase(),box=$("agentList");box.innerHTML="";const list=state.agents.filter(a=>!q||safeText(a.name).toLowerCase().includes(q));if(!list.length){const empty=document.createElement("div");empty.className="empty-state";empty.style.padding="28px 12px";empty.textContent=dataHub()?.readyAgents?"Aucun agent dans le Classeur Agents.":"Chargement des agents…";box.appendChild(empty);return}list.forEach(a=>{const row=document.createElement("div");row.className="agent-row"+(a.id===state.selected?" active":"");row.dataset.agentId=a.id;const dot=document.createElement("button");dot.type="button";dot.className="agent-dot"+(a.id===state.selected?" visible":"");dot.style.color=a.color;dot.title="Afficher uniquement le calendrier de "+a.name;dot.onclick=e=>{e.stopPropagation();selectAgent(a.id)};const name=document.createElement("div");name.className="agent-name";name.textContent=a.name;row.append(dot,name);row.onclick=()=>selectAgent(a.id);row.oncontextmenu=e=>{e.preventDefault();state.selected=a.id;enforceSingleAgent();save();renderAgents();openAgentMenu(a,e.clientX,e.clientY)};let press=null;row.addEventListener("touchstart",e=>{const t=e.touches[0];press=setTimeout(()=>openAgentMenu(a,t.clientX,t.clientY),520)},{passive:true});row.addEventListener("touchend",()=>clearTimeout(press));row.addEventListener("touchmove",()=>clearTimeout(press));box.appendChild(row)})}
+function selectAgent(id){
+  const wanted=safeText(id);
+  if(!agentById(wanted))return;
+  closeEditor();
+  closeContext();
+  reloadStoredPlanning(wanted);
+  if(!agentById(wanted))return;
+  state.selected=wanted;
+  enforceSingleAgent();
+  renderAgents();
+  renderCalendarOnly();
+  requestCloudRefresh();
+}
+function updateMeta(){
+  const key=isoWeekKey(currentDate),selected=agentById(state.selected),rows=entriesForWeek(key).filter(e=>String(e.agentId)===String(state.selected)).sort((a,b)=>Number(a.day)-Number(b.day)||String(a.start).localeCompare(String(b.start)));
+  const weekEl=$("week"),weekInfo=$("weekInfo"),title=$("title"),count=$("count"),tbody=$("rows");
+  if(weekEl)weekEl.value=key;
+  if(weekInfo)weekInfo.textContent=`Semaine ${weekNumber(key)} · ${weekNumber(key)%2?"impaire":"paire"}`;
+  if(title)title.textContent="Planning — "+(selected?.name||"Aucun agent");
+  if(count)count.textContent=rows.length+" intervention"+(rows.length>1?"s":"");
+  if(!tbody)return;
+  tbody.innerHTML="";
+  rows.forEach(e=>{const tr=document.createElement("tr");[DAYS[Number(e.day)||0],`${e.start||""} – ${e.end||""}`,e.task||"",e.site||"",e.note||""].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});tbody.appendChild(tr)});
+}
+function renderAgents(){const q=$("agentSearch").value.trim().toLowerCase(),box=$("agentList");box.innerHTML="";const list=state.agents.filter(a=>!q||safeText(a.name).toLowerCase().includes(q));if(!list.length){const empty=document.createElement("div");empty.className="empty-state";empty.style.padding="28px 12px";empty.textContent=dataHub()?.readyAgents?"Aucun agent dans le Classeur Agents.":"Chargement des agents…";box.appendChild(empty);return}list.forEach(a=>{const row=document.createElement("div");row.className="agent-row"+(a.id===state.selected?" active":"");row.dataset.agentId=a.id;const dot=document.createElement("button");dot.type="button";dot.className="agent-dot"+(a.id===state.selected?" visible":"");dot.style.color=a.color;dot.title="Afficher uniquement le calendrier de "+a.name;dot.onclick=e=>{e.stopPropagation();selectAgent(a.id)};const name=document.createElement("div");name.className="agent-name";name.textContent=a.name;row.append(dot,name);row.onclick=()=>selectAgent(a.id);row.oncontextmenu=e=>{e.preventDefault();state.selected=a.id;enforceSingleAgent();renderAgents();renderCalendarOnly();openAgentMenu(a,e.clientX,e.clientY)};let press=null;row.addEventListener("touchstart",e=>{const t=e.touches[0];press=setTimeout(()=>openAgentMenu(a,t.clientX,t.clientY),520)},{passive:true});row.addEventListener("touchend",()=>clearTimeout(press));row.addEventListener("touchmove",()=>clearTimeout(press));box.appendChild(row)})}
 async function addAgent(){const n=prompt("Nom du nouvel agent :");if(!n?.trim())return;const h=dataHub();try{if(h?.createAgent){const created=await h.createAgent(n.trim());syncAgentsFromHub();const a=state.agents.find(x=>x.refId===created.id);if(a)state.selected=a.id;save();render();return}}catch(e){console.error(e);alert("Création impossible dans le Classeur Agents.");return}const a={id:uid("a"),name:n.trim(),copies:2,color:COLORS[state.agents.length%COLORS.length],parityMode:"standard",parityTemplates:{even:"",odd:""},parityInheritedWeeks:{}};state.agents.push(a);state.selected=a.id;save();render()}
 async function renameAgent(a){const n=prompt("Nom de l’agent :",a.name);if(!n?.trim())return;const h=dataHub();try{if(a.refId&&h?.renameAgent){await h.renameAgent(a.refId,n.trim());syncAgentsFromHub();save();render();return}}catch(e){console.error(e);alert("Modification impossible dans le Classeur Agents.");return}a.name=n.trim();save();render()}
 async function deleteAgent(a){if(!confirm(`Supprimer ${a.name} du Classeur Agents et supprimer ses interventions du planning ?`))return;const h=dataHub();try{if(a.refId&&h?.deleteAgent){await h.deleteAgent(a.refId)}}catch(e){console.error(e);alert("Suppression impossible dans le Classeur Agents.");return}Object.keys(state.weeks).forEach(w=>state.weeks[w]=entriesForWeek(w).filter(e=>e.agentId!==a.id));state.agents=state.agents.filter(x=>x.id!==a.id);state.selected=state.agents[0]?.id||null;enforceSingleAgent();save();render()}
@@ -253,9 +284,21 @@ function saveEditor(){
   enforceSingleAgent();
   draftEvent=null;
   const savedId=next.id;
-  save();
+  currentDate=cloneDate(d);
+  try{
+    save();
+  }catch(error){
+    console.error("Planning : sauvegarde locale impossible",error);
+    release();
+    alert("La tâche n’a pas pu être enregistrée. Réessaie.");
+    return;
+  }
   closeEditor();
   release();
+  reloadStoredPlanning(next.agentId);
+  state.selected=next.agentId;
+  enforceSingleAgent();
+  renderAgents();
   renderCalendarOnly();
   requestAnimationFrame(()=>{
     const card=document.querySelector('.event-card[data-id="'+CSS.escape(savedId)+'"]');
@@ -321,13 +364,16 @@ window.addEventListener("resize",()=>{closeContext();if($("editorPopover").class
 let cloudRefreshTimer=0;
 function refreshFromCloud(){
   clearTimeout(cloudRefreshTimer);
+  const preferred=state.selected;
   const attempt=()=>{
     const pop=$("editorPopover"),active=document.activeElement;
     const busy=pop?.classList.contains("open")||(active&&/^(INPUT|TEXTAREA|SELECT)$/i.test(active.tagName));
-    if(busy){cloudRefreshTimer=setTimeout(attempt,1200);return}
-    load();render();
+    if(busy){cloudRefreshTimer=setTimeout(attempt,500);return}
+    reloadStoredPlanning(preferred);
+    renderAgents();
+    renderCalendarOnly();
   };
-  cloudRefreshTimer=setTimeout(attempt,80);
+  cloudRefreshTimer=setTimeout(attempt,50);
 }
 window.addEventListener("inovtec:planning-cloud-updated",refreshFromCloud);
 window.addEventListener("storage",e=>{if(e.key===KEY)refreshFromCloud()});
