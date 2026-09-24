@@ -11,6 +11,46 @@ const validPayload=s=>{
   const p=parse(s);
   return !!(p&&typeof p==="object"&&!Array.isArray(p)&&p.weeks&&typeof p.weeks==="object"&&Array.isArray(p.agents));
 };
+const ABSENT=Symbol("absent");
+function merge3(base,local,remote){
+  if(JSON.stringify(local)===JSON.stringify(base))return remote;
+  if(JSON.stringify(remote)===JSON.stringify(base))return local;
+  if(JSON.stringify(local)===JSON.stringify(remote))return local;
+  if(local===ABSENT||remote===ABSENT)return ABSENT;
+  if(Array.isArray(local)&&Array.isArray(remote)&&Array.isArray(base)){
+    const rows=[...base,...local,...remote];
+    if(rows.every(x=>x&&typeof x==="object"&&x.id!=null)){
+      const ids=new Set(rows.map(x=>String(x.id)));
+      const index=a=>new Map(a.map(x=>[String(x.id),x]));
+      const B=index(base),L=index(local),R=index(remote),out=[];
+      for(const id of ids){
+        const value=merge3(B.has(id)?B.get(id):ABSENT,L.has(id)?L.get(id):ABSENT,R.has(id)?R.get(id):ABSENT);
+        if(value!==ABSENT)out.push(value);
+      }
+      return out;
+    }
+    return local;
+  }
+  if(local&&remote&&typeof local==="object"&&typeof remote==="object"&&!Array.isArray(local)&&!Array.isArray(remote)){
+    const B=base&&typeof base==="object"&&!Array.isArray(base)?base:{},out={};
+    for(const key of new Set([...Object.keys(B),...Object.keys(local),...Object.keys(remote)])){
+      const value=merge3(
+        Object.hasOwn(B,key)?B[key]:ABSENT,
+        Object.hasOwn(local,key)?local[key]:ABSENT,
+        Object.hasOwn(remote,key)?remote[key]:ABSENT
+      );
+      if(value!==ABSENT)out[key]=value;
+    }
+    return out;
+  }
+  return local;
+}
+function mergePlanningPayload(basePayload,localPayload,remotePayload){
+  const local=parse(localPayload),remote=parse(remotePayload);
+  if(!local||!remote)return localPayload;
+  const base=validPayload(basePayload)?parse(basePayload):{agents:[],weeks:{},selected:null};
+  return JSON.stringify(merge3(base,local,remote));
+}
 function report(message,ok=false){
   if(message===lastStatus)return;
   lastStatus=message;
@@ -118,26 +158,39 @@ async function writeFirebase(payload,source="planning"){
     return;
   }
   saving=true;
-  const token=generation,doc=ref;
+  const token=generation,doc=ref,baseBeforeWrite=lastConfirmedPayload;
+  const writeId=client+"_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+  let written=payload;
   report("Firebase — enregistrement sur le serveur…");
   try{
     await firebase.firestore().runTransaction(async tx=>{
-      await tx.get(doc);
+      const snap=await tx.get(doc);
+      const current=snap.exists?(snap.data()||{}):{};
+      const primary=current?.moduleSyncV1?.planning||null;
+      const backup=current?.planningDirectV1||null;
+      const primaryPayload=typeof primary?.payload==="string"&&validPayload(primary.payload)?primary.payload:"";
+      const backupPayload=typeof backup?.payload==="string"&&validPayload(backup.payload)?backup.payload:"";
+      const remote=backupPayload||primaryPayload;
+      written=remote&&remote!==baseBeforeWrite&&remote!==payload
+        ?mergePlanningPayload(baseBeforeWrite,payload,remote)
+        :payload;
       const stamp=Date.now();
       tx.set(doc,{
         moduleSyncV1:{planning:{
-          payload,
+          payload:written,
           updatedAtMs:stamp,
           client,
+          writeId,
           reason:String(source||"planning-direct"),
-          version:6,
+          version:7,
           protocol:"firebase-direct"
         }},
         planningDirectV1:{
-          payload,
+          payload:written,
           updatedAtMs:stamp,
           client,
-          version:1,
+          writeId,
+          version:2,
           protocol:"firebase-direct"
         }
       },{merge:true});
@@ -150,21 +203,20 @@ async function writeFirebase(payload,source="planning"){
     const backup=data?.planningDirectV1||null;
     const actual=typeof entry?.payload==="string"&&validPayload(entry.payload)?entry.payload:"";
     const direct=typeof backup?.payload==="string"&&validPayload(backup.payload)?backup.payload:"";
-    const confirmed=direct===payload||actual===payload;
+    const confirmed=entry?.writeId===writeId||backup?.writeId===writeId||direct===written||actual===written;
     if(!confirmed){
-      throw new Error("Firebase n’a pas confirmé la modification enregistrée");
+      // Une autre page/appareil a écrit juste après notre transaction.
+      // Ce n'est pas un échec Firebase : on refusionne silencieusement avec
+      // la nouvelle version serveur au lieu de recharger et faire disparaître la tâche.
+      report("Firebase — nouvelle version détectée, fusion en cours…");
+      if(!queuedPayload)queuedPayload=payload;
+      return;
     }
-    // planningDirectV1 est la copie Firebase de référence. Si elle confirme
-    // notre écriture mais que le champ principal a déjà été touché derrière,
-    // on valide l'utilisateur puis on répare le champ principal sans alerte.
-    lastConfirmedPayload=payload;
+    lastConfirmedPayload=written;
     directProtocolActive=true;
     report("Firebase — synchronisé",true);
-    emitPayload(payload,"firebase-confirmed");
-    window.dispatchEvent(new CustomEvent("inovtec:planning-cloud-saved",{detail:{at:Date.now(),payload}}));
-    if(direct===payload&&actual!==payload){
-      setTimeout(()=>{if(!saving&&lastConfirmedPayload===payload)void writeFirebase(payload,"repair-primary-after-confirm")},80);
-    }
+    emitPayload(written,"firebase-confirmed");
+    window.dispatchEvent(new CustomEvent("inovtec:planning-cloud-saved",{detail:{at:Date.now(),payload:written}}));
   }catch(e){
     console.error("Planning Firebase direct",e);
     report("Firebase — sauvegarde non confirmée : "+(e.code||e.message||"erreur"));
