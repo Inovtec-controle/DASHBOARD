@@ -223,5 +223,10 @@ window.addEventListener('inovtec:planning-local-saved',()=>{
   activity=Date.now();
   if(initialized)schedule(20);
 });
+window.addEventListener('inovtec:planning-request-cloud-refresh',()=>{
+  if(mode!=='planning'||!user)return;
+  if(!initialized)void boot(user.uid,generation);
+  else void refresh();
+});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user){if(!initialized)void boot(user.uid,generation);else void refresh()}});
 })();
