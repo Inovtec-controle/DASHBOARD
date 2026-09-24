@@ -65,12 +65,15 @@ try{
   const beforeDraftCount=Object.values(beforeDraft.weeks||{}).flat().length;
   await page.mouse.click(box.x+Math.min(60,box.width/2),box.y+220,{clickCount:2,delay:90});
   await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:5000});
+  assert(await page.locator('.event-card.draft-preview').count()===1,'L’aperçu provisoire n’apparaît pas dès le double-clic');
   const whileDraft=JSON.parse(await page.evaluate(()=>localStorage.getItem('inovtec_plannings_v2')));
   assert(Object.values(whileDraft.weeks||{}).flat().length===beforeDraftCount,'Le double-clic enregistre avant Terminé');
   await page.locator('#edTitle').selectOption('site-b');
   await page.locator('#edSite').fill('Contrôle sanitaires');
   await page.locator('#edStart').fill('11:00');
   await page.locator('#edEnd').fill('12:00');
+  const previewText=(await page.locator('.event-card.draft-preview').innerText()).replace(/\s+/g,' ');
+  assert(previewText.includes('11:00')&&previewText.includes('12:00')&&previewText.includes('Chantier Beta'),'L’aperçu provisoire ne suit pas les modifications de la bulle');
   await page.locator('#edDone').click();
   await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
   assert(await page.locator('.event-card').count()===1,'La tâche créée au double-clic n’apparaît pas après Terminé');
