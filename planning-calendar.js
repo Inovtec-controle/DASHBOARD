@@ -493,8 +493,15 @@ function refreshFromCloud(){
 window.addEventListener("inovtec:planning-cloud-payload",e=>receiveCloudPayload(e?.detail?.payload,e?.detail?.source||"firebase"));
 window.addEventListener("inovtec:planning-cloud-save-failed",e=>{
   const msg=e?.detail?.message||"erreur inconnue";
-  alert("Enregistrement Firebase non confirmé : "+msg+"\nLe planning va être relu depuis Firebase.");
-  requestCloudRefresh();
+  console.warn("Planning Firebase : sauvegarde non confirmée",msg);
+  const badge=$("syncBadge");
+  if(badge){
+    badge.textContent="Firebase — sauvegarde à confirmer";
+    badge.classList.remove("ok");
+    badge.classList.add("warning");
+  }
+  // Ne jamais relire Firebase ici : une relecture immédiate remplacerait
+  // la modification que l'utilisateur vient de faire et ferait disparaître la carte.
 });
 window.addEventListener("inovtec:planning-cloud-updated",refreshFromCloud);
 render();bindHub();setInterval(()=>{if(!document.hidden&&(view==="week"||view==="day"))render()},60000);
