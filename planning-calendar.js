@@ -10,8 +10,6 @@ const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLo
 let state={agents:[],weeks:{},selected:null};
 let currentDate=new Date(),view="week",visibleAgents=new Set(),selectedEvent=null,draftEvent=null,suppressClickUntil=0,hubBound=false;
 let cloudPayloadEpoch=0,pendingCloudPayload=null;
-const protectedSavedEvents=new Map();
-let lastGuardRepublish=0;
 const fmtDay=new Intl.DateTimeFormat("fr-FR",{weekday:"short",day:"numeric",month:"short"});
 const fmtLong=new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"long",year:"numeric"});
 const fmtMonth=new Intl.DateTimeFormat("fr-FR",{month:"long",year:"numeric"});
@@ -85,52 +83,72 @@ function initializeParityTemplates(a){normalizeParityAgent(a);if(!a.parityTempla
 function markParityEdited(week,agentId){const a=agentById(agentId);if(!a||a.parityMode!=="alternating")return;normalizeParityAgent(a);delete a.parityInheritedWeeks[week];agentRowsForWeek(week,agentId).forEach(e=>{delete e._parityInheritedFrom});a.parityTemplates[parityKind(week)]=week}
 function freezeParityCopies(a){normalizeParityAgent(a);Object.keys(state.weeks||{}).forEach(w=>agentRowsForWeek(w,a.id).forEach(e=>{delete e._parityInheritedFrom}));a.parityInheritedWeeks={}}
 function ensureParityWeek(week,a){if(!a)return false;normalizeParityAgent(a);if(a.parityMode!=="alternating")return false;initializeParityTemplates(a);const kind=parityKind(week),source=a.parityTemplates[kind];if(!source||source===week||source>week)return false;const mine=agentRowsForWeek(week,a.id),marker=a.parityInheritedWeeks[week],markerSource=typeof marker==="string"?marker:marker?.source||"",markerSig=typeof marker==="object"?marker?.signature||"":"";if(!marker&&mine.length)return false;const sourceSig=paritySignature(source,a.id);if(markerSource===source&&markerSig===sourceSig)return false;const keep=entriesForWeek(week).filter(e=>String(e.agentId)!==String(a.id));const clones=agentRowsForWeek(source,a.id).map(src=>{const e={...src,id:uid("e"),agentId:a.id,_parityInheritedFrom:source};return e});state.weeks[week]=keep.concat(clones);a.parityInheritedWeeks[week]={source,signature:sourceSig};return true}
-function ensureParityForCurrentView(){const a=agentById(state.selected);if(!a||a.parityMode!=="alternating")return false;let changed=false;if(view==="month"){const first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),seen=new Set();for(let i=0;i<42;i++){const w=isoWeekKey(addDays(start,i));if(seen.has(w))continue;seen.add(w);if(ensureParityWeek(w,a))changed=true}}else{if(ensureParityWeek(isoWeekKey(currentDate),a))changed=true}if(changed){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){console.warn("Planning : copie locale de parité indisponible",e)}}return changed}
+function ensureParityForCurrentView(){const a=agentById(state.selected);if(!a||a.parityMode!=="alternating")return false;let changed=false;if(view==="month"){const first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),seen=new Set();for(let i=0;i<42;i++){const w=isoWeekKey(addDays(start,i));if(seen.has(w))continue;seen.add(w);if(ensureParityWeek(w,a))changed=true}}else{if(ensureParityWeek(isoWeekKey(currentDate),a))changed=true}if(changed)save("parity-auto");return changed}
 function parityModelText(a,kind){normalizeParityAgent(a);const key=a.parityTemplates[kind];return key?`semaine ${weekNumber(key)}`:"aucun modèle"}
 function invalidateQueuedCloudPayload(){
   cloudPayloadEpoch++;
   pendingCloudPayload=null;
 }
-function save(){
-  // Une réponse Firebase reçue avant cette sauvegarde ne doit jamais pouvoir
-  // réécraser la modification qui vient d’être validée par l’utilisateur.
+function save(source="planning"){
   invalidateQueuedCloudPayload();
   const payload=JSON.stringify(state);
-  let stored=false,error=null;
   try{
-    localStorage.setItem(KEY,payload);
-    stored=true;
-  }catch(e){
-    error=e;
-    console.warn("Planning : stockage local indisponible, envoi Firebase direct",e);
-    try{
-      for(let i=localStorage.length-1;i>=0;i--){
-        const k=localStorage.key(i)||"";
-        if(k.startsWith("iv_cloud_backup_v2_planning_")||k.startsWith("iv_cloud_meta_planning"))localStorage.removeItem(k);
-      }
-      localStorage.setItem(KEY,payload);
-      stored=true;
-      error=null;
-    }catch(retryError){
-      error=retryError;
-      console.warn("Planning : stockage local toujours indisponible après nettoyage des caches",retryError);
-    }
+    window.dispatchEvent(new CustomEvent("inovtec:planning-save-request",{detail:{at:Date.now(),payload,source}}));
+  }catch(error){
+    console.error("Planning : demande de sauvegarde Firebase impossible",error);
   }
-  try{window.dispatchEvent(new CustomEvent("inovtec:planning-local-saved",{detail:{at:Date.now(),payload,stored}}))}catch{}
-  return{stored,error,payload};
+  return{payload};
 }
 function reloadStoredPlanning(preferredAgentId=state.selected){
   const preferred=safeText(preferredAgentId);
-  load();
-  syncAgentsFromHub();
   if(preferred&&agentById(preferred))state.selected=preferred;
   enforceSingleAgent();
 }
 function requestCloudRefresh(){
   try{window.dispatchEvent(new CustomEvent("inovtec:planning-request-cloud-refresh"))}catch{}
 }
-function load(){const firstOpen=isFirstTopLevelOpen();let parsed=null;try{const raw=localStorage.getItem(KEY);if(raw)parsed=JSON.parse(raw)}catch(e){console.warn("Planning local illisible, attente de la copie Firebase",e)}state=sanitizePlanningState(parsed);state.agents.forEach((a,i)=>{if(!a.color)a.color=COLORS[i%COLORS.length];normalizeParityAgent(a)});if(firstOpen||!state.agents.some(a=>String(a.id)===String(state.selected)))state.selected=null;enforceSingleAgent()}
-function syncAgentsFromHub(){const h=dataHub();if(!h?.readyAgents)return false;const masters=Array.from(h.agents||[]),old=Array.isArray(state.agents)?state.agents:[],used=new Set(),next=[];masters.forEach((m,i)=>{const name=masterName(m),match=old.find(a=>!used.has(a.id)&&(a.refId===m.id||a.id===m.id||norm(a.name)===norm(name)));if(match)used.add(match.id);const parityMode=match?.parityMode==="alternating"?"alternating":"standard",parityTemplates={even:match?.parityTemplates?.even||"",odd:match?.parityTemplates?.odd||""},parityInheritedWeeks={...(match?.parityInheritedWeeks||{})};next.push({id:match?.id||m.id,name,refId:m.id,color:match?.color||COLORS[i%COLORS.length],copies:match?.copies||2,parityMode,parityTemplates,parityInheritedWeeks})});const before=JSON.stringify(old.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks])),after=JSON.stringify(next.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks]));if(before===after)return false;state.agents=next;if(!state.agents.some(a=>a.id===state.selected))state.selected=null;enforceSingleAgent();try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){console.warn("Planning : copie locale agents indisponible",e)}return true}
+function load(){
+  state=sanitizePlanningState({agents:[],weeks:{},selected:null});
+  enforceSingleAgent();
+}
+function syncAgentsFromHub(){
+  const h=dataHub();if(!h?.readyAgents)return false;
+  const masters=Array.from(h.agents||[]),old=Array.isArray(state.agents)?state.agents:[],used=new Set(),next=[];
+  masters.forEach((m,i)=>{
+    const name=masterName(m),match=old.find(a=>!used.has(a.id)&&(a.refId===m.id||a.id===m.id||norm(a.name)===norm(name)));
+    if(match)used.add(match.id);
+    const parityMode=match?.parityMode==="alternating"?"alternating":"standard",
+      parityTemplates={even:match?.parityTemplates?.even||"",odd:match?.parityTemplates?.odd||""},
+      parityInheritedWeeks={...(match?.parityInheritedWeeks||{})};
+    next.push({id:match?.id||m.id,name,refId:m.id,color:match?.color||COLORS[i%COLORS.length],copies:match?.copies||2,parityMode,parityTemplates,parityInheritedWeeks});
+  });
+  const before=JSON.stringify(old.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks])),
+    after=JSON.stringify(next.map(a=>[a.id,a.name,a.refId,a.color,a.copies,a.parityMode,a.parityTemplates,a.parityInheritedWeeks]));
+  if(before===after)return false;
+  state.agents=next;
+  if(!state.agents.some(a=>a.id===state.selected))state.selected=null;
+  enforceSingleAgent();
+  return true;
+}
+function clonePlanningState(){try{return structuredClone(state)}catch{return JSON.parse(JSON.stringify(state))}}
+function replacePlanningState(next,{persist=true,source="module"}={}){
+  const preferred=state.selected;
+  state=sanitizePlanningState(next);
+  state.agents.forEach((a,i)=>{if(!a.color)a.color=COLORS[i%COLORS.length];normalizeParityAgent(a)});
+  syncAgentsFromHub();
+  if(preferred&&agentById(preferred))state.selected=preferred;
+  enforceSingleAgent();
+  renderAgents();
+  renderCalendarOnly();
+  if(persist)save(source);
+  return true;
+}
+window.InovtecPlanningAPI={
+  getState:clonePlanningState,
+  replaceState:(next,options)=>replacePlanningState(next,options),
+  saveCurrent:(source="module")=>save(source),
+  requestRefresh:requestCloudRefresh
+};
 function bindHub(){const h=dataHub();if(!h){setTimeout(bindHub,300);return}if(hubBound)return;hubBound=true;h.subscribe(()=>{const pop=$("editorPopover"),editorOpen=pop.classList.contains("open"),active=document.activeElement,editing=editorOpen&&pop.contains(active),changed=syncAgentsFromHub();if(changed){if(!editing)render()}else if(editorOpen&&active!==$("edTitle")){const e=eventRef(pop.dataset.week,pop.dataset.id);if(e)fillChantierSelect(e)}});if(syncAgentsFromHub())render()}
 function selectAgent(id){
   const wanted=safeText(id);
@@ -157,7 +175,6 @@ function updateMeta(){
 function prepareAgentContext(a){
   state.selected=a.id;
   enforceSingleAgent();
-  try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){console.warn("Planning : sélection agent non mise en cache",e)}
   renderAgents();
   renderCalendarOnly();
 }
@@ -362,18 +379,11 @@ function saveEditor(){
   draftEvent=null;
   const savedId=next.id;
   currentDate=cloneDate(d);
-  const saveResult=save();
-  protectedSavedEvents.set(savedId,{week:newWeek,at:Date.now()});
+  save("editor");
   closeEditor();
   release();
-  if(saveResult.stored){
-    reloadStoredPlanning(next.agentId);
-    state.selected=next.agentId;
-    enforceSingleAgent();
-  }else{
-    state.selected=next.agentId;
-    enforceSingleAgent();
-  }
+  state.selected=next.agentId;
+  enforceSingleAgent();
   renderAgents();
   renderCalendarOnly();
   requestAnimationFrame(()=>{
@@ -394,10 +404,9 @@ function deleteEdited(){
   if(!e)return;
   if(confirm(`Supprimer « ${e.task||"cette intervention"} » ?`)){
     const agentId=e.agentId;
-    protectedSavedEvents.delete(id);
     state.weeks[week]=entriesForWeek(week).filter(x=>x.id!==id);
     markParityEdited(week,agentId);
-    save();
+    save("delete");
     closeEditor();
     render();
   }
@@ -414,7 +423,7 @@ function renderCalendarOnly(){
 function render(){try{syncAgentsFromHub();enforceSingleAgent();ensureParityForCurrentView();renderAgents();renderCalendarOnly()}catch(error){console.error("Rendu Planning interrompu",error);const viewport=$("calendarViewport");if(viewport&&!viewport.querySelector(".planning-render-error")){viewport.innerHTML='<div class="empty-state planning-render-error">Le planning récupère ses données. Réessaie dans quelques instants.</div>'}}}
 function navigate(dir){if(view==="month")currentDate=new Date(currentDate.getFullYear(),currentDate.getMonth()+dir,1);else currentDate=addDays(currentDate,dir*(view==="day"?1:7));closeEditor();render()}
 function exportData(){const b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="inovtec_plannings_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u)}
-function importData(file){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.agents)||!x.weeks)throw Error("format incompatible");state=x;state.agents.forEach((a,i)=>{if(!a.color)a.color=COLORS[i%COLORS.length];normalizeParityAgent(a)});syncAgentsFromHub();if(!state.agents.some(a=>a.id===state.selected))state.selected=state.agents[0]?.id;save();render();alert("Import réussi.")}catch(err){alert("Import impossible : "+err.message)}};r.readAsText(file)}
+function importData(file){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.agents)||!x.weeks)throw Error("format incompatible");state=x;state.agents.forEach((a,i)=>{if(!a.color)a.color=COLORS[i%COLORS.length];normalizeParityAgent(a)});syncAgentsFromHub();if(!state.agents.some(a=>a.id===state.selected))state.selected=state.agents[0]?.id;save("import");render();alert("Import réussi.")}catch(err){alert("Import impossible : "+err.message)}};r.readAsText(file)}
 load();
 $("calendarViewport").addEventListener("dblclick",captureCalendarDoubleClick,true);
 $("agentSearch").addEventListener("input",renderAgents);
@@ -460,35 +469,8 @@ function applyCloudPayload(payload){
   renderCalendarOnly();
   return true;
 }
-function payloadEventIds(payload){
-  try{
-    const parsed=JSON.parse(payload),ids=new Set();
-    Object.values(parsed?.weeks||{}).forEach(rows=>(Array.isArray(rows)?rows:[]).forEach(e=>{if(e?.id!=null)ids.add(String(e.id))}));
-    return ids;
-  }catch{return null}
-}
-function guardFreshlySavedEvents(payload,source=""){
-  if(!protectedSavedEvents.size)return true;
-  const ids=payloadEventIds(payload);
-  if(!ids)return false;
-  const missing=[...protectedSavedEvents.keys()].filter(id=>!ids.has(String(id)));
-  if(!missing.length){
-    if(/^firebase/.test(String(source||"")))protectedSavedEvents.clear();
-    return true;
-  }
-  const now=Date.now();
-  if(now-lastGuardRepublish>350){
-    lastGuardRepublish=now;
-    const current=JSON.stringify(state);
-    try{localStorage.setItem(KEY,current)}catch{}
-    try{window.dispatchEvent(new CustomEvent("inovtec:planning-local-saved",{detail:{at:now,payload:current,stored:true,source:"fresh-event-guard"}}))}catch{}
-  }
-  console.warn("Planning : payload ignoré car il ne contient pas encore la tâche fraîchement enregistrée",missing);
-  return false;
-}
-function receiveCloudPayload(payload,source=""){
+function receiveCloudPayload(payload,source="firebase"){
   if(typeof payload!=="string"||!payload)return;
-  if(!guardFreshlySavedEvents(payload,source))return;
   const token=++cloudPayloadEpoch;
   pendingCloudPayload={payload,token};
   const attempt=()=>{
@@ -496,7 +478,7 @@ function receiveCloudPayload(payload,source=""){
     if(!pending||pending.token!==token)return;
     const pop=$("editorPopover"),active=document.activeElement;
     const busy=pop?.classList.contains("open")||(active&&/^(INPUT|TEXTAREA|SELECT)$/i.test(active.tagName));
-    if(busy){setTimeout(attempt,300);return}
+    if(busy){setTimeout(attempt,250);return}
     if(!pendingCloudPayload||pendingCloudPayload.token!==token)return;
     const value=pendingCloudPayload.payload;
     pendingCloudPayload=null;
@@ -506,22 +488,14 @@ function receiveCloudPayload(payload,source=""){
 }
 function refreshFromCloud(){
   clearTimeout(cloudRefreshTimer);
-  const attempt=()=>{
-    const pop=$("editorPopover"),active=document.activeElement;
-    const busy=pop?.classList.contains("open")||(active&&/^(INPUT|TEXTAREA|SELECT)$/i.test(active.tagName));
-    if(busy){cloudRefreshTimer=setTimeout(attempt,500);return}
-    let raw="";
-    try{raw=localStorage.getItem(KEY)||""}catch{}
-    if(raw)receiveCloudPayload(raw,"local-refresh");
-  };
-  cloudRefreshTimer=setTimeout(attempt,50);
+  cloudRefreshTimer=setTimeout(()=>requestCloudRefresh(),30);
 }
-window.addEventListener("inovtec:planning-cloud-payload",e=>receiveCloudPayload(e?.detail?.payload,e?.detail?.source||""));
+window.addEventListener("inovtec:planning-cloud-payload",e=>receiveCloudPayload(e?.detail?.payload,e?.detail?.source||"firebase"));
 window.addEventListener("inovtec:planning-cloud-save-failed",e=>{
   const msg=e?.detail?.message||"erreur inconnue";
-  alert("Sauvegarde Firebase impossible pour le moment : "+msg+"\nLa modification reste affichée et sera retentée automatiquement.");
+  alert("Enregistrement Firebase non confirmé : "+msg+"\nLe planning va être relu depuis Firebase.");
+  requestCloudRefresh();
 });
 window.addEventListener("inovtec:planning-cloud-updated",refreshFromCloud);
-window.addEventListener("storage",e=>{if(e.key===KEY&&typeof e.newValue==="string"&&e.newValue)receiveCloudPayload(e.newValue,"storage")});
 render();bindHub();setInterval(()=>{if(!document.hidden&&(view==="week"||view==="day"))render()},60000);
 })();
