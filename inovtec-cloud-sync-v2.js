@@ -60,10 +60,25 @@ function render(){
   };reloadTimer=setTimeout(run,300);
 }
 function apply(payload){
-  const old=local(),value=preserveBinary(payload,switching?'':old);if(old===value)return;
-  backup(user.uid,old);applying=true;
-  try{localStorage.setItem(key,value)}finally{applying=false}
-  render();
+  const old=local(),value=preserveBinary(payload,switching?'':old);
+  let stored=old===value;
+  if(old!==value){
+    backup(user.uid,old);
+    applying=true;
+    try{
+      localStorage.setItem(key,value);
+      stored=true;
+    }catch(e){
+      stored=false;
+      console.warn('Copie locale Firebase indisponible pour '+mode,e);
+    }finally{applying=false}
+  }
+  if(mode==='planning'){
+    window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload:value,stored}}));
+    if(stored)render();
+  }else if(old!==value&&stored){
+    render();
+  }
 }
 // Three-way merge protects independently changed shifts, agents, and properties.
 // Deletions beat stale browser records; no union that resurrects removed rows.
@@ -147,6 +162,7 @@ async function send(){
         console.warn('Planning Firebase confirmé mais copie locale indisponible',e);
       }
       report('Firebase — synchronisé',true);
+      window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload:written,stored:true}}));
       window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-saved',{detail:{at:Date.now(),payload:written}}));
     }else{
       if(packed(local())===draft&&written!==draft)apply(written);
