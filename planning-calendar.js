@@ -9,6 +9,7 @@ const uid=p=>p+"_"+Date.now()+"_"+Math.random().toString(16).slice(2);
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 let state={agents:[],weeks:{},selected:null};
 let currentDate=new Date(),view="week",visibleAgents=new Set(),selectedEvent=null,draftEvent=null,suppressClickUntil=0,hubBound=false;
+let cloudPayloadEpoch=0,pendingCloudPayload=null;
 const fmtDay=new Intl.DateTimeFormat("fr-FR",{weekday:"short",day:"numeric",month:"short"});
 const fmtLong=new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"long",year:"numeric"});
 const fmtMonth=new Intl.DateTimeFormat("fr-FR",{month:"long",year:"numeric"});
@@ -84,7 +85,14 @@ function freezeParityCopies(a){normalizeParityAgent(a);Object.keys(state.weeks||
 function ensureParityWeek(week,a){if(!a)return false;normalizeParityAgent(a);if(a.parityMode!=="alternating")return false;initializeParityTemplates(a);const kind=parityKind(week),source=a.parityTemplates[kind];if(!source||source===week||source>week)return false;const mine=agentRowsForWeek(week,a.id),marker=a.parityInheritedWeeks[week],markerSource=typeof marker==="string"?marker:marker?.source||"",markerSig=typeof marker==="object"?marker?.signature||"":"";if(!marker&&mine.length)return false;const sourceSig=paritySignature(source,a.id);if(markerSource===source&&markerSig===sourceSig)return false;const keep=entriesForWeek(week).filter(e=>String(e.agentId)!==String(a.id));const clones=agentRowsForWeek(source,a.id).map(src=>{const e={...src,id:uid("e"),agentId:a.id,_parityInheritedFrom:source};return e});state.weeks[week]=keep.concat(clones);a.parityInheritedWeeks[week]={source,signature:sourceSig};return true}
 function ensureParityForCurrentView(){const a=agentById(state.selected);if(!a||a.parityMode!=="alternating")return false;let changed=false;if(view==="month"){const first=new Date(currentDate.getFullYear(),currentDate.getMonth(),1),start=addDays(first,-mondayIndex(first)),seen=new Set();for(let i=0;i<42;i++){const w=isoWeekKey(addDays(start,i));if(seen.has(w))continue;seen.add(w);if(ensureParityWeek(w,a))changed=true}}else{if(ensureParityWeek(isoWeekKey(currentDate),a))changed=true}if(changed){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){console.warn("Planning : copie locale de parité indisponible",e)}}return changed}
 function parityModelText(a,kind){normalizeParityAgent(a);const key=a.parityTemplates[kind];return key?`semaine ${weekNumber(key)}`:"aucun modèle"}
+function invalidateQueuedCloudPayload(){
+  cloudPayloadEpoch++;
+  pendingCloudPayload=null;
+}
 function save(){
+  // Une réponse Firebase reçue avant cette sauvegarde ne doit jamais pouvoir
+  // réécraser la modification qui vient d’être validée par l’utilisateur.
+  invalidateQueuedCloudPayload();
   const payload=JSON.stringify(state);
   let stored=false,error=null;
   try{
@@ -448,16 +456,19 @@ function applyCloudPayload(payload){
   renderCalendarOnly();
   return true;
 }
-let pendingCloudPayload="";
 function receiveCloudPayload(payload){
-  pendingCloudPayload=typeof payload==="string"?payload:"";
+  if(typeof payload!=="string"||!payload)return;
+  const token=++cloudPayloadEpoch;
+  pendingCloudPayload={payload,token};
   const attempt=()=>{
-    if(!pendingCloudPayload)return;
+    const pending=pendingCloudPayload;
+    if(!pending||pending.token!==token)return;
     const pop=$("editorPopover"),active=document.activeElement;
     const busy=pop?.classList.contains("open")||(active&&/^(INPUT|TEXTAREA|SELECT)$/i.test(active.tagName));
     if(busy){setTimeout(attempt,300);return}
-    const value=pendingCloudPayload;
-    pendingCloudPayload="";
+    if(!pendingCloudPayload||pendingCloudPayload.token!==token)return;
+    const value=pendingCloudPayload.payload;
+    pendingCloudPayload=null;
     applyCloudPayload(value);
   };
   attempt();
