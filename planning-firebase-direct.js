@@ -4,7 +4,7 @@ if(window.__INOVTEC_PLANNING_FIREBASE_DIRECT_V1__)return;
 window.__INOVTEC_PLANNING_FIREBASE_DIRECT_V1__=true;
 
 const client=sessionStorage.ivPlanningFirebaseClient||(sessionStorage.ivPlanningFirebaseClient="pf_"+Date.now()+"_"+Math.random().toString(36).slice(2));
-let user=null,ref=null,unsubscribe=null,generation=0,saving=false,queuedPayload="",lastConfirmedPayload="",lastStatus="";
+let user=null,ref=null,unsubscribe=null,generation=0,saving=false,queuedPayload="",lastConfirmedPayload="",lastStatus="",directProtocolActive=false;
 const parse=s=>{try{return JSON.parse(s)}catch{return null}};
 const validPayload=s=>{
   if(typeof s!=="string"||!s)return false;
@@ -72,6 +72,13 @@ async function readServer(source="firebase-refresh"){
       return;
     }
     if(typeof entry.payload!=="string"||!validPayload(entry.payload))throw new Error("planning serveur illisible");
+    const isDirect=Number(entry.version)>=6&&entry.protocol==="firebase-direct";
+    if(directProtocolActive&&!isDirect&&lastConfirmedPayload&&entry.payload!==lastConfirmedPayload){
+      report("Firebase — ancienne écriture détectée, restauration…");
+      void writeFirebase(lastConfirmedPayload,"reject-legacy-refresh");
+      return;
+    }
+    directProtocolActive=directProtocolActive||isDirect;
     lastConfirmedPayload=entry.payload;
     emitPayload(entry.payload,source);
     report("Firebase — synchronisé",true);
@@ -118,6 +125,7 @@ async function writeFirebase(payload,source="planning"){
       throw new Error("Firebase n’a pas confirmé exactement la version enregistrée");
     }
     lastConfirmedPayload=actual;
+    directProtocolActive=true;
     report("Firebase — synchronisé",true);
     emitPayload(actual,"firebase-confirmed");
     window.dispatchEvent(new CustomEvent("inovtec:planning-cloud-saved",{detail:{at:Date.now(),payload:actual}}));
@@ -140,11 +148,14 @@ function bindSnapshot(doc,token){
     if(token!==generation||snap.metadata?.fromCache||snap.metadata?.hasPendingWrites)return;
     const entry=snap.exists?snap.data()?.moduleSyncV1?.planning:null;
     if(!entry||typeof entry.payload!=="string"||!validPayload(entry.payload))return;
-    // Pendant notre propre écriture, seule la relecture serveur post-transaction
-    // est autorisée à valider l'écran.
     if(saving)return;
-    // Une ancienne page peut encore écrire avec le protocole historique.
-    // On l'affiche uniquement si elle est la version réellement présente sur Firebase.
+    const isDirect=Number(entry.version)>=6&&entry.protocol==="firebase-direct";
+    if(directProtocolActive&&!isDirect&&lastConfirmedPayload&&entry.payload!==lastConfirmedPayload){
+      report("Firebase — ancienne écriture détectée, restauration…");
+      void writeFirebase(lastConfirmedPayload,"reject-legacy-snapshot");
+      return;
+    }
+    directProtocolActive=directProtocolActive||isDirect;
     lastConfirmedPayload=entry.payload;
     emitPayload(entry.payload,"firebase-snapshot");
     report("Firebase — synchronisé",true);
@@ -158,6 +169,7 @@ async function start(nextUser){
   ref=null;
   saving=false;
   lastConfirmedPayload="";
+  directProtocolActive=false;
   if(!user){
     report("Firebase — connexion requise");
     login().style.display="grid";
