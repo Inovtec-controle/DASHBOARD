@@ -10,6 +10,8 @@ const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLo
 let state={agents:[],weeks:{},selected:null};
 let currentDate=new Date(),view="week",visibleAgents=new Set(),selectedEvent=null,draftEvent=null,suppressClickUntil=0,hubBound=false;
 let cloudPayloadEpoch=0,pendingCloudPayload=null;
+const protectedSavedEvents=new Map();
+let lastGuardRepublish=0;
 const fmtDay=new Intl.DateTimeFormat("fr-FR",{weekday:"short",day:"numeric",month:"short"});
 const fmtLong=new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"long",year:"numeric"});
 const fmtMonth=new Intl.DateTimeFormat("fr-FR",{month:"long",year:"numeric"});
@@ -361,6 +363,7 @@ function saveEditor(){
   const savedId=next.id;
   currentDate=cloneDate(d);
   const saveResult=save();
+  protectedSavedEvents.set(savedId,{week:newWeek,at:Date.now()});
   closeEditor();
   release();
   if(saveResult.stored){
@@ -391,6 +394,7 @@ function deleteEdited(){
   if(!e)return;
   if(confirm(`Supprimer « ${e.task||"cette intervention"} » ?`)){
     const agentId=e.agentId;
+    protectedSavedEvents.delete(id);
     state.weeks[week]=entriesForWeek(week).filter(x=>x.id!==id);
     markParityEdited(week,agentId);
     save();
@@ -456,8 +460,35 @@ function applyCloudPayload(payload){
   renderCalendarOnly();
   return true;
 }
+function payloadEventIds(payload){
+  try{
+    const parsed=JSON.parse(payload),ids=new Set();
+    Object.values(parsed?.weeks||{}).forEach(rows=>(Array.isArray(rows)?rows:[]).forEach(e=>{if(e?.id!=null)ids.add(String(e.id))}));
+    return ids;
+  }catch{return null}
+}
+function guardFreshlySavedEvents(payload){
+  if(!protectedSavedEvents.size)return true;
+  const ids=payloadEventIds(payload);
+  if(!ids)return false;
+  const missing=[...protectedSavedEvents.keys()].filter(id=>!ids.has(String(id)));
+  if(!missing.length){
+    protectedSavedEvents.clear();
+    return true;
+  }
+  const now=Date.now();
+  if(now-lastGuardRepublish>350){
+    lastGuardRepublish=now;
+    const current=JSON.stringify(state);
+    try{localStorage.setItem(KEY,current)}catch{}
+    try{window.dispatchEvent(new CustomEvent("inovtec:planning-local-saved",{detail:{at:now,payload:current,stored:true,source:"fresh-event-guard"}}))}catch{}
+  }
+  console.warn("Planning : payload ignoré car il ne contient pas encore la tâche fraîchement enregistrée",missing);
+  return false;
+}
 function receiveCloudPayload(payload){
   if(typeof payload!=="string"||!payload)return;
+  if(!guardFreshlySavedEvents(payload))return;
   const token=++cloudPayloadEpoch;
   pendingCloudPayload={payload,token};
   const attempt=()=>{
@@ -475,14 +506,13 @@ function receiveCloudPayload(payload){
 }
 function refreshFromCloud(){
   clearTimeout(cloudRefreshTimer);
-  const preferred=state.selected;
   const attempt=()=>{
     const pop=$("editorPopover"),active=document.activeElement;
     const busy=pop?.classList.contains("open")||(active&&/^(INPUT|TEXTAREA|SELECT)$/i.test(active.tagName));
     if(busy){cloudRefreshTimer=setTimeout(attempt,500);return}
-    reloadStoredPlanning(preferred);
-    renderAgents();
-    renderCalendarOnly();
+    let raw="";
+    try{raw=localStorage.getItem(KEY)||""}catch{}
+    if(raw)receiveCloudPayload(raw);
   };
   cloudRefreshTimer=setTimeout(attempt,50);
 }
@@ -492,6 +522,6 @@ window.addEventListener("inovtec:planning-cloud-save-failed",e=>{
   alert("Sauvegarde Firebase impossible pour le moment : "+msg+"\nLa modification reste affichée et sera retentée automatiquement.");
 });
 window.addEventListener("inovtec:planning-cloud-updated",refreshFromCloud);
-window.addEventListener("storage",e=>{if(e.key===KEY)refreshFromCloud()});
+window.addEventListener("storage",e=>{if(e.key===KEY&&typeof e.newValue==="string"&&e.newValue)receiveCloudPayload(e.newValue)});
 render();bindHub();setInterval(()=>{if(!document.hidden&&(view==="week"||view==="day"))render()},60000);
 })();
