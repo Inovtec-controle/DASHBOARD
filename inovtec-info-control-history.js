@@ -9,7 +9,7 @@ const d=document;
 const form=d.getElementById("siteForm");
 if(!form)return;
 
-let metas=[],records=[],unsubMeta=null,unsubRecords=null,unsubSite=null,lastSiteId="",migrationBusy=false,renderTimer=null,authUser=null,retryTimer=null;
+let metas=[],records=[],unsubMeta=null,unsubRecords=null,unsubSite=null,lastSiteId="",migrationBusy=false,renderTimer=null,authUser=null,retryTimer=null,historyExpanded=false;
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 
 function selectedSiteId(){return String(form.dataset.ivChantierId||"").trim()}
@@ -69,6 +69,63 @@ function ensureStyle(){
       #ivControlHistoryCard .iv-control-history-actions{width:100%;min-width:0;display:grid;grid-template-columns:1fr}
       #ivControlHistoryCard .iv-control-history-delete{width:100%}
     }
+
+    /* Historique résidence — présentation dashboard */
+    #ivControlHistoryCard{overflow:hidden;border:1px solid #dce8e2!important;background:linear-gradient(180deg,#ffffff 0%,#fbfdfc 100%)!important}
+    #ivControlHistoryCard .iv-history-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid #e8efeb}
+    #ivControlHistoryCard .iv-history-title-wrap{display:flex;gap:11px;align-items:flex-start;min-width:0}
+    #ivControlHistoryCard .iv-history-icon{width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:#eaf7ef;color:#0b6b43;display:grid;place-items:center;font-size:19px;font-weight:900}
+    #ivControlHistoryCard .iv-history-title-copy h2{margin:1px 0 3px;font-size:16px;color:#153d2e}
+    #ivControlHistoryCard .iv-history-subtitle{font-size:11px;line-height:1.45;color:#718078}
+    #ivControlHistoryCard #ivControlHistoryCount{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:30px;padding:0 10px;border-radius:999px;background:#0b6b43;color:#fff;border:0;font-size:11px;font-weight:900}
+    #ivControlHistoryCard .iv-history-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+    #ivControlHistoryCard .iv-history-stat{padding:10px 11px;border:1px solid #e0e9e4;border-radius:12px;background:#fff;min-width:0}
+    #ivControlHistoryCard .iv-history-stat small{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.055em;color:#849188;font-weight:800;margin-bottom:4px}
+    #ivControlHistoryCard .iv-history-stat strong{display:block;font-size:12px;color:#1e4335;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #ivControlHistoryCard .iv-control-history-list{position:relative;display:grid;gap:9px;margin-top:14px}
+    #ivControlHistoryCard .iv-control-history-row{position:relative;display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:12px;padding:11px 12px;border:1px solid #e0e9e4;border-radius:14px;background:#fff;box-shadow:0 1px 1px rgba(15,23,42,.02);transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+    #ivControlHistoryCard .iv-control-history-row:hover{border-color:#bed7ca;box-shadow:0 7px 20px rgba(27,86,59,.07);transform:translateY(-1px)}
+    #ivControlHistoryCard .iv-history-date{display:grid;place-items:center;align-content:center;min-height:58px;border-radius:11px;background:#f2f8f5;border:1px solid #e0ebe5;text-align:center}
+    #ivControlHistoryCard .iv-history-date-day{font-size:20px;line-height:1;font-weight:900;color:#174433}
+    #ivControlHistoryCard .iv-history-date-month{font-size:9px;line-height:1.1;text-transform:uppercase;letter-spacing:.08em;font-weight:900;color:#5e766a;margin-top:4px}
+    #ivControlHistoryCard .iv-history-date-year{font-size:9px;color:#8b9991;margin-top:2px}
+    #ivControlHistoryCard .iv-control-history-copy{min-width:0}
+    #ivControlHistoryCard .iv-history-row-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    #ivControlHistoryCard .iv-control-history-title{font-size:12px;font-weight:900;color:#17392d}
+    #ivControlHistoryCard .iv-history-type{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;font-size:8px;font-weight:900;letter-spacing:.035em;text-transform:uppercase;background:#eaf7ef;color:#137044}
+    #ivControlHistoryCard .iv-history-type.pdf{background:#eef3f8;color:#3f5d75}
+    #ivControlHistoryCard .iv-history-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+    #ivControlHistoryCard .iv-history-chip{display:inline-flex;align-items:center;gap:4px;min-height:23px;padding:3px 7px;border-radius:8px;background:#f6f8f7;color:#607169;font-size:9px;font-weight:700;border:1px solid #edf1ef;max-width:100%}
+    #ivControlHistoryCard .iv-history-chip.score{background:#edf9f1;color:#0b7440;border-color:#d8efdf}
+    #ivControlHistoryCard .iv-history-chip.photo{background:#f2f6ff;color:#445c96;border-color:#e1e8fb}
+    #ivControlHistoryCard .iv-control-history-meta{font-size:10px;line-height:1.45;color:#718078;margin-top:5px;overflow-wrap:anywhere}
+    #ivControlHistoryCard .iv-history-observation{margin-top:7px;padding:6px 8px;border-left:3px solid #d5e5dc;border-radius:0 8px 8px 0;background:#fafcfb;color:#64736c;font-size:9.5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    #ivControlHistoryCard .iv-control-history-actions{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;justify-content:flex-end;min-width:0}
+    #ivControlHistoryCard .iv-control-history-open{min-height:35px!important;padding:7px 10px!important;border-radius:9px!important;font-size:10px!important;font-weight:800!important;white-space:nowrap}
+    #ivControlHistoryCard .iv-control-history-delete{min-height:35px!important;padding:7px 9px!important;border-radius:9px!important;font-size:10px!important}
+    #ivControlHistoryCard .iv-control-history-empty{padding:28px 18px;border:1px dashed #c9dbd2;border-radius:14px;background:#f8fbf9;color:#6f7f77;font-size:11px;text-align:center}
+    #ivControlHistoryCard .iv-history-more-wrap{display:flex;justify-content:center;margin-top:11px}
+    #ivControlHistoryCard .iv-history-more{border:1px solid #d9e5df;border-radius:10px;background:#fff;color:#315c49;padding:8px 13px;font-size:10px;font-weight:800;cursor:pointer}
+    #ivControlHistoryCard .iv-history-more:hover{background:#f4faf7;border-color:#bdd5c8}
+    #ivControlViewer .iv-control-viewer-panel{border:1px solid #dce8e2}
+    #ivControlViewer .iv-control-viewer-head{position:sticky;top:0;z-index:2}
+    @media(max-width:900px){
+      #ivControlHistoryCard .iv-history-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #ivControlHistoryCard .iv-control-history-row{grid-template-columns:62px minmax(0,1fr)}
+      #ivControlHistoryCard .iv-control-history-actions{grid-column:1/-1;justify-content:flex-end;padding-top:2px}
+    }
+    @media(max-width:620px){
+      #ivControlHistoryCard .iv-history-head{align-items:center}
+      #ivControlHistoryCard .iv-history-icon{width:34px;height:34px;flex-basis:34px}
+      #ivControlHistoryCard .iv-history-stats{grid-template-columns:1fr 1fr}
+      #ivControlHistoryCard .iv-control-history-row{display:grid;grid-template-columns:55px minmax(0,1fr);gap:9px;padding:9px}
+      #ivControlHistoryCard .iv-history-date{min-height:53px}
+      #ivControlHistoryCard .iv-history-date-day{font-size:17px}
+      #ivControlHistoryCard .iv-control-history-copy{min-width:0}
+      #ivControlHistoryCard .iv-control-history-actions{display:grid;grid-template-columns:1fr auto;width:100%;grid-column:1/-1}
+      #ivControlHistoryCard .iv-control-history-open{width:100%}
+      #ivControlHistoryCard .iv-control-history-delete{width:auto}
+    }
   `;
   d.head.appendChild(s);
 }
@@ -77,11 +134,38 @@ function ensureCard(){
   let card=d.getElementById("ivControlHistoryCard");
   if(!card){
     card=d.createElement("section");card.id="ivControlHistoryCard";card.className="card";
-    const head=d.createElement("div");head.className="section-title";
-    const title=d.createElement("h2");title.textContent="Historique des contrôles";
-    const count=d.createElement("span");count.id="ivControlHistoryCount";count.className="status";count.textContent="0";
     const list=d.createElement("div");list.id="ivControlHistoryList";list.className="iv-control-history-list";
-    head.append(title,count);card.append(head,list);
+    card.appendChild(list);
+  }
+  if(card.dataset.ivHistoryDashboard!=="1"){
+    const oldHead=card.querySelector(".section-title");
+    if(oldHead)oldHead.remove();
+    let list=card.querySelector("#ivControlHistoryList");
+    if(!list){list=d.createElement("div");list.id="ivControlHistoryList";list.className="iv-control-history-list";card.appendChild(list)}
+    const head=d.createElement("div");head.className="iv-history-head";
+    const titleWrap=d.createElement("div");titleWrap.className="iv-history-title-wrap";
+    const icon=d.createElement("div");icon.className="iv-history-icon";icon.textContent="✓";
+    const titleCopy=d.createElement("div");titleCopy.className="iv-history-title-copy";
+    const title=d.createElement("h2");title.textContent="Historique des contrôles";
+    const subtitle=d.createElement("div");subtitle.className="iv-history-subtitle";subtitle.textContent="Suivi qualité de la résidence, du plus récent au plus ancien.";
+    titleCopy.append(title,subtitle);titleWrap.append(icon,titleCopy);
+    let count=d.getElementById("ivControlHistoryCount");
+    if(!count){count=d.createElement("span");count.id="ivControlHistoryCount"}
+    count.className="status";count.textContent=count.textContent||"0";
+    head.append(titleWrap,count);
+
+    const stats=d.createElement("div");stats.id="ivControlHistoryStats";stats.className="iv-history-stats";
+    const stat=(id,label)=>{const box=d.createElement("div");box.className="iv-history-stat";const small=d.createElement("small");small.textContent=label;const strong=d.createElement("strong");strong.id=id;strong.textContent="—";box.append(small,strong);return box};
+    stats.append(stat("ivHistoryStatTotal","Contrôles"),stat("ivHistoryStatLast","Dernier contrôle"),stat("ivHistoryStatPhotos","Avec photos"),stat("ivHistoryStatPdf","PDF archivés"));
+
+    const moreWrap=d.createElement("div");moreWrap.className="iv-history-more-wrap";moreWrap.id="ivControlHistoryMoreWrap";moreWrap.hidden=true;
+    const more=d.createElement("button");more.type="button";more.className="iv-history-more";more.id="ivControlHistoryMore";more.addEventListener("click",()=>{historyExpanded=!historyExpanded;scheduleRender(0)});
+    moreWrap.appendChild(more);
+
+    card.insertBefore(head,card.firstChild);
+    card.insertBefore(stats,list);
+    card.appendChild(moreWrap);
+    card.dataset.ivHistoryDashboard="1";
   }
   const sticky=form.querySelector(".sticky-save");
   if(sticky&&card.nextElementSibling!==sticky)form.insertBefore(card,sticky);
@@ -94,6 +178,37 @@ function formatControlDate(value){
   if(!raw)return"";
   const x=new Date(raw);
   return Number.isNaN(x.getTime())?raw:new Intl.DateTimeFormat("fr-FR",{dateStyle:"short"}).format(x);
+}
+function historyDateParts(item){
+  const raw=item?.__kind==="record"
+    ?(item.controlDate||item.timeCreated||(item.createdAtMs?new Date(Number(item.createdAtMs)).toISOString():""))
+    :((item.customMetadata||{}).controlDate||item.controlDate||item.timeCreated||(item.createdAtMs?new Date(Number(item.createdAtMs)).toISOString():""));
+  const x=raw?new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(raw))?String(raw)+"T12:00:00":raw):null;
+  if(!x||Number.isNaN(x.getTime()))return{day:"—",month:"",year:"",label:formatControlDate(raw)||"Date inconnue"};
+  return{
+    day:String(x.getDate()).padStart(2,"0"),
+    month:new Intl.DateTimeFormat("fr-FR",{month:"short"}).format(x).replace(".",""),
+    year:String(x.getFullYear()),
+    label:new Intl.DateTimeFormat("fr-FR",{dateStyle:"medium"}).format(x)
+  };
+}
+function historyChip(text,kind=""){
+  const chip=d.createElement("span");chip.className="iv-history-chip"+(kind?" "+kind:"");chip.textContent=text;return chip;
+}
+function historyDateBadge(item){
+  const p=historyDateParts(item),box=d.createElement("div");box.className="iv-history-date";box.title=p.label;
+  const day=d.createElement("div");day.className="iv-history-date-day";day.textContent=p.day;
+  const month=d.createElement("div");month.className="iv-history-date-month";month.textContent=p.month;
+  const year=d.createElement("div");year.className="iv-history-date-year";year.textContent=p.year;
+  box.append(day,month,year);return box;
+}
+function setHistoryStat(id,value){const e=d.getElementById(id);if(e)e.textContent=String(value??"—")}
+function renderHistoryStats(rows){
+  const last=rows[0],photos=rows.filter(x=>x.__kind==="record"&&Number(x.photoCount)>0).length,pdfs=rows.filter(x=>x.__kind==="pdf").length;
+  setHistoryStat("ivHistoryStatTotal",rows.length);
+  setHistoryStat("ivHistoryStatLast",last?historyDateParts(last).label:"—");
+  setHistoryStat("ivHistoryStatPhotos",photos);
+  setHistoryStat("ivHistoryStatPdf",pdfs);
 }
 function createdMs(meta){
   const n=Number(meta?.createdAtMs)||0;if(n)return n;
@@ -357,68 +472,81 @@ function matchingRows(siteId){
   return pdfRows.concat(controlRows).sort((a,b)=>createdMs(b)-createdMs(a));
 }
 function render(){
-  const card=ensureCard(),list=d.getElementById("ivControlHistoryList"),count=d.getElementById("ivControlHistoryCount");
+  const card=ensureCard(),list=d.getElementById("ivControlHistoryList"),count=d.getElementById("ivControlHistoryCount"),moreWrap=d.getElementById("ivControlHistoryMoreWrap"),more=d.getElementById("ivControlHistoryMore");
   if(!card||!list||!count)return;
   const siteId=selectedSiteId();
   if(form.classList.contains("hidden")||!siteId){
-    count.textContent="0";
-    list.innerHTML='<div class="iv-control-history-empty">Sélectionne un chantier enregistré pour afficher ses contrôles.</div>';
+    count.textContent="0";renderHistoryStats([]);
+    if(moreWrap)moreWrap.hidden=true;
+    list.innerHTML='<div class="iv-control-history-empty">Sélectionne une résidence enregistrée pour afficher son historique de contrôles.</div>';
     return;
   }
-  const rows=matchingRows(siteId);count.textContent=String(rows.length);list.innerHTML="";
+  const rows=matchingRows(siteId);count.textContent=String(rows.length);renderHistoryStats(rows);list.innerHTML="";
   if(!rows.length){
-    const empty=d.createElement("div");empty.className="iv-control-history-empty";empty.textContent="Aucun contrôle enregistré pour ce chantier.";list.appendChild(empty);return;
+    if(moreWrap)moreWrap.hidden=true;
+    const empty=d.createElement("div");empty.className="iv-control-history-empty";empty.innerHTML="<strong style='display:block;color:#355648;margin-bottom:4px'>Aucun contrôle pour le moment</strong><span>Les prochains contrôles KONTROL apparaîtront automatiquement ici.</span>";list.appendChild(empty);return;
   }
-  rows.forEach(item=>{
+
+  const limit=6,visible=historyExpanded?rows:rows.slice(0,limit);
+  if(moreWrap&&more){
+    moreWrap.hidden=rows.length<=limit;
+    more.textContent=historyExpanded?"Afficher seulement les plus récents":"Afficher les "+(rows.length-limit)+" contrôle"+((rows.length-limit)>1?"s":"")+" plus ancien"+((rows.length-limit)>1?"s":"");
+  }
+
+  visible.forEach(item=>{
     const row=d.createElement("div");row.className="iv-control-history-row";
+    row.appendChild(historyDateBadge(item));
+
     const copy=d.createElement("div");copy.className="iv-control-history-copy";
+    const top=d.createElement("div");top.className="iv-history-row-top";
     const title=d.createElement("div");title.className="iv-control-history-title";
-    const details=d.createElement("div");details.className="iv-control-history-meta";
+    const type=d.createElement("span");type.className="iv-history-type"+(item.__kind==="pdf"?" pdf":"");
+    const chips=d.createElement("div");chips.className="iv-history-chips";
+
+    const actions=d.createElement("div");actions.className="iv-control-history-actions";
 
     if(item.__kind==="record"){
       title.textContent="Contrôle qualité";
-      const bits=[];
-      const fallbackDate=item.timeCreated||(item.createdAtMs?new Date(Number(item.createdAtMs)).toISOString():"");
-      const displayDate=formatControlDate(item.controlDate||fallbackDate);
-      if(displayDate)bits.push(displayDate);
-      if(item.controlTime)bits.push(item.controlTime);
-      if(item.score)bits.push("Note : "+item.score);
-      if(item.controller)bits.push("Contrôleur : "+item.controller);
-      if(item.agents)bits.push("Agent(s) : "+item.agents);
-      details.textContent=bits.join(" • ")||"Contrôle KONTROL enregistré";
-      copy.append(title,details);
-      if(item.observations){
-        const obs=d.createElement("div");
-        obs.className="iv-control-history-meta";
-        obs.style.marginTop="6px";
-        obs.textContent="Observations : "+item.observations;
-        copy.appendChild(obs);
+      type.textContent="Contrôle détaillé";
+      const displayTime=String(item.controlTime||"").trim();
+      if(displayTime)chips.appendChild(historyChip("◷ "+displayTime));
+      if(item.score)chips.appendChild(historyChip("Note · "+item.score,"score"));
+      if(item.controller)chips.appendChild(historyChip("Contrôleur · "+item.controller));
+      if(item.agents)chips.appendChild(historyChip("Agent(s) · "+item.agents));
+      const photoCount=Number(item.photoCount)||0;
+      if(photoCount)chips.appendChild(historyChip("▣ "+photoCount+" photo"+(photoCount>1?"s":""),"photo"));
+      top.append(type,title);copy.append(top);
+      if(chips.children.length)copy.appendChild(chips);
+      if(item.createdByEmail){
+        const meta=d.createElement("div");meta.className="iv-control-history-meta";meta.textContent="Enregistré par "+item.createdByEmail;copy.appendChild(meta);
       }
-      const actions=d.createElement("div");actions.className="iv-control-history-actions";
-      const badge=d.createElement("span");badge.className="status ok";badge.textContent=(Number(item.photoCount)||0)?((Number(item.photoCount)||0)+" photo"+((Number(item.photoCount)||0)>1?"s":"")):"Contrôle enregistré";
-      const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Visualiser le contrôle";
+      if(item.observations){
+        const obs=d.createElement("div");obs.className="iv-history-observation";obs.textContent=item.observations;copy.appendChild(obs);
+      }
+
+      const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Voir le contrôle";
       button.addEventListener("click",()=>openControlViewer(item,button));
       const del=d.createElement("button");del.type="button";del.className="iv-control-history-delete";del.textContent="Supprimer";del.title="Supprimer ce contrôle";del.setAttribute("aria-label","Supprimer ce contrôle");
       del.addEventListener("click",()=>deleteControlRecord(item,del));
-      actions.append(badge,button,del);
-      row.append(copy,actions);
+      actions.append(button,del);
     }else{
       const custom=item.customMetadata||{};
-      title.textContent=formatControlDate(custom.controlDate||item.controlDate)||"Contrôle qualité";
-      const bits=[];
-      if(custom.controller)bits.push("Contrôleur : "+custom.controller);
-      if(custom.agents)bits.push("Agent(s) : "+custom.agents);
-      if(item.createdByEmail)bits.push("Enregistré par "+item.createdByEmail);
-      details.textContent=bits.join(" • ")||String(item.originalName||custom.originalName||"PDF KONTROL");
-      const actions=d.createElement("div");actions.className="iv-control-history-actions";
-      const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Consulter le PDF";
+      title.textContent="Contrôle archivé";
+      type.textContent="PDF";
+      if(custom.controller)chips.appendChild(historyChip("Contrôleur · "+custom.controller));
+      if(custom.agents)chips.appendChild(historyChip("Agent(s) · "+custom.agents));
+      if(item.createdByEmail)chips.appendChild(historyChip("Enregistré par "+item.createdByEmail));
+      top.append(type,title);copy.append(top);
+      if(chips.children.length)copy.appendChild(chips);
+      const meta=d.createElement("div");meta.className="iv-control-history-meta";meta.textContent=String(item.originalName||custom.originalName||"Document KONTROL");copy.appendChild(meta);
+
+      const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Ouvrir le PDF";
       button.addEventListener("click",()=>openPdf(item,button));
       const del=d.createElement("button");del.type="button";del.className="iv-control-history-delete";del.textContent="Supprimer";del.title="Supprimer ce contrôle";del.setAttribute("aria-label","Supprimer ce contrôle");
       del.addEventListener("click",()=>deletePdfHistory(item,del));
       actions.append(button,del);
-      copy.append(title,details);row.append(copy,actions);
     }
-    list.appendChild(row);
+    row.append(copy,actions);list.appendChild(row);
   });
 }
 function scheduleRender(delay=30){clearTimeout(renderTimer);renderTimer=setTimeout(render,delay)}
@@ -486,12 +614,12 @@ ensureCard();
 const observer=new MutationObserver(muts=>{
   if(muts.some(m=>m.type==="attributes"&&(m.attributeName==="data-iv-chantier-id"||m.attributeName==="class"))){
     const id=selectedSiteId();
-    if(id!==lastSiteId){lastSiteId=id;bindSelectedSiteIndex();scheduleRender(0);setTimeout(migrateExactLegacyLinks,70)}
+    if(id!==lastSiteId){lastSiteId=id;historyExpanded=false;bindSelectedSiteIndex();scheduleRender(0);setTimeout(migrateExactLegacyLinks,70)}
   }
 });
 observer.observe(form,{attributes:true,attributeFilter:["data-iv-chantier-id","class"]});
 d.addEventListener("click",event=>{
-  if(event.target?.closest?.(".site-item"))setTimeout(()=>{lastSiteId=selectedSiteId();bindSelectedSiteIndex();scheduleRender(0);migrateExactLegacyLinks()},50);
+  if(event.target?.closest?.(".site-item"))setTimeout(()=>{lastSiteId=selectedSiteId();historyExpanded=false;bindSelectedSiteIndex();scheduleRender(0);migrateExactLegacyLinks()},50);
 },true);
 d.addEventListener("iv:chantier-saved",()=>setTimeout(()=>{lastSiteId=selectedSiteId();bindSelectedSiteIndex();scheduleRender(0);migrateExactLegacyLinks()},70));
 if(auth){
