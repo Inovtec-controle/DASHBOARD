@@ -179,6 +179,10 @@ async function send(){
 }
 async function receive(remote){
   if(!user||!initialized||typeof remote!=='string')return;
+  if(mode==='planning'&&pendingPlanningPayload){
+    schedule(100);
+    return;
+  }
   let current;try{current=packed(local())}catch(e){report('Firebase — '+e.message);return}
   if(remote===base){if(current!==base)schedule(100);return}
   // No established baseline: server wins rather than endlessly retrying an old migration.
@@ -258,8 +262,8 @@ if(mode==='planning'&&!frame){
   // La sauvegarde Firebase est déclenchée explicitement par inovtec:planning-local-saved.
   document.addEventListener('input',()=>{activity=Date.now()},true);
 }
-setInterval(()=>{if(user&&initialized&&!applying){try{if(packed(local())!==base)schedule(50)}catch(e){report('Firebase — '+e.message)}}},6000);
-window.addEventListener('online',()=>{if(user){if(!initialized)void boot(user.uid,generation);else void refresh()}});
+setInterval(()=>{if(user&&initialized&&!applying){try{if((mode==='planning'&&pendingPlanningPayload)||packed(local())!==base)schedule(50)}catch(e){report('Firebase — '+e.message)}}},6000);
+window.addEventListener('online',()=>{if(user){if(!initialized)void boot(user.uid,generation);else if(mode==='planning'&&pendingPlanningPayload)schedule(20);else void refresh()}});
 window.addEventListener('inovtec:planning-local-saved',ev=>{
   if(mode!=='planning')return;
   lastLocalPlanningSave=Date.now();
