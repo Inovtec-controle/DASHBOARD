@@ -29,7 +29,7 @@ const persist=s=>{
   const payload=JSON.stringify(s);
   try{localStorage.setItem(KEY,payload)}catch(e){console.warn('Planning équipe : copie locale indisponible',e)}
   window.dispatchEvent(new CustomEvent('inovtec:planning-local-saved',{detail:{at:Date.now(),payload,stored:true,source:'team'}}));
-  window.dispatchEvent(new Event('inovtec:planning-cloud-updated'));
+  window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload,stored:true,source:'team-local'}}));
 };
 function protectAndShare(s,team,week,sourceId,initial=false){
  if(!Array.isArray(team.members)||team.members.length<2||!team.members.includes(sourceId))return false;
