@@ -110,6 +110,44 @@ function headerForDates(dates){const head=$("weekHead");head.innerHTML='<div cla
 function minuteFromPointer(col,y){const r=col.getBoundingClientRect(),raw=START_HOUR*60+((y-r.top)/HOUR_PX)*60;return Math.max(START_HOUR*60,Math.min(END_HOUR*60-15,round15(raw)))}
 function eventPosition(e){const s=timeToMin(e.start),en=Math.max(s+15,timeToMin(e.end));return{top:((s-START_HOUR*60)/60)*HOUR_PX,height:Math.max(24,((en-s)/60)*HOUR_PX)}}
 function createEventCard(week,e){const a=agentById(e.agentId),pos=eventPosition(e),card=document.createElement("article");card.className="event-card"+(selectedEvent===e.id?" selected":"");card.dataset.id=e.id;card.dataset.week=week;card.style.setProperty("--event-color",a?.color||"#4f9f57");card.style.top=pos.top+"px";card.style.height=pos.height+"px";card.innerHTML=`<div class="event-time">${e.start||""} – ${e.end||""}</div><div class="event-title"></div><div class="event-site"></div><div class="event-resize"></div>`;card.querySelector(".event-title").textContent=e.task||"Intervention";card.querySelector(".event-site").textContent=e.site||"";card.ondblclick=ev=>{if(Date.now()<suppressClickUntil)return;ev.preventDefault();ev.stopPropagation();selectedEvent=e.id;openEditor(week,e,ev.clientX,ev.clientY)};card.oncontextmenu=ev=>{ev.preventDefault();ev.stopPropagation();openEditor(week,e,ev.clientX,ev.clientY)};card.addEventListener("mousedown",ev=>{if(ev.button!==0)return;ev.stopPropagation();if(ev.target.classList.contains("event-resize"))startResize(ev,week,e,card);else startMove(ev,week,e,card)});return card}
+function removeDraftPreview(){document.querySelectorAll(".event-card.draft-preview").forEach(card=>card.remove())}
+function previewFromEditor(){
+  const pop=$("editorPopover");
+  if(!draftEvent||pop?.dataset.draft!=="1"||!pop.classList.contains("open"))return null;
+  const d=parseDateInput($("edDate").value);
+  if(!d)return null;
+  const start=validTime($("edStart").value,draftEvent.start||"09:00");
+  let end=validTime($("edEnd").value,draftEvent.end||"10:00");
+  if(timeToMin(end)<=timeToMin(start))end=minToTime(Math.min(1439,timeToMin(start)+15));
+  const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__";
+  return{
+    ...draftEvent,
+    agentId:$("edAgent").value||draftEvent.agentId,
+    day:mondayIndex(d),
+    start,end,
+    chantierId:chosen?.id||"",
+    task:chosen?(chosen.nom||chosen.adresse||"Chantier"):(legacy?($("edTitle").dataset.legacyTitle||draftEvent.task):"Nouvelle intervention"),
+    site:$("edSite").value.trim(),
+    note:$("edNote").value.trim(),
+    week:isoWeekKey(d)
+  };
+}
+function renderDraftPreview(){
+  removeDraftPreview();
+  const e=previewFromEditor();if(!e)return;
+  const layer=$("daysLayer");if(!layer)return;
+  const col=[...layer.querySelectorAll(".day-column")].find(x=>x.dataset.week===e.week&&Number(x.dataset.day)===Number(e.day));
+  if(!col)return;
+  const a=agentById(e.agentId),pos=eventPosition(e),card=document.createElement("article");
+  card.className="event-card draft-preview";
+  card.dataset.id=e.id;card.dataset.week=e.week;
+  card.style.setProperty("--event-color",a?.color||"#4f9f57");
+  card.style.top=pos.top+"px";card.style.height=pos.height+"px";
+  card.innerHTML=`<div class="event-time">${e.start||""} – ${e.end||""}</div><div class="event-title"></div><div class="event-site"></div>`;
+  card.querySelector(".event-title").textContent=e.task||"Nouvelle intervention";
+  card.querySelector(".event-site").textContent=e.site||"Aperçu avant enregistrement";
+  col.appendChild(card);
+}
 function renderTimeGrid(dates){$("calendarViewport").innerHTML='<div class="week-head" id="weekHead"></div><div class="calendar-body"><div class="time-rail" id="timeRail"></div><div class="days-layer" id="daysLayer"></div></div>';headerForDates(dates);const rail=$("timeRail");for(let h=START_HOUR;h<=END_HOUR;h++){const l=document.createElement("div");l.className="time-label";l.style.top=((h-START_HOUR)*HOUR_PX)+"px";l.textContent=pad(h)+":00";rail.appendChild(l)}const layer=$("daysLayer");layer.style.gridTemplateColumns=`repeat(${dates.length},1fr)`;const now=new Date();dates.forEach(d=>{const col=document.createElement("div");col.className="day-column"+([5,6].includes(mondayIndex(d))?" weekend":"");col.dataset.date=dateInput(d);col.dataset.week=isoWeekKey(d);col.dataset.day=mondayIndex(d);col.addEventListener("dblclick",createOnDoubleClick);layer.appendChild(col);entriesForDate(d).filter(e=>visibleAgents.has(e.agentId)).forEach(e=>col.appendChild(createEventCard(isoWeekKey(d),e)));if(sameDate(d,now)){const mins=now.getHours()*60+now.getMinutes();if(mins>=START_HOUR*60&&mins<=END_HOUR*60){const line=document.createElement("div");line.className="now-line";line.style.top=(((mins-START_HOUR*60)/60)*HOUR_PX)+"px";col.appendChild(line)}}})}
 function createFromTimeColumn(col,clientX,clientY){if(!col)return;if(!state.selected){alert("Sélectionne d’abord un agent dans la liste de gauche.");return}closeEditor();closeContext();try{window.getSelection()?.removeAllRanges()}catch{}const start=minuteFromPointer(col,clientY),end=Math.min(END_HOUR*60,start+60),week=col.dataset.week,day=Number(col.dataset.day);draftEvent={id:uid("e"),agentId:state.selected,day,start:minToTime(start),end:minToTime(end),task:"Nouvelle intervention",site:"",chantierId:"",note:""};openEditor(week,draftEvent,clientX,clientY,true)}
 function createOnDoubleClick(ev){if(ev.button!==0||ev.target.closest(".event-card"))return;ev.preventDefault();ev.stopPropagation();createFromTimeColumn(ev.currentTarget,ev.clientX,ev.clientY)}
@@ -150,6 +188,7 @@ function openEditor(week,e,x,y,isDraft=false){
   pop.dataset.id=e.id;
   pop.dataset.draft=isDraft?"1":"0";
   pop.classList.add("open");
+  if(isDraft)renderDraftPreview();
   pop.style.maxHeight="calc(100vh - 16px)";
   pop.style.overflowY="auto";
   requestAnimationFrame(()=>{
@@ -161,6 +200,7 @@ function openEditor(week,e,x,y,isDraft=false){
   });
 }
 function closeEditor(){
+  removeDraftPreview();
   selectedEvent=null;
   draftEvent=null;
   const pop=$("editorPopover");
@@ -169,15 +209,19 @@ function closeEditor(){
   document.querySelectorAll(".event-card.selected").forEach(x=>x.classList.remove("selected"));
 }
 function saveEditor(){
-  const pop=$("editorPopover"),oldWeek=pop.dataset.week,isDraft=pop.dataset.draft==="1";
+  const pop=$("editorPopover");
+  if(pop.dataset.saving==="1"||!pop.classList.contains("open"))return;
+  pop.dataset.saving="1";
+  const release=()=>{pop.dataset.saving="0"};
+  const oldWeek=pop.dataset.week,isDraft=pop.dataset.draft==="1";
   let e=isDraft?draftEvent:eventRef(oldWeek,pop.dataset.id);
-  if(!e){closeEditor();return}
+  if(!e){release();closeEditor();return}
   const d=parseDateInput($("edDate").value);
-  if(!d)return;
+  if(!d){release();return}
   const start=$("edStart").value,end=$("edEnd").value;
-  if(timeToMin(end)<=timeToMin(start)){alert("L’heure de fin doit être après le début.");return}
+  if(timeToMin(end)<=timeToMin(start)){release();alert("L’heure de fin doit être après le début.");return}
   const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__";
-  if(!chosen&&!legacy){alert("Choisis un chantier dans la liste.");$("edTitle").focus();return}
+  if(!chosen&&!legacy){release();alert("Choisis un chantier dans la liste.");$("edTitle").focus();return}
   const oldAgentId=e.agentId,newWeek=isoWeekKey(d);
   const next={...e,agentId:$("edAgent").value,day:mondayIndex(d),start,end,note:$("edNote").value.trim()};
   if(chosen){
@@ -203,6 +247,7 @@ function saveEditor(){
   const savedId=next.id;
   save();
   closeEditor();
+  release();
   render();
   requestAnimationFrame(()=>{
     const card=document.querySelector('.event-card[data-id="'+CSS.escape(savedId)+'"]');
@@ -229,7 +274,7 @@ function deleteEdited(){
     render();
   }
 }
-function render(){try{syncAgentsFromHub();enforceSingleAgent();ensureParityForCurrentView();renderToolbar();renderAgents();updateMeta();if(view==="month")renderMonth();else if(view==="list")renderList();else if(view==="day")renderTimeGrid([cloneDate(currentDate)]);else{const s=weekStart(currentDate);renderTimeGrid(Array.from({length:7},(_,i)=>addDays(s,i)))}}catch(error){console.error("Rendu Planning interrompu",error);const viewport=$("calendarViewport");if(viewport&&!viewport.querySelector(".planning-render-error")){viewport.innerHTML='<div class="empty-state planning-render-error">Le planning récupère ses données. Réessaie dans quelques instants.</div>'}}}
+function render(){try{syncAgentsFromHub();enforceSingleAgent();ensureParityForCurrentView();renderToolbar();renderAgents();updateMeta();if(view==="month")renderMonth();else if(view==="list")renderList();else if(view==="day")renderTimeGrid([cloneDate(currentDate)]);else{const s=weekStart(currentDate);renderTimeGrid(Array.from({length:7},(_,i)=>addDays(s,i)))}if(draftEvent&&$("editorPopover")?.dataset.draft==="1")renderDraftPreview()}catch(error){console.error("Rendu Planning interrompu",error);const viewport=$("calendarViewport");if(viewport&&!viewport.querySelector(".planning-render-error")){viewport.innerHTML='<div class="empty-state planning-render-error">Le planning récupère ses données. Réessaie dans quelques instants.</div>'}}}
 function navigate(dir){if(view==="month")currentDate=new Date(currentDate.getFullYear(),currentDate.getMonth()+dir,1);else currentDate=addDays(currentDate,dir*(view==="day"?1:7));closeEditor();render()}
 function exportData(){const b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="inovtec_plannings_"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u)}
 function importData(file){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.agents)||!x.weeks)throw Error("format incompatible");state=x;state.agents.forEach((a,i)=>{if(!a.color)a.color=COLORS[i%COLORS.length];normalizeParityAgent(a)});syncAgentsFromHub();if(!state.agents.some(a=>a.id===state.selected))state.selected=state.agents[0]?.id;save();render();alert("Import réussi.")}catch(err){alert("Import impossible : "+err.message)}};r.readAsText(file)}
@@ -240,7 +285,24 @@ $("agentSearch").addEventListener("input",renderAgents);
 
 document.querySelectorAll(".view-tab").forEach(b=>b.onclick=()=>{view=b.dataset.view;closeEditor();render()});
 $("prevBtn").onclick=()=>navigate(-1);$("nextBtn").onclick=()=>navigate(1);$("todayBtn").onclick=()=>{currentDate=new Date();closeEditor();render()};
-$("edTitle").addEventListener("change",applySelectedChantier);$("edDone").onclick=saveEditor;$("edDelete").onclick=deleteEdited;
+$("edTitle").addEventListener("change",()=>{applySelectedChantier();renderDraftPreview()});
+["edSite","edDate","edStart","edEnd","edAgent","edNote"].forEach(id=>{
+  $(id)?.addEventListener("input",renderDraftPreview);
+  $(id)?.addEventListener("change",renderDraftPreview);
+});
+let donePointerHandled=false;
+$("edDone").addEventListener("pointerdown",e=>{
+  if(e.button!=null&&e.button!==0)return;
+  donePointerHandled=true;
+  e.preventDefault();e.stopPropagation();
+  saveEditor();
+  setTimeout(()=>{donePointerHandled=false},0);
+});
+$("edDone").addEventListener("click",e=>{
+  e.preventDefault();e.stopPropagation();
+  if(!donePointerHandled&&$("editorPopover").classList.contains("open"))saveEditor();
+});
+$("edDelete").onclick=deleteEdited;
 $("editorPopover").addEventListener("mousedown",e=>e.stopPropagation());
 $("exportBtn").onclick=exportData;$("importFile").onchange=e=>{const f=e.target.files?.[0];if(f)importData(f);e.target.value=""};$("printBtn").onclick=()=>window.print();
 document.addEventListener("mousedown",e=>{if(!e.target.closest("#contextMenu"))closeContext();if(!e.target.closest("#editorPopover")&&!e.target.closest(".event-card")&&!e.target.closest(".month-event")&&!e.target.closest(".list-item"))closeEditor()});
