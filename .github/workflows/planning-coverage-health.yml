@@ -32,7 +32,8 @@ jobs:
           grep -q 'draftEvent' planning-calendar.js
           grep -q 'saveEditor' planning-calendar.js
           grep -q 'inovtec-data-hub.js' PLANNINGS-APP.html
-          grep -q 'inovtec-cloud-sync-v2.js' PLANNINGS-APP.html
+          grep -q 'planning-firebase-direct.js' PLANNINGS-APP.html
+          ! grep -q 'inovtec-cloud-sync-v2.js' PLANNINGS-APP.html
           grep -q 'planning-replacement.js' PLANNINGS-APP.html
           grep -q 'planning-pdf.js' PLANNINGS-APP.html
           grep -q 'planning-legal-guard.js' PLANNINGS-APP.html
@@ -40,6 +41,6 @@ jobs:
           grep -q 'planning-copy-count.js' PLANNINGS-APP.html
           ! grep -q 'id="addTaskBtn"' PLANNINGS-APP.html
           node --check planning-calendar.js
-          node --check inovtec-cloud-sync-v2.js
+          node --check planning-firebase-direct.js
           node --check planning-team-safe-ui.js
           node --check planning-replacement.js
