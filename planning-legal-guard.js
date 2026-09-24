@@ -24,7 +24,7 @@ function norm(v){
     .toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 }
 function state(){
-  try{return JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch{return{}}
+  try{return window.InovtecPlanningAPI?.getState?.()||{}}catch{return{}}
 }
 function timeMin(v){
   const m=String(v||"").match(/^(\d{1,2}):(\d{2})$/);
