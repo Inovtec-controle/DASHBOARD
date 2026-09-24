@@ -42,6 +42,9 @@ try{
   await page.locator('#agentSearch').fill('');
   await page.locator('.agent-row[data-agent-id="agent-a"]').click();
   assert((await page.locator('.agent-row.active').getAttribute('data-agent-id'))==='agent-a','Sélection agent incorrecte');
+  await page.locator('.agent-row[data-agent-id="agent-b"]').click();
+  assert((await page.locator('.agent-row.active').getAttribute('data-agent-id'))==='agent-b','Le changement d’agent exige encore un clic sur Aujourd’hui');
+  await page.locator('.agent-row[data-agent-id="agent-a"]').click();
 
   // Vues
   for(const [view,selector] of [['day','.day-column'],['month','.month-view'],['list','.list-view'],['week','.day-column']]){
@@ -75,8 +78,8 @@ try{
   const previewText=(await page.locator('.event-card.draft-preview').innerText()).replace(/\s+/g,' ');
   assert(previewText.includes('11:00')&&previewText.includes('12:00')&&previewText.includes('Chantier Beta'),'L’aperçu provisoire ne suit pas les modifications de la bulle');
   await page.locator('#edDone').click();
-  await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
-  assert(await page.locator('.event-card').count()===1,'La tâche créée au double-clic n’apparaît pas après Terminé');
+  await page.locator('#editorPopover').waitFor({state:'hidden',timeout:1500});
+  assert(await page.locator('.event-card').count()===1,'La tâche créée au double-clic n’apparaît pas immédiatement après Terminé');
   const visibleCard=page.locator('.event-card').first();
   const visual=await visibleCard.evaluate(el=>{
     const r=el.getBoundingClientRect(),s=getComputedStyle(el);
