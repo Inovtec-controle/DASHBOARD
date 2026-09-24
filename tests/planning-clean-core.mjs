@@ -170,7 +170,7 @@ try{
   await page.locator('#editorPopover.open').waitFor({state:'visible',timeout:5000});
   const beforeDelete=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
   const beforeCount=Object.values(beforeDelete.weeks||{}).flat().length;
-  const deletedId=page.locator('#editorPopover').getAttribute('data-id');
+  const deletedId=await page.locator('#editorPopover').getAttribute('data-id');
   await page.locator('#edDelete').click();
   await page.locator('#editorPopover').waitFor({state:'hidden',timeout:5000});
   const afterDelete=await page.evaluate(()=>window.InovtecPlanningAPI.getState());
