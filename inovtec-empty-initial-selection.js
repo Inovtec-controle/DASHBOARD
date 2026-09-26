@@ -38,7 +38,8 @@ function syncAgentCardVisibility(){
   const card=(chip||form||noMsg)?.closest(".card");
   if(!card)return;
   const chipText=(chip?.textContent||"").trim().toLowerCase();
-  const selected=w.state?.agents?.find?.(a=>a?.id===w.state?.selectedId);\n  const hasAgent=!!selected && selected?._deleted!==true;
+  const selected=w.state?.agents?.find?.(a=>a?.id===w.state?.selectedId);
+  const hasAgent=!!selected && selected?._deleted!==true;
   if(card.hidden===!hasAgent)return;
   card.hidden=!hasAgent;
   card.setAttribute("aria-hidden",hasAgent?"false":"true");
