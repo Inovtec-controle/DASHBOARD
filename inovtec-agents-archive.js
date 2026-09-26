@@ -16,7 +16,7 @@ function install(){
 
     const css=d.createElement("style");
     css.textContent=`
-      .ivAgentHeaderActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}\n      .ivAgentCardActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-left:auto}\n      .ivAgentCardActions .miniBtn{white-space:nowrap}
+      .ivAgentHeaderActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}\n      .ivAgentCardActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:0 0 12px 0;padding:0 0 12px 0;border-bottom:1px solid rgba(148,163,184,.24)}\n      .ivAgentCardActions .miniBtn{white-space:nowrap}
       .ivNewAgentBtn{border-color:rgba(22,163,74,.28)!important;background:rgba(22,163,74,.10)!important;color:#15803d!important}\n      .ivArchiveBtn{border-color:rgba(245,158,11,.3)!important;background:rgba(245,158,11,.12)!important;color:#b45309!important}
       .ivArchivesBtn{border:1px solid rgba(100,116,139,.22);background:rgba(100,116,139,.10);color:#475569;padding:8px 10px;border-radius:12px;font-weight:900;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
       .ivArchivesCount{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#fff;border:1px solid rgba(100,116,139,.18);font-size:11px}
@@ -158,7 +158,21 @@ function install(){
         archiveBtn.insertAdjacentElement("beforebegin",newBtn);
       }
       deleteBtn.textContent="Supprimer définitivement";
-      deleteBtn.title="Suppression irréversible";\n\n      const formCard=d.getElementById("agentForm")?.closest(".card");\n      const formHeader=formCard?.querySelector(".cardHeader");\n      if(formHeader){\n        let actions=d.getElementById("ivAgentCardActions");\n        if(!actions){actions=d.createElement("div");actions.id="ivAgentCardActions";actions.className="ivAgentCardActions";formHeader.appendChild(actions)}\n        const newBtn=d.getElementById("btnNewAgentInCard");\n        if(newBtn)actions.appendChild(newBtn);\n        actions.appendChild(archiveBtn);\n        actions.appendChild(deleteBtn);\n      }
+      deleteBtn.title="Suppression irréversible";\n\n      const agentForm=d.getElementById("agentForm");
+      const cardBody=agentForm?.parentElement;
+      if(agentForm&&cardBody){
+        let actions=d.getElementById("ivAgentCardActions");
+        if(!actions){
+          actions=d.createElement("div");
+          actions.id="ivAgentCardActions";
+          actions.className="ivAgentCardActions";
+          cardBody.insertBefore(actions,agentForm);
+        }
+        const newBtn=d.getElementById("btnNewAgentInCard");
+        if(newBtn)actions.appendChild(newBtn);
+        actions.appendChild(archiveBtn);
+        actions.appendChild(deleteBtn);
+      }
     }
 
     d.getElementById("ivArchiveClose")?.addEventListener("click",()=>archiveModal.classList.remove("open"));
