@@ -172,7 +172,7 @@ function install(){
           actions=d.createElement("div");
           actions.id="ivAgentCardActions";
           actions.className="ivAgentCardActions";
-          workspace.insertBefore(actions,formCard);
+          formCard.insertAdjacentElement("beforebegin",actions);
         }
         const newBtn=d.getElementById("btnNewAgentInCard");
         if(newBtn)actions.appendChild(newBtn);
@@ -187,6 +187,14 @@ function install(){
 
     const originalRenderList=w.renderList.bind(w);
     w.renderList=function(){const r=originalRenderList();updateArchiveButton();return r};
+    const originalRenderDetails=w.renderDetails.bind(w);
+    w.renderDetails=function(){
+      const r=originalRenderDetails();
+      const selected=w.getSelectedAgent?.();
+      const actions=d.getElementById("ivAgentCardActions");
+      if(actions) actions.style.display=validAgent(selected)&&!selected.archivedAt?"flex":"none";
+      return r;
+    };
     selectFirstActive();
     w.renderAll();
     updateArchiveButton();
