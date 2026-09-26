@@ -106,6 +106,22 @@ async function recoverWorkspace(user){
   const [ps,ss]=await Promise.all([personalRef.get(),sharedRef.get()]),P=ps.exists?(ps.data()||{}):{},S=ss.exists?(ss.data()||{}):{};
   const mergedModules={...clone(S.moduleSyncV1||{}),...clone(P.moduleSyncV1||{})},counts={},now=Date.now();
   for(const [mode,cfg] of Object.entries(MODULES)){
+    // Le Classeur Agents est désormais piloté exclusivement par moduleSyncV1.agents
+    // dans le document personnel Firebase. Ne jamais le reconstruire automatiquement
+    // depuis les anciennes copies locales/partagées : elles peuvent ressusciter des
+    // agents supprimés ou remplacer une liste plus récente.
+    if(mode==="agents"){
+      const p=moduleEntry(P,mode)?.payload||"";
+      if(p){
+        const parsed=parse(p,null);
+        if(Array.isArray(parsed)){
+          setLocalPayload(cfg.key,JSON.stringify(parsed));
+          mergedModules[mode]={...(moduleEntry(P,mode)||{}),payload:JSON.stringify(stripBinary(parsed))};
+          counts[mode]=parsed.filter(a=>a?._deleted!==true&&agentHasName(a)).length;
+        }
+      }
+      continue;
+    }
     const local=localPayload(cfg.key),p=moduleEntry(P,mode)?.payload||"",s=moduleEntry(S,mode)?.payload||"",merged=mergeModule(mode,s,p,local);
     if(merged==null)continue;
     const full=JSON.stringify(merged),cloud=JSON.stringify(stripBinary(merged));setLocalPayload(cfg.key,full);
