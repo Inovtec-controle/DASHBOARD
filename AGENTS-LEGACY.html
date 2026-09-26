@@ -99,10 +99,10 @@ body{
   padding:14px;
   display:grid;
   gap:14px;
-  grid-template-columns:360px 1fr;
+  grid-template-columns:360px minmax(0,1fr);
   align-items:start;
 }
-@media(max-width:980px){.content{grid-template-columns:1fr}}
+@media(max-width:980px){.content{grid-template-columns:1fr}}\n.agentRight{min-width:0;display:flex;flex-direction:column;gap:12px}.agentActionsBar{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;padding:0 2px}.agentActionsBar .miniBtn{white-space:nowrap}.agentActionsBar .archive{border-color:rgba(245,158,11,.30);background:rgba(245,158,11,.12);color:#b45309}@media(max-width:640px){.agentActionsBar .miniBtn{flex:1}}
 
 .card{
   background:var(--panel);
@@ -461,6 +461,12 @@ body{
     </section>
 
     <!-- FICHE DROITE (STATIQUE) -->
+    <div class="agentRight">
+      <div class="agentActionsBar" id="agentActionsBar">
+        <button class="miniBtn" id="btnNewAgentCard" type="button">+ Nouvel agent</button>
+        <button class="miniBtn archive" id="btnArchiveAgentCard" type="button">Archiver l’agent</button>
+        <button class="miniBtn danger" id="btnDeleteAgentCard" type="button">Supprimer l’agent</button>
+      </div>
     <section class="card">
       <div class="cardHeader">
         <h2>Fiche agent</h2>
@@ -477,7 +483,7 @@ body{
               <div class="bigTitle" id="agentName">Fiche agent</div>
               <div class="muted" id="agentMeta">Créé : — • Modifié : —</div>
             </div>
-            <button class="miniBtn danger" id="btnDeleteAgent">Supprimer l’agent</button>
+
           </div>
 
           <div class="hr"></div>
@@ -640,8 +646,7 @@ body{
           <div id="incidentList"></div>
         </div>
       </div>
-    </section>
-  </main>
+    </section>\n    </div>\n  </main>
 
   <div class="footNote">
     Données enregistrées en <span class="kbd">localStorage</span> sur l’appareil.  
@@ -1309,7 +1314,7 @@ function renderDetails(){
   var form = $("#agentForm");
   var chip = $("#selectedChip");
 
-  if(!agent){
+  var actionBar=$("#agentActionsBar");\n  if(actionBar) actionBar.style.display = agent ? "flex" : "none";\n\n  if(!agent){
     chip.textContent = "Aucun";
     noMsg.style.display = "block";
     form.style.display = "none";
@@ -1478,7 +1483,7 @@ document.addEventListener("DOMContentLoaded", function(){
   };
 
   // fiche actions
-  $("#btnDeleteAgent").onclick = deleteAgent;
+  $("#btnDeleteAgentCard").onclick = deleteAgent;\n  $("#btnNewAgentCard").onclick = newAgent;\n  $("#btnArchiveAgentCard").onclick = function(){\n    var agent=getSelectedAgent(); if(!agent)return;\n    var name=(safeText(agent.identity.prenom)+" "+safeText(agent.identity.nom)).trim()||"cet agent";\n    if(!confirm("Archiver "+name+" ?"))return;\n    agent.archivedAt=new Date().toISOString(); agent.updatedAt=agent.archivedAt;\n    var remaining=activeAgents().filter(function(a){return !a.archivedAt;}).slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr");});\n    state.selectedId=remaining.length?remaining[0].id:null; rememberSelectedAgent(state.selectedId); save(); renderAll();\n  };
   $("#btnSaveAgent").onclick = saveAgentForm;
   $("#btnDuplicateAgent").onclick = duplicateAgent;
 
