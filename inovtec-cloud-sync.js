@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 const script=document.createElement('script');
-script.src='inovtec-cloud-sync-v2.js?v=20260921-server-confirmed1';
+script.src='inovtec-cloud-sync-v2.js?v=20260926-agent-source1';
 script.async=false;
 script.onerror=()=>{const status=document.getElementById('syncMirror');if(status)status.textContent='Firebase — module de synchronisation indisponible';};
 document.head.appendChild(script);
