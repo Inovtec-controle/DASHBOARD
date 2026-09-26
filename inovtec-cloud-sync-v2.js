@@ -224,6 +224,10 @@ async function boot(uid,token){
         base=stored!==null?stored:remote;
         initialized=true;
         schedule(20);
+      }else if(mode==='agents'){
+        // Firebase est la source de vérité du Classeur Agents au démarrage.
+        // Une ancienne copie locale / ancien cache ne doit jamais écraser la liste serveur.
+        initialized=true;remember(remote);apply(remote);report('Firebase — synchronisé',true)
       }else if(stored!==null&&stored!==browser){base=stored;initialized=true;schedule(20)}
       else{initialized=true;remember(remote);apply(remote);report('Firebase — synchronisé',true)}
     }else{
