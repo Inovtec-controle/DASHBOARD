@@ -62,7 +62,7 @@ function install(){
       if(c)c.textContent=String(archiveCount());
     };
     const selectFirstActive=()=>{
-      const current=w.state.agents.find(a=>a?.id===w.state.selectedId&&validAgent(a)&&!a?.archivedAt);
+      const current=w.state.agents.find(a=>a?.id===w.state.selectedId&&a?._deleted!==true&&!a?.archivedAt&&(validAgent(a)||a?._draft===true));
       if(current)return;
       w.state.selectedId=activeAgents()[0]?.id||null;
       try{w.rememberSelectedAgent?.(w.state.selectedId)}catch{}
