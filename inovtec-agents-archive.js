@@ -135,7 +135,8 @@ function install(){
     archiveModal.addEventListener("click",e=>{if(e.target===archiveModal)archiveModal.classList.remove("open")});
     d.addEventListener("keydown",e=>{if(e.key==="Escape")archiveModal.classList.remove("open")});
 
-    const originalRenderList=w.renderList.bind(w);\n    w.renderList=function(){const r=originalRenderList();updateArchiveButton();return r};
+    const originalRenderList=w.renderList.bind(w);
+    w.renderList=function(){const r=originalRenderList();updateArchiveButton();return r};
     selectFirstActive();
     w.renderAll();
     updateArchiveButton();
