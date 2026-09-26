@@ -17,8 +17,6 @@ function install(){
     const css=d.createElement("style");
     css.textContent=`
       .ivAgentHeaderActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-      .ivAgentCardActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:0 0 14px 0;padding:0 2px}
-      .ivAgentCardActions .miniBtn{white-space:nowrap}
       .ivNewAgentBtn{border-color:rgba(22,163,74,.28)!important;background:rgba(22,163,74,.10)!important;color:#15803d!important}
       .ivArchiveBtn{border-color:rgba(245,158,11,.3)!important;background:rgba(245,158,11,.12)!important;color:#b45309!important}
       .ivArchivesBtn{border:1px solid rgba(100,116,139,.22);background:rgba(100,116,139,.10);color:#475569;padding:8px 10px;border-radius:12px;font-weight:900;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
@@ -35,7 +33,7 @@ function install(){
       .ivArchiveActions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
       .ivRestoreBtn{border:1px solid rgba(22,163,74,.25);background:rgba(22,163,74,.10);color:#15803d;padding:8px 10px;border-radius:11px;font-weight:900;font-size:12px;cursor:pointer}
       .ivDeleteArchivedBtn{border:1px solid rgba(239,68,68,.22);background:rgba(239,68,68,.08);color:#b91c1c;padding:8px 10px;border-radius:11px;font-weight:900;font-size:12px;cursor:pointer}
-      @media(max-width:640px){.ivArchiveRow{align-items:flex-start;flex-direction:column}.ivArchiveActions{width:100%}.ivArchiveActions button{flex:1}.ivAgentHeaderActions{width:100%}.ivAgentHeaderActions button{flex:1}.ivAgentCardActions{width:100%;margin-left:0}.ivAgentCardActions .miniBtn{flex:1}}
+      @media(max-width:640px){.ivArchiveRow{align-items:flex-start;flex-direction:column}.ivArchiveActions{width:100%}.ivArchiveActions button{flex:1}.ivAgentHeaderActions{width:100%}.ivAgentHeaderActions button{flex:1}}
     `;
     d.head.appendChild(css);
 
@@ -129,7 +127,40 @@ function install(){
       countChip.insertAdjacentElement("beforebegin",group);group.append(archives,countChip);
     }
 
-    // Les actions Nouvel agent / Archiver / Supprimer sont désormais natives dans AGENTS-LEGACY.html.
+    const deleteBtn=d.getElementById("btnDeleteAgent");
+    if(deleteBtn&&!d.getElementById("btnArchiveAgent")){
+      const archiveBtn=d.createElement("button");archiveBtn.type="button";archiveBtn.id="btnArchiveAgent";archiveBtn.className="miniBtn ivArchiveBtn";archiveBtn.textContent="Archiver l’agent";
+      archiveBtn.onclick=()=>{
+        const agent=w.getSelectedAgent?.();
+        if(!validAgent(agent))return;
+        if(!w.confirm(`Archiver ${label(agent)} ? La fiche restera conservée et pourra être restaurée depuis « Agents archivés ».`))return;
+        agent.archivedAt=new Date().toISOString();
+        agent.updatedAt=agent.archivedAt;
+        selectFirstActive();
+        w.save();
+        w.renderAll();
+        updateArchiveButton();
+      };
+      deleteBtn.insertAdjacentElement("beforebegin",archiveBtn);
+      if(!d.getElementById("btnNewAgentInCard")){
+        const newBtn=d.createElement("button");
+        newBtn.type="button";
+        newBtn.id="btnNewAgentInCard";
+        newBtn.className="miniBtn ivNewAgentBtn";
+        newBtn.textContent="+ Nouvel agent";
+        newBtn.onclick=()=>{
+          if(typeof w.newAgent==="function"){
+            w.newAgent();
+            setTimeout(()=>d.getElementById("f_prenom")?.focus(),80);
+          }else{
+            d.getElementById("btnNewAgent")?.click();
+          }
+        };
+        archiveBtn.insertAdjacentElement("beforebegin",newBtn);
+      }
+      deleteBtn.textContent="Supprimer définitivement";
+      deleteBtn.title="Suppression irréversible";
+    }
 
     d.getElementById("ivArchiveClose")?.addEventListener("click",()=>archiveModal.classList.remove("open"));
     archiveModal.addEventListener("click",e=>{if(e.target===archiveModal)archiveModal.classList.remove("open")});
