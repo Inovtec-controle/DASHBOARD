@@ -118,6 +118,23 @@ function merge3(b,l,r){
 function mergePayload(b,l,r){
   const B=parse(b),L=parse(l),R=parse(r);
   if(B==null||L==null||R==null)throw Error('Fusion impossible : document illisible');
+  if(mode==='agents'&&Array.isArray(B)&&Array.isArray(L)&&Array.isArray(R)){
+    const ids=new Set([...B,...L,...R].map(a=>String(a?.id||'')).filter(Boolean));
+    const idx=a=>new Map(a.map(x=>[String(x?.id||''),x]));
+    const BM=idx(B),LM=idx(L),RM=idx(R),out=[];
+    for(const id of ids){
+      const vals=[BM.get(id),LM.get(id),RM.get(id)].filter(Boolean);
+      const deleted=vals.filter(x=>x?._deleted===true).sort((a,b)=>Date.parse(b.deletedAt||b.updatedAt||0)-Date.parse(a.deletedAt||a.updatedAt||0))[0];
+      const live=vals.filter(x=>x?._deleted!==true).sort((a,b)=>Date.parse(b.updatedAt||b.createdAt||0)-Date.parse(a.updatedAt||a.createdAt||0))[0];
+      if(deleted){
+        const dt=Date.parse(deleted.deletedAt||deleted.updatedAt||0)||0,lt=Date.parse(live?.updatedAt||live?.createdAt||0)||0;
+        if(!live||dt>=lt){out.push(deleted);continue}
+      }
+      const v=merge3(BM.has(id)?BM.get(id):ABSENT,LM.has(id)?LM.get(id):ABSENT,RM.has(id)?RM.get(id):ABSENT);
+      if(v!==ABSENT)out.push(v);
+    }
+    return json(out);
+  }
   return json(merge3(B,L,R));
 }
 function remember(payload){
