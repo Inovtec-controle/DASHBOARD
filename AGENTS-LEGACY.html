@@ -1301,7 +1301,7 @@ function renderList(){
 
 function renderDetails(){
   var agent = getSelectedAgent();
-  if((!agent || agent.archivedAt || !agentHasName(agent)) && activeAgents().length){
+  if((!agent || agent.archivedAt || (!agentHasName(agent) && agent._draft !== true)) && activeAgents().length){
     restoreSelectedAgent();
     agent = getSelectedAgent();
   }
