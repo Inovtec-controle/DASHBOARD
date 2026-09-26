@@ -129,72 +129,13 @@ function install(){
       countChip.insertAdjacentElement("beforebegin",group);group.append(archives,countChip);
     }
 
-    const deleteBtn=d.getElementById("btnDeleteAgent");
-    if(deleteBtn&&!d.getElementById("btnArchiveAgent")){
-      const archiveBtn=d.createElement("button");archiveBtn.type="button";archiveBtn.id="btnArchiveAgent";archiveBtn.className="miniBtn ivArchiveBtn";archiveBtn.textContent="Archiver l’agent";
-      archiveBtn.onclick=()=>{
-        const agent=w.getSelectedAgent?.();
-        if(!validAgent(agent))return;
-        if(!w.confirm(`Archiver ${label(agent)} ? La fiche restera conservée et pourra être restaurée depuis « Agents archivés ».`))return;
-        agent.archivedAt=new Date().toISOString();
-        agent.updatedAt=agent.archivedAt;
-        selectFirstActive();
-        w.save();
-        w.renderAll();
-        updateArchiveButton();
-      };
-      deleteBtn.insertAdjacentElement("beforebegin",archiveBtn);
-      if(!d.getElementById("btnNewAgentInCard")){
-        const newBtn=d.createElement("button");
-        newBtn.type="button";
-        newBtn.id="btnNewAgentInCard";
-        newBtn.className="miniBtn ivNewAgentBtn";
-        newBtn.textContent="+ Nouvel agent";
-        newBtn.onclick=()=>{
-          if(typeof w.newAgent==="function"){
-            w.newAgent();
-            setTimeout(()=>d.getElementById("f_prenom")?.focus(),80);
-          }else{
-            d.getElementById("btnNewAgent")?.click();
-          }
-        };
-        archiveBtn.insertAdjacentElement("beforebegin",newBtn);
-      }
-      deleteBtn.textContent="Supprimer définitivement";
-      deleteBtn.title="Suppression irréversible";
-
-      const agentForm=d.getElementById("agentForm");
-      const formCard=agentForm?.closest(".card");
-      const workspace=formCard?.parentElement;
-      if(formCard&&workspace){
-        let actions=d.getElementById("ivAgentCardActions");
-        if(!actions){
-          actions=d.createElement("div");
-          actions.id="ivAgentCardActions";
-          actions.className="ivAgentCardActions";
-          formCard.insertAdjacentElement("beforebegin",actions);
-        }
-        const newBtn=d.getElementById("btnNewAgentInCard");
-        if(newBtn)actions.appendChild(newBtn);
-        actions.appendChild(archiveBtn);
-        actions.appendChild(deleteBtn);
-      }
-    }
+    // Les actions Nouvel agent / Archiver / Supprimer sont désormais natives dans AGENTS-LEGACY.html.
 
     d.getElementById("ivArchiveClose")?.addEventListener("click",()=>archiveModal.classList.remove("open"));
     archiveModal.addEventListener("click",e=>{if(e.target===archiveModal)archiveModal.classList.remove("open")});
     d.addEventListener("keydown",e=>{if(e.key==="Escape")archiveModal.classList.remove("open")});
 
-    const originalRenderList=w.renderList.bind(w);
-    w.renderList=function(){const r=originalRenderList();updateArchiveButton();return r};
-    const originalRenderDetails=w.renderDetails.bind(w);
-    w.renderDetails=function(){
-      const r=originalRenderDetails();
-      const selected=w.getSelectedAgent?.();
-      const actions=d.getElementById("ivAgentCardActions");
-      if(actions) actions.style.display=validAgent(selected)&&!selected.archivedAt?"flex":"none";
-      return r;
-    };
+    const originalRenderList=w.renderList.bind(w);\n    w.renderList=function(){const r=originalRenderList();updateArchiveButton();return r};
     selectFirstActive();
     w.renderAll();
     updateArchiveButton();
