@@ -17,10 +17,7 @@ function install(){
     const css=d.createElement("style");
     css.textContent=`
       .ivAgentHeaderActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-      .ivAgentExternalActions{grid-column:2;display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:-2px}
-      @media(max-width:980px){.ivAgentExternalActions{grid-column:1}}
-      .ivNewAgentBtn{border-color:rgba(22,163,74,.28)!important;background:rgba(22,163,74,.10)!important;color:#15803d!important}
-      .ivArchiveBtn{border-color:rgba(245,158,11,.3)!important;background:rgba(245,158,11,.12)!important;color:#b45309!important}
+      .ivNewAgentBtn{border-color:rgba(22,163,74,.28)!important;background:rgba(22,163,74,.10)!important;color:#15803d!important}\n      .ivArchiveBtn{border-color:rgba(245,158,11,.3)!important;background:rgba(245,158,11,.12)!important;color:#b45309!important}
       .ivArchivesBtn{border:1px solid rgba(100,116,139,.22);background:rgba(100,116,139,.10);color:#475569;padding:8px 10px;border-radius:12px;font-weight:900;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
       .ivArchivesCount{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#fff;border:1px solid rgba(100,116,139,.18);font-size:11px}
       .ivArchiveModal{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.62);backdrop-filter:blur(3px)}
@@ -162,16 +159,6 @@ function install(){
       }
       deleteBtn.textContent="Supprimer définitivement";
       deleteBtn.title="Suppression irréversible";
-      const content=d.querySelector("main.content");
-      const rightCard=deleteBtn.closest(".card");
-      if(content&&rightCard){
-        let bar=d.getElementById("ivAgentExternalActions");
-        if(!bar){bar=d.createElement("div");bar.id="ivAgentExternalActions";bar.className="ivAgentExternalActions";content.insertBefore(bar,rightCard)}
-        const newBtn=d.getElementById("btnNewAgentInCard");
-        if(newBtn)bar.appendChild(newBtn);
-        bar.appendChild(archiveBtn);
-        bar.appendChild(deleteBtn);
-      }
     }
 
     d.getElementById("ivArchiveClose")?.addEventListener("click",()=>archiveModal.classList.remove("open"));
