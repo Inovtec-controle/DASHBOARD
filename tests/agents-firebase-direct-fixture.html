@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body>
+<span id="syncMirror"></span><iframe id="legacyFrame"></iframe>
+<script>
+(()=>{
+ const clone=v=>JSON.parse(JSON.stringify(v));
+ const state={doc:{moduleSyncV1:{agents:{payload:"[]"}}},listeners:[],transactions:0,refGets:0};
+ window.__agentsFirebaseTest=state;
+ const snap=()=>({exists:true,data:()=>clone(state.doc),metadata:{fromCache:false,hasPendingWrites:false}});
+ const ref={
+   async get(){state.refGets++;return snap()},
+   async set(patch){state.doc={...state.doc,moduleSyncV1:{...(state.doc.moduleSyncV1||{}),...(patch.moduleSyncV1||{})}};state.listeners.forEach(fn=>fn(snap()))},
+   onSnapshot(opts,cb){const fn=typeof opts==="function"?opts:cb;state.listeners.push(fn);queueMicrotask(()=>fn(snap()));return()=>{state.listeners=state.listeners.filter(x=>x!==fn)}}
+ };
+ const firestore=()=>({
+   collection(){return{doc(){return ref}}},
+   async runTransaction(fn){
+     state.transactions++;
+     let patch=null;
+     const tx={get:async()=>snap(),set(_r,data){patch=data}};
+     const result=await fn(tx);
+     if(patch){
+       state.doc={...state.doc,moduleSyncV1:{...(state.doc.moduleSyncV1||{}),...(patch.moduleSyncV1||{})}};
+       state.listeners.forEach(next=>queueMicrotask(()=>next(snap())));
+     }
+     return result;
+   }
+ });
+ const authObj={onAuthStateChanged(fn){queueMicrotask(()=>fn({uid:"test-user"}));return()=>{}},signInWithEmailAndPassword:async()=>({user:{uid:"test-user"}})};
+ const auth=()=>authObj;
+ window.firebase={apps:[{}],auth,firestore};
+ window.INOVTEC_FIREBASE_CONFIG={projectId:"fixture"};
+})();
+</script>
+<script src="../inovtec-agents-firebase-direct.js"></script>
+</body></html>
