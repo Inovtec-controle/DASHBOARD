@@ -294,11 +294,6 @@ if(mode==='planning'&&!frame){
 }
 setInterval(()=>{if(user&&initialized&&!applying){try{if((mode==='planning'&&pendingPlanningPayload)||packed(local())!==base)schedule(50)}catch(e){report('Firebase — '+e.message)}}},6000);
 window.addEventListener('online',()=>{if(user){if(!initialized)void boot(user.uid,generation);else if(mode==='planning'&&pendingPlanningPayload)schedule(20);else void refresh()}});
-window.addEventListener('inovtec:agent-local-saved',()=>{
-  if(mode!=='agents')return;
-  activity=Date.now();
-  if(initialized)schedule(20);
-});
 window.addEventListener('inovtec:planning-local-saved',ev=>{
   if(mode!=='planning')return;
   lastLocalPlanningSave=Date.now();
