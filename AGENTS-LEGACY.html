@@ -491,11 +491,11 @@ body{
           <div class="grid2">
             <div class="field">
               <label>Nom</label>
-              <input class="input" id="f_prenom">
+              <input class="input" id="f_nom">
             </div>
             <div class="field">
               <label>Prénom</label>
-              <input class="input" id="f_nom">
+              <input class="input" id="f_prenom">
             </div>
             <div class="field">
               <label>Téléphone</label>
@@ -807,9 +807,8 @@ function activeAgents(){
   return state.agents.filter(function(agent){return !isDeletedAgent(agent) && agentHasName(agent);});
 }
 function compareAgentsByLastName(a,b){
-  // Schéma historique de cette page : le champ visible "Nom" est stocké dans identity.prenom.
-  var an = safeText(a && a.identity && a.identity.prenom).trim();
-  var bn = safeText(b && b.identity && b.identity.prenom).trim();
+  var an = safeText(a && a.identity && a.identity.nom).trim();
+  var bn = safeText(b && b.identity && b.identity.nom).trim();
   if(!an && !bn) return 0;
   if(!an) return 1;
   if(!bn) return -1;
@@ -1345,7 +1344,7 @@ function renderList(){
     var item = document.createElement("div");
     item.className = "listItem"+(a.id===state.selectedId ? " active" : "");
     item.setAttribute("data-agent-id", String(a.id||""));
-    item.setAttribute("data-sort-name", safeText(i.prenom).trim());
+    item.setAttribute("data-sort-name", safeText(i.nom).trim());
     item.setAttribute("role","button");
     item.setAttribute("tabindex","0");
     item.setAttribute("aria-label","Ouvrir la fiche de "+fullName);

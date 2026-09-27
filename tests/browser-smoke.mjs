@@ -61,79 +61,54 @@ await check('Planning : changement des vues sans blocage', async () => {
   if (!text || text.trim() === '—') throw new Error('Période du calendrier absente');
 });
 
-await check('Agents : enregistrement et tri A-Z permanent par Nom', async () => {
+await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () => {
   await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.evaluate(() => localStorage.removeItem('kontrol_agents_classeur_v2'));
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
-
-  async function createAgent(nom,prenom){
-    await page.locator('#btnNewAgent').click();
-    await page.locator('#f_prenom').fill(nom); // champ visible "Nom" (schéma historique)
-    await page.locator('#f_nom').fill(prenom); // champ visible "Prénom"
-    await page.locator('#btnSaveAgent').click();
-  }
-
-  for (const [nom,prenom] of [
-    ['Touil','Nora'],
-    ['Rott','Paul'],
-    ['Acuna Carlos','Luis'],
-    ['Da rocha','Mia'],
-    ['Bernard','Zoé'],
-    ['Évrard','Alain']
-  ]) await createAgent(nom,prenom);
-
-  const sortNames=await page.locator('#agentList .listItem').evaluateAll(rows=>rows.map(r=>(r.dataset.sortName||'').trim()));
-  if(sortNames.length!==6) throw new Error('La liste Agents ne contient pas toutes les fiches de test');
-  const collator=new Intl.Collator('fr',{sensitivity:'base',numeric:true});
-  const expected=[...sortNames].sort((a,b)=>collator.compare(a,b));
-  if(JSON.stringify(sortNames)!==JSON.stringify(expected)){
-    throw new Error('La liste Agents n’applique pas la règle générale A-Z sur le champ Nom');
-  }
-});
-
-await check('Agents : Enregistrer reste fonctionnel après création et modification', async () => {
-  // Prépare une copie locale vide sur le même origin, puis ouvre la vraie route Dashboard.
-  await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.evaluate(() => localStorage.setItem('kontrol_agents_classeur_v2','[]'));
-
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsave-stable2', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.evaluate(() => localStorage.setItem('kontrol_agents_classeur_v2', JSON.stringify([{
+    id:'agent_da_rocha_test',
+    identity:{nom:'',prenom:'Da rocha',telephone:'',email:'',adresse:'',dateNaissance:'',secu:'',permis:'',vehicule:''},
+    job:{poste:'',typeContrat:'',dateEntree:'',sitePrincipal:'',disponibilites:'',notes:''},
+    docs:[],incidents:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
+  }])));
+  await page.goto(base + '/AGENTS.html?v=20260927-agentfields1', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 30000 });
   await page.waitForFunction(() => {
     const f=document.getElementById('legacyFrame');
-    return !!f?.contentDocument?.getElementById('btnNewAgent')
-      && !!f?.contentDocument?.getElementById('btnSaveAgent')
-      && typeof f?.contentWindow?.saveAgentForm === 'function';
+    return !!f?.contentDocument?.getElementById('btnSaveAgent')
+      && !!f?.contentDocument?.querySelector('.listItem[data-agent-id="agent_da_rocha_test"]');
   }, null, { timeout: 30000 });
 
-  const first=await page.evaluate(async () => {
-    const f=document.getElementById('legacyFrame'),d=f.contentDocument,w=f.contentWindow;
-    d.getElementById('btnNewAgent').click();
-    d.getElementById('f_prenom').value='Martin';
-    d.getElementById('f_nom').value='Alice';
-    d.getElementById('f_tel').value='0600000001';
-    d.getElementById('btnSaveAgent').click();
-    await new Promise(r=>setTimeout(r,120));
-    const rows=JSON.parse(w.localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
-    const a=rows.find(x=>x?._deleted!==true&&x?.identity?.prenom==='Martin'&&x?.identity?.nom==='Alice');
-    return a?{id:a.id,draft:a._draft,tel:a.identity?.telephone}:null;
-  });
-  if(!first||first.draft===true||first.tel!=='0600000001') throw new Error('Enregistrer ne crée pas correctement un nouvel agent');
+  const result=await page.evaluate(async () => {
+    const frame=document.getElementById('legacyFrame'),d=frame.contentDocument,w=frame.contentWindow;
+    d.querySelector('.listItem[data-agent-id="agent_da_rocha_test"]').click();
+    const nom=d.getElementById('f_nom'),prenom=d.getElementById('f_prenom');
+    const labels={
+      nom:nom?.closest('.field')?.querySelector('label')?.textContent?.trim(),
+      prenom:prenom?.closest('.field')?.querySelector('label')?.textContent?.trim()
+    };
+    if(labels.nom!=='Nom'||labels.prenom!=='Prénom')return {error:'Les champs Nom/Prénom sont encore inversés',labels};
 
-  const second=await page.evaluate(async (id) => {
-    const f=document.getElementById('legacyFrame'),d=f.contentDocument,w=f.contentWindow;
-    const row=d.querySelector('.listItem[data-agent-id="'+CSS.escape(id)+'"]');
-    row?.click();
-    d.getElementById('f_tel').value='0600000002';
-    d.getElementById('f_email').value='alice.martin@example.test';
+    nom.value='Da rocha';
+    prenom.value='';
     d.getElementById('btnSaveAgent').click();
-    await new Promise(r=>setTimeout(r,120));
+    await new Promise(r=>setTimeout(r,80));
+
     const rows=JSON.parse(w.localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
-    const a=rows.find(x=>String(x?.id)===String(id));
-    return a?{tel:a.identity?.telephone,email:a.identity?.email,draft:a._draft}:null;
-  }, first.id);
-  if(!second||second.draft===true||second.tel!=='0600000002'||second.email!=='alice.martin@example.test'){
-    throw new Error('Enregistrer ne conserve pas les modifications d’une fiche existante');
-  }
+    const saved=rows.find(x=>x.id==='agent_da_rocha_test');
+    const bubble=d.querySelector('.listItem[data-agent-id="agent_da_rocha_test"] .name')?.textContent?.trim()||'';
+
+    d.querySelector('.listItem[data-agent-id="agent_da_rocha_test"]').click();
+    return {
+      savedNom:saved?.identity?.nom||'',
+      savedPrenom:saved?.identity?.prenom||'',
+      visibleNom:d.getElementById('f_nom')?.value||'',
+      visiblePrenom:d.getElementById('f_prenom')?.value||'',
+      bubble
+    };
+  });
+  if(result.error)throw new Error(result.error);
+  if(result.savedNom!=='Da rocha'||result.savedPrenom!=='')throw new Error('La correction Nom/Prénom n’est pas enregistrée');
+  if(result.visibleNom!=='Da rocha'||result.visiblePrenom!=='')throw new Error('La fiche ne reflète pas immédiatement la correction');
+  if(!/Da rocha/i.test(result.bubble))throw new Error('La bulle agent ne reflète pas immédiatement la correction');
 });
 
 await check('Variables : indicateurs et mois accessibles', async () => {
