@@ -22,6 +22,8 @@ function ensureStyle(d){
 function render(){
   const d=doc(),api=window.InovtecContainerSchedule;
   if(!d?.body||!api)return;
+  const nouveauRappel=d.getElementById("ivPlanningContainerInfo");
+  if(nouveauRappel?.classList?.contains("planning-container-reminder"))return;
   ensureStyle(d);
   const select=d.getElementById("edTitle"),date=d.getElementById("edDate");
   if(!select||!date)return;
@@ -63,6 +65,7 @@ function render(){
 function install(){
   const d=doc();
   if(!d?.body)return;
+  if(d.getElementById("ivPlanningContainerInfo")?.classList?.contains("planning-container-reminder"))return;
   render();
   if(d===lastDoc)return;
   lastDoc=d;

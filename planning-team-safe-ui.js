@@ -23,7 +23,7 @@ const label=(s,id)=>str(s.agents.find(a=>str(a?.id)===str(id))?.name)||'Agent';
 const agent=(s,id)=>s.agents.find(a=>str(a?.id)===str(id)||str(a?.refId)===str(id));
 const teamFor=(s,id)=>s.teamPlanning.teams.find(t=>Array.isArray(t.members)&&t.members.includes(id));
 const entries=(s,week,id)=>(Array.isArray(s.weeks[week])?s.weeks[week]:[]).filter(e=>str(e?.agentId)===id);
-const shape=e=>({day:Number(e.day)||0,start:str(e.start),end:str(e.end),task:str(e.task),site:str(e.site),chantierId:str(e.chantierId),note:str(e.note)});
+const shape=e=>({day:Number(e.day)||0,start:str(e.start),end:str(e.end),task:str(e.task),site:str(e.site),chantierId:str(e.chantierId),note:str(e.note),containerTask:e?.containerTask||null});
 const signature=list=>JSON.stringify(list.map(shape).sort((a,b)=>a.day-b.day||a.start.localeCompare(b.start)||a.end.localeCompare(b.end)||a.task.localeCompare(b.task)||a.site.localeCompare(b.site)));
 const persist=s=>{
   if(window.InovtecPlanningAPI?.replaceState){

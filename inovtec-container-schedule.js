@@ -50,19 +50,22 @@ function legacyFrequency(site,f,day=""){
 function canonicalDays(site,f){const b=site?.conteneursPlanningV1;if(b&&Array.isArray(b[f.id]))return{present:true,days:parseDays(b[f.id])};const raw=site?.[f.id];if(raw!==undefined&&raw!==null&&String(raw).trim())return{present:true,days:parseDays(raw)};return{present:false,days:[]}}
 function canonicalFrequency(site,f){return validFreq(site?.[f.freqProp])||validFreq(site?.conteneursFrequencesV1?.[f.id])||validFreq(site?.conteneursPlanningV1?.frequences?.[f.id])||""}
 function scheduleForSite(site){const out={};FIELDS.forEach(f=>{const c=canonicalDays(site,f);out[f.id]=c.present?c.days:legacyDays(site,f)});return out}
+function infosScheduleForSite(site){const out={};FIELDS.forEach(f=>{const c=canonicalDays(site,f);out[f.id]=c.present?c.days:[]});return out}
 function frequencyForSite(site,id,day=""){
  const f=FIELDS.find(x=>x.id===id);if(!f)return"toutes";const c=canonicalFrequency(site,f);if(c)return c;return legacyFrequency(site,f,day)||legacyFrequency(site,f)||"toutes";
 }
 function frequencySource(site,id){const f=FIELDS.find(x=>x.id===id);if(!f)return"default";if(canonicalFrequency(site,f))return"infos";if(legacyFrequency(site,f))return"conteneurs";return"default"}
 function fieldActiveForDate(site,f,dateValue){const date=dateFromValue(dateValue),day=dayKeyFromDate(date),days=scheduleForSite(site)[f.id]||[];if(!days.includes(day))return false;let freq=frequencyForSite(site,f.id,day);if(freq==="mixte")freq="toutes";return frequencyActive(freq,date)}
+function infosFieldActiveForDate(site,f,dateValue){const date=dateFromValue(dateValue),day=dayKeyFromDate(date),c=canonicalDays(site,f);if(!c.present||!c.days.includes(day))return false;const freq=canonicalFrequency(site,f)||"toutes";return frequencyActive(freq,date)}
 function actionsForDate(site,dateValue){return FIELDS.filter(f=>fieldActiveForDate(site,f,dateValue)).map(f=>({id:f.id,label:f.label,action:f.action,flux:f.flux,day:dayKeyFromDate(dateValue),frequence:frequencyForSite(site,f.id,dayKeyFromDate(dateValue))}))}
+function actionsFromInfosForDate(site,dateValue){return FIELDS.filter(f=>infosFieldActiveForDate(site,f,dateValue)).map(f=>({id:f.id,label:f.label,action:f.action,flux:f.flux,day:dayKeyFromDate(dateValue),frequence:canonicalFrequency(site,f)||"toutes",source:"infos-chantier"}))}
 function actionsForDay(site,day){const key=DAYS.includes(day)?day:dayKeyFromDate(day),s=scheduleForSite(site);return FIELDS.filter(f=>s[f.id]?.includes(key)).map(f=>({id:f.id,label:f.label,action:f.action,flux:f.flux,day:key,frequence:frequencyForSite(site,f.id,key)}))}
 function formatField(site,id){const days=scheduleForSite(site)[id]||[],freq=frequencyForSite(site,id);return `${summary(days)} · ${FREQ_LABEL[freq]||FREQ_LABEL.toutes}`}
-window.InovtecContainerSchedule={DAYS,LABEL,SHORT,FREQ_LABEL,FIELDS,parseDays,serialize,scheduleForSite,dayKeyFromDate,actionsForDay,actionsForDate,frequencyForSite,frequencySource,frequencyActive,summary,formatField};
+window.InovtecContainerSchedule={DAYS,LABEL,SHORT,FREQ_LABEL,FIELDS,parseDays,serialize,scheduleForSite,infosScheduleForSite,dayKeyFromDate,actionsForDay,actionsForDate,actionsFromInfosForDate,frequencyForSite,frequencySource,frequencyActive,summary,formatField};
 
 function notifyScheduleUpdate(){try{window.dispatchEvent(new CustomEvent("inovtec:container-schedule-updated"))}catch{}}
 function startLegacyListener(){
- if(!db||!auth||legacyAuthBound||!["infos","planning"].includes(mode))return;legacyAuthBound=true;
+ if(!db||!auth||legacyAuthBound||mode!=="infos")return;legacyAuthBound=true;
  auth.onAuthStateChanged(user=>{if(legacyUnsub){try{legacyUnsub()}catch{}legacyUnsub=null}legacyPlans=[];if(!user){notifyScheduleUpdate();return}legacyUnsub=db.collection("conteneurs_plannings").onSnapshot(s=>{legacyPlans=s.docs.map(d=>({id:d.id,...d.data()}));notifyScheduleUpdate();if(mode==="infos")setTimeout(()=>{const d=doc();if(d)refresh(d)},80)},e=>console.warn("Lecture des fréquences CONTENEURS indisponible",e))});
 }
 startLegacyListener();
