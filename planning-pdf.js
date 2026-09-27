@@ -32,12 +32,34 @@ function hubAgents(){try{return parent?.InovtecDataHub?.readyAgents?Array.from(p
 function hubName(a){return[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ").trim()||a?.displayName||a?.name||"Agent sans nom"}
 function copiesFor(agent){const masters=hubAgents();const m=masters.find(x=>String(x.id)===String(agent.refId||agent.id)||norm(hubName(x))===norm(agent.name));const raw=m?.job?.planningCopies,cloud=Math.round(Number(raw)),local=Math.round(Number(agent?.copies));if(Number.isFinite(cloud)&&cloud>=2)return Math.min(10,cloud);if(Number.isFinite(local)&&local>=2)return Math.min(10,local);return 2}
 function currentWeek(){return $("week")?.value||""}
+function containerLabels(event){
+  const source=Array.isArray(event?.containerTasks)?event.containerTasks:(event?.containerTask?[event.containerTask]:[]);
+  const seen=new Set(),labels=[];
+  source.forEach(raw=>{
+    if(!raw||typeof raw!=="object")return;
+    const action=raw.action==="rentree"?"Rentrée":raw.action==="sortie"?"Sortie":"";
+    const type=String(raw.typeConteneur||raw.flux||"").toUpperCase();
+    const label=String(raw.label||([action,type].filter(Boolean).join(" "))).trim();
+    if(!label)return;
+    const key=norm(label);
+    if(seen.has(key))return;
+    seen.add(key);labels.push(label);
+  });
+  return labels;
+}
 function agentData(state,week,agent){
   const start=dateFromWeek(week,0),end=dateFromWeek(week,6),groups=DAYS.map(()=>[]);
   const rows=Array.isArray(state.weeks?.[week])?state.weeks[week]:[];
   rows.filter(e=>String(e.agentId)===String(agent.id)).sort((a,b)=>Number(a.day)-Number(b.day)||String(a.start).localeCompare(String(b.start))).forEach(e=>{
-    const d=Math.max(0,Math.min(6,Number(e.day)||0));
-    groups[d].push({start:e.start||"",end:e.end||"",task:e.task||"Intervention",brief:e.site||"",note:e.note||""});
+    const d=Math.max(0,Math.min(6,Number(e.day)||0)),labels=containerLabels(e),containerText=labels.length?"Conteneurs : "+labels.join(" · "):"";
+    groups[d].push({
+      start:e.start||"",
+      end:e.end||"",
+      task:e.task||"Intervention",
+      brief:[e.site||"",containerText].filter(Boolean).join(" · "),
+      note:e.note||"",
+      containerText
+    });
   });
   const dayTotals=groups.map(g=>g.reduce((n,item)=>n+workedDurationMin(item),0));
   const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
