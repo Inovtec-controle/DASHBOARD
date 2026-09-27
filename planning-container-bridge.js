@@ -52,6 +52,18 @@ function validContainerTask(raw){
     source:safe(raw.source||"infos-chantier")
   };
 }
+function validContainerTasks(event){
+  const source=Array.isArray(event?.containerTasks)?event.containerTasks:(event?.containerTask?[event.containerTask]:[]);
+  const out=[],seen=new Set();
+  source.forEach(raw=>{
+    const task=validContainerTask(raw);
+    if(!task)return;
+    const key=[task.id,task.action,task.typeConteneur].join("|");
+    if(seen.has(key))return;
+    seen.add(key);out.push(task);
+  });
+  return out;
+}
 function nameKeys(value){
   const n=norm(value);
   if(!n)return[];
@@ -149,7 +161,11 @@ async function buildAgentResolver(db,existingPlans,state){
     return suffix?`${base}-${suffix}`:base;
   };
 }
-function missionId(event){return "planning_"+safe(event?.id).replace(/\//g,"_").slice(0,1200)}
+function missionId(event,marker){
+  const base="planning_"+safe(event?.id).replace(/\//g,"_").slice(0,950);
+  const suffix=safe(marker?.id||((marker?.action||"mission")+"_"+(marker?.typeConteneur||""))).replace(/[^a-zA-Z0-9_-]+/g,"_").slice(0,180);
+  return base+"__"+(suffix||"mission");
+}
 function isPassiveTeamClone(state,week,event){
   const sourceId=safe(event?._teamInheritedFrom);
   if(!sourceId)return false;
@@ -169,8 +185,8 @@ function buildDesiredMissions(state,resolveAgent){
   Object.entries(state.weeks||{}).forEach(([week,rows])=>{
     (Array.isArray(rows)?rows:[]).forEach(event=>{
       if(isPassiveTeamClone(state,week,event))return;
-      const marker=validContainerTask(event?.containerTask);
-      if(!marker||!event?.id)return;
+      const markers=validContainerTasks(event);
+      if(!markers.length||!event?.id)return;
       const date=dateFromWeek(week,event.day);
       if(!date)return;
       const agent=agents.find(a=>safe(a.id)===safe(event.agentId))||null;
@@ -178,35 +194,37 @@ function buildDesiredMissions(state,resolveAgent){
       const agentNom=safe(agent?.name||agent?.displayName||event.agentId||"Agent");
       const agentId=resolveAgent(agent||{id:event.agentId,name:agentNom});
       const remplacement=compactReplacement(event._replacementFor);
-      const data={
-        sourceSystem:SOURCE,
-        sourceLabel:"Planning KONTROL",
-        managedByPlanning:true,
-        planningEventId:safe(event.id),
-        planningWeek:safe(week),
-        planningDate:dateISO(date),
-        dateExacte:dateISO(date),
-        planningAgentId:safe(event.agentId),
-        planningAgentRefId:safe(agent?.refId||agent?.id||event.agentId),
-        planningReplacement:remplacement,
-        chantierId:safe(site?.id||event.chantierId),
-        chantierNom:safe(site?.nom||event.task||"Chantier"),
-        adresse:safe(site?.adresse||""),
-        agentNom,
-        agentId,
-        action:marker.action,
-        typeConteneur:marker.typeConteneur,
-        jour:DAYS[Math.max(0,Math.min(6,Number(event.day)||0))],
-        heureDebut:safe(event.start),
-        heureFin:safe(event.end),
-        frequence:"toutes",
-        containerTaskId:marker.id,
-        containerTaskLabel:marker.label,
-        containerTaskSource:marker.source,
-        actif:true,
-        planningRemoved:false
-      };
-      desired.set(missionId(event),data);
+      markers.forEach(marker=>{
+        const data={
+          sourceSystem:SOURCE,
+          sourceLabel:"Planning KONTROL",
+          managedByPlanning:true,
+          planningEventId:safe(event.id),
+          planningWeek:safe(week),
+          planningDate:dateISO(date),
+          dateExacte:dateISO(date),
+          planningAgentId:safe(event.agentId),
+          planningAgentRefId:safe(agent?.refId||agent?.id||event.agentId),
+          planningReplacement:remplacement,
+          chantierId:safe(site?.id||event.chantierId),
+          chantierNom:safe(site?.nom||event.task||"Chantier"),
+          adresse:safe(site?.adresse||""),
+          agentNom,
+          agentId,
+          action:marker.action,
+          typeConteneur:marker.typeConteneur,
+          jour:DAYS[Math.max(0,Math.min(6,Number(event.day)||0))],
+          heureDebut:safe(event.start),
+          heureFin:safe(event.end),
+          frequence:"toutes",
+          containerTaskId:marker.id,
+          containerTaskLabel:marker.label,
+          containerTaskSource:marker.source,
+          actif:true,
+          planningRemoved:false
+        };
+        desired.set(missionId(event,marker),data);
+      });
     });
   });
   return desired;
