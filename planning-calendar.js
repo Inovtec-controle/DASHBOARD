@@ -549,6 +549,12 @@ function renderContainerReminder(){
   }
   const api=window.InovtecContainerSchedule;
   const actions=typeof api?.actionsFromInfosForDate==="function"?api.actionsFromInfosForDate(chosen,dateValue):[];
+  const disponibles=actions.map(containerTaskFromAction).filter(Boolean);
+  const filtres=selected.filter(task=>disponibles.some(x=>sameContainerTask(x,task)));
+  if(filtres.length!==selected.length){
+    selected.splice(0,selected.length,...filtres);
+    setEditorContainerTasks(selected,{render:false});
+  }
   const buttons=actions.map(action=>{
     const task=containerTaskFromAction(action);
     const active=selected.some(x=>sameContainerTask(x,task));
