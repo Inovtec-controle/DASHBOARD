@@ -1004,21 +1004,22 @@ async function saveAgentForm(){
   var btn=$("#btnSaveAgent");
   if(btn){btn.disabled=false;btn.textContent="Enregistrement Firebase…";}
 
-  // 2. On conserve immédiatement la copie locale complète.
-  try{save();}
-  catch(e){
-    if(btn){btn.disabled=false;btn.textContent="Erreur — réessayer";}
-    row.setAttribute("data-save-state","error");
-    alert("Impossible de préparer la sauvegarde de la fiche.");
-    return false;
-  }
+  // 2. Construire le payload directement depuis l'état en mémoire.
+  // La sauvegarde Firebase ne doit JAMAIS dépendre de localStorage : si le
+  // navigateur est plein, le profil doit quand même être enregistré en ligne.
+  var payload = JSON.stringify(state.agents.filter(function(a){
+    return !(a && a._draft === true && !agentHasName(a));
+  }));
+
+  // Copie locale = uniquement un cache pratique. Son échec n'empêche plus Firebase.
+  try{localStorage.setItem(STORE_KEY,payload);}
+  catch(e){console.warn("Copie locale Agents indisponible ; poursuite sur Firebase",e);}
 
   // 3. Le bouton écrit explicitement cette version dans Firebase et ATTEND
   // la relecture serveur. Aucun ✓ avant cette confirmation.
   try{
     var cloud = window.parent && window.parent.InovtecAgentsCloud;
     if(!cloud || typeof cloud.save!=="function") throw new Error("Service Firebase Agents indisponible");
-    var payload = localStorage.getItem(STORE_KEY) || "[]";
     await cloud.save(payload,agent.id);
 
     row.setAttribute("data-save-state","saved");
@@ -1705,6 +1706,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow14"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow15"></script>
 </body>
 </html>
