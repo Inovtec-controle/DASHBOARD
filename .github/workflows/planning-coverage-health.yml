@@ -56,6 +56,12 @@ jobs:
           ! grep -q 'inovtec-cloud-sync-v2.js' PLANNINGS-APP.html
           grep -q 'planning-replacement.js' PLANNINGS-APP.html
           grep -q 'planning-pdf.js' PLANNINGS-APP.html
+          grep -q 'planning-pdf-robust-text.js' PLANNINGS-APP.html
+          grep -q 'containerLabels' planning-pdf.js
+          grep -q 'containerText' planning-pdf.js
+          grep -q 'containerLabels' planning-pdf-robust-text.js
+          grep -q 'containerLines' planning-pdf-robust-text.js
+          grep -q 'Conteneurs :' planning-pdf-robust-text.js
           grep -q 'planning-legal-guard.js' PLANNINGS-APP.html
           grep -q 'planning-team-safe-ui.js' PLANNINGS-APP.html
           grep -q 'planning-copy-count.js' PLANNINGS-APP.html
@@ -67,3 +73,6 @@ jobs:
           node --check inovtec-container-schedule.js
           node --check planning-container-bridge.js
           node --check inovtec-container-planning-link.js
+          node --check planning-pdf.js
+          node --check planning-pdf-robust-text.js
+          node tests/planning-pdf-containers.mjs
