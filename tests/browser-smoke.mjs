@@ -61,28 +61,33 @@ await check('Planning : changement des vues sans blocage', async () => {
   if (!text || text.trim() === '—') throw new Error('Période du calendrier absente');
 });
 
-await check('Agents : création et enregistrement d’un nouvel agent', async () => {
-  await page.goto(base + '/AGENTS.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 30000 });
-  await page.waitForFunction(() => {
-    const f=document.getElementById('legacyFrame');
-    return !!f?.contentDocument?.getElementById('btnNewAgent') && !!f?.contentDocument?.getElementById('btnSaveAgent');
-  }, null, { timeout: 30000 });
-  const agentsFrame=page.frameLocator('#legacyFrame');
-  await agentsFrame.locator('#btnNewAgent').evaluate(el=>el.click());
-  await agentsFrame.locator('#f_prenom').fill('TestAuto');
-  await agentsFrame.locator('#f_nom').fill('Enregistrement');
-  await agentsFrame.locator('#btnSaveAgent').evaluate(el=>el.click());
+await check('Agents : enregistrement et tri par nom', async () => {
+  await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.evaluate(() => localStorage.removeItem('kontrol_agents_classeur_v2'));
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+
+  async function createAgent(prenom,nom){
+    await page.locator('#btnNewAgent').click();
+    await page.locator('#f_prenom').fill(prenom);
+    await page.locator('#f_nom').fill(nom);
+    await page.locator('#btnSaveAgent').click();
+  }
+
+  await createAgent('Aline','Zulu');
+  await createAgent('Zelie','Alpha');
+
   await page.waitForFunction(() => {
     try{
-      const f=document.getElementById('legacyFrame');
-      const rows=JSON.parse(f?.contentWindow?.localStorage?.getItem('kontrol_agents_classeur_v2')||'[]');
-      return rows.some(a=>a?.identity?.prenom==='TestAuto'&&a?.identity?.nom==='Enregistrement'&&a?._draft!==true);
+      const rows=JSON.parse(localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
+      return rows.filter(a=>a?._deleted!==true&&a?._draft!==true).length===2;
     }catch{return false}
   }, null, { timeout: 10000 });
-  const raw=await page.locator('#legacyFrame').evaluate(f=>f.contentWindow.localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
-  const rows=JSON.parse(raw);
-  if(!rows.some(a=>a?.identity?.prenom==='TestAuto'&&a?.identity?.nom==='Enregistrement'&&a?._draft!==true)) throw new Error('Le bouton Enregistrer ne valide pas le nouvel agent');
+
+  const names=await page.locator('#agentList .listItem .name').allTextContents();
+  if(names.length!==2) throw new Error('La liste Agents ne contient pas les 2 fiches de test');
+  if(!/Zelie\s+Alpha/i.test(names[0]) || !/Aline\s+Zulu/i.test(names[1])){
+    throw new Error('La liste Agents n’est pas triée uniquement par nom de famille');
+  }
 });
 
 await check('Variables : indicateurs et mois accessibles', async () => {
