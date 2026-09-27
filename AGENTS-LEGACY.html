@@ -1272,7 +1272,9 @@ function renderList(){
   list.dataset.ivInternalSort = "1";
   list.innerHTML = "";
 
-  var agents = filteredAgents();
+  // Règle permanente : toute la liste, actuelle et future, est rendue A → Z
+  // uniquement selon le champ visible "Nom".
+  var agents = filteredAgents().slice().sort(compareAgentsByLastName);
   $("#agentCount").textContent = agents.length;
 
   if(!agents.length){
@@ -1292,6 +1294,7 @@ function renderList(){
     var item = document.createElement("div");
     item.className = "listItem"+(a.id===state.selectedId ? " active" : "");
     item.setAttribute("data-agent-id", String(a.id||""));
+    item.setAttribute("data-sort-name", safeText(i.prenom).trim());
     item.setAttribute("role","button");
     item.setAttribute("tabindex","0");
     item.setAttribute("aria-label","Ouvrir la fiche de "+fullName);

@@ -61,7 +61,7 @@ await check('Planning : changement des vues sans blocage', async () => {
   if (!text || text.trim() === '—') throw new Error('Période du calendrier absente');
 });
 
-await check('Agents : enregistrement et tri par nom', async () => {
+await check('Agents : enregistrement et tri A-Z permanent par Nom', async () => {
   await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.evaluate(() => localStorage.removeItem('kontrol_agents_classeur_v2'));
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
@@ -73,20 +73,21 @@ await check('Agents : enregistrement et tri par nom', async () => {
     await page.locator('#btnSaveAgent').click();
   }
 
-  await createAgent('Zulu','Aline');
-  await createAgent('Alpha','Zelie');
+  for (const [nom,prenom] of [
+    ['Touil','Nora'],
+    ['Rott','Paul'],
+    ['Acuna Carlos','Luis'],
+    ['Da rocha','Mia'],
+    ['Bernard','Zoé'],
+    ['Évrard','Alain']
+  ]) await createAgent(nom,prenom);
 
-  await page.waitForFunction(() => {
-    try{
-      const rows=JSON.parse(localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
-      return rows.filter(a=>a?._deleted!==true&&a?._draft!==true).length===2;
-    }catch{return false}
-  }, null, { timeout: 10000 });
-
-  const names=await page.locator('#agentList .listItem .name').allTextContents();
-  if(names.length!==2) throw new Error('La liste Agents ne contient pas les 2 fiches de test');
-  if(!/Alpha\s+Zelie/i.test(names[0]) || !/Zulu\s+Aline/i.test(names[1])){
-    throw new Error('La liste Agents n’est pas triée uniquement par nom de famille');
+  const sortNames=await page.locator('#agentList .listItem').evaluateAll(rows=>rows.map(r=>(r.dataset.sortName||'').trim()));
+  if(sortNames.length!==6) throw new Error('La liste Agents ne contient pas toutes les fiches de test');
+  const collator=new Intl.Collator('fr',{sensitivity:'base',numeric:true});
+  const expected=[...sortNames].sort((a,b)=>collator.compare(a,b));
+  if(JSON.stringify(sortNames)!==JSON.stringify(expected)){
+    throw new Error('La liste Agents n’applique pas la règle générale A-Z sur le champ Nom');
   }
 });
 
