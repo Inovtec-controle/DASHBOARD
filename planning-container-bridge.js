@@ -129,10 +129,25 @@ async function buildAgentResolver(db,existingPlans,state){
   };
 }
 function missionId(event){return "planning_"+safe(event?.id).replace(/\//g,"_").slice(0,1200)}
+function isPassiveTeamClone(state,week,event){
+  const sourceId=safe(event?._teamInheritedFrom);
+  if(!sourceId)return false;
+  const targetId=safe(event?.agentId);
+  const teams=Array.isArray(state?.teamPlanning?.teams)?state.teamPlanning.teams:[];
+  const team=teams.find(t=>
+    safe(t?.referenceAgentId)===sourceId
+    &&Array.isArray(t?.members)
+    &&t.members.map(safe).includes(targetId)
+  );
+  if(!team)return false;
+  const exceptions=Array.isArray(team?.exceptions?.[week])?team.exceptions[week].map(safe):[];
+  return !exceptions.includes(targetId);
+}
 function buildDesiredMissions(state,resolveAgent){
   const list=sites(),agents=Array.isArray(state.agents)?state.agents:[],desired=new Map();
   Object.entries(state.weeks||{}).forEach(([week,rows])=>{
     (Array.isArray(rows)?rows:[]).forEach(event=>{
+      if(isPassiveTeamClone(state,week,event))return;
       const marker=validContainerTask(event?.containerTask);
       if(!marker||!event?.id)return;
       const date=dateFromWeek(week,event.day);
