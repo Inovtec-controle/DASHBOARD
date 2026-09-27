@@ -978,39 +978,74 @@ function saveAgentForm(){
     j.titulaireRemplaceId = replacement;
   }
 
+  // Finaliser explicitement la fiche et garantir qu'elle reste une fiche active.
   delete agent._draft;
+  delete agent._deleted;
+  delete agent.deletedAt;
+  delete agent.deletedReason;
+  agent.archivedAt = "";
   touchAgent(agent);
-  rememberSelectedAgent(agent.id);
-  save();
 
-  // La fiche enregistrée doit rester visible immédiatement, même si une recherche
-  // précédente ne correspond plus au nouveau nom.
-  if(state.search){
-    var stillVisible = filteredAgents().some(function(a){ return a && a.id === agent.id; });
-    if(!stillVisible){
-      state.search = "";
-      var searchInput = $("#search");
-      if(searchInput) searchInput.value = "";
-    }
+  // Réinjecter la fiche dans le tableau canonique au cas où un module tardif aurait
+  // remplacé la référence pendant l'édition.
+  var savedIndex = state.agents.findIndex(function(a){ return a && String(a.id)===String(agent.id); });
+  if(savedIndex >= 0) state.agents[savedIndex] = agent;
+  else state.agents.push(agent);
+
+  state.search = "";
+  var searchInput = $("#search");
+  if(searchInput) searchInput.value = "";
+  state.selectedId = agent.id;
+  rememberSelectedAgent(agent.id);
+
+  // Écriture locale puis relecture de contrôle : le ✓ ne doit apparaître que si
+  // la fiche existe réellement dans le stockage avec son nom.
+  save();
+  var persistedAgent = null;
+  try{
+    var persistedRows = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+    persistedAgent = persistedRows.find(function(a){
+      return a && String(a.id)===String(agent.id) && !isDeletedAgent(a) && agentHasName(a);
+    }) || null;
+  }catch(e){
+    console.error("Vérification enregistrement agent", e);
+  }
+  if(!persistedAgent){
+    alert("L’agent n’a pas pu être enregistré. La fiche n’a pas été retrouvée après sauvegarde.");
+    return false;
   }
 
-  // Déclenchement immédiat de la synchronisation Firebase.
+  renderAll();
+
+  // Contrôle également le rendu : une sauvegarde réussie doit produire sa fiche
+  // dans la liste immédiatement.
+  var row = $("#agentList") && $("#agentList").querySelector('[data-agent-id="'+String(agent.id).replace(/"/g,'&quot;')+'"]');
+  if(!row){
+    renderList();
+    row = $("#agentList") && Array.prototype.find.call($("#agentList").querySelectorAll("[data-agent-id]"), function(el){
+      return String(el.getAttribute("data-agent-id"))===String(agent.id);
+    });
+  }
+  if(!row){
+    alert("L’agent est enregistré mais sa fiche n’a pas pu être affichée dans la liste. Actualise la page.");
+    return false;
+  }
+  try{ row.scrollIntoView({block:"nearest",behavior:"smooth"}); }catch(e){}
+
+  // Déclenchement Firebase uniquement après confirmation locale + présence dans la liste.
   try{
     window.parent.dispatchEvent(new CustomEvent("inovtec:agent-local-saved",{
       detail:{id:agent.id,updatedAt:agent.updatedAt}
     }));
   }catch(e){}
 
-  renderAll();
-
-  // Retour visuel : le clic a réellement été pris en compte.
   var saveBtn = $("#btnSaveAgent");
   if(saveBtn){
     saveBtn.textContent = "Enregistré ✓";
     setTimeout(function(){
       if(!saveBtn.isConnected) return;
       saveBtn.textContent = "Enregistrer";
-    },700);
+    },900);
   }
   return true;
 }
@@ -1647,6 +1682,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow7"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow10"></script>
 </body>
 </html>
