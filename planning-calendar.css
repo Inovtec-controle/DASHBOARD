@@ -3,3 +3,20 @@
 .event-card.just-saved{z-index:30!important;box-shadow:0 0 0 2px rgba(11,107,67,.28),0 10px 28px rgba(15,23,42,.18)!important;filter:none!important;opacity:1!important;visibility:visible!important}
 
 .event-card.draft-preview{z-index:18!important;pointer-events:none!important;cursor:default!important;border-style:dashed!important;border-width:2px!important;opacity:.82!important;box-shadow:0 0 0 2px rgba(11,107,67,.08),0 7px 18px rgba(15,23,42,.09)!important}.event-card.draft-preview .event-site{font-style:italic;opacity:.8}
+
+
+/* Rappel conteneurs dans la bulle Planning */
+.planning-container-reminder{margin:-2px 10px 8px 35px;padding:9px 10px;border:1px solid #cfe7da;border-radius:11px;background:#f1faf5;color:#275747;font-size:11px;line-height:1.35}
+.planning-container-reminder[hidden]{display:none!important}
+.planning-container-reminder .pcr-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.planning-container-reminder .pcr-title{font-weight:800;color:#0b6b43}
+.planning-container-reminder .pcr-sub{color:#64756d;font-size:10px}
+.planning-container-reminder .pcr-actions{display:flex;flex-wrap:wrap;gap:6px}
+.planning-container-reminder .pcr-action{border:1px solid #b9dbc9;background:#fff;color:#0b6b43;border-radius:999px;padding:6px 9px;font:inherit;font-size:10px;font-weight:800;cursor:pointer}
+.planning-container-reminder .pcr-action:hover{background:#e8f6ee}
+.planning-container-reminder .pcr-action.active{background:#0b6b43;color:#fff;border-color:#0b6b43}
+.planning-container-reminder .pcr-remove{border:0;background:transparent;color:#8b3a3a;font:inherit;font-size:10px;font-weight:800;cursor:pointer;padding:3px 0}
+.planning-container-reminder .pcr-empty{color:#677a71;font-size:10px}
+.planning-container-reminder .pcr-selected{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid #dcece4}
+.planning-container-reminder .pcr-selected strong{color:#0b6b43}
+@media(max-width:700px){.planning-container-reminder{margin-left:8px;margin-right:8px}}
