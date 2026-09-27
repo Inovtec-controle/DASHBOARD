@@ -34,33 +34,31 @@ function install(){
       }catch{}
     };
 
-    const saveBtn=d.getElementById("btnSaveAgent");
-    if(saveBtn&&!saveBtn.dataset.ivContractHours){
-      saveBtn.dataset.ivContractHours="1";
-      saveBtn.onclick=function(ev){
-        ev?.preventDefault?.();
+    // Ne jamais remplacer le clic du bouton Enregistrer.
+    // Le bouton natif de la fiche reste l'unique point d'entrée.
+    if(typeof w.saveAgentForm==="function"&&!w.saveAgentForm.__ivContractHoursWrapped){
+      const originalSave=w.saveAgentForm;
+      const wrapped=function(){
         const a=w.getSelectedAgent?.();
         if(a){
           a.job=a.job||{};
-          const raw=String(input?.value||"").trim();
+          const raw=String(d.getElementById("f_heuresContrat")?.value||"").trim();
           if(raw){
             const n=parseHours(raw);
             if(n===null||n>60){
-              alert("Indique un nombre d’heures contractuelles hebdomadaires compris entre 1 et 60 h.");
-              input?.focus();
+              w.alert("Indique un nombre d’heures contractuelles hebdomadaires compris entre 1 et 60 h.");
+              d.getElementById("f_heuresContrat")?.focus();
               return;
             }
             a.job.contractHoursWeekly=Math.round(n*100)/100;
-          }else{
-            a.job.contractHoursWeekly="";
-          }
+          }else a.job.contractHoursWeekly="";
         }
-        // Toujours appeler la version ACTIVE de saveAgentForm.
-        // D'autres modules (titulaire/remplacement, Firebase) peuvent l'enrichir
-        // après l'installation de ce bouton.
-        if(typeof w.saveAgentForm==="function")w.saveAgentForm(ev);
+        const result=originalSave.apply(w,arguments);
         setTimeout(fill,0);
+        return result;
       };
+      wrapped.__ivContractHoursWrapped=true;
+      w.saveAgentForm=wrapped;
     }
 
     d.getElementById("agentList")?.addEventListener("click",()=>setTimeout(fill,0),true);
