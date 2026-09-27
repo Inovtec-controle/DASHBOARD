@@ -51,6 +51,10 @@ jobs:
           grep -q 'actionsFromInfosForDate' inovtec-container-schedule.js
           grep -q 'sourceSystem:SOURCE' planning-container-bridge.js
           grep -q 'validContainerTasks' planning-container-bridge.js
+          grep -q 'selectedAgentId' planning-calendar.js
+          grep -q 'selectedAgentId' planning-container-bridge.js
+          grep -q 'sameContainerTaskSet' planning-container-bridge.js
+          grep -q 'sameLinkedSlot' planning-container-bridge.js
           grep -q 'markers.forEach' planning-container-bridge.js
           grep -q 'isPassiveTeamClone' planning-container-bridge.js
           ! grep -q 'inovtec-cloud-sync-v2.js' PLANNINGS-APP.html

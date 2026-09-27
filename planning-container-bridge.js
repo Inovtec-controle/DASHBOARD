@@ -49,7 +49,8 @@ function validContainerTask(raw){
     action,
     typeConteneur:type,
     label:safe(raw.label||((action==="sortie"?"Sortie ":"Rentrée ")+type)),
-    source:safe(raw.source||"infos-chantier")
+    source:safe(raw.source||"infos-chantier"),
+    selectedAgentId:safe(raw.selectedAgentId||raw.agentId||"")
   };
 }
 function validContainerTasks(event){
@@ -166,6 +167,21 @@ function missionId(event,marker){
   const suffix=safe(marker?.id||((marker?.action||"mission")+"_"+(marker?.typeConteneur||""))).replace(/[^a-zA-Z0-9_-]+/g,"_").slice(0,180);
   return base+"__"+(suffix||"mission");
 }
+function containerTaskKey(task){
+  return [safe(task?.id),safe(task?.action),safe(task?.typeConteneur)].join("|");
+}
+function sameContainerTaskSet(a,b){
+  const aa=validContainerTasks(a).map(containerTaskKey).sort();
+  const bb=validContainerTasks(b).map(containerTaskKey).sort();
+  return JSON.stringify(aa)===JSON.stringify(bb);
+}
+function sameLinkedSlot(a,b){
+  if(Number(a?.day)!==Number(b?.day))return false;
+  if(safe(a?.start)!==safe(b?.start)||safe(a?.end)!==safe(b?.end))return false;
+  const aSite=safe(a?.chantierId)||norm(a?.task)||norm(a?.site);
+  const bSite=safe(b?.chantierId)||norm(b?.task)||norm(b?.site);
+  return !!aSite&&aSite===bSite;
+}
 function isPassiveTeamClone(state,week,event){
   const sourceId=safe(event?._teamInheritedFrom);
   if(!sourceId)return false;
@@ -178,7 +194,21 @@ function isPassiveTeamClone(state,week,event){
   );
   if(!team)return false;
   const exceptions=Array.isArray(team?.exceptions?.[week])?team.exceptions[week].map(safe):[];
-  return !exceptions.includes(targetId);
+  if(exceptions.includes(targetId))return false;
+
+  const markers=validContainerTasks(event);
+  if(markers.some(marker=>safe(marker.selectedAgentId)===targetId))return false;
+
+  // Une copie liée n'est "passive" que si la tâche source porte exactement
+  // les mêmes missions conteneurs. Si l'utilisateur coche une bulle propre
+  // au membre lié, cette mission appartient bien à ce membre et doit monter.
+  const rows=Array.isArray(state?.weeks?.[week])?state.weeks[week]:[];
+  const sources=rows.filter(candidate=>
+    safe(candidate?.agentId)===sourceId
+    &&sameLinkedSlot(candidate,event)
+  );
+  if(!sources.length)return false;
+  return sources.some(source=>sameContainerTaskSet(source,event));
 }
 function buildDesiredMissions(state,resolveAgent){
   const list=sites(),agents=Array.isArray(state.agents)?state.agents:[],desired=new Map();
@@ -220,6 +250,7 @@ function buildDesiredMissions(state,resolveAgent){
           containerTaskId:marker.id,
           containerTaskLabel:marker.label,
           containerTaskSource:marker.source,
+          containerTaskAgentId:safe(marker.selectedAgentId||event.agentId),
           actif:true,
           planningRemoved:false
         };

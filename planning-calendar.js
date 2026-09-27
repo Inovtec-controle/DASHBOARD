@@ -33,7 +33,7 @@ function normalizeContainerTask(raw){
   if(!action||!["OM","TRI","OM/TRI"].includes(type))return null;
   const label=safeText(raw.label||((action==="sortie"?"Sortie ":"Rentrée ")+type)).trim();
   const id=safeText(raw.id||((action==="sortie"?"sortie":"rentree")+type.replace(/[^A-Z]/g,""))).trim();
-  return{schemaVersion:2,id,action,typeConteneur:type,label,source:safeText(raw.source||"infos-chantier")||"infos-chantier"};
+  return{schemaVersion:3,id,action,typeConteneur:type,label,source:safeText(raw.source||"infos-chantier")||"infos-chantier",selectedAgentId:safeText(raw.selectedAgentId||raw.agentId||"")};
 }
 function normalizeContainerTasks(rawList,legacyRaw=null){
   const source=Array.isArray(rawList)?rawList:(legacyRaw?[legacyRaw]:[]);
@@ -716,7 +716,7 @@ function saveEditor(){
   if(!chosen&&!legacy){release();alert("Choisis un chantier dans la liste.");$("edTitle").focus();return}
   const oldAgentId=e.agentId,newWeek=isoWeekKey(d);
   const next={...e,agentId:$("edAgent").value,day:mondayIndex(d),start,end,note:$("edNote").value.trim()};
-  const containerTasks=editorContainerTasks();
+  const containerTasks=editorContainerTasks().map(task=>({...task,selectedAgentId:next.agentId,schemaVersion:3}));
   if(containerTasks.length){
     next.containerTasks=containerTasks;
     next.containerTask=containerTasks[0];
