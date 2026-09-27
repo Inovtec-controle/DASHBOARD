@@ -9,9 +9,12 @@ const pad=n=>String(n).padStart(2,"0");
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const slug=v=>norm(v).replace(/\s+/g,"-").replace(/^-+|-+$/g,"")||"agent";
 const safe=v=>v==null?"":String(v);
-let currentUser=null,planningReady=false,syncing=false,resync=false,timer=0,lastError="";
+let currentUser=null,planningReady=false,syncing=false,resync=false,timer=0,lastError="",latestPlanningState=null;
 
-function planningState(){try{return window.InovtecPlanningAPI?.getState?.()||null}catch{return null}}
+function planningState(){
+  if(latestPlanningState)return latestPlanningState;
+  try{return window.InovtecPlanningAPI?.getState?.()||null}catch{return null}
+}
 function hub(){try{return window.InovtecDataHub||null}catch{return null}}
 function sites(){const h=hub();return h?.readyChantiers?Array.from(h.chantiers||[]):[]}
 function dateFromWeek(key,day){
@@ -231,7 +234,10 @@ function markPlanningReady(event){
   if(typeof payload==="string"){
     try{
       const parsed=JSON.parse(payload);
-      if(parsed&&typeof parsed==="object"&&parsed.weeks&&Array.isArray(parsed.agents))planningReady=true;
+      if(parsed&&typeof parsed==="object"&&parsed.weeks&&Array.isArray(parsed.agents)){
+        latestPlanningState=parsed;
+        planningReady=true;
+      }
     }catch{}
   }else{
     const state=planningState();
@@ -249,7 +255,16 @@ firebase.auth().onAuthStateChanged(user=>{
   if(currentUser&&planningReady)schedule("auth-ready",120);
 });
 window.addEventListener("inovtec:planning-cloud-payload",markPlanningReady);
-window.addEventListener("inovtec:planning-cloud-saved",event=>{planningReady=true;schedule(event?.detail?.source||"planning-saved",100)});
+window.addEventListener("inovtec:planning-cloud-saved",event=>{
+  const payload=event?.detail?.payload;
+  if(typeof payload==="string"){
+    try{
+      const parsed=JSON.parse(payload);
+      if(parsed&&parsed.weeks&&Array.isArray(parsed.agents))latestPlanningState=parsed;
+    }catch{}
+  }
+  planningReady=true;
+  schedule(event?.detail?.source||"planning-saved",100);
+});
 try{hub()?.subscribe?.(()=>{if(planningReady)schedule("chantiers-updated",260)})}catch{}
-setTimeout(()=>{const state=planningState();if(state?.weeks&&Array.isArray(state.agents)){planningReady=true;schedule("initial-state",300)}},1800);
 })();
