@@ -85,7 +85,7 @@ await check('Agents : enregistrement et tri par nom', async () => {
 
   const names=await page.locator('#agentList .listItem .name').allTextContents();
   if(names.length!==2) throw new Error('La liste Agents ne contient pas les 2 fiches de test');
-  if(!/Zelie\s+Alpha/i.test(names[0]) || !/Aline\s+Zulu/i.test(names[1])){
+  if(!/Alpha\s+Zelie/i.test(names[0]) || !/Zulu\s+Aline/i.test(names[1])){
     throw new Error('La liste Agents n’est pas triée uniquement par nom de famille');
   }
 });
