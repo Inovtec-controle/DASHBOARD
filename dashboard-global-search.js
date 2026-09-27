@@ -90,8 +90,7 @@ async function load(user){
       ?result[0].value.docs.map(d=>({id:d.id,...(d.data()||{})})).filter(s=>s._hidden!==true)
       :[];
     const shared=sourceData(result[1]),personal=sourceData(result[2]);
-    const localAgents=localJson("kontrol_agents_classeur_v2",[]);
-    const agentLists=[agentsFrom(shared),agentsFrom(personal),Array.isArray(localAgents)?localAgents:[]],deletedAgents=agentDeletionState(...agentLists);
+    const agentLists=[agentsFrom(shared),agentsFrom(personal)],deletedAgents=agentDeletionState(...agentLists);
     const agents=unique(agentLists.flat().filter(a=>activeAgent(a,deletedAgents)),a=>String(a.id||agentName(a)));
     buildRows(sites,agents,moduleTasks(shared,personal));
     ready=true;
