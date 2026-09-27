@@ -32,20 +32,33 @@ function payloadOf(rows){
   if(new Blob([raw]).size>LIMIT)throw Error('Les données Agents sont trop volumineuses pour Firebase');
   return raw;
 }
+async function setBestAuthPersistence(auth){
+  try{
+    const P=firebase.auth.Auth.Persistence;
+    for(const mode of [P.LOCAL,P.SESSION,P.NONE]){
+      try{await auth.setPersistence(mode);return mode}catch(_e){}
+    }
+  }catch(_e){}
+  // Même si le navigateur refuse toute persistance, tenter quand même
+  // l'authentification au lieu de bloquer l'utilisateur.
+  return null;
+}
 function loginBox(){
   let box=document.getElementById('ivAgentsFirebaseLogin');
   if(box)return box;
   box=document.createElement('div');
   box.id='ivAgentsFirebaseLogin';
   box.style.cssText='position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#0f172a77;padding:18px';
-  box.innerHTML='<form style="width:min(390px,100%);background:white;border-radius:16px;padding:24px;font:14px system-ui"><h2>Connexion Inovtec</h2><p>Connecte-toi pour accéder aux agents enregistrés dans Firebase.</p><label>Adresse e-mail<input type="email" name="email" required autocomplete="username" style="display:block;width:100%;padding:10px;margin:6px 0 12px"></label><label>Mot de passe<input type="password" name="password" required autocomplete="current-password" style="display:block;width:100%;padding:10px;margin:6px 0 12px"></label><button type="submit" style="padding:10px;background:#065f46;color:white;border:0;border-radius:8px">Se connecter</button><p data-error style="color:#b91c1c"></p></form>';
+  box.innerHTML='<form style="width:min(390px,100%);background:white;border-radius:16px;padding:24px;font:14px system-ui"><h2>Connexion Inovtec</h2><p>Connecte-toi pour accéder aux agents enregistrés dans Firebase.</p><label>Adresse e-mail<input type="email" name="email" required autocomplete="username" autocapitalize="none" spellcheck="false" style="display:block;width:100%;padding:10px;margin:6px 0 12px"></label><label>Mot de passe<input type="password" name="password" required autocomplete="current-password" style="display:block;width:100%;padding:10px;margin:6px 0 12px"></label><button type="submit" style="padding:10px;background:#065f46;color:white;border:0;border-radius:8px">Se connecter</button><p data-error style="color:#b91c1c"></p></form>';
   document.body.appendChild(box);
   box.querySelector('form').addEventListener('submit',async e=>{
     e.preventDefault();
     const form=e.currentTarget,err=form.querySelector('[data-error]');
     err.textContent='';
     try{
-      await firebase.auth().signInWithEmailAndPassword(form.elements.email.value.trim(),form.elements.password.value);
+      const auth=firebase.auth();
+      await setBestAuthPersistence(auth);
+      await auth.signInWithEmailAndPassword(form.elements.email.value.trim(),form.elements.password.value);
       form.elements.password.value='';
     }catch(ex){err.textContent='Connexion impossible : '+(ex.code||ex.message||'erreur')}
   });
