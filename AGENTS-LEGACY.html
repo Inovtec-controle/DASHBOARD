@@ -808,7 +808,7 @@ function activeAgents(){
 }
 function agentSortKey(agent){
   var i = agent && agent.identity || {};
-  return (safeText(i.nom)+" "+safeText(i.prenom)).trim().toLowerCase();
+  return safeText(i.nom).trim().toLowerCase();
 }
 function getSelectedAgent(){
   for(var i=0;i<state.agents.length;i++){

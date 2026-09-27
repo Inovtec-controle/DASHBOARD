@@ -25,7 +25,7 @@ const navDefinitions=[
  ['Planning','▦','PLANNINGS.html?v=20260927-planningrestore1','planning'],
  ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20260913-width1'],
  ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos','INFOCHANTIERS-V2-LEGACY.html?v=20260923-mobile2'],
- ['Classeur agents','♙','AGENTS.html','agents','AGENTS-LEGACY.html?v=20260927-agentsave2'],
+ ['Classeur agents','♙','AGENTS.html','agents','AGENTS-LEGACY.html?v=20260927-agentsort1'],
  ['Matériel','▣','MATERIEL.html','materiel'],
  ['Réassort','↻','REASSORT.html','reassort'],
  ['Congés & absences','☂','CONGES.html','conges','CONGES-LEGACY.html?v=20260829-operational1'],
