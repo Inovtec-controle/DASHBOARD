@@ -15,7 +15,12 @@ function planningState(){
   if(latestPlanningState)return latestPlanningState;
   try{return window.InovtecPlanningAPI?.getState?.()||null}catch{return null}
 }
-function hub(){try{return window.InovtecDataHub||null}catch{return null}}
+function hub(){
+  try{
+    if(parent&&parent!==window&&parent.InovtecDataHub)return parent.InovtecDataHub;
+  }catch{}
+  try{return window.InovtecDataHub||null}catch{return null}
+}
 function sites(){const h=hub();return h?.readyChantiers?Array.from(h.chantiers||[]):[]}
 function dateFromWeek(key,day){
   const m=String(key||"").match(/^(\d{4})-W(\d{2})$/);
