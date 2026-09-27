@@ -91,9 +91,22 @@ function agentById(id){return state.agents.find(a=>a.id===id)}
 function entriesForWeek(key){if(!Array.isArray(state.weeks[key]))state.weeks[key]=[];return state.weeks[key]}
 function entriesForDate(d){const key=isoWeekKey(d),day=mondayIndex(d);return entriesForWeek(key).filter(e=>Number(e.day)===day)}
 function eventRef(week,id){return entriesForWeek(week).find(e=>e.id===id)}
-function dataHub(){try{return parent&&parent.InovtecDataHub?parent.InovtecDataHub:null}catch{return null}}
-function hubAgents(){const h=dataHub();return h?.readyAgents?Array.from(h.agents||[]):[]}
-function hubSites(){const h=dataHub();return h?.readyChantiers?Array.from(h.chantiers||[]):[]}
+function dataHub(){
+  let parentHub=null,localHub=null;
+  try{if(parent&&parent!==window)parentHub=parent.InovtecDataHub||null}catch{}
+  try{localHub=window.InovtecDataHub||null}catch{}
+  if(parentHub?.readyChantiers||parentHub?.readyAgents)return parentHub;
+  if(localHub?.readyChantiers||localHub?.readyAgents)return localHub;
+  return parentHub||localHub||null;
+}
+function hubAgents(){
+  const h=dataHub();
+  return h?.readyAgents?Array.from(h.agents||[]):[];
+}
+function hubSites(){
+  const h=dataHub();
+  return h?.readyChantiers?Array.from(h.chantiers||[]):[];
+}
 function masterName(a){return[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ").trim()||a?.displayName||a?.name||"Agent sans nom"}
 function enforceSingleAgent(){visibleAgents=new Set(state.selected?[state.selected]:[])}
 function isFirstTopLevelOpen(){try{const token=String(parent?.performance?.timeOrigin||"");if(!token)return true;const key="ivPlanningTopPageToken",old=parent.sessionStorage.getItem(key)||"";parent.sessionStorage.setItem(key,token);return old!==token}catch{return true}}
@@ -347,7 +360,20 @@ window.InovtecPlanningAPI={
   saveCurrent:(source="module")=>save(source),
   requestRefresh:requestCloudRefresh
 };
-function bindHub(){const h=dataHub();if(!h){setTimeout(bindHub,300);return}if(hubBound)return;hubBound=true;h.subscribe(()=>{const pop=$("editorPopover"),editorOpen=pop.classList.contains("open"),active=document.activeElement,editing=editorOpen&&pop.contains(active),changed=syncAgentsFromHub();if(changed){if(!editing)render()}else if(editorOpen&&active!==$("edTitle")){const e=eventRef(pop.dataset.week,pop.dataset.id);if(e)fillChantierSelect(e)}});if(syncAgentsFromHub())render()}
+function bindHub(){
+  const h=dataHub();
+  if(!h){setTimeout(bindHub,300);return}
+  if(hubBound)return;
+  hubBound=true;
+  h.subscribe(()=>{
+    const pop=$("editorPopover"),editorOpen=pop.classList.contains("open"),editing=editorOpen&&pop.contains(document.activeElement);
+    const changed=syncAgentsFromHub();
+    if(changed&&!editing)render();
+    if(editorOpen)refreshOpenEditorContainerInfo();
+  });
+  if(syncAgentsFromHub())render();
+  if($("editorPopover")?.classList.contains("open"))refreshOpenEditorContainerInfo();
+}
 function selectAgent(id){
   const wanted=safeText(id);
   if(!agentById(wanted))return;
@@ -543,18 +569,29 @@ function renderContainerReminder(){
   if(!box)return;
   const chosen=selectedChantier(),dateValue=$("edDate")?.value||"",selected=editorContainerTasks();
   if(!chosen){
-    box.hidden=true;
-    box.innerHTML="";
+    const pop=$("editorPopover"),e=pop?.dataset?.draft==="1"?draftEvent:eventRef(pop?.dataset?.week,pop?.dataset?.id);
+    const waiting=!dataHub()?.readyChantiers;
+    if(pop?.classList.contains("open")&&(waiting||e?.chantierId||e?.task)){
+      box.hidden=false;
+      box.innerHTML=waiting
+        ?'<div class="pcr-empty">Synchronisation avec Infos chantier…</div>'
+        :'<div class="pcr-empty">Cette ancienne tâche n’est pas encore reliée à une résidence Infos chantier. Sélectionne la résidence ci-dessus pour afficher ses rappels.</div>';
+    }else{
+      box.hidden=true;
+      box.innerHTML="";
+    }
     return;
   }
   const api=window.InovtecContainerSchedule;
   const actions=typeof api?.actionsFromInfosForDate==="function"?api.actionsFromInfosForDate(chosen,dateValue):[];
-  const disponibles=actions.map(containerTaskFromAction).filter(Boolean);
-  const filtres=selected.filter(task=>disponibles.some(x=>sameContainerTask(x,task)));
-  if(filtres.length!==selected.length){
-    selected.splice(0,selected.length,...filtres);
-    setEditorContainerTasks(selected,{render:false});
-  }
+  const activeIds=new Set(actions.map(x=>String(x.id)));
+  const infosSchedule=typeof api?.infosScheduleForSite==="function"?api.infosScheduleForSite(chosen):{};
+  const configured=(api?.FIELDS||[]).map(field=>({
+    ...field,
+    days:Array.isArray(infosSchedule?.[field.id])?infosSchedule[field.id]:[],
+    frequence:typeof api?.frequencyForSite==="function"?api.frequencyForSite(chosen,field.id):"toutes"
+  })).filter(x=>x.days.length);
+  const autres=configured.filter(x=>!activeIds.has(String(x.id)));
   const buttons=actions.map(action=>{
     const task=containerTaskFromAction(action);
     const active=selected.some(x=>sameContainerTask(x,task));
@@ -564,9 +601,16 @@ function renderContainerReminder(){
     ?`<div class="pcr-selected"><span><strong>${selected.length}</strong> mission${selected.length>1?"s":""} sélectionnée${selected.length>1?"s":""} : ${selected.map(x=>safeText(x.label)).join(" · ")}</span><button type="button" class="pcr-remove">Tout retirer</button></div>`
     :"";
   const empty=!actions.length
-    ?'<div class="pcr-empty">Aucune sortie ou rentrée prévue dans Infos chantier pour ce jour.</div>'
+    ?'<div class="pcr-empty">Aucune sortie ou rentrée à effectuer sur cette date.</div>'
     :"";
-  box.innerHTML=`<div class="pcr-head"><span class="pcr-title">🗑️ Rappel conteneurs</span><span class="pcr-sub">Tu peux en sélectionner plusieurs</span></div><div class="pcr-actions">${buttons}</div>${empty}${selectedHtml}`;
+  const autresHtml=autres.length
+    ?`<div class="pcr-other"><strong>Autres rappels Infos chantier :</strong> ${autres.map(x=>{
+      const jours=x.days.map(d=>api?.SHORT?.[d]||d).join(" · ");
+      const freq=api?.FREQ_LABEL?.[x.frequence]||"Toutes les semaines";
+      return `${safeText(x.label)} — ${safeText(jours)} · ${safeText(freq)}`;
+    }).join(" | ")}</div>`
+    :"";
+  box.innerHTML=`<div class="pcr-head"><span class="pcr-title">🗑️ Rappel conteneurs</span><span class="pcr-sub">Tu peux en sélectionner plusieurs</span></div><div class="pcr-actions">${buttons}</div>${empty}${selectedHtml}${autresHtml}`;
   box.hidden=false;
   box.querySelectorAll(".pcr-action").forEach(button=>button.addEventListener("click",()=>{
     const action=actions.find(x=>String(x.id)===String(button.dataset.containerId));
@@ -583,6 +627,27 @@ function renderContainerReminder(){
     renderContainerReminder();
     scheduleDraftPreview();
   });
+}
+function currentEditorEvent(){
+  const pop=$("editorPopover");
+  if(!pop?.classList.contains("open"))return null;
+  if(pop.dataset.draft==="1")return draftEvent;
+  return eventRef(pop.dataset.week,pop.dataset.id)||null;
+}
+function refreshOpenEditorContainerInfo(){
+  const pop=$("editorPopover");
+  if(!pop?.classList.contains("open"))return;
+  const e=currentEditorEvent();
+  const title=$("edTitle");
+  const currentId=String(title?.value||"");
+  const currentStillExists=currentId&&currentId!=="__legacy__"&&hubSites().some(c=>String(c.id)===currentId);
+  if(e&&!currentStillExists&&document.activeElement!==title)fillChantierSelect(e);
+  renderContainerReminder();
+}
+function scheduleEditorContainerRefresh(){
+  [80,240,650,1400].forEach(delay=>setTimeout(()=>{
+    if($("editorPopover")?.classList.contains("open"))refreshOpenEditorContainerInfo();
+  },delay));
 }
 function applySelectedChantier(){
   /* Le choix du chantier ne doit jamais déclencher de traitement lourd,
@@ -612,6 +677,7 @@ function openEditor(week,e,x,y,isDraft=false){
   setEditorContainerTasks(normalizeContainerTasks(e.containerTasks,e.containerTask),{render:false});
   pop.classList.add("open");
   renderContainerReminder();
+  scheduleEditorContainerRefresh();
   if(isDraft)renderDraftPreview();
   pop.style.maxHeight="calc(100vh - 16px)";
   pop.style.overflowY="auto";
@@ -736,9 +802,16 @@ $("edTitle").addEventListener("change",()=>{
   setEditorContainerTasks([],{render:false});
   applySelectedChantier();
   renderContainerReminder();
+  scheduleEditorContainerRefresh();
   scheduleDraftPreview();
 });
-$("edDate").addEventListener("change",()=>{renderContainerReminder();scheduleDraftPreview()});
+$("edTitle").addEventListener("blur",()=>refreshOpenEditorContainerInfo());
+$("edDate").addEventListener("change",()=>{
+  setEditorContainerTasks([],{render:false});
+  renderContainerReminder();
+  scheduleEditorContainerRefresh();
+  scheduleDraftPreview();
+});
 $("edSite").addEventListener("input",scheduleDraftPreview);
 ["edStart","edEnd","edAgent","edNote"].forEach(id=>{
   $(id)?.addEventListener("input",scheduleDraftPreview);
@@ -754,6 +827,8 @@ $("editorPopover").addEventListener("mousedown",e=>e.stopPropagation());
 $("exportBtn").onclick=exportData;$("importFile").onchange=e=>{const f=e.target.files?.[0];if(f)importData(f);e.target.value=""};$("printBtn").onclick=()=>window.print();
 document.addEventListener("mousedown",e=>{if(!e.target.closest("#contextMenu"))closeContext();if(!e.target.closest("#editorPopover")&&!e.target.closest(".event-card")&&!e.target.closest(".month-event")&&!e.target.closest(".list-item"))closeEditor()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeContext();closeEditor()}});
+window.addEventListener("focus",()=>refreshOpenEditorContainerInfo());
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshOpenEditorContainerInfo()});
 window.addEventListener("resize",()=>{
   closeContext();
   // L'enveloppe Dashboard ajuste la hauteur de l'iframe après l'ouverture
