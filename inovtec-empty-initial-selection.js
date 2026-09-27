@@ -58,16 +58,38 @@ function bindAgentCardVisibility(){
   syncAgentCardVisibility();
 }
 
+function bindUserInteractionGuard(){
+  let d;try{d=frame?.contentDocument}catch{return}
+  if(!d?.body||d.documentElement.dataset.ivAgentInteractionGuard==="1")return;
+  d.documentElement.dataset.ivAgentInteractionGuard="1";
+  const mark=()=>{d.documentElement.dataset.ivAgentUserInteracted="1"};
+  ["pointerdown","mousedown","touchstart","keydown","input","change","focusin"].forEach(type=>{
+    d.addEventListener(type,mark,true);
+  });
+}
+
 function clearInitialSelection(){
   let d,w;try{d=frame?.contentDocument;w=frame?.contentWindow}catch{return}
   if(!d?.body||!w)return;
   ensureFullAgentsList();
   bindAgentCardVisibility();
+  bindUserInteractionGuard();
   if(d.documentElement.dataset.ivInitialSelectionCleared==="1"){
     syncAgentCardVisibility();
     return;
   }
   if(!w.state||typeof w.renderAll!=="function")return;
+
+  // Ne jamais effacer une sélection après que l'utilisateur a commencé à agir.
+  // Cela protège aussi bien "Nouvel agent" que la modification d'un agent existant.
+  const selected=w.state?.agents?.find?.(a=>a?.id===w.state?.selectedId);
+  const userInteracted=d.documentElement.dataset.ivAgentUserInteracted==="1";
+  if(userInteracted || selected?._draft===true){
+    d.documentElement.dataset.ivInitialSelectionCleared="1";
+    syncAgentCardVisibility();
+    return;
+  }
+
   d.documentElement.dataset.ivInitialSelectionCleared="1";
   try{
     w.state.selectedId=null;
@@ -88,10 +110,11 @@ function refreshAgentsPage(){
   syncAgentCardVisibility();
 }
 frame?.addEventListener("load",()=>{
-  setTimeout(refreshAgentsPage,60);
+  // L'iframe est complètement chargée à cet instant : initialiser immédiatement
+  // évite qu'un reset différé puisse interrompre une saisie utilisateur.
+  refreshAgentsPage();
   setTimeout(refreshAgentsPage,250);
   setTimeout(refreshAgentsPage,700);
-  setTimeout(refreshAgentsPage,1400);
 });
 setTimeout(refreshAgentsPage,350);
 })();
