@@ -107,7 +107,7 @@ jobs:
           done
           for attempt in $(seq 1 12); do
             curl -fsSL --retry 2 --retry-delay 2 "$base/index.html?check=${GITHUB_SHA}" -o /tmp/inovtec-home.html
-            if grep -q 'href="REASSORT.html"' /tmp/inovtec-home.html; then
+            if grep -Eq 'href="REASSORT\.html([?"][^"]*)?"' /tmp/inovtec-home.html; then
               echo 'Page Réassort et lien d’accueil accessibles sur le site public.'
               exit 0
             fi
