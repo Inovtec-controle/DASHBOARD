@@ -6,7 +6,7 @@ if(mode!=='agents')return;
 const LIMIT=900000;
 const parse=(s,f)=>{try{const v=JSON.parse(String(s||''));return v??f}catch{return f}};
 const clone=v=>JSON.parse(JSON.stringify(v));
-let user=null,db=null,ref=null,readyResolve,readyReject;
+let user=null,db=null,ref=null,unsubscribe=null,readyResolve,readyReject;
 let readyPromise=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject});
 
 function status(text,ok=false){
@@ -14,6 +14,15 @@ function status(text,ok=false){
     const el=document.getElementById(id);
     if(el){el.textContent=text;el.dataset.ok=ok?'1':'0'}
   }
+}
+function emit(type,detail){
+  const data=detail||{};
+  try{window.dispatchEvent(new CustomEvent(type,{detail:data}))}catch(e){}
+  try{
+    const frame=document.getElementById('legacyFrame');
+    const w=frame?.contentWindow;
+    if(w)w.dispatchEvent(new w.CustomEvent(type,{detail:data}));
+  }catch(e){}
 }
 function activeRows(rows){
   return (Array.isArray(rows)?rows:[]).filter(x=>x&&typeof x==='object'&&x.id);
@@ -72,12 +81,9 @@ async function writeRows(rows,reason='agents-direct-save'){
     written=payloadOf(Array.from(map.values()));
     tx.set(ref,{moduleSyncV1:{agents:{payload:written,updatedAtMs:Date.now(),reason,version:7}}},{merge:true});
   });
-  const check=await ref.get({source:'server'});
-  const actual=check.data()?.moduleSyncV1?.agents?.payload;
-  if(typeof actual!=='string')throw Error('Firebase n’a pas confirmé la sauvegarde Agents');
   status('Firebase — synchronisé',true);
-  window.dispatchEvent(new CustomEvent('inovtec:agents-cloud-updated',{detail:{payload:actual}}));
-  return clone(parse(actual,[]));
+  emit('inovtec:agents-cloud-updated',{payload:written});
+  return clone(parse(written,[]));
 }
 async function saveAgent(agent){
   if(!agent||!agent.id)throw Error('Fiche agent invalide');
@@ -96,25 +102,19 @@ async function saveAgent(agent){
     written=payloadOf(next);
     tx.set(ref,{moduleSyncV1:{agents:{payload:written,updatedAtMs:Date.now(),reason:'agent-direct-save',version:7}}},{merge:true});
   });
-  const check=await ref.get({source:'server'});
-  const actual=check.data()?.moduleSyncV1?.agents?.payload;
-  const rows=parse(actual,[]);
-  const confirmed=Array.isArray(rows)&&rows.find(x=>String(x?.id||'')===String(agent.id));
-  if(!confirmed)throw Error('Firebase n’a pas confirmé la fiche agent');
   status('Firebase — synchronisé',true);
-  window.dispatchEvent(new CustomEvent('inovtec:agent-cloud-saved',{detail:{id:String(agent.id),payload:actual}}));
-  return clone(confirmed);
+  emit('inovtec:agent-cloud-saved',{id:String(agent.id),payload:written});
+  emit('inovtec:agents-cloud-updated',{payload:written});
+  return clone(agent);
 }
 async function replaceAll(rows,reason='agents-replace-all'){
   await waitReady();
   const raw=payloadOf(rows);
   status('Firebase — enregistrement des agents…');
   await ref.set({moduleSyncV1:{agents:{payload:raw,updatedAtMs:Date.now(),reason,version:7}}},{merge:true});
-  const check=await ref.get({source:'server'});
-  const actual=check.data()?.moduleSyncV1?.agents?.payload;
-  if(typeof actual!=='string')throw Error('Firebase n’a pas confirmé la liste Agents');
   status('Firebase — synchronisé',true);
-  return clone(parse(actual,[]));
+  emit('inovtec:agents-cloud-updated',{payload:raw});
+  return clone(parse(raw,[]));
 }
 
 window.InovtecAgentsCloud=Object.freeze({
@@ -126,6 +126,7 @@ window.InovtecAgentsCloud=Object.freeze({
 });
 
 function start(u){
+  if(unsubscribe){try{unsubscribe()}catch(e){}unsubscribe=null}
   user=u||null;
   if(!user){
     ref=null;
@@ -136,6 +137,17 @@ function start(u){
   const box=document.getElementById('ivAgentsFirebaseLogin');
   if(box)box.style.display='none';
   ref=db.collection('kanban').doc(user.uid);
+  unsubscribe=ref.onSnapshot({includeMetadataChanges:true},snap=>{
+    const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
+    const rows=parse(raw,null);
+    if(Array.isArray(rows)){
+      emit('inovtec:agents-cloud-updated',{payload:raw,fromCache:!!snap.metadata?.fromCache,pending:!!snap.metadata?.hasPendingWrites});
+      if(!snap.metadata?.hasPendingWrites)status('Firebase — synchronisé',true);
+    }
+  },err=>{
+    console.error('Firebase Agents temps réel',err);
+    status('Firebase — '+(err.code||err.message||'erreur'));
+  });
   status('Firebase — connecté',true);
   readyResolve();
 }
