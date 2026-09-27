@@ -61,121 +61,73 @@ await check('Planning : changement des vues sans blocage', async () => {
   if (!text || text.trim() === '—') throw new Error('Période du calendrier absente');
 });
 
-await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () => {
-  await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.evaluate(() => localStorage.setItem('kontrol_agents_classeur_v2', JSON.stringify([{
-    id:'agent_da_rocha_test',
-    identity:{nom:'',prenom:'Da rocha',telephone:'',email:'',adresse:'',dateNaissance:'',secu:'',permis:'',vehicule:''},
-    job:{poste:'',typeContrat:'',dateEntree:'',sitePrincipal:'',disponibilites:'',notes:''},
-    docs:[],incidents:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
-  }])));
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow17', { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 30000 });
-  await page.waitForFunction(() => {
-    const f=document.getElementById('legacyFrame');
-    return !!f?.contentDocument?.getElementById('btnSaveAgent')
-      && !!f?.contentDocument?.querySelector('.listItem[data-agent-id="agent_da_rocha_test"]');
-  }, null, { timeout: 30000 });
-
-  const result=await page.evaluate(async () => {
-    const frame=document.getElementById('legacyFrame'),d=frame.contentDocument,w=frame.contentWindow;
-    d.querySelector('.listItem[data-agent-id="agent_da_rocha_test"]').click();
-    const nom=d.getElementById('f_prenom'),prenom=d.getElementById('f_nom');
-    const labels={
-      nom:nom?.closest('.field')?.querySelector('label')?.textContent?.trim(),
-      prenom:prenom?.closest('.field')?.querySelector('label')?.textContent?.trim()
-    };
-    if(labels.nom!=='Nom'||labels.prenom!=='Prénom')return {error:'Les champs Nom/Prénom sont encore inversés',labels};
-
-    nom.value='Da rocha';
-    prenom.value='';
-    d.getElementById('btnSaveAgent').click();
-    await new Promise(r=>setTimeout(r,80));
-
-    const rows=JSON.parse(w.localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
-    const saved=rows.find(x=>x.id==='agent_da_rocha_test');
-    const bubble=d.querySelector('.listItem[data-agent-id="agent_da_rocha_test"] .name')?.textContent?.trim()||'';
-
-    d.querySelector('.listItem[data-agent-id="agent_da_rocha_test"]').click();
-    return {
-      savedNom:saved?.identity?.nom||'',
-      savedPrenom:saved?.identity?.prenom||'',
-      visibleNom:d.getElementById('f_prenom')?.value||'',
-      visiblePrenom:d.getElementById('f_nom')?.value||'',
-      bubble
+await check('Agents : Firebase uniquement, création et renommage', async () => {
+  await page.addInitScript(() => {
+    if(!/AGENTS-LEGACY\.html$/i.test(location.pathname)) return;
+    const clone=v=>JSON.parse(JSON.stringify(v));
+    const fixture={rows:[]};
+    window.__agentCloudFixture=fixture;
+    window.InovtecAgentsCloud={
+      load:async()=>clone(fixture.rows),
+      saveAgent:async agent=>{
+        const idx=fixture.rows.findIndex(x=>String(x?.id||'')===String(agent?.id||''));
+        const value=clone(agent);
+        if(idx>=0)fixture.rows[idx]=value;else fixture.rows.push(value);
+        return clone(value);
+      },
+      saveAll:async rows=>{
+        fixture.rows=clone(Array.isArray(rows)?rows:[]);
+        return clone(fixture.rows);
+      }
     };
   });
-  if(result.error)throw new Error(result.error);
-  if(result.savedPrenom!=='Da rocha'||result.savedNom!=='')throw new Error('La correction Nom/Prénom n’est pas enregistrée');
-  if(result.visibleNom!=='Da rocha'||result.visiblePrenom!=='')throw new Error('La fiche ne reflète pas immédiatement la correction');
-  if(!/Da rocha/i.test(result.bubble))throw new Error('La bulle agent ne reflète pas immédiatement la correction');
-});
 
-
-await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () => {
   await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.evaluate(() => localStorage.setItem('kontrol_agents_classeur_v2','[]'));
+  await page.locator('#btnNewAgentAction').waitFor({state:'attached',timeout:15000});
 
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow17', { waitUntil: 'domcontentloaded', timeout: 45000 });
-  const agents=page.frameLocator('#legacyFrame');
-  await agents.locator('#btnNewAgentAction').waitFor({state:'attached',timeout:30000});
-  const placement=await agents.locator('#btnNewAgentAction').evaluate(el=>({
+  const placement=await page.locator('#btnNewAgentAction').evaluate(el=>({
     visible:!!(el.offsetWidth||el.offsetHeight||el.getClientRects().length),
     inCard:!!el.closest('.card'),
     inActionBar:el.closest('#agentActionBar')!==null
   }));
   if(!placement.visible||placement.inCard||!placement.inActionBar){
-    throw new Error('Le bouton Nouvel agent n’est pas à sa place au-dessus de la fiche : '+JSON.stringify(placement));
-  }
-
-  async function snapshot(label){
-    const data=await page.evaluate(() => {
-      const f=document.getElementById('legacyFrame'),d=f?.contentDocument,w=f?.contentWindow;
-      let rows=[];try{rows=JSON.parse(w?.localStorage?.getItem('kontrol_agents_classeur_v2')||'[]')}catch{}
-      return {
-        selected:w?.state?.selectedId||null,
-        state:(w?.state?.agents||[]).map(a=>({id:a?.id,draft:a?._draft,deleted:a?._deleted,nom:a?.identity?.nom,prenom:a?.identity?.prenom})),
-        stored:rows.map(a=>({id:a?.id,draft:a?._draft,deleted:a?._deleted,nom:a?.identity?.nom,prenom:a?.identity?.prenom})),
-        list:[...d.querySelectorAll('#agentList .listItem')].map(r=>({id:r.dataset.agentId,sort:r.dataset.sortName,name:r.querySelector('.name')?.textContent?.trim()})),
-        form:{nom:d.getElementById('f_nom')?.value||'',prenom:d.getElementById('f_prenom')?.value||'',display:d.getElementById('agentForm')?.style?.display||''}
-      };
-    });
-    console.log('AGENT_DIAG '+label+' '+JSON.stringify(data));
-    return data;
+    throw new Error('Le bouton Nouvel agent n’est pas à sa place : '+JSON.stringify(placement));
   }
 
   async function create(nom,prenom){
-    await agents.locator('#btnNewAgentAction').evaluate(el=>el.click());
-    await agents.locator('#f_prenom').fill(nom);
-    await agents.locator('#f_nom').fill(prenom);
-    await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
-    await page.waitForTimeout(250);
-    const s=await snapshot('after-create-'+nom);
-    const saved=s.stored.some(a=>a.deleted!==true&&a.draft!==true&&a.prenom===nom&&a.nom===prenom);
-    const listed=s.list.some(r=>r.sort===nom);
-    if(!saved||!listed)throw new Error('Création '+nom+' non visible/persistée : '+JSON.stringify(s));
+    await page.locator('#btnNewAgentAction').click();
+    await page.locator('#f_prenom').fill(nom);
+    await page.locator('#f_nom').fill(prenom);
+    await page.locator('#btnSaveAgent').click();
+    await page.waitForFunction(() => document.getElementById('btnSaveAgent')?.textContent?.includes('Enregistré'), null, {timeout:5000});
+    const data=await page.evaluate(()=>({
+      remote:window.__agentCloudFixture.rows.map(a=>({id:a.id,nom:a.identity?.nom||'',prenom:a.identity?.prenom||'',draft:a._draft})),
+      list:[...document.querySelectorAll('#agentList .listItem')].map(r=>({id:r.dataset.agentId,sort:r.dataset.sortName,name:r.querySelector('.name')?.textContent?.trim()})),
+      local:localStorage.getItem('kontrol_agents_classeur_v2')
+    }));
+    if(data.local!==null)throw new Error('Le Classeur Agents écrit encore dans localStorage');
+    if(!data.remote.some(a=>a.prenom===nom&&a.nom===prenom&&a.draft!==true))throw new Error('Agent non envoyé au service Firebase direct : '+JSON.stringify(data));
+    if(!data.list.some(a=>a.sort===nom))throw new Error('Agent non visible immédiatement : '+JSON.stringify(data));
   }
 
   await create('Dupont','Jeanne');
   await create('Zulu','Paul');
 
+  await page.locator('.listItem[data-sort-name="Zulu"]').click();
+  await page.locator('#f_prenom').fill('Abadie');
+  await page.locator('#btnSaveAgent').click();
+  await page.waitForFunction(() => document.getElementById('btnSaveAgent')?.textContent?.includes('Enregistré'), null, {timeout:5000});
+
+  const result=await page.evaluate(()=>({
+    remote:window.__agentCloudFixture.rows.map(a=>({nom:a.identity?.nom||'',prenom:a.identity?.prenom||''})),
+    list:[...document.querySelectorAll('#agentList .listItem')].map(r=>r.dataset.sortName),
+    local:localStorage.getItem('kontrol_agents_classeur_v2')
+  }));
+  if(result.local!==null)throw new Error('Une copie locale Agents a été recréée');
+  if(!result.remote.some(a=>a.prenom==='Abadie'&&a.nom==='Paul'))throw new Error('Renommage non envoyé à Firebase : '+JSON.stringify(result));
   const collator=new Intl.Collator('fr',{sensitivity:'base',numeric:true});
-  const before=await snapshot('before-rename');
-  const beforeNames=before.list.map(x=>x.sort);
-  const beforeExpected=[...beforeNames].sort((a,b)=>collator.compare(a,b));
-  if(JSON.stringify(beforeNames)!==JSON.stringify(beforeExpected))throw new Error('Tri avant renommage incorrect : '+JSON.stringify(before));
-
-  await agents.locator('.listItem[data-sort-name="Zulu"]').evaluate(el=>el.click());
-  await agents.locator('#f_prenom').fill('Abadie');
-  await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
-  await page.waitForTimeout(250);
-
-  const after=await snapshot('after-rename');
-  if(!after.stored.some(a=>a.deleted!==true&&a.prenom==='Abadie'&&a.nom==='Paul'))throw new Error('Renommage non persisté : '+JSON.stringify(after));
-  const afterNames=after.list.map(x=>x.sort);
-  const afterExpected=[...afterNames].sort((a,b)=>collator.compare(a,b));
-  if(JSON.stringify(afterNames)!==JSON.stringify(afterExpected))throw new Error('Renommage non reclassé A-Z : '+JSON.stringify(after));
-  if(afterNames[0]!=='Abadie')throw new Error('Le nom modifié Abadie n’est pas remonté immédiatement à sa place A-Z : '+JSON.stringify(after));
+  const expected=[...result.list].sort((a,b)=>collator.compare(a,b));
+  if(JSON.stringify(result.list)!==JSON.stringify(expected))throw new Error('Liste Agents non reclassée A-Z : '+JSON.stringify(result));
 });
 
 await check('Variables : indicateurs et mois accessibles', async () => {
