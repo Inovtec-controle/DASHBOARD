@@ -75,3 +75,4 @@ jobs:
           node --check inovtec-container-planning-link.js
           node --check planning-pdf.js
           node --check planning-pdf-robust-text.js
+          node tests/planning-pdf-containers.mjs
