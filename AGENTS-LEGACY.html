@@ -1006,7 +1006,7 @@ async function saveAgentForm(){
   if(btn){btn.disabled=false;btn.textContent="Enregistrement Firebase…";}
 
   // 2. Écriture directe de CET agent dans Firebase.
-  // Aucune copie locale, aucun localStorage, aucune synchronisation intermédiaire.
+  // Aucune copie navigateur, aucune synchronisation intermédiaire.
   try{
     var cloud = window.parent && window.parent.InovtecAgentsCloud;
     if(!cloud || typeof cloud.saveAgent!=="function") throw new Error("Service Firebase Agents indisponible");
@@ -1695,6 +1695,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow17"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow18"></script>
 </body>
 </html>
