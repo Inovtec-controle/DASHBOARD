@@ -830,7 +830,6 @@ function save(){
     return true;
   }).catch(function(e){
     console.error("Sauvegarde Firebase Agents",e);
-    alert("La sauvegarde Firebase a échoué. Aucune copie locale n’est utilisée.");
     return false;
   });
 }
@@ -1035,8 +1034,7 @@ async function saveAgentForm(){
   }catch(e){
     console.error("Sauvegarde Firebase agent",e);
     row.setAttribute("data-save-state","error");
-    if(btn){btn.disabled=false;btn.textContent="Non enregistré — réessayer";}
-    alert("La fiche n’a pas été confirmée dans Firebase. Elle reste affichée pour que tu puisses réessayer sans perdre ta saisie.");
+    if(btn){btn.disabled=false;btn.textContent="Erreur Firebase — réessayer";}
     return false;
   }
 }
@@ -1074,6 +1072,22 @@ function handleAgentCloudFailed(ev){
 
 window.addEventListener("inovtec:agent-cloud-saved", handleAgentCloudSaved);
 window.addEventListener("inovtec:agent-cloud-save-failed", handleAgentCloudFailed);
+window.addEventListener("inovtec:agents-cloud-updated", function(ev){
+  // Ne jamais écraser un brouillon en cours de saisie.
+  if(state.agents.some(function(a){return a && a._draft===true;})) return;
+  var payload=ev && ev.detail && ev.detail.payload;
+  if(typeof payload!=="string") return;
+  try{
+    var rows=JSON.parse(payload);
+    if(!Array.isArray(rows)) return;
+    var selected=state.selectedId;
+    state.agents=rows;
+    cleanupAgentState();
+    if(selected && state.agents.some(function(a){return a && String(a.id)===String(selected);})) state.selectedId=selected;
+    else restoreSelectedAgent();
+    renderAll();
+  }catch(e){console.error("Mise à jour Firebase Agents",e);}
+});
 
 function duplicateAgent(){
   var agent = getSelectedAgent();
@@ -1682,7 +1696,11 @@ document.addEventListener("DOMContentLoaded", function(){
     renderAll();
   }).catch(function(e){
     console.error("Chargement Firebase Agents",e);
-    alert("Impossible de charger les agents depuis Firebase.");
+    var noMsg=$("#noAgentMessage");
+    if(noMsg){
+      noMsg.style.display="block";
+      noMsg.textContent="Connexion Firebase indisponible. Réessaie dans quelques secondes.";
+    }
   });
 
   var agentList = $("#agentList");
@@ -1706,6 +1724,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow18"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow19"></script>
 </body>
 </html>
