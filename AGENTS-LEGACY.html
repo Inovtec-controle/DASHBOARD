@@ -1482,7 +1482,12 @@ document.addEventListener("DOMContentLoaded", function(){
 
   // fiche actions
   $("#btnDeleteAgent").onclick = deleteAgent;
-  $("#btnSaveAgent").onclick = saveAgentForm;
+  $("#btnSaveAgent").disabled = false;
+  $("#btnSaveAgent").removeAttribute("disabled");
+  $("#btnSaveAgent").onclick = function(e){
+    if(e) e.preventDefault();
+    return window.saveAgentForm(e);
+  };
   $("#btnDuplicateAgent").onclick = duplicateAgent;
 
   // docs
