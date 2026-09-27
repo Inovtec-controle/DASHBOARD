@@ -43,6 +43,9 @@ jobs:
           grep -q 'editorContainerTasks' planning-calendar.js
           grep -q 'Tu peux en sélectionner plusieurs' planning-calendar.js
           grep -q 'renderContainerReminder' planning-calendar.js
+          grep -q 'refreshOpenEditorContainerInfo' planning-calendar.js
+          grep -q 'scheduleEditorContainerRefresh' planning-calendar.js
+          grep -q 'Synchronisation avec Infos chantier' planning-calendar.js
           grep -q 'actionsFromInfosForDate' inovtec-container-schedule.js
           grep -q 'sourceSystem:SOURCE' planning-container-bridge.js
           grep -q 'validContainerTasks' planning-container-bridge.js
