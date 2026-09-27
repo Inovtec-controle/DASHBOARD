@@ -6,7 +6,7 @@ if(mode!=='agents')return;
 const LIMIT=900000;
 const parse=(s,f)=>{try{const v=JSON.parse(String(s||''));return v??f}catch{return f}};
 const clone=v=>JSON.parse(JSON.stringify(v));
-let user=null,db=null,ref=null,unsubscribe=null,readyResolve,readyReject;
+let user=null,db=null,ref=null,unsubscribe=null,lastRealtimePayload=null,readyResolve,readyReject;
 let readyPromise=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject});
 
 function status(text,ok=false){
@@ -71,6 +71,7 @@ async function writeRows(rows,reason='agents-direct-save'){
   const incoming=activeRows(rows);
   status('Firebase — enregistrement des agents…');
   let written='[]';
+  try{
   await db.runTransaction(async tx=>{
     const snap=await tx.get(ref);
     const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
@@ -84,12 +85,18 @@ async function writeRows(rows,reason='agents-direct-save'){
   status('Firebase — synchronisé',true);
   emit('inovtec:agents-cloud-updated',{payload:written});
   return clone(parse(written,[]));
+  }catch(e){
+    console.error('Firebase Agents',e);
+    status('Firebase — erreur : '+(e.code||e.message||'écriture impossible'));
+    throw e;
+  }
 }
 async function saveAgent(agent){
   if(!agent||!agent.id)throw Error('Fiche agent invalide');
   await waitReady();
   status('Firebase — enregistrement de l’agent…');
   let written='[]';
+  try{
   await db.runTransaction(async tx=>{
     const snap=await tx.get(ref);
     const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
@@ -106,15 +113,26 @@ async function saveAgent(agent){
   emit('inovtec:agent-cloud-saved',{id:String(agent.id),payload:written});
   emit('inovtec:agents-cloud-updated',{payload:written});
   return clone(agent);
+  }catch(e){
+    console.error('Firebase Agent',e);
+    status('Firebase — erreur : '+(e.code||e.message||'écriture impossible'));
+    throw e;
+  }
 }
 async function replaceAll(rows,reason='agents-replace-all'){
   await waitReady();
   const raw=payloadOf(rows);
   status('Firebase — enregistrement des agents…');
-  await ref.set({moduleSyncV1:{agents:{payload:raw,updatedAtMs:Date.now(),reason,version:7}}},{merge:true});
-  status('Firebase — synchronisé',true);
-  emit('inovtec:agents-cloud-updated',{payload:raw});
-  return clone(parse(raw,[]));
+  try{
+    await ref.set({moduleSyncV1:{agents:{payload:raw,updatedAtMs:Date.now(),reason,version:7}}},{merge:true});
+    status('Firebase — synchronisé',true);
+    emit('inovtec:agents-cloud-updated',{payload:raw});
+    return clone(parse(raw,[]));
+  }catch(e){
+    console.error('Firebase Agents',e);
+    status('Firebase — erreur : '+(e.code||e.message||'écriture impossible'));
+    throw e;
+  }
 }
 
 window.InovtecAgentsCloud=Object.freeze({
@@ -141,7 +159,10 @@ function start(u){
     const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
     const rows=parse(raw,null);
     if(Array.isArray(rows)){
-      emit('inovtec:agents-cloud-updated',{payload:raw,fromCache:!!snap.metadata?.fromCache,pending:!!snap.metadata?.hasPendingWrites});
+      if(raw!==lastRealtimePayload){
+        lastRealtimePayload=raw;
+        emit('inovtec:agents-cloud-updated',{payload:raw,fromCache:!!snap.metadata?.fromCache,pending:!!snap.metadata?.hasPendingWrites});
+      }
       if(!snap.metadata?.hasPendingWrites)status('Firebase — synchronisé',true);
     }
   },err=>{
