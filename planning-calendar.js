@@ -84,6 +84,18 @@ function normalizeParityAgent(a){
 }
 function parityKind(week){return weekNumber(week)%2?"odd":"even"}
 function agentRowsForWeek(week,agentId){return entriesForWeek(week).filter(e=>String(e.agentId)===String(agentId))}
+function isTeamManagedWeek(week,agentId){
+  const teams=state?.teamPlanning?.teams;
+  if(!Array.isArray(teams)||!teams.length)return false;
+  const id=String(agentId);
+  return teams.some(t=>{
+    const members=Array.isArray(t?.members)?t.members.map(String):[];
+    if(!members.includes(id)||String(t?.referenceAgentId||"")===id)return false;
+    if(!t?.weeks||typeof t.weeks!=="object"||!t.weeks[week])return false;
+    const exceptions=Array.isArray(t?.exceptions?.[week])?t.exceptions[week].map(String):[];
+    return !exceptions.includes(id);
+  });
+}
 function recurrenceSignature(week,agentId){
   return JSON.stringify(agentRowsForWeek(week,agentId).map(e=>({
     day:Number(e.day)||0,start:safeText(e.start),end:safeText(e.end),
@@ -159,6 +171,9 @@ function clearStandardInheritedCopies(a,keepWeek=""){
 function ensureParityWeek(week,a){
   if(!a)return false;
   normalizeParityAgent(a);
+  // Un membre lié à un planning d'équipe doit conserver la copie commune.
+  // La récurrence paire/impaire ne doit jamais la réécrire en arrière-plan.
+  if(isTeamManagedWeek(week,a.id))return false;
   if(a.parityMode!=="alternating")return false;
   initializeParityTemplates(a);
   const kind=parityKind(week),source=a.parityTemplates[kind];
@@ -182,6 +197,9 @@ function ensureParityWeek(week,a){
 function ensureStandardWeek(week,a){
   if(!a)return false;
   normalizeParityAgent(a);
+  // Même priorité pour le rythme standard : le planning d'équipe gagne
+  // tant que cette semaine n'est pas déclarée comme exception individuelle.
+  if(isTeamManagedWeek(week,a.id))return false;
   if(a.parityMode!=="standard")return false;
   const meta=initializeStandardTemplate(a),source=meta.template;
   if(!source||source===week||source>week)return false;
