@@ -151,8 +151,11 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
   await create('Dupont','Jeanne');
   await create('Zulu','Paul');
 
+  const collator=new Intl.Collator('fr',{sensitivity:'base',numeric:true});
   const before=await snapshot('before-rename');
-  if(JSON.stringify(before.list.map(x=>x.sort))!==JSON.stringify(['Dupont','Zulu']))throw new Error('Tri avant renommage incorrect : '+JSON.stringify(before));
+  const beforeNames=before.list.map(x=>x.sort);
+  const beforeExpected=[...beforeNames].sort((a,b)=>collator.compare(a,b));
+  if(JSON.stringify(beforeNames)!==JSON.stringify(beforeExpected))throw new Error('Tri avant renommage incorrect : '+JSON.stringify(before));
 
   await agents.locator('.listItem[data-sort-name="Zulu"]').evaluate(el=>el.click());
   await agents.locator('#f_nom').fill('Abadie');
@@ -161,7 +164,10 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
 
   const after=await snapshot('after-rename');
   if(!after.stored.some(a=>a.deleted!==true&&a.nom==='Abadie'&&a.prenom==='Paul'))throw new Error('Renommage non persisté : '+JSON.stringify(after));
-  if(JSON.stringify(after.list.map(x=>x.sort))!==JSON.stringify(['Abadie','Dupont']))throw new Error('Renommage non reclassé A-Z : '+JSON.stringify(after));
+  const afterNames=after.list.map(x=>x.sort);
+  const afterExpected=[...afterNames].sort((a,b)=>collator.compare(a,b));
+  if(JSON.stringify(afterNames)!==JSON.stringify(afterExpected))throw new Error('Renommage non reclassé A-Z : '+JSON.stringify(after));
+  if(afterNames[0]!=='Abadie')throw new Error('Le nom modifié Abadie n’est pas remonté immédiatement à sa place A-Z : '+JSON.stringify(after));
 });
 
 await check('Variables : indicateurs et mois accessibles', async () => {
