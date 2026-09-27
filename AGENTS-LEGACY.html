@@ -1039,22 +1039,26 @@ function saveAgentForm(){
       return;
     }
 
-    row.setAttribute("data-save-state","saved");
+    row.setAttribute("data-save-state","pending");
 
     // Firebase est déclenché seulement après confirmation du stockage local.
     try{
       window.parent.dispatchEvent(new CustomEvent("inovtec:agent-local-saved",{
         detail:{id:agent.id,updatedAt:agent.updatedAt}
       }));
-    }catch(e){}
+    }catch(e){
+      if(saveBtn){
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Non enregistré — réessayer";
+      }
+      row.setAttribute("data-save-state","error");
+      return;
+    }
 
+    // Pas de faux ✓ : on attend le retour réel du serveur Firebase.
     if(saveBtn){
       saveBtn.disabled = false;
-      saveBtn.textContent = "Enregistré ✓";
-      setTimeout(function(){
-        if(!saveBtn.isConnected) return;
-        saveBtn.textContent = "Enregistrer";
-      },900);
+      saveBtn.textContent = "Synchronisation Firebase…";
     }
   };
 
@@ -1067,6 +1071,40 @@ function saveAgentForm(){
   }
   return true;
 }
+
+function handleAgentCloudSaved(ev){
+  var id = safeText(ev && ev.detail && ev.detail.id);
+  if(!id) return;
+  var row = $("#agentList") && Array.prototype.find.call($("#agentList").querySelectorAll("[data-agent-id]"), function(el){
+    return String(el.getAttribute("data-agent-id"))===String(id);
+  });
+  if(row) row.setAttribute("data-save-state","saved");
+  if(String(state.selectedId||"")!==String(id)) return;
+  var btn = $("#btnSaveAgent");
+  if(!btn) return;
+  btn.disabled = false;
+  btn.textContent = "Enregistré ✓";
+  setTimeout(function(){
+    if(!btn.isConnected) return;
+    if(btn.textContent==="Enregistré ✓") btn.textContent = "Enregistrer";
+  },1500);
+}
+function handleAgentCloudFailed(ev){
+  var id = safeText(ev && ev.detail && ev.detail.id);
+  var row = $("#agentList") && Array.prototype.find.call($("#agentList").querySelectorAll("[data-agent-id]"), function(el){
+    return !id || String(el.getAttribute("data-agent-id"))===String(id);
+  });
+  if(row) row.setAttribute("data-save-state","error");
+  if(id && String(state.selectedId||"")!==String(id)) return;
+  var btn = $("#btnSaveAgent");
+  if(btn){
+    btn.disabled = false;
+    btn.textContent = "Non enregistré — réessayer";
+  }
+}
+
+window.addEventListener("inovtec:agent-cloud-saved", handleAgentCloudSaved);
+window.addEventListener("inovtec:agent-cloud-save-failed", handleAgentCloudFailed);
 
 function duplicateAgent(){
   var agent = getSelectedAgent();
@@ -1700,6 +1738,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow11"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow12"></script>
 </body>
 </html>
