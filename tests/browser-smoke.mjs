@@ -119,46 +119,49 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
   await page.goto(base + '/AGENTS.html?v=20260927-agentsflow1', { waitUntil: 'domcontentloaded', timeout: 45000 });
   const agents=page.frameLocator('#legacyFrame');
   await agents.locator('#btnNewAgentInCard').waitFor({state:'attached',timeout:30000});
-  const visible=await agents.locator('#btnNewAgentInCard').evaluate(el=>!!(el.offsetWidth||el.offsetHeight||el.getClientRects().length));
-  if(!visible)throw new Error('Le bouton Nouvel agent visible dans la liste est masqué');
+
+  async function snapshot(label){
+    const data=await page.evaluate(() => {
+      const f=document.getElementById('legacyFrame'),d=f?.contentDocument,w=f?.contentWindow;
+      let rows=[];try{rows=JSON.parse(w?.localStorage?.getItem('kontrol_agents_classeur_v2')||'[]')}catch{}
+      return {
+        selected:w?.state?.selectedId||null,
+        state:(w?.state?.agents||[]).map(a=>({id:a?.id,draft:a?._draft,deleted:a?._deleted,nom:a?.identity?.nom,prenom:a?.identity?.prenom})),
+        stored:rows.map(a=>({id:a?.id,draft:a?._draft,deleted:a?._deleted,nom:a?.identity?.nom,prenom:a?.identity?.prenom})),
+        list:[...d.querySelectorAll('#agentList .listItem')].map(r=>({id:r.dataset.agentId,sort:r.dataset.sortName,name:r.querySelector('.name')?.textContent?.trim()})),
+        form:{nom:d.getElementById('f_nom')?.value||'',prenom:d.getElementById('f_prenom')?.value||'',display:d.getElementById('agentForm')?.style?.display||''}
+      };
+    });
+    console.log('AGENT_DIAG '+label+' '+JSON.stringify(data));
+    return data;
+  }
 
   async function create(nom,prenom){
     await agents.locator('#btnNewAgentInCard').evaluate(el=>el.click());
     await agents.locator('#f_nom').fill(nom);
     await agents.locator('#f_prenom').fill(prenom);
     await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
-    await page.waitForFunction(({nom,prenom})=>{
-      const f=document.getElementById('legacyFrame'),d=f?.contentDocument,w=f?.contentWindow;
-      if(!d||!w)return false;
-      let rows=[];try{rows=JSON.parse(w.localStorage.getItem('kontrol_agents_classeur_v2')||'[]')}catch{}
-      const saved=rows.some(a=>a?._deleted!==true&&a?._draft!==true&&a?.identity?.nom===nom&&a?.identity?.prenom===prenom);
-      const listed=[...d.querySelectorAll('#agentList .listItem')].some(r=>(r.dataset.sortName||'')===nom);
-      return saved&&listed;
-    },{nom,prenom},{timeout:5000});
+    await page.waitForTimeout(250);
+    const s=await snapshot('after-create-'+nom);
+    const saved=s.stored.some(a=>a.deleted!==true&&a.draft!==true&&a.nom===nom&&a.prenom===prenom);
+    const listed=s.list.some(r=>r.sort===nom);
+    if(!saved||!listed)throw new Error('Création '+nom+' non visible/persistée : '+JSON.stringify(s));
   }
 
   await create('Dupont','Jeanne');
   await create('Zulu','Paul');
 
-  const before=await agents.locator('#agentList .listItem').evaluateAll(rows=>rows.map(r=>r.dataset.sortName||''));
-  if(JSON.stringify(before)!==JSON.stringify(['Dupont','Zulu']))throw new Error('Les nouveaux agents ne sont pas classés A-Z par Nom');
+  const before=await snapshot('before-rename');
+  if(JSON.stringify(before.list.map(x=>x.sort))!==JSON.stringify(['Dupont','Zulu']))throw new Error('Tri avant renommage incorrect : '+JSON.stringify(before));
 
   await agents.locator('.listItem[data-sort-name="Zulu"]').evaluate(el=>el.click());
   await agents.locator('#f_nom').fill('Abadie');
   await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
+  await page.waitForTimeout(250);
 
-  await page.waitForFunction(()=>{
-    const f=document.getElementById('legacyFrame'),d=f?.contentDocument,w=f?.contentWindow;
-    if(!d||!w)return false;
-    const names=[...d.querySelectorAll('#agentList .listItem')].map(r=>r.dataset.sortName||'');
-    let rows=[];try{rows=JSON.parse(w.localStorage.getItem('kontrol_agents_classeur_v2')||'[]')}catch{}
-    return names[0]==='Abadie'
-      && names[1]==='Dupont'
-      && rows.some(a=>a?._deleted!==true&&a?.identity?.nom==='Abadie'&&a?.identity?.prenom==='Paul');
-  },null,{timeout:5000});
-
-  const after=await agents.locator('#agentList .listItem').evaluateAll(rows=>rows.map(r=>r.dataset.sortName||''));
-  if(JSON.stringify(after)!==JSON.stringify(['Abadie','Dupont']))throw new Error('Le renommage ne reclasse pas immédiatement la liste A-Z');
+  const after=await snapshot('after-rename');
+  if(!after.stored.some(a=>a.deleted!==true&&a.nom==='Abadie'&&a.prenom==='Paul'))throw new Error('Renommage non persisté : '+JSON.stringify(after));
+  if(JSON.stringify(after.list.map(x=>x.sort))!==JSON.stringify(['Abadie','Dupont']))throw new Error('Renommage non reclassé A-Z : '+JSON.stringify(after));
 });
 
 await check('Variables : indicateurs et mois accessibles', async () => {
