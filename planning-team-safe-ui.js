@@ -49,10 +49,19 @@ function protectAndShare(s,team,week,sourceId,initial=false){
   // Même un créneau auparavant partagé devient individuel s'il a été modifié.
   // Seul un planning vide ou strictement identique à la précédente version
   // commune peut être mis à jour sans risque d'effacer une intervention.
-  const safeToReplace=!existing.length||(old!=null&&current===old);
+  // Les semaines générées automatiquement par le rythme standard/pair-impair
+  // ne sont pas des personnalisations manuelles : une liaison d'équipe peut
+  // donc les remplacer. En revanche, un vrai planning individuel reste protégé.
+  const autoInherited=existing.length>0&&existing.every(e=>e?._standardInheritedFrom||e?._parityInheritedFrom||e?._teamInheritedFrom);
+  const safeToReplace=!existing.length||autoInherited||(old!=null&&current===old);
   if(!safeToReplace){exceptions.add(targetId);changed=true;continue}
   const keep=(Array.isArray(s.weeks[week])?s.weeks[week]:[]).filter(e=>str(e?.agentId)!==targetId);
-  const clones=source.map(e=>({...e,id:uid('e'),agentId:targetId,_teamInheritedFrom:sourceId}));
+  const clones=source.map(e=>{
+    const clone={...e,id:uid('e'),agentId:targetId,_teamInheritedFrom:sourceId};
+    delete clone._standardInheritedFrom;
+    delete clone._parityInheritedFrom;
+    return clone;
+  });
   s.weeks[week]=keep.concat(clones);
   changed=true;
  }
