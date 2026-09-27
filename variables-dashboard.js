@@ -9,7 +9,7 @@ const fmt=n=>{n=Math.max(0,Math.round(Number(n)||0));return Math.floor(n/60)+'h'
 const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const name=a=>a?.name||a?.displayName||[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(' ')||'Agent';
 let state=read(localStorage.getItem(KEY)||'{}',{}),agents=[],stopHub=null,stopCloud=null,lastRemote='';
-const editorUrl=(id='')=>'inovtec-page-shell.html?mode=variables&page='+encodeURIComponent('VARIABLES-LEGACY.html?v=20260916-1'+(id?'&agent='+encodeURIComponent(id):''));
+const editorUrl=(id='')=>'inovtec-page-shell.html?mode=variables&page='+encodeURIComponent('VARIABLES-LEGACY.html?v=20260927-savecontrols1'+(id?'&agent='+encodeURIComponent(id):''));
 function openEditor(id){const url=editorUrl(id);try{parentWin.location.href=url}catch{window.location.href=url}}
 function setWarning(s){$('dataWarning').hidden=!s;$('dataWarning').textContent=s||''}
 function syncLocal(){const v=read(localStorage.getItem(KEY)||'{}',{});if(JSON.stringify(v)!==JSON.stringify(state)){state=v;render()}}
