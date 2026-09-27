@@ -69,7 +69,7 @@ await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () =
     job:{poste:'',typeContrat:'',dateEntree:'',sitePrincipal:'',disponibilites:'',notes:''},
     docs:[],incidents:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
   }])));
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow11', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow12', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 30000 });
   await page.waitForFunction(() => {
     const f=document.getElementById('legacyFrame');
@@ -116,7 +116,7 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
   await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.evaluate(() => localStorage.setItem('kontrol_agents_classeur_v2','[]'));
 
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow11', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow12', { waitUntil: 'domcontentloaded', timeout: 45000 });
   const agents=page.frameLocator('#legacyFrame');
   await agents.locator('#btnNewAgentAction').waitFor({state:'attached',timeout:30000});
   const placement=await agents.locator('#btnNewAgentAction').evaluate(el=>({
