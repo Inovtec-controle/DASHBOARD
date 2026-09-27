@@ -127,11 +127,11 @@ function install(){
     }
 
     const deleteBtn=d.getElementById("btnDeleteAgent");
-    if(deleteBtn&&!d.getElementById("btnArchiveAgent")){
-      const archiveBtn=d.createElement("button");archiveBtn.type="button";archiveBtn.id="btnArchiveAgent";archiveBtn.className="miniBtn ivArchiveBtn";archiveBtn.textContent="Archiver l’agent";
+    const archiveBtn=d.getElementById("btnArchiveAgent");
+    if(archiveBtn){
       archiveBtn.onclick=()=>{
         const agent=w.getSelectedAgent?.();
-        if(!validAgent(agent))return;
+        if(!validAgent(agent)||agent?.archivedAt)return;
         if(!w.confirm(`Archiver ${label(agent)} ? La fiche restera conservée et pourra être restaurée depuis « Agents archivés ».`))return;
         agent.archivedAt=new Date().toISOString();
         agent.updatedAt=agent.archivedAt;
@@ -140,33 +140,25 @@ function install(){
         w.renderAll();
         updateArchiveButton();
       };
-      deleteBtn.insertAdjacentElement("beforebegin",archiveBtn);
-      if(!d.getElementById("btnNewAgentInCard")){
-        const newBtn=d.createElement("button");
-        newBtn.type="button";
-        newBtn.id="btnNewAgentInCard";
-        newBtn.className="miniBtn ivNewAgentBtn";
-        newBtn.textContent="+ Nouvel agent";
-        newBtn.onclick=()=>{
-          if(typeof w.newAgent==="function"){
-            w.newAgent();
-            setTimeout(()=>d.getElementById("f_prenom")?.focus(),80);
-          }else{
-            d.getElementById("btnNewAgent")?.click();
-          }
-        };
-        archiveBtn.insertAdjacentElement("beforebegin",newBtn);
-      }
+    }
+    if(deleteBtn){
       deleteBtn.textContent="Supprimer définitivement";
       deleteBtn.title="Suppression irréversible";
     }
+
+    const updatePrimaryActions=()=>{
+      const agent=w.getSelectedAgent?.();
+      const enabled=!!agent&&validAgent(agent)&&!agent?.archivedAt;
+      if(archiveBtn)archiveBtn.disabled=!enabled;
+      if(deleteBtn)deleteBtn.disabled=!enabled;
+    };
 
     d.getElementById("ivArchiveClose")?.addEventListener("click",()=>archiveModal.classList.remove("open"));
     archiveModal.addEventListener("click",e=>{if(e.target===archiveModal)archiveModal.classList.remove("open")});
     d.addEventListener("keydown",e=>{if(e.key==="Escape")archiveModal.classList.remove("open")});
 
     const originalRenderList=w.renderList.bind(w);
-    w.renderList=function(){const r=originalRenderList();updateArchiveButton();return r};
+    w.renderList=function(){const r=originalRenderList();updateArchiveButton();updatePrimaryActions();return r};
 
     // Ne jamais rerendre toute la fiche au chargement tardif de ce module :
     // cela effaçait une saisie commencée dans Nom/Prénom avant le clic Enregistrer.
@@ -177,6 +169,7 @@ function install(){
       w.renderDetails();
     }
     updateArchiveButton();
+    updatePrimaryActions();
   }catch(e){
     console.warn("Agents archive runtime",e);
     installedFor=null;

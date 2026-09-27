@@ -102,7 +102,22 @@ body{
   grid-template-columns:360px 1fr;
   align-items:start;
 }
-@media(max-width:980px){.content{grid-template-columns:1fr}}
+.agentsListCard{grid-column:1;grid-row:1 / span 2}
+.agentActionBar{
+  grid-column:2;grid-row:1;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 8px 20px rgba(15,23,42,.06);
+}
+.agentActionBar .miniBtn:disabled{opacity:.45;cursor:not-allowed}
+.agentsDetailCard{grid-column:2;grid-row:2}
+@media(max-width:980px){
+  .content{grid-template-columns:1fr}
+  .agentsListCard,.agentActionBar,.agentsDetailCard{grid-column:1;grid-row:auto}
+}
 
 .card{
   background:var(--panel);
@@ -442,13 +457,10 @@ body{
 
   <main class="content">
     <!-- LISTE GAUCHE -->
-    <section class="card">
+    <section class="card agentsListCard">
       <div class="cardHeader">
         <h2>Agents</h2>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <button type="button" class="miniBtn" id="btnNewAgentInCard">+ Nouvel agent</button>
-          <span class="chip" id="agentCount">0</span>
-        </div>
+        <span class="chip" id="agentCount">0</span>
       </div>
       <div class="cardBody">
         <div class="search">
@@ -463,8 +475,15 @@ body{
       </div>
     </section>
 
+    <!-- ACTIONS AU-DESSUS DE LA FICHE AGENT -->
+    <div class="agentActionBar" id="agentActionBar" aria-label="Actions agent">
+      <button type="button" class="miniBtn ivNewAgentBtn" id="btnNewAgentAction">+ Nouvel agent</button>
+      <button type="button" class="miniBtn ivArchiveBtn" id="btnArchiveAgent" disabled>Archiver l’agent</button>
+      <button type="button" class="miniBtn danger" id="btnDeleteAgent" disabled>Supprimer définitivement</button>
+    </div>
+
     <!-- FICHE DROITE (STATIQUE) -->
-    <section class="card">
+    <section class="card agentsDetailCard">
       <div class="cardHeader">
         <h2>Fiche agent</h2>
         <span class="chip" id="selectedChip">Aucun</span>
@@ -480,7 +499,7 @@ body{
               <div class="bigTitle" id="agentName">Fiche agent</div>
               <div class="muted" id="agentMeta">Créé : — • Modifié : —</div>
             </div>
-            <button class="miniBtn danger" id="btnDeleteAgent">Supprimer l’agent</button>
+
           </div>
 
           <div class="hr"></div>
@@ -1393,15 +1412,22 @@ function renderDetails(){
   var form = $("#agentForm");
   var chip = $("#selectedChip");
 
+  var deleteBtn = $("#btnDeleteAgent");
+  var archiveBtn = $("#btnArchiveAgent");
+
   if(!agent){
     chip.textContent = "Aucun";
     noMsg.style.display = "block";
     form.style.display = "none";
+    if(deleteBtn) deleteBtn.disabled = true;
+    if(archiveBtn) archiveBtn.disabled = true;
     return;
   }
 
   noMsg.style.display = "none";
   form.style.display = "block";
+  if(deleteBtn) deleteBtn.disabled = false;
+  if(archiveBtn) archiveBtn.disabled = false;
 
   var i = agent.identity || {};
   var j = agent.job || {};
@@ -1542,8 +1568,8 @@ function closePhotoModal(){
 document.addEventListener("DOMContentLoaded", function(){
   // boutons top
   $("#btnNewAgent").onclick = newAgent;
-  var newAgentInCard = $("#btnNewAgentInCard");
-  if(newAgentInCard) newAgentInCard.onclick = newAgent;
+  var newAgentAction = $("#btnNewAgentAction");
+  if(newAgentAction) newAgentAction.onclick = newAgent;
   $("#btnExport").onclick = exportJSON;
   $("#btnReset").onclick = resetAll;
   $("#fileImport").onchange = function(e){
@@ -1621,6 +1647,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow3"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow7"></script>
 </body>
 </html>

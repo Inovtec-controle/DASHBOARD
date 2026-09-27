@@ -69,7 +69,7 @@ await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () =
     job:{poste:'',typeContrat:'',dateEntree:'',sitePrincipal:'',disponibilites:'',notes:''},
     docs:[],incidents:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
   }])));
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow6', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow7', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 30000 });
   await page.waitForFunction(() => {
     const f=document.getElementById('legacyFrame');
@@ -116,9 +116,17 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
   await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.evaluate(() => localStorage.setItem('kontrol_agents_classeur_v2','[]'));
 
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow6', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow7', { waitUntil: 'domcontentloaded', timeout: 45000 });
   const agents=page.frameLocator('#legacyFrame');
-  await agents.locator('#btnNewAgentInCard').waitFor({state:'attached',timeout:30000});
+  await agents.locator('#btnNewAgentAction').waitFor({state:'attached',timeout:30000});
+  const placement=await agents.locator('#btnNewAgentAction').evaluate(el=>({
+    visible:!!(el.offsetWidth||el.offsetHeight||el.getClientRects().length),
+    inCard:!!el.closest('.card'),
+    inActionBar:el.closest('#agentActionBar')!==null
+  }));
+  if(!placement.visible||placement.inCard||!placement.inActionBar){
+    throw new Error('Le bouton Nouvel agent n’est pas à sa place au-dessus de la fiche : '+JSON.stringify(placement));
+  }
 
   async function snapshot(label){
     const data=await page.evaluate(() => {
@@ -137,7 +145,7 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
   }
 
   async function create(nom,prenom){
-    await agents.locator('#btnNewAgentInCard').evaluate(el=>el.click());
+    await agents.locator('#btnNewAgentAction').evaluate(el=>el.click());
     await agents.locator('#f_prenom').fill(nom);
     await agents.locator('#f_nom').fill(prenom);
     await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
