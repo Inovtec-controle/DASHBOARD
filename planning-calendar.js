@@ -92,10 +92,12 @@ function entriesForWeek(key){if(!Array.isArray(state.weeks[key]))state.weeks[key
 function entriesForDate(d){const key=isoWeekKey(d),day=mondayIndex(d);return entriesForWeek(key).filter(e=>Number(e.day)===day)}
 function eventRef(week,id){return entriesForWeek(week).find(e=>e.id===id)}
 function dataHub(){
-  try{
-    if(parent&&parent!==window&&parent.InovtecDataHub)return parent.InovtecDataHub;
-  }catch{}
-  try{return window.InovtecDataHub||null}catch{return null}
+  let parentHub=null,localHub=null;
+  try{if(parent&&parent!==window)parentHub=parent.InovtecDataHub||null}catch{}
+  try{localHub=window.InovtecDataHub||null}catch{}
+  if(parentHub?.readyChantiers||parentHub?.readyAgents)return parentHub;
+  if(localHub?.readyChantiers||localHub?.readyAgents)return localHub;
+  return parentHub||localHub||null;
 }
 function hubAgents(){
   const h=dataHub();
