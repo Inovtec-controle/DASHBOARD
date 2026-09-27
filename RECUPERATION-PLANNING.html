@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inovtec · Récupération sécurisée des plannings</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#183229;background:#f4f7f5}*{box-sizing:border-box}body{margin:0}main{max-width:1040px;margin:auto;padding:26px 16px 60px}header{background:#064e3b;color:white;padding:24px;border-radius:20px;margin-bottom:18px}h1{font-size:26px;margin:0 0 8px}header p{margin:0;line-height:1.55;color:#d1fae5}.panel{background:white;border:1px solid #dce8e1;border-radius:16px;padding:18px;margin-top:15px;box-shadow:0 5px 20px #062a1608}h2{font-size:18px;margin:0 0 12px}p{line-height:1.55}.notice{background:#fef9e7;border:1px solid #f6df9c;border-radius:12px;padding:12px;font-size:14px}.muted{font-size:13px;color:#5c7169}button,.link{cursor:pointer;border:1px solid #9dbfb0;border-radius:10px;padding:10px 13px;font-weight:700;background:#fff;color:#064e3b;font-size:13px;text-decoration:none;display:inline-block}button.primary{background:#064e3b;color:#fff;border-color:#064e3b}button:disabled{opacity:.5;cursor:not-allowed}button:hover:not(:disabled){filter:brightness(.95)}.actions{display:flex;flex-wrap:wrap;gap:9px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.card{padding:15px;border:1px solid #dce8e1;border-radius:13px;background:#fafcfb}.card h3{font-size:14px;margin:0 0 8px}.stat{font-size:25px;font-weight:800}.warn{color:#a45a00}.bad{color:#bc3030}.good{color:#167042}.tag{font-size:11px;border:1px solid #dce8e1;padding:4px 7px;border-radius:20px;display:inline-block;margin:4px 4px 0 0}select{width:100%;max-width:450px;padding:10px;border-radius:9px;border:1px solid #a9beb2;font:inherit}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px;border-bottom:1px solid #edf2ee;vertical-align:top}th{background:#f5faf7}#details{overflow:auto;max-height:450px}#status{min-height:22px}a{color:#065f46}@media(max-width:600px){main{padding:12px 10px 35px}header{padding:17px}h1{font-size:21px}table{font-size:11px}}
+</style>
+</head>
+<body><main>
+<header><h1>Récupération des plannings</h1><p>Comparer les copies existantes avant toute restauration. Aucun planning n’est modifié depuis cette page.</p></header>
+<div class="notice"><strong>Important :</strong> n’enregistre pas de nouveau planning et ne vide pas les données de ton navigateur. Ouvre cette page sur l’ordinateur ou le téléphone où les anciennes saisies ont été effectuées. Les copies de différents appareils peuvent être complémentaires.</div>
+<section class="panel"><h2>1. Copies disponibles</h2><p id="status" role="status">Recherche des copies locales…</p><div id="cards" class="cards"></div><p class="muted" id="cloudStatus">Firebase : connexion en cours de vérification.</p><div class="actions"><button class="primary" id="exportAll" type="button">Sauvegarder toutes les copies en JSON</button><button id="refresh" type="button">Relire les sources</button><a class="link" href="PLANNINGS.html">Retour au Planning</a></div><p class="muted">Le téléchargement reste sur ton appareil. Ce fichier peut contenir des noms d’agents et des horaires : conserve-le dans un emplacement privé.</p></section>
+<section class="panel"><h2>2. Comparer une version</h2><label for="source">Source à examiner</label><br><select id="source"></select><div id="analysis" aria-live="polite"></div><div class="actions"><button id="exportOne" type="button">Télécharger cette copie sans la modifier</button></div></section>
+<section class="panel"><h2>3. Vérifier les interventions</h2><p class="muted">La liste affiche les informations réellement présentes dans la source sélectionnée, y compris les interventions dont l’agent n’apparaît plus dans la liste actuelle.</p><div id="details"></div></section>
+<section class="panel"><h2>Restauration</h2><p>Cette page est volontairement en <strong>lecture seule</strong> : aucune ancienne version n’est écrasée ni réinjectée automatiquement. Une restauration fiable nécessite d’abord de déterminer quelle copie contient les bonnes interventions et à quels agents elles appartiennent.</p></section>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=20260829-operational1"></script>
+<script>
+(()=>{
+'use strict';
+const KEY='inovtec_plannings_v2',BACKUP='iv_planning_preservation_20260917_before_autosync',SHARED='__inovtec_shared_workspace_v1__';
+const $=id=>document.getElementById(id),sources=new Map();
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function parse(raw){try{const p=JSON.parse(raw);return p&&typeof p==='object'&&!Array.isArray(p)?p:null}catch{return null}}
+function add(name,raw,meta={}){if(!raw)return;const data=parse(raw);if(!data)return;sources.set(name,{data,raw,meta})}
+function readLocal(){
+  add('Copie locale actuelle',localStorage.getItem(KEY),{origin:'localStorage'});
+  add('Sauvegarde avant correctif',localStorage.getItem(BACKUP),{origin:'localStorage · protection'});
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i)||'';
+    if(k===KEY||k===BACKUP)continue;
+    if(/planning/i.test(k)&&/backup|sauvegard|snapshot|preserv|histor|recovery|recuper/i.test(k))add('Archive locale : '+k,localStorage.getItem(k),{origin:k});
+  }
+}
+function stats(s){
+ const d=s.data,agents=Array.isArray(d.agents)?d.agents:[],weeks=d.weeks&&typeof d.weeks==='object'?d.weeks:{},rows=Object.entries(weeks).flatMap(([week,items])=>(Array.isArray(items)?items:[]).map(e=>({week,...e}))),ids=new Set(agents.map(a=>String(a?.id||''))),orphan=rows.filter(e=>!ids.has(String(e.agentId||''))),unique=new Set(rows.map(e=>String(e.id||''))),duplicates=rows.length-unique.size;
+ return{agents,weeks,rows,orphan,duplicates,weekCount:Object.keys(weeks).filter(w=>Array.isArray(weeks[w])&&weeks[w].length).length};
+}
+function render(){
+ const names=[...sources.keys()],select=$('source'),selected=select.value;select.replaceChildren();
+ for(const n of names){const o=document.createElement('option');o.value=n;o.textContent=n;select.appendChild(o)}
+ if(names.includes(selected))select.value=selected;
+ $('status').textContent=names.length?`${names.length} copie(s) trouvée(s). Aucune donnée modifiée.`:'Aucune copie lisible trouvée sur cet appareil.';
+ $('cards').innerHTML=names.map(n=>{const s=sources.get(n),x=stats(s);return `<div class="card"><h3>${esc(n)}</h3><div class="stat">${x.rows.length} <small style="font-size:12px;font-weight:500">interventions</small></div><span class="tag">${x.weekCount} semaines</span><span class="tag">${x.agents.length} agents</span>${x.orphan.length?`<p class="warn">${x.orphan.length} interventions rattachées à des identifiants absents de cette liste d’agents</p>`:''}</div>`}).join('');
+ const s=sources.get(select.value);$('exportOne').disabled=!s;$('exportAll').disabled=!names.length;
+ if(!s){$('analysis').textContent='Aucune version disponible.';$('details').textContent='';return}
+ const x=stats(s),agentIds=new Map(x.agents.map(a=>[String(a.id),String(a.name||a.displayName||a.id||'Sans nom')]));
+ $('analysis').innerHTML=`<p><strong>${x.rows.length} interventions</strong> sur ${x.weekCount} semaines. ${x.agents.length} agents dans cette copie. ${x.duplicates?`<span class="bad">${x.duplicates} identifiant(s) d’intervention en double.</span>`:'Aucun identifiant d’intervention en double.'}</p>${x.orphan.length?`<p class="warn">${x.orphan.length} intervention(s) existent dans les données, mais leur agent ne figure plus dans la liste de cette copie. Elles ne sont pas nécessairement perdues.</p>`:''}`;
+ const sorted=x.rows.slice().sort((a,b)=>String(a.week).localeCompare(String(b.week))||Number(a.day||0)-Number(b.day||0)||String(a.start||'').localeCompare(String(b.start||'')));
+ $('details').innerHTML=sorted.length?`<table><thead><tr><th>Semaine / jour</th><th>Agent</th><th>Horaires</th><th>Chantier / tâche</th></tr></thead><tbody>${sorted.slice(0,600).map(e=>`<tr><td>${esc(e.week)} · ${['lun','mar','mer','jeu','ven','sam','dim'][Number(e.day)]||esc(e.day)}</td><td>${esc(agentIds.get(String(e.agentId))||'Agent non relié : '+String(e.agentId||'—'))}</td><td>${esc(e.start||'')} – ${esc(e.end||'')}</td><td>${esc(e.task||'')}<br><span class="muted">${esc(e.site||'')}</span></td></tr>`).join('')}</tbody></table>${sorted.length>600?`<p>${sorted.length-600} autres interventions dans le fichier exporté.</p>`:''}`:'<p>Aucune intervention dans cette copie.</p>';
+}
+function download(name,value){const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000)}
+$('source').addEventListener('change',render);
+$('exportOne').addEventListener('click',()=>{const s=sources.get($('source').value);if(s)download('inovtec-planning-copie-'+new Date().toISOString().slice(0,10)+'.json',s.data)});
+$('exportAll').addEventListener('click',()=>download('inovtec-plannings-sources-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json',{exportedAt:new Date().toISOString(),readOnly:true,sources:Object.fromEntries([...sources].map(([name,s])=>[name,{data:s.data,meta:s.meta}]))}));
+async function cloud(){
+ if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG){$('cloudStatus').textContent='Firebase indisponible sur cette page : les copies locales restent accessibles.';return}
+ try{
+  if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+  await firebase.auth().authStateReady?.();
+  const user=firebase.auth().currentUser;
+  if(!user){$('cloudStatus').textContent='Firebase : aucune session ouverte sur cet appareil. Ouvre le tableau de bord avec ton compte habituel, puis reviens ici.';return}
+  $('cloudStatus').textContent='Firebase : lecture seule des copies du compte connecté…';
+  const db=firebase.firestore(),refs=[['Firebase · espace partagé',db.collection('chantiers').doc(SHARED)],['Firebase · compte personnel',db.collection('kanban').doc(user.uid)]];
+  const result=await Promise.allSettled(refs.map(async([name,ref])=>({name,snap:await ref.get({source:'server'})})));
+  const failures=[];
+  result.forEach((r,i)=>{
+    if(r.status!=='fulfilled'){failures.push(refs[i][0]+': '+String(r.reason?.message||r.reason));return}
+    const d=r.value.snap.exists?r.value.snap.data()||{}:{},entry=d.moduleSyncV1?.planning;
+    if(entry?.payload)add(r.value.name,typeof entry.payload==='string'?entry.payload:JSON.stringify(entry.payload),{origin:r.value.name,updatedAtMs:entry.updatedAtMs||null,version:entry.version||null});
+  });
+  $('cloudStatus').textContent=failures.length?'Firebase : certaines lectures ont échoué. '+failures.join(' | '):'Firebase : lecture terminée. Les copies disponibles sont listées ci-dessus.';render();
+ }catch(e){$('cloudStatus').textContent='Firebase : lecture impossible ('+String(e.message||e)+'). Les copies locales restent accessibles.'}
+}
+$('refresh').addEventListener('click',()=>{sources.clear();readLocal();render();cloud()});
+readLocal();render();cloud();
+})();
+</script>
+</body></html>
