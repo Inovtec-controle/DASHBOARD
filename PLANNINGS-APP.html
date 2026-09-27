@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script async src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<link rel="stylesheet" href="planning-calendar.css?v=20260927-planningrestore1">
+<link rel="stylesheet" href="planning-calendar.css?v=20260927-containerbridge1">
 <link rel="stylesheet" href="planning-responsive.css?v=20260927-planningrestore1">
 <link rel="stylesheet" href="planning-parity.css?v=20260927-planningrestore1">
 <link rel="stylesheet" href="planning-replacement.css?v=20260927-planningrestore1">
@@ -53,6 +53,7 @@
 
 <div class="editor-popover" id="editorPopover" role="dialog" aria-label="Modifier l’intervention">
   <div class="editor-row"><span class="editor-icon">●</span><select class="editor-select editor-title" id="edTitle" aria-label="Chantier"><option value="">Choisir un chantier…</option></select></div>
+  <div id="ivPlanningContainerInfo" class="planning-container-reminder" hidden aria-live="polite"></div>
   <div class="editor-row"><span class="editor-icon">≡</span><textarea class="editor-textarea editor-brief" id="edSite" maxlength="140" rows="2" placeholder="Décrire brièvement la tâche du jour…" aria-label="Tâche du jour"></textarea></div>
   <div class="editor-row"><span class="editor-icon">▦</span><input class="editor-field" id="edDate" type="date"></div>
   <div class="editor-row"><span class="editor-icon">◷</span><div class="editor-time-pair"><input class="editor-field" id="edStart" type="time" step="900"><span>–</span><input class="editor-field" id="edEnd" type="time" step="900"></div></div>
@@ -95,8 +96,10 @@ window.INOVTEC_FIREBASE_CONFIG=Object.freeze({
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="inovtec-data-hub.js?v=20260927-planningrestore1"></script>
-<script src="planning-calendar.js?v=20260927-teamlink3"></script>
+<script src="inovtec-container-schedule.js?v=20260927-planningbridge1"></script>
+<script src="planning-calendar.js?v=20260927-containerbridge1"></script>
 <script src="planning-firebase-direct-v2.js?v=20260927-authfix1"></script>
+<script src="planning-container-bridge.js?v=20260927-containerbridge1"></script>
 <script src="planning-travel-pause.js?v=20260927-planningrestore1"></script>
 <script src="planning-legal-guard.js?v=20260927-planningrestore1"></script>
 <script src="planning-editor-fit.js?v=20260927-planningrestore1"></script>
