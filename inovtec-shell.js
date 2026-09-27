@@ -7,12 +7,12 @@ const legacyPage=params.get("page")||"PLANNINGS-APP.html?v=20260927-planningrest
 const fuelIcon='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto"><path d="M5 21V4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v17"/><path d="M7 6h5v5H7z"/><path d="M14 8h2l2 2v7a2 2 0 1 0 4 0v-6l-2-2"/><path d="M3 21h13"/></svg>';
 const configs={
  planning:{label:"Planning",eyebrow:"PLANNING",title:'Planning des <em>équipes</em>',subtitle:"Organisez et suivez les interventions de vos agents sur l’ensemble de vos chantiers.",route:"PLANNINGS.html?v=20260927-planningrestore1",icon:"▦"},
- kontrol:{label:"KONTROL",eyebrow:"CONTRÔLES QUALITÉ",title:"KONTROL",subtitle:"Réalisez vos contrôles qualité sans modifier les critères, réponses, calculs ni archives déjà en place.",route:"KONTROL-CLOUD.html?v=20260830-pdfphotos1",icon:"✓"},
+ kontrol:{label:"KONTROL",eyebrow:"CONTRÔLES QUALITÉ",title:"KONTROL",subtitle:"Réalisez vos contrôles qualité sans modifier les critères, réponses, calculs ni archives déjà en place.",route:"KONTROL-CLOUD.html?v=20260927-savecontrols1",icon:"✓"},
  discipline:{label:"Discipline",eyebrow:"DISCIPLINE",title:"Gestion des dossiers <em>disciplinaires</em>",subtitle:"Consultez, enregistrez et suivez vos dossiers, photos et PDF avec la même logique de sauvegarde.",route:"DISCIPLINE-V9.html",icon:"⚑"},
- infos:{label:"Infos chantier",eyebrow:"INFOS CHANTIER",title:"Informations <em>chantiers</em>",subtitle:"Retrouvez les accès, contacts, plannings et consignes de chaque résidence dans une présentation plus lisible.",route:"INFOCHANTIERS-V2.html?v=20260923-mobile2",icon:"ⓘ"},
- agents:{label:"Classeur agents",eyebrow:"AGENTS",title:"Classeur <em>agents</em>",subtitle:"Consultez les profils et informations de vos agents dans une interface unifiée.",route:"AGENTS.html?v=20260927-agentsave-stable2",icon:"♙"},
+ infos:{label:"Infos chantier",eyebrow:"INFOS CHANTIER",title:"Informations <em>chantiers</em>",subtitle:"Retrouvez les accès, contacts, plannings et consignes de chaque résidence dans une présentation plus lisible.",route:"INFOCHANTIERS-V2.html?v=20260927-savecontrols1",icon:"ⓘ"},
+ agents:{label:"Classeur agents",eyebrow:"AGENTS",title:"Classeur <em>agents</em>",subtitle:"Consultez les profils et informations de vos agents dans une interface unifiée.",route:"AGENTS.html?v=20260927-savecontrols1",icon:"♙"},
  organisation:{label:"Organisation",eyebrow:"ORGANISATION",title:"Organisation",subtitle:"Planifiez, suivez et pilotez vos tâches, priorités et échéances sans changer leur stockage.",route:"ORGA.html",icon:"◎"},
- variables:{label:"Variables agents",eyebrow:"VARIABLES DE PAIE",title:"Variables <em>agents</em>",subtitle:"Centralisez les heures complémentaires, supplémentaires, dimanches, jours fériés, nuits et absences liées à chaque agent.",route:"VARIABLES.html?v=20260829-variables-dashboard1",icon:"◷"},
+ variables:{label:"Variables agents",eyebrow:"VARIABLES DE PAIE",title:"Variables <em>agents</em>",subtitle:"Centralisez les heures complémentaires, supplémentaires, dimanches, jours fériés, nuits et absences liées à chaque agent.",route:"VARIABLES.html?v=20260927-savecontrols1",icon:"◷"},
  temps:{label:"Conversion temps",eyebrow:"OUTILS",title:"Conversion <em>temps</em>",subtitle:"Convertissez vos durées avec le calculateur existant dans une présentation modernisée.",route:"TEMPS.html",icon:"◷"},
  salaire:{label:"Salaire",eyebrow:"SALAIRE",title:"Calculateur de <em>salaire</em>",subtitle:"Utilisez les calculs de rémunération existants avec une lecture plus graphique.",route:"SALAIRE.html",icon:"€"},
  essence:{label:"Dépense carburant",eyebrow:"DÉPLACEMENTS",title:"Dépense <em>carburant</em>",subtitle:"Calculez rapidement le coût réel du carburant d’un agent à partir de ses trajets et de son véhicule.",route:"ESSENCE.html",icon:fuelIcon}
@@ -23,19 +23,19 @@ const cfg=configs[mode]||configs.planning;
 const navDefinitions=[
  ['Accueil','⌂','index.html','home'],
  ['Planning','▦','PLANNINGS.html?v=20260927-planningrestore1','planning'],
- ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20260913-width1'],
- ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos','INFOCHANTIERS-V2-LEGACY.html?v=20260923-mobile2'],
- ['Classeur agents','♙','AGENTS.html?v=20260927-agentsave-stable2','agents','AGENTS-LEGACY.html?v=20260927-agentsave-stable2'],
+ ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20260927-savecontrols1'],
+ ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos','INFOCHANTIERS-V2-LEGACY.html?v=20260927-savecontrols1'],
+ ['Classeur agents','♙','AGENTS.html?v=20260927-savecontrols1','agents','AGENTS-LEGACY.html?v=20260927-savecontrols1'],
  ['Matériel','▣','MATERIEL.html','materiel'],
  ['Réassort','↻','REASSORT.html','reassort'],
- ['Congés & absences','☂','CONGES.html','conges','CONGES-LEGACY.html?v=20260829-operational1'],
- ['Variables agents','◷','VARIABLES.html','variables','VARIABLES-DASHBOARD.html?v=20260916-1'],
- ['Organisation','◎','ORGA.html','organisation','ORGA-LEGACY.html?v=20260829-operational1'],
+ ['Congés & absences','☂','CONGES.html','conges','CONGES-LEGACY.html?v=20260927-savecontrols1'],
+ ['Variables agents','◷','VARIABLES.html','variables','VARIABLES-DASHBOARD.html?v=20260927-savecontrols1'],
+ ['Organisation','◎','ORGA.html','organisation','ORGA-LEGACY.html?v=20260927-savecontrols1'],
  ['Conversion temps','⇄','TEMPS.html','temps','TEMPS-LEGACY.html?v=20260829-operational1'],
  ['Salaire','€','SALAIRE.html','salaire','SALAIRE-LEGACY.html?v=20260829-operational1'],
  ['Dépense carburant','⛽','ESSENCE.html','essence','ESSENCE-LEGACY.html?v=20260829-operational1']
 ];
-const navRoute=item=>item[3]==='planning'?'PLANNINGS.html?v=20260927-planningrestore1':(item[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:item[3],page:item[4],build:'20260917-ui-stable1'}).toString():item[2]);
+const navRoute=item=>item[3]==='planning'?'PLANNINGS.html?v=20260927-planningrestore1':(item[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:item[3],page:item[4],build:'20260927-savecontrols1'}).toString():item[2]);
 function makeNav(target,mobile=false){
  const items=mobile?navDefinitions.filter(item=>['home','planning','infos','agents','variables'].includes(item[3])):navDefinitions;
  const fragment=document.createDocumentFragment();

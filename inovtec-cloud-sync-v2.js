@@ -12,7 +12,7 @@ const hash=s=>{s=String(s||'');let h=2166136261;for(let i=0;i<s.length;i++){h^=s
 const local=()=>localStorage.getItem(key)||'',size=s=>new Blob([s]).size;
 const baseKey=uid=>'iv_cloud_base_v2_'+mode+'_'+uid;
 const activeKey='iv_cloud_active_user_v2_'+mode;
-let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,lastLocalPlanningSave=0,generation=0,lastStatus='',switching=false,pendingPlanningPayload='';
+let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,lastLocalPlanningSave=0,lastLocalAgentSave=0,generation=0,lastStatus='',switching=false,pendingPlanningPayload='';
 function report(message,ok=false){
   if(message===lastStatus)return;lastStatus=message;
   for(const id of ['syncMirror','liveMirror']){const el=document.getElementById(id);if(el)el.textContent=message}
@@ -241,9 +241,14 @@ async function boot(uid,token){
         base=stored!==null?stored:remote;
         initialized=true;
         schedule(20);
+      }else if(mode==='agents'&&browser&&Date.now()-lastLocalAgentSave<5000){
+        // Une sauvegarde Agents effectuée pendant la lecture initiale reste prioritaire.
+        // On l'envoie au serveur au lieu de la remplacer par une lecture plus ancienne.
+        base=stored!==null?stored:remote;
+        initialized=true;
+        schedule(20)
       }else if(mode==='agents'){
-        // Firebase est la source de vérité du Classeur Agents au démarrage.
-        // Une ancienne copie locale / ancien cache ne doit jamais écraser la liste serveur.
+        // Hors modification locale récente, Firebase reste la source de vérité au démarrage.
         initialized=true;remember(remote);apply(remote);report('Firebase — synchronisé',true)
       }else if(stored!==null&&stored!==browser){base=stored;initialized=true;schedule(20)}
       else{initialized=true;remember(remote);apply(remote);report('Firebase — synchronisé',true)}
@@ -306,6 +311,7 @@ window.addEventListener('inovtec:planning-local-saved',ev=>{
 });
 window.addEventListener('inovtec:agent-local-saved',()=>{
   if(mode!=='agents')return;
+  lastLocalAgentSave=Date.now();
   activity=Date.now();
   if(initialized)schedule(20);
 });
