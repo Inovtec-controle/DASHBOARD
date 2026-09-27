@@ -69,7 +69,7 @@ await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () =
     job:{poste:'',typeContrat:'',dateEntree:'',sitePrincipal:'',disponibilites:'',notes:''},
     docs:[],incidents:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
   }])));
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow4', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow5', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 30000 });
   await page.waitForFunction(() => {
     const f=document.getElementById('legacyFrame');
@@ -80,7 +80,7 @@ await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () =
   const result=await page.evaluate(async () => {
     const frame=document.getElementById('legacyFrame'),d=frame.contentDocument,w=frame.contentWindow;
     d.querySelector('.listItem[data-agent-id="agent_da_rocha_test"]').click();
-    const nom=d.getElementById('f_nom'),prenom=d.getElementById('f_prenom');
+    const nom=d.getElementById('f_prenom'),prenom=d.getElementById('f_nom');
     const labels={
       nom:nom?.closest('.field')?.querySelector('label')?.textContent?.trim(),
       prenom:prenom?.closest('.field')?.querySelector('label')?.textContent?.trim()
@@ -100,8 +100,8 @@ await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () =
     return {
       savedNom:saved?.identity?.nom||'',
       savedPrenom:saved?.identity?.prenom||'',
-      visibleNom:d.getElementById('f_nom')?.value||'',
-      visiblePrenom:d.getElementById('f_prenom')?.value||'',
+      visibleNom:d.getElementById('f_prenom')?.value||'',
+      visiblePrenom:d.getElementById('f_nom')?.value||'',
       bubble
     };
   });
@@ -116,7 +116,7 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
   await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.evaluate(() => localStorage.setItem('kontrol_agents_classeur_v2','[]'));
 
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow4', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow5', { waitUntil: 'domcontentloaded', timeout: 45000 });
   const agents=page.frameLocator('#legacyFrame');
   await agents.locator('#btnNewAgentInCard').waitFor({state:'attached',timeout:30000});
 
@@ -138,8 +138,8 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
 
   async function create(nom,prenom){
     await agents.locator('#btnNewAgentInCard').evaluate(el=>el.click());
-    await agents.locator('#f_nom').fill(nom);
-    await agents.locator('#f_prenom').fill(prenom);
+    await agents.locator('#f_prenom').fill(nom);
+    await agents.locator('#f_nom').fill(prenom);
     await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
     await page.waitForTimeout(250);
     const s=await snapshot('after-create-'+nom);
@@ -158,12 +158,12 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
   if(JSON.stringify(beforeNames)!==JSON.stringify(beforeExpected))throw new Error('Tri avant renommage incorrect : '+JSON.stringify(before));
 
   await agents.locator('.listItem[data-sort-name="Zulu"]').evaluate(el=>el.click());
-  await agents.locator('#f_nom').fill('Abadie');
+  await agents.locator('#f_prenom').fill('Abadie');
   await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
   await page.waitForTimeout(250);
 
   const after=await snapshot('after-rename');
-  if(!after.stored.some(a=>a.deleted!==true&&a.nom==='Abadie'&&a.prenom==='Paul'))throw new Error('Renommage non persisté : '+JSON.stringify(after));
+  if(!after.stored.some(a=>a.deleted!==true&&a.prenom==='Abadie'&&a.nom==='Paul'))throw new Error('Renommage non persisté : '+JSON.stringify(after));
   const afterNames=after.list.map(x=>x.sort);
   const afterExpected=[...afterNames].sort((a,b)=>collator.compare(a,b));
   if(JSON.stringify(afterNames)!==JSON.stringify(afterExpected))throw new Error('Renommage non reclassé A-Z : '+JSON.stringify(after));

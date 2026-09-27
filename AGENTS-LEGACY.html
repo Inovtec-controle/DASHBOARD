@@ -493,11 +493,11 @@ body{
 
           <div class="grid2">
             <div class="field">
-              <label>Prénom</label>
+              <label>Nom</label>
               <input class="input" id="f_prenom">
             </div>
             <div class="field">
-              <label>Nom</label>
+              <label>Prénom</label>
               <input class="input" id="f_nom">
             </div>
             <div class="field">
@@ -810,8 +810,10 @@ function activeAgents(){
   return state.agents.filter(function(agent){return !isDeletedAgent(agent) && agentHasName(agent);});
 }
 function compareAgentsByLastName(a,b){
-  var an = safeText(a && a.identity && a.identity.nom).trim();
-  var bn = safeText(b && b.identity && b.identity.nom).trim();
+  // Schéma historique conservé pour compatibilité avec les agents déjà enregistrés :
+  // le champ visible "Nom" est stocké dans identity.prenom.
+  var an = safeText(a && a.identity && a.identity.prenom).trim();
+  var bn = safeText(b && b.identity && b.identity.prenom).trim();
   if(!an && !bn) return 0;
   if(!an) return 1;
   if(!bn) return -1;
@@ -862,7 +864,7 @@ function newAgent(){
   rememberSelectedAgent(a.id);
   renderAll();
   setTimeout(function(){
-    var el = $("#f_nom");
+    var el = $("#f_prenom");
     if(el) el.focus();
   }, 60);
 }
@@ -1354,7 +1356,7 @@ function renderList(){
   for(var k=0;k<agents.length;k++){
     var a = agents[k];
     var i = a.identity || {};
-    var fullName = (safeText(i.nom)+" "+safeText(i.prenom)).trim() || "Sans nom";
+    var fullName = (safeText(i.prenom)+" "+safeText(i.nom)).trim() || "Sans nom";
     var sub = (safeText(a.job.sitePrincipal) || "—")+" • "+(safeText(i.telephone) || "Téléphone : —");
     var incidents = a.incidents || [];
     var openCount = incidents.filter(function(x){return (x.statut||"Ouvert") !== "Clos";}).length;
@@ -1362,7 +1364,7 @@ function renderList(){
     var item = document.createElement("div");
     item.className = "listItem"+(a.id===state.selectedId ? " active" : "");
     item.setAttribute("data-agent-id", String(a.id||""));
-    item.setAttribute("data-sort-name", safeText(i.nom).trim());
+    item.setAttribute("data-sort-name", safeText(i.prenom).trim());
     item.setAttribute("role","button");
     item.setAttribute("tabindex","0");
     item.setAttribute("aria-label","Ouvrir la fiche de "+fullName);
@@ -1404,7 +1406,7 @@ function renderDetails(){
   var i = agent.identity || {};
   var j = agent.job || {};
 
-  var fullName = (safeText(i.nom)+" "+safeText(i.prenom)).trim() || "Fiche agent";
+  var fullName = (safeText(i.prenom)+" "+safeText(i.nom)).trim() || "Fiche agent";
   $("#agentName").textContent = fullName;
   chip.textContent = fullName;
 

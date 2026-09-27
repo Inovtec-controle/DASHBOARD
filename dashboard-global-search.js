@@ -52,7 +52,7 @@ function buildRows(sites,agents,tasks){
     label:agentName(a),
     sub:[a?.job?.poste,a?.job?.sitePrincipal,a?.identity?.telephone].filter(Boolean).join(" • ")||"Classeur agents",
     search:norm([agentName(a),a?.identity?.telephone,a?.identity?.email,a?.job?.poste,a?.job?.sitePrincipal].filter(Boolean).join(" ")),
-    href:"AGENTS.html?v=20260927-agentsflow4",
+    href:"AGENTS.html?v=20260927-agentsflow5",
     handoff:{mode:"agents",id:String(a.id||""),label:agentName(a)}
   }));
   unique(tasks,t=>String(t.id||t.title||"")).filter(t=>!t?.archived).forEach(t=>out.push({
