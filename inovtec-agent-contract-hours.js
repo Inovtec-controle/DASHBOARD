@@ -34,31 +34,30 @@ function install(){
       }catch{}
     };
 
-    // Ne jamais remplacer le clic du bouton Enregistrer.
-    // Le bouton natif de la fiche reste l'unique point d'entrée.
-    if(typeof w.saveAgentForm==="function"&&!w.saveAgentForm.__ivContractHoursWrapped){
-      const originalSave=w.saveAgentForm;
-      const wrapped=function(){
+    const saveBtn=d.getElementById("btnSaveAgent");
+    if(saveBtn&&!saveBtn.dataset.ivContractHours){
+      saveBtn.dataset.ivContractHours="1";
+      const original=saveBtn.onclick||w.saveAgentForm;
+      saveBtn.onclick=function(ev){
         const a=w.getSelectedAgent?.();
         if(a){
           a.job=a.job||{};
-          const raw=String(d.getElementById("f_heuresContrat")?.value||"").trim();
+          const raw=String(input?.value||"").trim();
           if(raw){
             const n=parseHours(raw);
             if(n===null||n>60){
-              w.alert("Indique un nombre d’heures contractuelles hebdomadaires compris entre 1 et 60 h.");
-              d.getElementById("f_heuresContrat")?.focus();
+              alert("Indique un nombre d’heures contractuelles hebdomadaires compris entre 1 et 60 h.");
+              input?.focus();
               return;
             }
             a.job.contractHoursWeekly=Math.round(n*100)/100;
-          }else a.job.contractHoursWeekly="";
+          }else{
+            a.job.contractHoursWeekly="";
+          }
         }
-        const result=originalSave.apply(w,arguments);
+        if(typeof original==="function")original.call(w,ev);
         setTimeout(fill,0);
-        return result;
       };
-      wrapped.__ivContractHoursWrapped=true;
-      w.saveAgentForm=wrapped;
     }
 
     d.getElementById("agentList")?.addEventListener("click",()=>setTimeout(fill,0),true);
