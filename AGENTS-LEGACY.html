@@ -806,9 +806,13 @@ function isDeletedAgent(agent){
 function activeAgents(){
   return state.agents.filter(function(agent){return !isDeletedAgent(agent) && agentHasName(agent);});
 }
-function agentSortKey(agent){
-  var i = agent && agent.identity || {};
-  return safeText(i.nom).trim().toLowerCase();
+function compareAgentsByLastName(a,b){
+  var an = safeText(a && a.identity && a.identity.nom).trim();
+  var bn = safeText(b && b.identity && b.identity.nom).trim();
+  if(!an && !bn) return 0;
+  if(!an) return 1;
+  if(!bn) return -1;
+  return an.localeCompare(bn,"fr",{sensitivity:"base",numeric:true});
 }
 function getSelectedAgent(){
   for(var i=0;i<state.agents.length;i++){
@@ -867,7 +871,7 @@ function deleteAgent(){
       var tombstone = makeAgentTombstone(agent,"suppression-utilisateur");
       state.agents = state.agents.map(function(a){return a.id === agent.id ? tombstone : a;});
     }
-    var remaining = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr");});
+    var remaining = activeAgents().slice().sort(function(a,b){return compareAgentsByLastName(a,b);});
     state.selectedId = remaining.length ? remaining[0].id : null;
     rememberSelectedAgent(state.selectedId);
     save();
@@ -1215,7 +1219,7 @@ function filteredAgents(){
   var q = safeText(state.search).toLowerCase();
   var arr = activeAgents().slice();
   arr.sort(function(a,b){
-    return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});
+    return compareAgentsByLastName(a,b);
   });
   if(!q) return arr;
   return arr.filter(function(a){
@@ -1245,7 +1249,7 @@ function restoreSelectedAgent(){
     return;
   }
   var first = activeAgents().slice().sort(function(a,b){
-    return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});
+    return compareAgentsByLastName(a,b);
   })[0];
   state.selectedId = first ? first.id : null;
   rememberSelectedAgent(state.selectedId);
@@ -1396,7 +1400,7 @@ function importJSONFile(file){
       var deletedIds = new Set(existingDeleted.map(function(a){return String(a.id||"");}));
       state.agents = existingDeleted.concat(agents.filter(function(a){return !deletedIds.has(String(a && a.id || ""));}));
       cleanupAgentState();
-      var visible = activeAgents().slice().sort(function(a,b){return agentSortKey(a).localeCompare(agentSortKey(b),"fr",{sensitivity:"base",numeric:true});});
+      var visible = activeAgents().slice().sort(function(a,b){return compareAgentsByLastName(a,b);});
       state.selectedId = visible.length ? visible[0].id : null;
       rememberSelectedAgent(state.selectedId);
       save();
