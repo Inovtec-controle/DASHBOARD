@@ -128,6 +128,15 @@ function fitAgentsFullPage(doc){
 }
 function mirrorStatus(){const doc=targetDoc();if(!doc)return;const src=doc.querySelector("#syncStatus,.status.ok,.status.warning");if(src&&src.textContent.trim()){const value=src.textContent.trim().slice(0,70);if($("syncMirror").textContent!==value)$("syncMirror").textContent=value}const live=$("liveMirror");if(!live)return;let count="";if(mode==="planning")count=doc.querySelector("#count")?.textContent||"";else if(mode==="infos")count=(doc.querySelector("#count")?.textContent||"")+" chantier(s)";else if(mode==="discipline")count=doc.querySelector("#count")?.textContent||"";else if(mode==="organisation")count=`${doc.querySelectorAll(".task").length} tâche(s)`;else if(mode==="variables")count=(doc.querySelector("#kpiEntries")?.textContent||"0")+" variable(s) ce mois";else if(mode==="essence")count=doc.querySelector("#totalCost")?.textContent||"";const value=count||"Fonctions d’origine conservées";if(live.textContent!==value)live.textContent=value}
 let statusInterval=null;
-function prepareFrame(){const doc=targetDoc();if(!doc)return;addTheme(doc,mode==="kontrol"?"kontrol-cloud":mode);if(mode==="agents")fitAgentsFullPage(doc);if(mode==="kontrol"){const nested=doc.getElementById("kontrolFrame");if(nested){const inject=()=>addTheme(nestedKontrolDoc(),"kontrol");nested.addEventListener("load",()=>setTimeout(inject,60));setTimeout(inject,300);setTimeout(inject,1100)}}buildTools();mirrorStatus();if(statusInterval===null)statusInterval=setInterval(()=>{if(!document.hidden)mirrorStatus()},2400);loading.classList.add("hidden")}
+function removeAgentSaveDuplicate(doc){
+  if(mode!=="agents"||!doc)return;
+  const ids=["btnSaveAgent","btnDuplicateAgent"];
+  ids.forEach(id=>{const el=doc.getElementById(id);if(el)el.remove()});
+  doc.querySelectorAll("button").forEach(btn=>{
+    const label=(btn.textContent||"").trim().toLowerCase();
+    if(label==="enregistrer"||label==="dupliquer")btn.remove();
+  });
+}
+function prepareFrame(){const doc=targetDoc();if(!doc)return;removeAgentSaveDuplicate(doc);addTheme(doc,mode==="kontrol"?"kontrol-cloud":mode);if(mode==="agents")fitAgentsFullPage(doc);if(mode==="kontrol"){const nested=doc.getElementById("kontrolFrame");if(nested){const inject=()=>addTheme(nestedKontrolDoc(),"kontrol");nested.addEventListener("load",()=>setTimeout(inject,60));setTimeout(inject,300);setTimeout(inject,1100)}}buildTools();mirrorStatus();if(statusInterval===null)statusInterval=setInterval(()=>{if(!document.hidden)mirrorStatus()},2400);loading.classList.add("hidden")}
 frame.addEventListener("load",()=>setTimeout(prepareFrame,80));
 })();
