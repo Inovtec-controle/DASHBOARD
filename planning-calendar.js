@@ -584,6 +584,14 @@ function renderContainerReminder(){
   }
   const api=window.InovtecContainerSchedule;
   const actions=typeof api?.actionsFromInfosForDate==="function"?api.actionsFromInfosForDate(chosen,dateValue):[];
+  const activeIds=new Set(actions.map(x=>String(x.id)));
+  const infosSchedule=typeof api?.infosScheduleForSite==="function"?api.infosScheduleForSite(chosen):{};
+  const configured=(api?.FIELDS||[]).map(field=>({
+    ...field,
+    days:Array.isArray(infosSchedule?.[field.id])?infosSchedule[field.id]:[],
+    frequence:typeof api?.frequencyForSite==="function"?api.frequencyForSite(chosen,field.id):"toutes"
+  })).filter(x=>x.days.length);
+  const autres=configured.filter(x=>!activeIds.has(String(x.id)));
   const buttons=actions.map(action=>{
     const task=containerTaskFromAction(action);
     const active=selected.some(x=>sameContainerTask(x,task));
@@ -593,9 +601,16 @@ function renderContainerReminder(){
     ?`<div class="pcr-selected"><span><strong>${selected.length}</strong> mission${selected.length>1?"s":""} sélectionnée${selected.length>1?"s":""} : ${selected.map(x=>safeText(x.label)).join(" · ")}</span><button type="button" class="pcr-remove">Tout retirer</button></div>`
     :"";
   const empty=!actions.length
-    ?'<div class="pcr-empty">Aucune sortie ou rentrée prévue dans Infos chantier pour ce jour.</div>'
+    ?'<div class="pcr-empty">Aucune sortie ou rentrée à effectuer sur cette date.</div>'
     :"";
-  box.innerHTML=`<div class="pcr-head"><span class="pcr-title">🗑️ Rappel conteneurs</span><span class="pcr-sub">Tu peux en sélectionner plusieurs</span></div><div class="pcr-actions">${buttons}</div>${empty}${selectedHtml}`;
+  const autresHtml=autres.length
+    ?`<div class="pcr-other"><strong>Autres rappels Infos chantier :</strong> ${autres.map(x=>{
+      const jours=x.days.map(d=>api?.SHORT?.[d]||d).join(" · ");
+      const freq=api?.FREQ_LABEL?.[x.frequence]||"Toutes les semaines";
+      return `${safeText(x.label)} — ${safeText(jours)} · ${safeText(freq)}`;
+    }).join(" | ")}</div>`
+    :"";
+  box.innerHTML=`<div class="pcr-head"><span class="pcr-title">🗑️ Rappel conteneurs</span><span class="pcr-sub">Tu peux en sélectionner plusieurs</span></div><div class="pcr-actions">${buttons}</div>${empty}${selectedHtml}${autresHtml}`;
   box.hidden=false;
   box.querySelectorAll(".pcr-action").forEach(button=>button.addEventListener("click",()=>{
     const action=actions.find(x=>String(x.id)===String(button.dataset.containerId));
