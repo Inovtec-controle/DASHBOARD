@@ -68,7 +68,13 @@ function clearAgentPending(uid){
 }
 function dispatchAgentCloud(type,detail){
   if(mode!=='agents')return;
-  try{window.dispatchEvent(new CustomEvent(type,{detail:detail||{}}))}catch(e){}
+  const data=detail||{};
+  try{window.dispatchEvent(new CustomEvent(type,{detail:data}))}catch(e){}
+  // Transmettre aussi la confirmation directement à la fiche Agents affichée.
+  try{
+    const w=frame?.contentWindow;
+    if(w&&w!==window)w.dispatchEvent(new w.CustomEvent(type,{detail:data}));
+  }catch(e){}
 }
 function render(){
   // Le Planning reçoit déjà le payload Firebase directement.
