@@ -666,8 +666,7 @@ body{
   </main>
 
   <div class="footNote">
-    Données enregistrées en <span class="kbd">localStorage</span> sur l’appareil.  
-    Pour transférer vers un autre appareil : <span class="kbd">Exporter</span> puis <span class="kbd">Importer</span>.
+    Données Agents enregistrées directement dans <span class="kbd">Firebase</span>.
   </div>
 </div>
 
@@ -686,8 +685,6 @@ body{
 
 <script>
 /* ===== Helpers ===== */
-var STORE_KEY = "kontrol_agents_classeur_v2"; // nouvelle version pour repartir propre
-
 function $(sel){return document.querySelector(sel);}
 function $all(sel){return Array.prototype.slice.call(document.querySelectorAll(sel));}
 
@@ -1376,25 +1373,17 @@ function filteredAgents(){
   });
 }
 
-function selectedStorageKey(){ return "inovtec_agents_selected_v1"; }
 function rememberSelectedAgent(id){
-  try{
-    if(id) sessionStorage.setItem(selectedStorageKey(), String(id));
-    else sessionStorage.removeItem(selectedStorageKey());
-  }catch(e){}
+  // Aucun stockage navigateur pour le module Agents.
 }
 function restoreSelectedAgent(){
-  var saved = "";
-  try{ saved = sessionStorage.getItem(selectedStorageKey()) || ""; }catch(e){}
-  if(saved && activeAgents().some(function(a){return String(a.id)===String(saved);})){
-    state.selectedId = saved;
+  if(state.selectedId && activeAgents().some(function(a){return String(a.id)===String(state.selectedId);})){
     return;
   }
   var first = activeAgents().slice().sort(function(a,b){
     return compareAgentsByLastName(a,b);
   })[0];
   state.selectedId = first ? first.id : null;
-  rememberSelectedAgent(state.selectedId);
 }
 function selectAgentById(id){
   id = String(id||"");
@@ -1706,6 +1695,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow16"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow17"></script>
 </body>
 </html>
