@@ -800,27 +800,31 @@ function cleanupAgentState(){
   state.agents = Array.from(byId.values());
   return changed;
 }
-function load(){
-  try{
-    var raw = localStorage.getItem(STORE_KEY);
-    if(raw){
-      var data = JSON.parse(raw);
-      if(Object.prototype.toString.call(data) === "[object Array]"){
-        state.agents = data;
-      }
-    }
-    if(cleanupAgentState()){
-      localStorage.setItem(STORE_KEY, JSON.stringify(state.agents));
-    }
-  }catch(e){
-    console.warn("Erreur load",e);
-  }
+async function load(){
+  var cloud = window.parent && window.parent.InovtecAgentsCloud;
+  if(!cloud || typeof cloud.load!=="function") throw new Error("Service Firebase Agents indisponible");
+  var data = await cloud.load();
+  state.agents = Array.isArray(data) ? data : [];
+  cleanupAgentState();
+  return state.agents;
 }
 function save(){
   var persisted = state.agents.filter(function(agent){
     return !(agent && agent._draft === true && !agentHasName(agent));
   });
-  localStorage.setItem(STORE_KEY, JSON.stringify(persisted));
+  var cloud = window.parent && window.parent.InovtecAgentsCloud;
+  if(!cloud || typeof cloud.saveAll!=="function"){
+    console.error("Service Firebase Agents indisponible");
+    return Promise.resolve(false);
+  }
+  return cloud.saveAll(persisted).then(function(rows){
+    if(Array.isArray(rows)) state.agents = rows;
+    return true;
+  }).catch(function(e){
+    console.error("Sauvegarde Firebase Agents",e);
+    alert("La sauvegarde Firebase a échoué. Aucune copie locale n’est utilisée.");
+    return false;
+  });
 }
 function isDeletedAgent(agent){
   return !!(agent && agent._deleted === true);
@@ -1004,23 +1008,12 @@ async function saveAgentForm(){
   var btn=$("#btnSaveAgent");
   if(btn){btn.disabled=false;btn.textContent="Enregistrement Firebase…";}
 
-  // 2. Construire le payload directement depuis l'état en mémoire.
-  // La sauvegarde Firebase ne doit JAMAIS dépendre de localStorage : si le
-  // navigateur est plein, le profil doit quand même être enregistré en ligne.
-  var payload = JSON.stringify(state.agents.filter(function(a){
-    return !(a && a._draft === true && !agentHasName(a));
-  }));
-
-  // Copie locale = uniquement un cache pratique. Son échec n'empêche plus Firebase.
-  try{localStorage.setItem(STORE_KEY,payload);}
-  catch(e){console.warn("Copie locale Agents indisponible ; poursuite sur Firebase",e);}
-
-  // 3. Le bouton écrit explicitement cette version dans Firebase et ATTEND
-  // la relecture serveur. Aucun ✓ avant cette confirmation.
+  // 2. Écriture directe de CET agent dans Firebase.
+  // Aucune copie locale, aucun localStorage, aucune synchronisation intermédiaire.
   try{
     var cloud = window.parent && window.parent.InovtecAgentsCloud;
-    if(!cloud || typeof cloud.save!=="function") throw new Error("Service Firebase Agents indisponible");
-    await cloud.save(payload,agent.id);
+    if(!cloud || typeof cloud.saveAgent!=="function") throw new Error("Service Firebase Agents indisponible");
+    await cloud.saveAgent(agent);
 
     row.setAttribute("data-save-state","saved");
     if(btn){
@@ -1681,9 +1674,16 @@ document.addEventListener("DOMContentLoaded", function(){
     if(e.key === "Escape") closePhotoModal();
   });
 
-  // load + render
-  load();
-  restoreSelectedAgent();
+  // Firebase est l’unique source des Agents.
+  state.agents = [];
+  renderAll();
+  load().then(function(){
+    restoreSelectedAgent();
+    renderAll();
+  }).catch(function(e){
+    console.error("Chargement Firebase Agents",e);
+    alert("Impossible de charger les agents depuis Firebase.");
+  });
 
   var agentList = $("#agentList");
   if(agentList && agentList.dataset.ivStableClicks !== "1"){
@@ -1706,6 +1706,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow15"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow16"></script>
 </body>
 </html>
