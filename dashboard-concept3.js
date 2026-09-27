@@ -37,8 +37,7 @@ async function refresh(user){
    db.collection("chantiers").where("_type","==","kontrolControlRecord").get()
  ]);
  const shared=dataOf(res[0]),personal=dataOf(res[1]);
- const localAgents=localJson("kontrol_agents_classeur_v2",[]);
- const agents=mergeRows(agentsFrom(shared),agentsFrom(personal),Array.isArray(localAgents)?localAgents:[]).filter(a=>a&&a._deleted!==true&&norm(agentName(a))&&!["agent","sans nom","agent sans nom"].includes(norm(agentName(a))));
+ const agents=mergeRows(agentsFrom(shared),agentsFrom(personal)).filter(a=>a&&a._deleted!==true&&norm(agentName(a))&&!["agent","sans nom","agent sans nom"].includes(norm(agentName(a))));
  const tasks=mergeRows(shared.tasks,personal.tasks,localJson("orga_task_board_v2",[])).filter(t=>t&&t.archived!==true);
  const variables=mergeRows(
    modulePayload(shared,"variables",{})?.entries||[],
