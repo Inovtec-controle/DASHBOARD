@@ -37,8 +37,8 @@ function install(){
     const saveBtn=d.getElementById("btnSaveAgent");
     if(saveBtn&&!saveBtn.dataset.ivContractHours){
       saveBtn.dataset.ivContractHours="1";
-      const original=saveBtn.onclick||w.saveAgentForm;
       saveBtn.onclick=function(ev){
+        ev?.preventDefault?.();
         const a=w.getSelectedAgent?.();
         if(a){
           a.job=a.job||{};
@@ -55,7 +55,10 @@ function install(){
             a.job.contractHoursWeekly="";
           }
         }
-        if(typeof original==="function")original.call(w,ev);
+        // Toujours appeler la version ACTIVE de saveAgentForm.
+        // D'autres modules (titulaire/remplacement, Firebase) peuvent l'enrichir
+        // après l'installation de ce bouton.
+        if(typeof w.saveAgentForm==="function")w.saveAgentForm(ev);
         setTimeout(fill,0);
       };
     }
