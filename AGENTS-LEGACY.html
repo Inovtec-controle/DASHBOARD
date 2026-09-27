@@ -566,7 +566,7 @@ body{
           </div>
 
           <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-            <button class="miniBtn" id="btnSaveAgent">Enregistrer</button>
+            <button type="button" class="miniBtn" id="btnSaveAgent" onclick="saveAgentForm()">Enregistrer</button>
             <button class="miniBtn" id="btnDuplicateAgent">Dupliquer</button>
           </div>
 
@@ -1484,10 +1484,6 @@ document.addEventListener("DOMContentLoaded", function(){
   $("#btnDeleteAgent").onclick = deleteAgent;
   $("#btnSaveAgent").disabled = false;
   $("#btnSaveAgent").removeAttribute("disabled");
-  $("#btnSaveAgent").onclick = function(e){
-    if(e) e.preventDefault();
-    return window.saveAgentForm(e);
-  };
   $("#btnDuplicateAgent").onclick = duplicateAgent;
 
   // docs
