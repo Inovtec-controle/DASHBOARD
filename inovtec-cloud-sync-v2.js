@@ -418,7 +418,7 @@ async function saveAgentPayloadNow(payload,id){
     };
     const onSaved=ev=>{
       const savedId=String(ev?.detail?.id||'');
-      if(pendingAgentId&&savedId&&savedId!==String(id||''))return;
+      if(savedId&&String(id||'')&&savedId!==String(id||''))return;
       finish(resolve,ev?.detail||{id:String(id||'')});
     };
     const onFailed=ev=>{
