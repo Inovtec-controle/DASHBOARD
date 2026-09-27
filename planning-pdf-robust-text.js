@@ -107,7 +107,7 @@ function chooseDayLayout(doc,list,w,bodyH){
     if(total<=bodyH-.8)return{fontSize:size,gap,metrics,total,compact};
   }
   const size=compact?2.45:4.75,gap=compact?.1:.24,metrics=list.map(item=>measureEvent(doc,item,w,size));let total=metrics.reduce((n,m)=>n+m.h,0)+gap*Math.max(0,list.length-1);
-  if(total>bodyH-.3){const scale=(bodyH-.3)/total;metrics.forEach(m=>{m.h=Math.max(compact?3.7:5.4,m.h*scale);m.timeLH*=scale;m.taskLH*=scale;m.briefLH*=scale;m.topPad*=scale;m.bottomPad*=scale});total=metrics.reduce((n,m)=>n+m.h,0)+gap*Math.max(0,list.length-1)}
+  if(total>bodyH-.3){const scale=(bodyH-.3)/total;metrics.forEach(m=>{m.h=Math.max(compact?3.7:5.4,m.h*scale);m.timeLH*=scale;m.taskLH*=scale;m.containerLH*=scale;m.briefLH*=scale;m.topPad*=scale;m.bottomPad*=scale});total=metrics.reduce((n,m)=>n+m.h,0)+gap*Math.max(0,list.length-1)}
   return{fontSize:size,gap,metrics,total,compact};
 }
 function drawEvent(doc,item,x,y,w,h,m){
