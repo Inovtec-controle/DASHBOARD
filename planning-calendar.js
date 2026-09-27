@@ -787,8 +787,10 @@ $("edTitle").addEventListener("change",()=>{
   setEditorContainerTasks([],{render:false});
   applySelectedChantier();
   renderContainerReminder();
+  scheduleEditorContainerRefresh();
   scheduleDraftPreview();
 });
+$("edTitle").addEventListener("blur",()=>refreshOpenEditorContainerInfo());
 $("edDate").addEventListener("change",()=>{
   setEditorContainerTasks([],{render:false});
   renderContainerReminder();
@@ -810,6 +812,8 @@ $("editorPopover").addEventListener("mousedown",e=>e.stopPropagation());
 $("exportBtn").onclick=exportData;$("importFile").onchange=e=>{const f=e.target.files?.[0];if(f)importData(f);e.target.value=""};$("printBtn").onclick=()=>window.print();
 document.addEventListener("mousedown",e=>{if(!e.target.closest("#contextMenu"))closeContext();if(!e.target.closest("#editorPopover")&&!e.target.closest(".event-card")&&!e.target.closest(".month-event")&&!e.target.closest(".list-item"))closeEditor()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeContext();closeEditor()}});
+window.addEventListener("focus",()=>refreshOpenEditorContainerInfo());
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshOpenEditorContainerInfo()});
 window.addEventListener("resize",()=>{
   closeContext();
   // L'enveloppe Dashboard ajuste la hauteur de l'iframe après l'ouverture
