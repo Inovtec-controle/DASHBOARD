@@ -565,6 +565,11 @@ body{
             </div>
           </div>
 
+          <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="miniBtn" id="btnSaveAgent">Enregistrer</button>
+            <button class="miniBtn" id="btnDuplicateAgent">Dupliquer</button>
+          </div>
+
           <div class="hr"></div>
 
           <!-- Documents -->
@@ -907,9 +912,6 @@ function saveAgentForm(){
   touchAgent(agent);
   rememberSelectedAgent(agent.id);
   save();
-  try{
-    window.parent.dispatchEvent(new CustomEvent("inovtec:agent-local-saved",{detail:{id:agent.id,updatedAt:agent.updatedAt}}));
-  }catch(e){}
   renderAll();
 }
 
@@ -1477,6 +1479,8 @@ document.addEventListener("DOMContentLoaded", function(){
 
   // fiche actions
   $("#btnDeleteAgent").onclick = deleteAgent;
+  $("#btnSaveAgent").onclick = saveAgentForm;
+  $("#btnDuplicateAgent").onclick = duplicateAgent;
 
   // docs
   $("#docUpload").onchange = function(e){
