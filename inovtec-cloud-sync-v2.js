@@ -12,7 +12,7 @@ const hash=s=>{s=String(s||'');let h=2166136261;for(let i=0;i<s.length;i++){h^=s
 const local=()=>localStorage.getItem(key)||'',size=s=>new Blob([s]).size;
 const baseKey=uid=>'iv_cloud_base_v2_'+mode+'_'+uid;
 const activeKey='iv_cloud_active_user_v2_'+mode;
-let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,lastLocalPlanningSave=0,lastLocalAgentSave=0,generation=0,lastStatus='',switching=false,pendingPlanningPayload='';
+let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,lastLocalPlanningSave=0,lastLocalAgentSave=0,generation=0,lastStatus='',switching=false,pendingPlanningPayload='',pendingAgentPayload='';
 function report(message,ok=false){
   if(message===lastStatus)return;lastStatus=message;
   for(const id of ['syncMirror','liveMirror']){const el=document.getElementById(id);if(el)el.textContent=message}
@@ -149,14 +149,16 @@ async function send(){
   if(!user||!ref||!initialized||applying)return;
   if(busy){queued=true;return}
   const directPlanningPayload=mode==='planning'&&pendingPlanningPayload?pendingPlanningPayload:'';
+  const directAgentPayload=mode==='agents'&&pendingAgentPayload?pendingAgentPayload:'';
   let draft;
-  try{draft=packed(directPlanningPayload||local())}catch(e){
+  try{draft=packed(directPlanningPayload||directAgentPayload||local())}catch(e){
     report('Firebase — '+e.message);
     if(mode==='planning')window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-save-failed',{detail:{message:e.message||String(e)}}));
     return;
   }
   if(draft===base){
     if(directPlanningPayload&&pendingPlanningPayload===directPlanningPayload)pendingPlanningPayload='';
+    if(directAgentPayload&&pendingAgentPayload===directAgentPayload)pendingAgentPayload='';
     report('Firebase — synchronisé',true);
     if(mode==='planning')window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-saved',{detail:{at:Date.now(),payload:draft}}));
     return;
@@ -191,6 +193,7 @@ async function send(){
       window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-payload',{detail:{payload:written,stored:true,source:'firebase-confirmed'}}));
       window.dispatchEvent(new CustomEvent('inovtec:planning-cloud-saved',{detail:{at:Date.now(),payload:written}}));
     }else{
+      if(directAgentPayload&&pendingAgentPayload===directAgentPayload)pendingAgentPayload='';
       if(packed(local())===draft&&written!==draft)apply(written);
       if(packed(local())!==written)schedule(150);
       else report('Firebase — synchronisé',true);
@@ -205,7 +208,9 @@ async function send(){
 }
 async function receive(remote){
   if(!user||!initialized||typeof remote!=='string')return;
-  if(mode==='planning'&&pendingPlanningPayload){
+  if((mode==='planning'&&pendingPlanningPayload)||(mode==='agents'&&pendingAgentPayload)){
+    // Une modification explicitement enregistrée localement reste prioritaire tant
+    // que son écriture Firebase n'a pas été confirmée.
     schedule(100);
     return;
   }
@@ -241,9 +246,14 @@ async function boot(uid,token){
         base=stored!==null?stored:remote;
         initialized=true;
         schedule(20);
+      }else if(mode==='agents'&&pendingAgentPayload){
+        // Le bouton Enregistrer a validé une version pendant l'initialisation :
+        // elle reste prioritaire sans fenêtre de temps arbitraire.
+        base=stored!==null?stored:remote;
+        initialized=true;
+        schedule(20)
       }else if(mode==='agents'&&browser&&Date.now()-lastLocalAgentSave<5000){
-        // Une sauvegarde Agents effectuée pendant la lecture initiale reste prioritaire.
-        // On l'envoie au serveur au lieu de la remplacer par une lecture plus ancienne.
+        // Compatibilité avec une saisie récente issue d'une ancienne version de page.
         base=stored!==null?stored:remote;
         initialized=true;
         schedule(20)
@@ -278,6 +288,8 @@ function login(){
 function start(u){
   generation++;if(unsubscribe){unsubscribe();unsubscribe=null}clearTimeout(writeTimer);clearTimeout(reloadTimer);
   user=u||null;ref=null;initialized=false;busy=false;queued=false;base='';lastStatus='';
+  // Ne pas effacer pendingAgentPayload ici : il peut provenir d'un clic Enregistrer
+  // effectué juste avant la résolution de l'authentification Firebase.
   if(!user){report('Firebase — connexion requise');if(['planning','agents','heures'].includes(mode))login().style.display='grid';return}
   const box=document.getElementById('ivCloudLogin');if(box)box.style.display='none';
   const lastUser=localStorage.getItem(activeKey);switching=!!lastUser&&lastUser!==user.uid;
@@ -297,8 +309,8 @@ if(mode==='planning'&&!frame){
   // La sauvegarde Firebase est déclenchée explicitement par inovtec:planning-local-saved.
   document.addEventListener('input',()=>{activity=Date.now()},true);
 }
-setInterval(()=>{if(user&&initialized&&!applying){try{if((mode==='planning'&&pendingPlanningPayload)||packed(local())!==base)schedule(50)}catch(e){report('Firebase — '+e.message)}}},6000);
-window.addEventListener('online',()=>{if(user){if(!initialized)void boot(user.uid,generation);else if(mode==='planning'&&pendingPlanningPayload)schedule(20);else void refresh()}});
+setInterval(()=>{if(user&&initialized&&!applying){try{if((mode==='planning'&&pendingPlanningPayload)||(mode==='agents'&&pendingAgentPayload)||packed(local())!==base)schedule(50)}catch(e){report('Firebase — '+e.message)}}},6000);
+window.addEventListener('online',()=>{if(user){if(!initialized)void boot(user.uid,generation);else if((mode==='planning'&&pendingPlanningPayload)||(mode==='agents'&&pendingAgentPayload))schedule(20);else void refresh()}});
 window.addEventListener('inovtec:planning-local-saved',ev=>{
   if(mode!=='planning')return;
   lastLocalPlanningSave=Date.now();
@@ -313,6 +325,9 @@ window.addEventListener('inovtec:agent-local-saved',()=>{
   if(mode!=='agents')return;
   lastLocalAgentSave=Date.now();
   activity=Date.now();
+  // Conserver exactement la version validée par le bouton Enregistrer jusqu'à
+  // confirmation Firebase. Une lecture serveur tardive ne doit jamais l'écraser.
+  try{pendingAgentPayload=packed(local())}catch(e){report('Firebase — '+e.message);return}
   if(initialized)schedule(20);
 });
 window.addEventListener('inovtec:planning-request-cloud-refresh',()=>{
