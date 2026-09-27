@@ -50,21 +50,6 @@
 <script src="firebase-config.js?v=20260923-planning-clickfix1"></script>
 <script src="inovtec-data-hub.js?v=20260829-agentclean1"></script>
 <script>
-(function stripRemovedDisciplineNavigation(){
-  const clean=()=>{
-    document.querySelectorAll('#desktopNav a,#mobileNav a,.iv-sidebar a').forEach(a=>{
-      const href=String(a.getAttribute("href")||"").toLowerCase();
-      const label=String(a.textContent||"").trim().toLowerCase();
-      if(href.includes("discipline")||label==="discipline")a.remove();
-    });
-  };
-  clean();
-  const targets=[document.getElementById("desktopNav"),document.getElementById("mobileNav")].filter(Boolean);
-  targets.forEach(target=>new MutationObserver(clean).observe(target,{childList:true,subtree:true}));
-  setTimeout(clean,50);setTimeout(clean,300);setTimeout(clean,1000);
-})();
-</script>
-<script>
 {
   const shellMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(shellMode!=="kontrol"&&shellMode!=="planning"){
@@ -73,53 +58,125 @@
 }
 </script>
 <script src="inovtec-shared-workspace.js?v=20260829-agentclean1"></script>
-<script src="inovtec-variables-sync-bridge.js?v=20260917-variables-multisupport1"></script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="variables"){
+    ["inovtec-variables-sync-bridge.js?v=20260917-variables-multisupport1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
 <script src="inovtec-firebase-indicator.js?v=20260815-stable2"></script>
-<script src="inovtec-info-auth-bridge.js?v=20260820-info-operational1"></script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="infos"){
+    ["inovtec-info-auth-bridge.js?v=20260820-info-operational1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
 <script src="inovtec-referential.js?v=20260829-agentclean1"></script>
 <script src="inovtec-cross-page-data.js?v=20260829-agentclean1"></script>
 <script src="inovtec-visual-runtime.js?v=20260917-planning-live3"></script>
-<script src="inovtec-info-actions-stable.js?v=20260818-stable2"></script>
-<script src="inovtec-orga-scroll-fix.js?v=20260818-10"></script>
-<script src="inovtec-orga-archives-modal.js?v=20260818-1"></script>
-<script src="inovtec-planning-pdf-action.js?v=20260814-2"></script>
-<script src="inovtec-hide-legacy-headers.js?v=20260814-2"></script>
-<script src="inovtec-alphabetical-lists.js?v=20260829-agentstable1"></script>
-<script src="inovtec-agent-contract-hours.js?v=20260914-incidentpdf1"></script>
-<script src="inovtec-agents-archive.js?v=20260829-agentstable1"></script>
-<script src="inovtec-conges-nav.js?v=20260924-current10"></script>
 <script>
-if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()!=="planning"){
-  document.write('<script src="inovtec-planning-referential.js?v=20260816-1"><\/script>');
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="infos"){
+    ["inovtec-info-actions-stable.js?v=20260818-stable2"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
 }
 </script>
-<script src="inovtec-discipline-referential.js?v=20260816-1"></script>
-<script src="inovtec-empty-initial-selection.js?v=20260926-newagentblank1"></script>
-<script src="inovtec-planning-launch-selection.js?v=20260927-planningrestore1"></script>
-<script src="inovtec-info-agent-planning.js?v=20260830-agentselector1"></script>
-<script src="inovtec-site-management-layout.js?v=20260829-persistence2"></script>
-<script src="inovtec-consommables-checklist.js?v=20260819-1"></script>
-<script src="inovtec-ampoules-checklist.js?v=20260819-1"></script>
-<script src="inovtec-container-schedule.js?v=20260829-persistence2"></script>
-<script src="inovtec-container-frequency-edit-fix.js?v=20260910-frequencyedit1"></script>
-<script src="inovtec-container-planning-link.js?v=20260829-freezefix1"></script>
-<script src="inovtec-cahier-des-charges.js?v=20260904-observations1"></script>
-<script src="inovtec-cdc-source-formats.js?v=20260829-operational1"></script>
-<script src="inovtec-cdc-schedule-fields.js?v=20260904-editdays1"></script>
-<script src="inovtec-cdc-import-excel.js?v=20260904-excel4"></script>
-<script src="inovtec-cdc-import-pdf.js?v=20260815-1"></script>
-<script src="inovtec-cdc-importer.js?v=20260904-importui1"></script>
-<script src="inovtec-cdc-compact-columns.js?v=20260904-observations1"></script>
-<script src="inovtec-cdc-operational-fix.js?v=20260904-editdays1"></script>
-<script src="inovtec-cdc-ui-hard-fix.js?v=20260829-operational1"></script>
-<script src="inovtec-kontrol-cdc-link.js?v=20260829-site-names1"></script>
-<script src="inovtec-info-save-placement.js?v=20260829-sitehistory3"></script>
-<script src="inovtec-info-contact-mode.js?v=20260829-idlock1"></script>
-<script src="inovtec-info-contract-fields.js?v=20260829-idlock1"></script>
-<script src="inovtec-info-top-layout.js?v=20260818-4"></script>
-<script src="inovtec-info-persistence-stable.js?v=20260924-materiel-residence1"></script>
-<script src="inovtec-pdf-cdc-header-white.js?v=20260819-3"></script>
-<script src="inovtec-info-agent-pdf-v8.js?v=20260924-agent-no-material-list1"></script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="organisation"){
+    ["inovtec-orga-scroll-fix.js?v=20260818-10","inovtec-orga-archives-modal.js?v=20260818-1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="planning"){
+    ["inovtec-planning-pdf-action.js?v=20260814-2"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script src="inovtec-hide-legacy-headers.js?v=20260814-2"></script>
+<script src="inovtec-alphabetical-lists.js?v=20260829-agentstable1"></script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="agents"){
+    ["inovtec-agent-contract-hours.js?v=20260914-incidentpdf1","inovtec-agents-archive.js?v=20260829-agentstable1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script src="inovtec-conges-nav.js?v=20260924-current10"></script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="discipline"){
+    ["inovtec-discipline-referential.js?v=20260816-1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="agents"){
+    ["inovtec-empty-initial-selection.js?v=20260926-newagentblank1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="planning"){
+    ["inovtec-planning-launch-selection.js?v=20260927-planningrestore1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="infos"){
+    ["inovtec-info-agent-planning.js?v=20260830-agentselector1","inovtec-site-management-layout.js?v=20260829-persistence2","inovtec-consommables-checklist.js?v=20260819-1","inovtec-ampoules-checklist.js?v=20260819-1","inovtec-container-schedule.js?v=20260829-persistence2","inovtec-container-frequency-edit-fix.js?v=20260910-frequencyedit1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="planning"){
+    ["inovtec-container-planning-link.js?v=20260829-freezefix1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="infos"){
+    ["inovtec-cahier-des-charges.js?v=20260904-observations1","inovtec-cdc-source-formats.js?v=20260829-operational1","inovtec-cdc-schedule-fields.js?v=20260904-editdays1","inovtec-cdc-import-excel.js?v=20260904-excel4","inovtec-cdc-import-pdf.js?v=20260815-1","inovtec-cdc-importer.js?v=20260904-importui1","inovtec-cdc-compact-columns.js?v=20260904-observations1","inovtec-cdc-operational-fix.js?v=20260904-editdays1","inovtec-cdc-ui-hard-fix.js?v=20260829-operational1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="kontrol"){
+    ["inovtec-kontrol-cdc-link.js?v=20260829-site-names1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(ivMode==="infos"){
+    ["inovtec-info-save-placement.js?v=20260829-sitehistory3","inovtec-info-contact-mode.js?v=20260829-idlock1","inovtec-info-contract-fields.js?v=20260829-idlock1","inovtec-info-top-layout.js?v=20260818-4","inovtec-info-persistence-stable.js?v=20260924-materiel-residence1","inovtec-pdf-cdc-header-white.js?v=20260819-3","inovtec-info-agent-pdf-v8.js?v=20260924-agent-no-material-list1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+  }
+}
+</script>
 <script src="inovtec-search-handoff.js?v=20260828-search1"></script>
 </body>
 </html>
