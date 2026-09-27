@@ -43,7 +43,7 @@
 </div>
 <nav id="mobileNav" class="iv-mobile-nav" aria-label="Navigation mobile"></nav>
 <!-- Initialiser l'iframe locale AVANT les services externes : une panne Firebase ne doit pas bloquer l'affichage. -->
-<script src="inovtec-shell.js?v=20260927-agentsflow15"></script>
+<script src="inovtec-shell.js?v=20260927-agentsflow16"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -52,7 +52,9 @@
 <script>
 {
   const shellMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
-  if(shellMode!=="kontrol"&&shellMode!=="planning"){
+  if(shellMode==="agents"){
+    document.write('<script src="inovtec-agents-firebase-direct.js?v=20260927-agentsfirebase1"><\/script>');
+  }else if(shellMode!=="kontrol"&&shellMode!=="planning"){
     document.write('<script src="inovtec-cloud-sync.js?v=20260927-agent-direct2"><\/script>');
   }
 }
@@ -108,7 +110,7 @@
 {
   const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(ivMode==="agents"){
-    ["inovtec-agent-contract-hours.js?v=20260927-agentsflow15","inovtec-agents-archive.js?v=20260927-agentsflow15"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+    ["inovtec-agent-contract-hours.js?v=20260927-agentsflow16","inovtec-agents-archive.js?v=20260927-agentsflow16"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
   }
 }
 </script>
@@ -125,7 +127,7 @@
 {
   const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(ivMode==="agents"){
-    ["inovtec-empty-initial-selection.js?v=20260927-agentsflow15"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+    ["inovtec-empty-initial-selection.js?v=20260927-agentsflow16"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
   }
 }
 </script>
