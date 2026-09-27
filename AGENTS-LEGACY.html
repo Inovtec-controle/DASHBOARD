@@ -692,6 +692,16 @@ function safeText(v){
   if(v === null || v === undefined) return "";
   return String(v).trim();
 }
+async function getAgentsCloud(){
+  for(var n=0;n<120;n++){
+    try{
+      var cloud=window.parent && window.parent.InovtecAgentsCloud;
+      if(cloud) return cloud;
+    }catch(e){}
+    await new Promise(function(resolve){setTimeout(resolve,50);});
+  }
+  throw new Error("Service Firebase Agents indisponible");
+}
 function initials(name){
   var p = safeText(name).split(/\s+/).filter(Boolean);
   var a = p[0] ? p[0].charAt(0) : "A";
@@ -798,8 +808,8 @@ function cleanupAgentState(){
   return changed;
 }
 async function load(){
-  var cloud = window.parent && window.parent.InovtecAgentsCloud;
-  if(!cloud || typeof cloud.load!=="function") throw new Error("Service Firebase Agents indisponible");
+  var cloud = await getAgentsCloud();
+  if(typeof cloud.load!=="function") throw new Error("Service Firebase Agents indisponible");
   var data = await cloud.load();
   state.agents = Array.isArray(data) ? data : [];
   cleanupAgentState();
@@ -809,7 +819,8 @@ function save(){
   var persisted = state.agents.filter(function(agent){
     return !(agent && agent._draft === true && !agentHasName(agent));
   });
-  var cloud = window.parent && window.parent.InovtecAgentsCloud;
+  var cloud;
+  try{ cloud = window.parent && window.parent.InovtecAgentsCloud; }catch(e){}
   if(!cloud || typeof cloud.saveAll!=="function"){
     console.error("Service Firebase Agents indisponible");
     return Promise.resolve(false);
@@ -1008,8 +1019,8 @@ async function saveAgentForm(){
   // 2. Écriture directe de CET agent dans Firebase.
   // Aucune copie navigateur, aucune synchronisation intermédiaire.
   try{
-    var cloud = window.parent && window.parent.InovtecAgentsCloud;
-    if(!cloud || typeof cloud.saveAgent!=="function") throw new Error("Service Firebase Agents indisponible");
+    var cloud = await getAgentsCloud();
+    if(typeof cloud.saveAgent!=="function") throw new Error("Service Firebase Agents indisponible");
     await cloud.saveAgent(agent);
 
     row.setAttribute("data-save-state","saved");
