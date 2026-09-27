@@ -68,19 +68,19 @@ await check('Agents : création et enregistrement d’un nouvel agent', async ()
     const f=document.getElementById('legacyFrame');
     return !!f?.contentDocument?.getElementById('btnNewAgent') && !!f?.contentDocument?.getElementById('btnSaveAgent');
   }, null, { timeout: 30000 });
-  const agentsFrame=page.frames().find(f=>/AGENTS-LEGACY\.html/i.test(f.url()));
-  if(!agentsFrame) throw new Error('Iframe Agents introuvable');
+  const agentsFrame=page.frameLocator('#legacyFrame');
   await agentsFrame.locator('#btnNewAgent').evaluate(el=>el.click());
   await agentsFrame.locator('#f_prenom').fill('TestAuto');
   await agentsFrame.locator('#f_nom').fill('Enregistrement');
   await agentsFrame.locator('#btnSaveAgent').evaluate(el=>el.click());
-  await agentsFrame.waitForFunction(() => {
+  await page.waitForFunction(() => {
     try{
-      const rows=JSON.parse(localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
+      const f=document.getElementById('legacyFrame');
+      const rows=JSON.parse(f?.contentWindow?.localStorage?.getItem('kontrol_agents_classeur_v2')||'[]');
       return rows.some(a=>a?.identity?.prenom==='TestAuto'&&a?.identity?.nom==='Enregistrement'&&a?._draft!==true);
     }catch{return false}
   }, null, { timeout: 10000 });
-  const raw=await agentsFrame.evaluate(()=>localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
+  const raw=await page.locator('#legacyFrame').evaluate(f=>f.contentWindow.localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
   const rows=JSON.parse(raw);
   if(!rows.some(a=>a?.identity?.prenom==='TestAuto'&&a?.identity?.nom==='Enregistrement'&&a?._draft!==true)) throw new Error('Le bouton Enregistrer ne valide pas le nouvel agent');
 });
