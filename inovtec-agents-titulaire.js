@@ -112,29 +112,8 @@ if(typeof window.renderList==='function'){
   const original=window.renderList;
   window.renderList=function(...args){const result=original.apply(this,args);decorateList();return result;};
 }
-if(typeof window.saveAgentForm==='function'){
-  const original=window.saveAgentForm;
-  window.saveAgentForm=function(...args){
-    const a=selected();
-    if(a&&byId('f_estTitulaire')&&byId('f_titulaireRemplace')){
-      const titulaire=byId('f_estTitulaire').checked;
-      const replacement=titulaire?'':byId('f_titulaireRemplace').value;
-      if(replacement){
-        const linked=visibleAgents().find(other=>other.id===replacement&&other.id!==a.id&&isTitulaire(other));
-        if(!linked){alert('Le titulaire remplacé n’est plus disponible. Sélectionne un titulaire valide ou efface le rattachement.');return;}
-      }
-      // La validation et la sauvegarde existantes restent la source de vérité.
-      const firstName=String(byId('f_prenom')?.value||'').trim();
-      const lastName=String(byId('f_nom')?.value||'').trim();
-      if(firstName||lastName){
-        a.job=a.job||{};
-        a.job.estTitulaire=titulaire;
-        a.job.titulaireRemplaceId=replacement;
-      }
-    }
-    return original.apply(this,args);
-  };
-}
+// La sauvegarde de estTitulaire / titulaireRemplaceId est centralisée dans
+// saveAgentForm() de la fiche Agents afin de garder un seul chemin d'enregistrement.
 if(typeof window.duplicateAgent==='function'){
   const original=window.duplicateAgent;
   window.duplicateAgent=function(...args){

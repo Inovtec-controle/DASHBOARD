@@ -34,32 +34,8 @@ function install(){
       }catch{}
     };
 
-    if(typeof w.saveAgentForm==="function"&&!w.saveAgentForm.__ivContractHoursWrapped){
-      const original=w.saveAgentForm;
-      const wrapped=function(){
-        const a=w.getSelectedAgent?.();
-        if(a){
-          a.job=a.job||{};
-          const raw=String(d.getElementById("f_heuresContrat")?.value||"").trim();
-          if(raw){
-            const n=parseHours(raw);
-            if(n===null||n>60){
-              w.alert("Indique un nombre d’heures contractuelles hebdomadaires compris entre 1 et 60 h.");
-              d.getElementById("f_heuresContrat")?.focus();
-              return false;
-            }
-            a.job.contractHoursWeekly=Math.round(n*100)/100;
-          }else{
-            a.job.contractHoursWeekly="";
-          }
-        }
-        const result=original.apply(w,arguments);
-        setTimeout(fill,0);
-        return result;
-      };
-      wrapped.__ivContractHoursWrapped=true;
-      w.saveAgentForm=wrapped;
-    }
+    // La sauvegarde est volontairement gérée uniquement par AGENTS-LEGACY.html.
+    // Ce module ajoute et remplit le champ, sans jamais intercepter le bouton Enregistrer.
 
     d.getElementById("agentList")?.addEventListener("click",()=>setTimeout(fill,0),true);
     if(window.MutationObserver){

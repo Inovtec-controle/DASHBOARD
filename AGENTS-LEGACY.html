@@ -566,7 +566,7 @@ body{
           </div>
 
           <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-            <button type="button" class="miniBtn" id="btnSaveAgent" onclick="return saveAgentForm(event)">Enregistrer</button>
+            <button type="button" class="miniBtn" id="btnSaveAgent">Enregistrer</button>
             <button class="miniBtn" id="btnDuplicateAgent">Dupliquer</button>
           </div>
 
@@ -883,19 +883,20 @@ function deleteAgent(){
 
 function saveAgentForm(){
   var agent = getSelectedAgent();
-  if(!agent) return;
+  if(!agent) return false;
 
   var prenom = safeText($("#f_prenom").value);
   var nom = safeText($("#f_nom").value);
   if(!(prenom+" "+nom).trim()){
     alert("Renseigne au moins le prénom ou le nom de l’agent avant d’enregistrer.");
     $("#f_prenom").focus();
-    return;
+    return false;
   }
 
-  var i = agent.identity;
-  var j = agent.job;
+  var i = agent.identity || (agent.identity = {});
+  var j = agent.job || (agent.job = {});
 
+  // Champs principaux.
   i.prenom = prenom;
   i.nom = nom;
   i.telephone = safeText($("#f_tel").value);
@@ -913,17 +914,69 @@ function saveAgentForm(){
   j.disponibilites = safeText($("#f_dispo").value);
   j.notes = safeText($("#f_notes").value);
 
+  // Champs ajoutés par les modules Agents : ils sont sauvegardés ici aussi,
+  // afin qu'aucun module externe ne puisse casser le bouton Enregistrer.
+  var hoursInput = $("#f_heuresContrat");
+  if(hoursInput){
+    var rawHours = safeText(hoursInput.value).replace(",",".");
+    if(rawHours){
+      var hours = Number(rawHours);
+      if(!isFinite(hours) || hours<=0 || hours>60){
+        alert("Indique un nombre d’heures contractuelles hebdomadaires compris entre 1 et 60 h.");
+        hoursInput.focus();
+        return false;
+      }
+      j.contractHoursWeekly = Math.round(hours*100)/100;
+    }else{
+      j.contractHoursWeekly = "";
+    }
+  }
+
+  var titulaireInput = $("#f_estTitulaire");
+  var remplacementInput = $("#f_titulaireRemplace");
+  if(titulaireInput && remplacementInput){
+    var titulaire = !!titulaireInput.checked;
+    var replacement = titulaire ? "" : safeText(remplacementInput.value);
+    if(replacement){
+      var linked = activeAgents().find(function(other){
+        return other && other.id!==agent.id && String(other.id)===String(replacement) && other.job && other.job.estTitulaire===true;
+      });
+      if(!linked){
+        alert("Le titulaire remplacé n’est plus disponible. Sélectionne un titulaire valide ou efface le rattachement.");
+        remplacementInput.focus();
+        return false;
+      }
+    }
+    j.estTitulaire = titulaire;
+    j.titulaireRemplaceId = replacement;
+  }
+
   delete agent._draft;
   touchAgent(agent);
   rememberSelectedAgent(agent.id);
   save();
+
+  // Déclenchement immédiat de la synchronisation Firebase.
   try{
     window.parent.dispatchEvent(new CustomEvent("inovtec:agent-local-saved",{
       detail:{id:agent.id,updatedAt:agent.updatedAt}
     }));
   }catch(e){}
+
   renderAll();
-  return false;
+
+  // Retour visuel : le clic a réellement été pris en compte.
+  var saveBtn = $("#btnSaveAgent");
+  if(saveBtn){
+    saveBtn.textContent = "Enregistré ✓";
+    saveBtn.disabled = true;
+    setTimeout(function(){
+      if(!saveBtn.isConnected) return;
+      saveBtn.textContent = "Enregistrer";
+      saveBtn.disabled = false;
+    },700);
+  }
+  return true;
 }
 
 function duplicateAgent(){
@@ -1493,6 +1546,16 @@ document.addEventListener("DOMContentLoaded", function(){
 
   // fiche actions
   $("#btnDeleteAgent").onclick = deleteAgent;
+  var stableSaveBtn = $("#btnSaveAgent");
+  if(stableSaveBtn && stableSaveBtn.dataset.ivStableSave !== "1"){
+    stableSaveBtn.dataset.ivStableSave = "1";
+    stableSaveBtn.onclick = null;
+    stableSaveBtn.addEventListener("click", function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      saveAgentForm();
+    });
+  }
   $("#btnDuplicateAgent").onclick = duplicateAgent;
 
   // docs
@@ -1539,6 +1602,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260919-titulaire1"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsave-stable1"></script>
 </body>
 </html>
