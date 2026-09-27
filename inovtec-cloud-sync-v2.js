@@ -304,6 +304,11 @@ window.addEventListener('inovtec:planning-local-saved',ev=>{
   }
   if(initialized)schedule(20);
 });
+window.addEventListener('inovtec:agent-local-saved',()=>{
+  if(mode!=='agents')return;
+  activity=Date.now();
+  if(initialized)schedule(20);
+});
 window.addEventListener('inovtec:planning-request-cloud-refresh',()=>{
   if(mode!=='planning'||!user)return;
   if(!initialized)void boot(user.uid,generation);

@@ -34,30 +34,31 @@ function install(){
       }catch{}
     };
 
-    const saveBtn=d.getElementById("btnSaveAgent");
-    if(saveBtn&&!saveBtn.dataset.ivContractHours){
-      saveBtn.dataset.ivContractHours="1";
-      const original=saveBtn.onclick||w.saveAgentForm;
-      saveBtn.onclick=function(ev){
+    if(typeof w.saveAgentForm==="function"&&!w.saveAgentForm.__ivContractHoursWrapped){
+      const original=w.saveAgentForm;
+      const wrapped=function(){
         const a=w.getSelectedAgent?.();
         if(a){
           a.job=a.job||{};
-          const raw=String(input?.value||"").trim();
+          const raw=String(d.getElementById("f_heuresContrat")?.value||"").trim();
           if(raw){
             const n=parseHours(raw);
             if(n===null||n>60){
-              alert("Indique un nombre d’heures contractuelles hebdomadaires compris entre 1 et 60 h.");
-              input?.focus();
-              return;
+              w.alert("Indique un nombre d’heures contractuelles hebdomadaires compris entre 1 et 60 h.");
+              d.getElementById("f_heuresContrat")?.focus();
+              return false;
             }
             a.job.contractHoursWeekly=Math.round(n*100)/100;
           }else{
             a.job.contractHoursWeekly="";
           }
         }
-        if(typeof original==="function")original.call(w,ev);
+        const result=original.apply(w,arguments);
         setTimeout(fill,0);
+        return result;
       };
+      wrapped.__ivContractHoursWrapped=true;
+      w.saveAgentForm=wrapped;
     }
 
     d.getElementById("agentList")?.addEventListener("click",()=>setTimeout(fill,0),true);
