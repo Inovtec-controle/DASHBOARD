@@ -12,7 +12,7 @@ const hash=s=>{s=String(s||'');let h=2166136261;for(let i=0;i<s.length;i++){h^=s
 const local=()=>localStorage.getItem(key)||'',size=s=>new Blob([s]).size;
 const baseKey=uid=>'iv_cloud_base_v2_'+mode+'_'+uid;
 const activeKey='iv_cloud_active_user_v2_'+mode;
-let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,lastLocalPlanningSave=0,lastLocalAgentSave=0,generation=0,lastStatus='',switching=false,pendingPlanningPayload='',pendingAgentPayload='',pendingAgentId='';
+let user=null,ref=null,unsubscribe=null,initialized=false,base='',busy=false,applying=false,queued=false,writeTimer=null,reloadTimer=null,activity=0,lastLocalPlanningSave=0,lastLocalAgentSave=0,generation=0,lastStatus='',switching=false,pendingPlanningPayload='',pendingAgentPayload='',pendingAgentId='',directAgentSaves=0;
 function report(message,ok=false){
   if(message===lastStatus)return;lastStatus=message;
   for(const id of ['syncMirror','liveMirror']){const el=document.getElementById(id);if(el)el.textContent=message}
@@ -174,6 +174,7 @@ function schedule(delay=350){
 }
 async function send(){
   if(!user||!ref||!initialized||applying)return;
+  if(mode==='agents'&&directAgentSaves>0){queued=true;return}
   if(busy){queued=true;return}
   const directPlanningPayload=mode==='planning'&&pendingPlanningPayload?pendingPlanningPayload:'';
   const directAgentPayload=mode==='agents'&&pendingAgentPayload?pendingAgentPayload:'';
@@ -392,45 +393,84 @@ function waitForAgentCloudReady(timeoutMs=12000){
 }
 async function saveAgentPayloadNow(payload,id){
   if(mode!=='agents')throw Error('Sauvegarde Agents indisponible');
-  const draft=packed(String(payload||''));
-  if(!draft)throw Error('Fiche agent vide');
+
+  const raw=String(payload||'');
+  const draft=packed(raw);
+  const localRows=parse(draft);
+  const agentId=String(id||'');
+  if(!Array.isArray(localRows)||!agentId)throw Error('Fiche agent invalide');
+  const changed=localRows.find(a=>String(a?.id||'')===agentId);
+  if(!changed)throw Error('Agent introuvable dans la sauvegarde');
+
   pendingAgentPayload=draft;
-  pendingAgentId=String(id||'');
+  pendingAgentId=agentId;
   lastLocalAgentSave=Date.now();
   activity=Date.now();
 
-  // Conserver l'opération avant toute attente réseau afin qu'un F5 ne puisse pas
-  // perdre la fiche pendant que Firebase répond.
+  // L'opération est mémorisée avant le réseau : même un F5 immédiat ne doit pas
+  // faire revenir l'ancienne version Firebase par-dessus la fiche.
   const knownUid=user?.uid||localStorage.getItem(activeKey)||'';
-  if(knownUid)persistAgentPending(knownUid,draft,pendingAgentId);
+  if(knownUid)persistAgentPending(knownUid,draft,agentId);
 
   await waitForAgentCloudReady();
-  persistAgentPending(user.uid,draft,pendingAgentId);
+  persistAgentPending(user.uid,draft,agentId);
 
-  return await new Promise((resolve,reject)=>{
-    let done=false;
-    const finish=(fn,value)=>{
-      if(done)return;done=true;
-      clearTimeout(timer);
-      window.removeEventListener('inovtec:agent-cloud-saved',onSaved);
-      window.removeEventListener('inovtec:agent-cloud-save-failed',onFailed);
-      fn(value);
-    };
-    const onSaved=ev=>{
-      const savedId=String(ev?.detail?.id||'');
-      if(savedId&&String(id||'')&&savedId!==String(id||''))return;
-      finish(resolve,ev?.detail||{id:String(id||'')});
-    };
-    const onFailed=ev=>{
-      const failedId=String(ev?.detail?.id||'');
-      if(failedId&&String(id||'')&&failedId!==String(id||''))return;
-      finish(reject,Error(ev?.detail?.message||'Sauvegarde Firebase non confirmée'));
-    };
-    const timer=setTimeout(()=>finish(reject,Error('Firebase n’a pas confirmé la sauvegarde dans le délai prévu')),20000);
-    window.addEventListener('inovtec:agent-cloud-saved',onSaved);
-    window.addEventListener('inovtec:agent-cloud-save-failed',onFailed);
-    schedule(0);
-  });
+  directAgentSaves++;
+  clearTimeout(writeTimer);
+  report('Firebase — enregistrement de l’agent…');
+
+  try{
+    let written='';
+    const doc=ref;
+    await firebase.firestore().runTransaction(async tx=>{
+      const snap=await tx.get(doc);
+      const entry=snap.exists?snap.data()?.moduleSyncV1?.agents:null;
+      const remoteRaw=entry&&typeof entry.payload==='string'?entry.payload:'[]';
+      const remoteRows=parse(remoteRaw);
+      if(!Array.isArray(remoteRows))throw Error('Liste Agents Firebase illisible');
+
+      const next=remoteRows.slice();
+      const index=next.findIndex(a=>String(a?.id||'')===agentId);
+      if(index>=0)next[index]=changed;
+      else next.push(changed);
+
+      written=json(next);
+      if(size(written)>LIMIT)throw Error('Document Agents trop volumineux pour Firebase');
+
+      tx.set(doc,{moduleSyncV1:{agents:{
+        payload:written,
+        updatedAtMs:Date.now(),
+        client,
+        reason:'agent-direct-save',
+        version:6
+      }}},{merge:true});
+    });
+
+    // Confirmation réelle : relecture explicite du serveur.
+    const check=await doc.get({source:'server'});
+    const actual=check.data()?.moduleSyncV1?.agents?.payload;
+    const serverRows=parse(actual||'');
+    const confirmed=Array.isArray(serverRows)&&serverRows.find(a=>String(a?.id||'')===agentId);
+    if(!confirmed||json(confirmed)!==json(changed))throw Error('Firebase n’a pas confirmé la fiche agent');
+
+    remember(actual);
+    if(pendingAgentId===agentId&&pendingAgentPayload===draft){
+      pendingAgentPayload='';pendingAgentId='';
+      clearAgentPending(user.uid);
+    }
+
+    report('Firebase — synchronisé',true);
+    dispatchAgentCloud('inovtec:agent-cloud-saved',{id:agentId,at:Date.now(),payload:actual});
+    return {id:agentId,at:Date.now(),payload:actual};
+  }catch(e){
+    console.warn('Sauvegarde directe Firebase agent',e);
+    report('Firebase — sauvegarde agent non confirmée : '+(e.code||e.message||'erreur'));
+    dispatchAgentCloud('inovtec:agent-cloud-save-failed',{id:agentId,message:e.code||e.message||'erreur'});
+    throw e;
+  }finally{
+    directAgentSaves=Math.max(0,directAgentSaves-1);
+    if(directAgentSaves===0&&queued){queued=false;schedule(100)}
+  }
 }
 window.InovtecAgentsCloud=Object.freeze({save:saveAgentPayloadNow});
 
