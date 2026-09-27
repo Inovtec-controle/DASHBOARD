@@ -98,11 +98,15 @@ function login(){
 }
 async function readServer(source="firebase-refresh"){
   if(!ref||!user)return;
+  // Ne jamais relire une ancienne version Firebase pendant qu'une modification
+  // locale est en cours d'enregistrement. C'était la cause du "ça apparaît puis
+  // ça disparaît" quand on changeait d'agent juste après une liaison.
+  if(saving||queuedPayload)return;
   const token=generation;
   try{
     report("Firebase — lecture du serveur…");
     const snap=await ref.get({source:"server"});
-    if(token!==generation)return;
+    if(token!==generation||saving||queuedPayload)return;
     const data=snap.exists?(snap.data()||{}):{};
     const entry=data?.moduleSyncV1?.planning||null;
     const directBackup=data?.planningDirectV1||null;
