@@ -82,11 +82,27 @@ async function commitWrites(db,writes){
     await batch.commit();
   }
 }
+function mirrorStatus(message,ok=true){
+  try{
+    const badge=document.getElementById("syncBadge");
+    if(badge){
+      badge.textContent=message;
+      badge.classList.toggle("ok",!!ok);
+      badge.classList.toggle("warning",!ok);
+    }
+  }catch{}
+  try{
+    const mirror=parent&&parent!==window?parent.document?.getElementById("syncMirror"):null;
+    if(mirror)mirror.textContent=message;
+  }catch{}
+}
 function reportError(error){
   const msg=String(error?.code||error?.message||error||"erreur");
   if(msg===lastError)return;
   lastError=msg;
   console.error("Passerelle Planning → CONTENEURS",error);
+  mirrorStatus("Planning enregistré · liaison CONTENEURS à vérifier",false);
+  try{window.dispatchEvent(new CustomEvent("inovtec:container-missions-sync-failed",{detail:{message:msg}}))}catch{}
 }
 async function buildAgentResolver(db,existingPlans,state){
   const byName=new Map(),byPlanningRef=new Map();
@@ -237,6 +253,7 @@ async function syncNow(reason="planning"){
     });
 
     if(writes.length)await commitWrites(db,writes);
+    mirrorStatus("Planning + CONTENEURS synchronisés",true);
     window.dispatchEvent(new CustomEvent("inovtec:container-missions-synced",{detail:{count:desired.size,writes:writes.length,reason}}));
   }catch(error){
     reportError(error);
