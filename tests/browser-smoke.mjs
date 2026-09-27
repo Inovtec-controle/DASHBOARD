@@ -61,6 +61,30 @@ await check('Planning : changement des vues sans blocage', async () => {
   if (!text || text.trim() === '—') throw new Error('Période du calendrier absente');
 });
 
+await check('Agents : création et enregistrement d’un nouvel agent', async () => {
+  await page.goto(base + '/AGENTS.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 30000 });
+  await page.waitForFunction(() => {
+    const f=document.getElementById('legacyFrame');
+    return !!f?.contentDocument?.getElementById('btnNewAgent') && !!f?.contentDocument?.getElementById('btnSaveAgent');
+  }, null, { timeout: 30000 });
+  const agentsFrame=page.frames().find(f=>/AGENTS-LEGACY\.html/i.test(f.url()));
+  if(!agentsFrame) throw new Error('Iframe Agents introuvable');
+  await agentsFrame.locator('#btnNewAgent').evaluate(el=>el.click());
+  await agentsFrame.locator('#f_prenom').fill('TestAuto');
+  await agentsFrame.locator('#f_nom').fill('Enregistrement');
+  await agentsFrame.locator('#btnSaveAgent').evaluate(el=>el.click());
+  await agentsFrame.waitForFunction(() => {
+    try{
+      const rows=JSON.parse(localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
+      return rows.some(a=>a?.identity?.prenom==='TestAuto'&&a?.identity?.nom==='Enregistrement'&&a?._draft!==true);
+    }catch{return false}
+  }, null, { timeout: 10000 });
+  const raw=await agentsFrame.evaluate(()=>localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
+  const rows=JSON.parse(raw);
+  if(!rows.some(a=>a?.identity?.prenom==='TestAuto'&&a?.identity?.nom==='Enregistrement'&&a?._draft!==true)) throw new Error('Le bouton Enregistrer ne valide pas le nouvel agent');
+});
+
 await check('Variables : indicateurs et mois accessibles', async () => {
   await page.goto(base + '/VARIABLES-DASHBOARD.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.locator('#monthPick').waitFor({ state: 'visible', timeout: 10000 });
