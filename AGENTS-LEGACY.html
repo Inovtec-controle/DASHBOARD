@@ -998,54 +998,72 @@ function saveAgentForm(){
   state.selectedId = agent.id;
   rememberSelectedAgent(agent.id);
 
-  // Écriture locale puis relecture de contrôle : le ✓ ne doit apparaître que si
-  // la fiche existe réellement dans le stockage avec son nom.
-  save();
-  var persistedAgent = null;
-  try{
-    var persistedRows = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
-    persistedAgent = persistedRows.find(function(a){
-      return a && String(a.id)===String(agent.id) && !isDeletedAgent(a) && agentHasName(a);
-    }) || null;
-  }catch(e){
-    console.error("Vérification enregistrement agent", e);
-  }
-  if(!persistedAgent){
-    alert("L’agent n’a pas pu être enregistré. La fiche n’a pas été retrouvée après sauvegarde.");
-    return false;
-  }
+  // AFFICHAGE IMMÉDIAT : la liste ne doit jamais attendre localStorage ou Firebase.
+  // On rend d'abord la fiche à l'écran, puis on persiste après le prochain paint.
+  renderList();
 
-  renderAll();
-
-  // Contrôle également le rendu : une sauvegarde réussie doit produire sa fiche
-  // dans la liste immédiatement.
-  var row = $("#agentList") && $("#agentList").querySelector('[data-agent-id="'+String(agent.id).replace(/"/g,'&quot;')+'"]');
+  var row = $("#agentList") && Array.prototype.find.call($("#agentList").querySelectorAll("[data-agent-id]"), function(el){
+    return String(el.getAttribute("data-agent-id"))===String(agent.id);
+  });
   if(!row){
-    renderList();
-    row = $("#agentList") && Array.prototype.find.call($("#agentList").querySelectorAll("[data-agent-id]"), function(el){
-      return String(el.getAttribute("data-agent-id"))===String(agent.id);
-    });
-  }
-  if(!row){
-    alert("L’agent est enregistré mais sa fiche n’a pas pu être affichée dans la liste. Actualise la page.");
+    alert("La fiche n’a pas pu être ajoutée à la liste. Aucun enregistrement n’a été lancé.");
     return false;
   }
   try{ row.scrollIntoView({block:"nearest",behavior:"smooth"}); }catch(e){}
 
-  // Déclenchement Firebase uniquement après confirmation locale + présence dans la liste.
-  try{
-    window.parent.dispatchEvent(new CustomEvent("inovtec:agent-local-saved",{
-      detail:{id:agent.id,updatedAt:agent.updatedAt}
-    }));
-  }catch(e){}
-
   var saveBtn = $("#btnSaveAgent");
   if(saveBtn){
-    saveBtn.textContent = "Enregistré ✓";
-    setTimeout(function(){
-      if(!saveBtn.isConnected) return;
-      saveBtn.textContent = "Enregistrer";
-    },900);
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Sauvegarde…";
+  }
+
+  var finishSave = function(){
+    var persistedAgent = null;
+    try{
+      save();
+      var persistedRows = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+      persistedAgent = persistedRows.find(function(a){
+        return a && String(a.id)===String(agent.id) && !isDeletedAgent(a) && agentHasName(a);
+      }) || null;
+    }catch(e){
+      console.error("Enregistrement agent", e);
+    }
+
+    if(!persistedAgent){
+      if(saveBtn){
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Erreur — réessayer";
+      }
+      row.setAttribute("data-save-state","error");
+      alert("La fiche est visible mais son enregistrement n’a pas été confirmé. Réessaie.");
+      return;
+    }
+
+    row.setAttribute("data-save-state","saved");
+
+    // Firebase est déclenché seulement après confirmation du stockage local.
+    try{
+      window.parent.dispatchEvent(new CustomEvent("inovtec:agent-local-saved",{
+        detail:{id:agent.id,updatedAt:agent.updatedAt}
+      }));
+    }catch(e){}
+
+    if(saveBtn){
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Enregistré ✓";
+      setTimeout(function(){
+        if(!saveBtn.isConnected) return;
+        saveBtn.textContent = "Enregistrer";
+      },900);
+    }
+  };
+
+  // requestAnimationFrame garantit que la nouvelle fiche est peinte AVANT
+  // l'écriture potentiellement lourde de toutes les données Agents.
+  if(window.requestAnimationFrame){
+    window.requestAnimationFrame(function(){ setTimeout(finishSave,0); });
+  }else{
+    setTimeout(finishSave,0);
   }
   return true;
 }
@@ -1682,6 +1700,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow10"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow11"></script>
 </body>
 </html>
