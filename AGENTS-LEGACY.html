@@ -879,6 +879,8 @@ function newAgent(){
   if(searchInput) searchInput.value = "";
   var a = createEmptyAgent();
   state.agents.push(a);
+  var saveBtn = $("#btnSaveAgent");
+  if(saveBtn){saveBtn.disabled=false;saveBtn.textContent="Enregistrer";}
   state.selectedId = a.id;
   rememberSelectedAgent(a.id);
   renderAll();
@@ -1000,7 +1002,7 @@ async function saveAgentForm(){
   row.setAttribute("data-save-state","pending");
 
   var btn=$("#btnSaveAgent");
-  if(btn){btn.disabled=true;btn.textContent="Enregistrement Firebase…";}
+  if(btn){btn.disabled=false;btn.textContent="Enregistrement Firebase…";}
 
   // 2. On conserve immédiatement la copie locale complète.
   try{save();}
@@ -1703,6 +1705,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow13"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow14"></script>
 </body>
 </html>
