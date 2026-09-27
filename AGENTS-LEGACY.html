@@ -912,6 +912,9 @@ function saveAgentForm(){
   touchAgent(agent);
   rememberSelectedAgent(agent.id);
   save();
+  try{
+    window.parent.dispatchEvent(new CustomEvent("inovtec:agent-local-saved",{detail:{id:agent.id,updatedAt:agent.updatedAt}}));
+  }catch(e){}
   renderAll();
 }
 
