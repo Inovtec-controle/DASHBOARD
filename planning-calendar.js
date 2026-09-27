@@ -9,7 +9,7 @@ const uid=p=>p+"_"+Date.now()+"_"+Math.random().toString(16).slice(2);
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 let state={agents:[],weeks:{},selected:null};
 let currentDate=new Date(),view="week",visibleAgents=new Set(),selectedEvent=null,draftEvent=null,suppressClickUntil=0,hubBound=false;
-let cloudPayloadEpoch=0,pendingCloudPayload=null;
+let cloudPayloadEpoch=0,pendingCloudPayload=null,localSavePending=false,lastLocalSavePayload="";
 const fmtDay=new Intl.DateTimeFormat("fr-FR",{weekday:"short",day:"numeric",month:"short"});
 const fmtLong=new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"long",year:"numeric"});
 const fmtMonth=new Intl.DateTimeFormat("fr-FR",{month:"long",year:"numeric"});
@@ -264,6 +264,8 @@ function save(source="planning"){
   invalidateQueuedCloudPayload();
   refreshKnownRecurrenceCopies();
   const payload=JSON.stringify(state);
+  localSavePending=true;
+  lastLocalSavePayload=payload;
   try{
     window.dispatchEvent(new CustomEvent("inovtec:planning-save-request",{detail:{at:Date.now(),payload,source}}));
   }catch(error){
@@ -331,7 +333,6 @@ function selectAgent(id){
   enforceSingleAgent();
   renderAgents();
   renderCalendarOnly();
-  requestCloudRefresh();
 }
 function updateMeta(){
   const key=isoWeekKey(currentDate),selected=agentById(state.selected),rows=entriesForWeek(key).filter(e=>String(e.agentId)===String(state.selected)).sort((a,b)=>Number(a.day)-Number(b.day)||String(a.start).localeCompare(String(b.start)));
@@ -663,6 +664,10 @@ function applyCloudPayload(payload){
 }
 function receiveCloudPayload(payload,source="firebase"){
   if(typeof payload!=="string"||!payload)return;
+  // Pendant une sauvegarde locale, une ancienne lecture distante ne doit jamais
+  // remplacer l'état affiché. Seule la confirmation directe de notre écriture
+  // peut être appliquée immédiatement.
+  if(localSavePending&&source!=="firebase-confirmed")return;
   const token=++cloudPayloadEpoch;
   pendingCloudPayload={payload,token};
   const attempt=()=>{
@@ -683,7 +688,16 @@ function refreshFromCloud(){
   cloudRefreshTimer=setTimeout(()=>requestCloudRefresh(),30);
 }
 window.addEventListener("inovtec:planning-cloud-payload",e=>receiveCloudPayload(e?.detail?.payload,e?.detail?.source||"firebase"));
+window.addEventListener("inovtec:planning-cloud-saved",e=>{
+  const payload=e?.detail?.payload;
+  if(typeof payload==="string"&&payload===lastLocalSavePayload){
+    localSavePending=false;
+    lastLocalSavePayload="";
+  }
+});
 window.addEventListener("inovtec:planning-cloud-save-failed",e=>{
+  localSavePending=false;
+  lastLocalSavePayload="";
   const msg=e?.detail?.message||"erreur inconnue";
   console.warn("Planning Firebase : sauvegarde non confirmée",msg);
   const badge=$("syncBadge");
