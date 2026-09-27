@@ -96,7 +96,7 @@ await check('Agents : Enregistrer reste fonctionnel après création et modifica
   await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.evaluate(() => localStorage.setItem('kontrol_agents_classeur_v2','[]'));
 
-  await page.goto(base + '/AGENTS.html?v=20260927-agentsave-stable1', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/AGENTS.html?v=20260927-agentsave-stable2', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 30000 });
   await page.waitForFunction(() => {
     const f=document.getElementById('legacyFrame');

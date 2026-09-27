@@ -969,11 +969,9 @@ function saveAgentForm(){
   var saveBtn = $("#btnSaveAgent");
   if(saveBtn){
     saveBtn.textContent = "Enregistré ✓";
-    saveBtn.disabled = true;
     setTimeout(function(){
       if(!saveBtn.isConnected) return;
       saveBtn.textContent = "Enregistrer";
-      saveBtn.disabled = false;
     },700);
   }
   return true;
@@ -1602,6 +1600,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsave-stable1"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsave-stable2"></script>
 </body>
 </html>
