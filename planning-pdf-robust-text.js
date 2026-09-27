@@ -36,12 +36,34 @@ function hubAgents(){try{return parent?.InovtecDataHub?.readyAgents?Array.from(p
 function hubName(a){return[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ").trim()||a?.displayName||a?.name||"Agent sans nom"}
 function copiesFor(agent){const masters=hubAgents();const m=masters.find(x=>String(x.id)===String(agent.refId||agent.id)||norm(hubName(x))===norm(agent.name));const raw=m?.job?.planningCopies,cloud=Math.round(Number(raw)),local=Math.round(Number(agent?.copies));if(Number.isFinite(cloud)&&cloud>=2)return Math.min(10,cloud);if(Number.isFinite(local)&&local>=2)return Math.min(10,local);return 2}
 function currentWeek(){return $("week")?.value||""}
+function containerLabels(event){
+  const source=Array.isArray(event?.containerTasks)?event.containerTasks:(event?.containerTask?[event.containerTask]:[]);
+  const seen=new Set(),labels=[];
+  source.forEach(raw=>{
+    if(!raw||typeof raw!=="object")return;
+    const action=raw.action==="rentree"?"Rentrée":raw.action==="sortie"?"Sortie":"";
+    const type=String(raw.typeConteneur||raw.flux||"").toUpperCase();
+    const label=clean(raw.label||([action,type].filter(Boolean).join(" ")));
+    if(!label)return;
+    const key=norm(label);
+    if(seen.has(key))return;
+    seen.add(key);labels.push(label);
+  });
+  return labels;
+}
 function agentData(state,week,agent){
   const start=dateFromWeek(week,0),end=dateFromWeek(week,6),groups=DAYS.map(()=>[]);
   const rows=Array.isArray(state.weeks?.[week])?state.weeks[week]:[];
   rows.filter(e=>String(e.agentId)===String(agent.id)).sort((a,b)=>Number(a.day)-Number(b.day)||String(a.start).localeCompare(String(b.start))).forEach(e=>{
-    const d=Math.max(0,Math.min(6,Number(e.day)||0));
-    groups[d].push({start:e.start||"",end:e.end||"",task:e.task||"Intervention",brief:e.site||"",note:e.note||""});
+    const d=Math.max(0,Math.min(6,Number(e.day)||0)),labels=containerLabels(e);
+    groups[d].push({
+      start:e.start||"",
+      end:e.end||"",
+      task:e.task||"Intervention",
+      brief:e.site||"",
+      note:e.note||"",
+      containerText:labels.length?"Conteneurs : "+labels.join(" · "):""
+    });
   });
   const dayTotals=groups.map(g=>g.reduce((n,item)=>n+workedDurationMin(item),0));
   const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
@@ -65,12 +87,15 @@ function drawHeader(doc,data){
 }
 function wrap(doc,text,width,size,style="normal"){doc.setFont("helvetica",style);doc.setFontSize(size);const value=clean(text);return value?doc.splitTextToSize(value,Math.max(4,width)):[]}
 function measureEvent(doc,item,w,size){
-  const padX=size<=4?1.05:1.35,textW=Math.max(5,w-padX*2-1),timeSize=Math.max(3.3,size*.82),taskSize=Math.max(3.5,size*1.03),briefSize=Math.max(3.25,size);
+  const padX=size<=4?1.05:1.35,textW=Math.max(5,w-padX*2-1),timeSize=Math.max(3.3,size*.82),taskSize=Math.max(3.5,size*1.03),briefSize=Math.max(3.25,size),containerSize=Math.max(3.25,size*.9);
   const timeLines=wrap(doc,`${displayTime(item.start)} - ${displayTime(item.end)} ${durationLabel(durationMin(item))}`,textW,timeSize,"bold");
-  const taskLines=wrap(doc,item.task||"Intervention",textW,taskSize,"bold"),briefLines=wrap(doc,item.brief||"",textW,briefSize,"normal");
-  const timeLH=Math.max(2.15,timeSize*.39),taskLH=Math.max(2.3,taskSize*.4),briefLH=Math.max(2.15,briefSize*.39),topPad=size<=4?1:1.25,bottomPad=size<=4?.85:1.05;
-  let h=topPad+Math.max(1,timeLines.length)*timeLH+.45+Math.max(1,taskLines.length)*taskLH;if(briefLines.length)h+=.55+briefLines.length*briefLH;h+=bottomPad;
-  return{h:Math.max(6.2,h),padX,textW,timeSize,taskSize,briefSize,timeLines,taskLines,briefLines,timeLH,taskLH,briefLH,topPad,bottomPad};
+  const taskLines=wrap(doc,item.task||"Intervention",textW,taskSize,"bold"),containerLines=wrap(doc,item.containerText||"",textW,containerSize,"bold"),briefLines=wrap(doc,item.brief||"",textW,briefSize,"normal");
+  const timeLH=Math.max(2.15,timeSize*.39),taskLH=Math.max(2.3,taskSize*.4),containerLH=Math.max(2.15,containerSize*.39),briefLH=Math.max(2.15,briefSize*.39),topPad=size<=4?1:1.25,bottomPad=size<=4?.85:1.05;
+  let h=topPad+Math.max(1,timeLines.length)*timeLH+.45+Math.max(1,taskLines.length)*taskLH;
+  if(containerLines.length)h+=.5+containerLines.length*containerLH;
+  if(briefLines.length)h+=.55+briefLines.length*briefLH;
+  h+=bottomPad;
+  return{h:Math.max(6.2,h),padX,textW,timeSize,taskSize,briefSize,containerSize,timeLines,taskLines,containerLines,briefLines,timeLH,taskLH,containerLH,briefLH,topPad,bottomPad};
 }
 function chooseDayLayout(doc,list,w,bodyH){
   if(!list.length)return{fontSize:7.4,gap:0,metrics:[],total:0,compact:false};
@@ -90,7 +115,12 @@ function drawEvent(doc,item,x,y,w,h,m){
   doc.setLineWidth(.18);doc.roundedRect(x,y,w,h,.75,.75,"FD");doc.setFillColor(pause?230:6,pause?145:120,pause?56:84);doc.rect(x,y,barW,h,"F");
   const cx=x+w/2,extraY=Math.max(0,(h-m.h)/2);let ty=y+extraY+m.topPad+m.timeLH*.82;doc.setFont("helvetica","bold");doc.setFontSize(m.timeSize);doc.setTextColor(205,45,45);if(m.timeLines.length)doc.text(m.timeLines,cx,ty,{align:"center",lineHeightFactor:.98});
   ty+=Math.max(1,m.timeLines.length)*m.timeLH+.45;doc.setFont("helvetica","bold");doc.setFontSize(m.taskSize);doc.setTextColor(25,25,25);if(m.taskLines.length)doc.text(m.taskLines,cx,ty,{align:"center",lineHeightFactor:.98});
-  ty+=Math.max(1,m.taskLines.length)*m.taskLH;if(m.briefLines.length){ty+=.55;doc.setFont("helvetica","normal");doc.setFontSize(m.briefSize);doc.setTextColor(35,35,35);doc.text(m.briefLines,cx,ty,{align:"center",lineHeightFactor:.98})}
+  ty+=Math.max(1,m.taskLines.length)*m.taskLH;
+  if(m.containerLines.length){
+    ty+=.5;doc.setFont("helvetica","bold");doc.setFontSize(m.containerSize);doc.setTextColor(6,120,84);doc.text(m.containerLines,cx,ty,{align:"center",lineHeightFactor:.98});
+    ty+=m.containerLines.length*m.containerLH;
+  }
+  if(m.briefLines.length){ty+=.55;doc.setFont("helvetica","normal");doc.setFontSize(m.briefSize);doc.setTextColor(35,35,35);doc.text(m.briefLines,cx,ty,{align:"center",lineHeightFactor:.98})}
 }
 function drawGrid(doc,data){
   const x=8,y=36,w=281,headH=11,bodyH=146,totalH=11,dayW=w/7,bodyY=y+headH,totalY=bodyY+bodyH;
