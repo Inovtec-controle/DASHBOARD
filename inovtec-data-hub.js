@@ -18,11 +18,59 @@ function publicSites(){return chantiers.slice().sort((a,b)=>String(a.nom||a.adre
 function emit(force=false){const detail={agents:publicAgents(),chantiers:publicSites(),readyAgents,readyChantiers};let signature="";try{signature=JSON.stringify([readyAgents,readyChantiers,detail.agents,detail.chantiers])}catch{}if(!force&&signature&&signature===lastEmitSignature)return;if(signature)lastEmitSignature=signature;listeners.forEach(fn=>{try{fn(detail)}catch{}});try{window.dispatchEvent(new CustomEvent("inovtec:datahub",{detail}))}catch{}}
 function readAgentsFromDoc(data){const entry=data?.moduleSyncV1?.agents,payload=parse(entry?.payload||"");if(Array.isArray(payload))return payload;const refs=Array.isArray(data?.referentialAgents)?data.referentialAgents:null;if(refs)return refs.map(a=>({...a,docs:[],incidents:[]}));return[]}
 function start(u){if(unsubDoc){try{unsubDoc()}catch{}unsubDoc=null}if(unsubSites){try{unsubSites()}catch{}unsubSites=null}user=u||null;docRef=null;readyAgents=false;readyChantiers=false;if(!user){agentRecords=[];readyAgents=false;emit();return}docRef=firebase.firestore().collection("kanban").doc(user.uid);unsubDoc=docRef.onSnapshot(s=>{const data=s.exists?(s.data()||{}):{};agentRecords=readAgentsFromDoc(data);readyAgents=true;emit()},e=>{console.warn("DataHub agents",e);agentRecords=[];readyAgents=false;emit()});unsubSites=firebase.firestore().collection("chantiers").orderBy("nom").onSnapshot(s=>{chantiers=s.docs.map(d=>({id:d.id,...(d.data()||{})})).filter(c=>c._hidden!==true);readyChantiers=true;emit()},e=>{console.warn("DataHub chantiers",e);readyChantiers=true;emit()})}
-async function writeAgents(next,reason){if(!docRef||!user)throw new Error("Connexion Firebase requise");const arr=clone(next),now=Date.now(),refs=arr.filter(a=>!isDeletedAgent(a)&&!isArchivedAgent(a)&&agentHasName(a)).map(compactAgent);await docRef.set({moduleSyncV1:{agents:{payload:JSON.stringify(arr),updatedAtMs:now,client,reason:reason||"data-hub",compact:false,version:4}},referentialAgents:refs,referentialUpdatedAtIso:new Date(now).toISOString()},{merge:true});agentRecords=arr;readyAgents=true;emit();return true}
-async function createAgent(label){label=String(label||"").trim();if(!label||/^(agent|sans nom|agent sans nom)$/i.test(label))throw new Error("Nom d’agent requis");const n=splitName(label),now=new Date().toISOString(),a={id:"agent_"+Math.random().toString(16).slice(2)+"_"+Date.now().toString(16),createdAt:now,updatedAt:now,identity:{prenom:n.prenom,nom:n.nom,telephone:"",email:"",adresse:"",dateNaissance:"",secu:"",permis:"",vehicule:""},job:{poste:"",typeContrat:"",dateEntree:"",sitePrincipal:"",disponibilites:"",notes:"",planningCopies:2},docs:[],incidents:[]};await writeAgents([...agentRecords,a],"create-agent-from-planning");return compactAgent(a)}
-async function renameAgent(id,label){label=String(label||"").trim();if(!label||/^(agent|sans nom|agent sans nom)$/i.test(label))return false;const idx=agentRecords.findIndex(a=>a?.id===id);if(idx<0)return false;const next=clone(agentRecords),n=splitName(label),a=next[idx];a.identity=a.identity||{};a.identity.prenom=n.prenom;a.identity.nom=n.nom;a.updatedAt=new Date().toISOString();await writeAgents(next,"rename-agent-from-planning");return true}
-async function setAgentPlanningCopies(id,value){const idx=agentRecords.findIndex(a=>a?.id===id);if(idx<0)return false;const n=Math.max(2,Math.min(10,Math.round(Number(value)||2))),next=clone(agentRecords),a=next[idx];a.job=a.job||{};a.job.planningCopies=n;a.updatedAt=new Date().toISOString();await writeAgents(next,"planning-copies");return n}
-async function deleteAgent(id){const current=agentRecords.find(a=>a?.id===id&&!isDeletedAgent(a));if(!current)return false;const now=new Date().toISOString(),i=current.identity||{},name=displayName(current),tombstone={id:String(current.id),_deleted:true,deletedAt:now,updatedAt:now,createdAt:current.createdAt||now,deletedDisplayName:name,identity:{prenom:i.prenom||"",nom:i.nom||""},job:{},docs:[],incidents:[]};await writeAgents(agentRecords.map(a=>a?.id===id?tombstone:a),"delete-agent-from-planning");return true}
+async function mutateAgents(mutator,reason){
+  if(!docRef||!user)throw new Error("Connexion Firebase requise");
+  let committed=[];
+  await firebase.firestore().runTransaction(async tx=>{
+    const snap=await tx.get(docRef);
+    const current=readAgentsFromDoc(snap.exists?(snap.data()||{}):{});
+    const next=mutator(clone(current));
+    if(!Array.isArray(next))throw new Error("Mutation Agents invalide");
+    const now=Date.now(),refs=next.filter(a=>!isDeletedAgent(a)&&!isArchivedAgent(a)&&agentHasName(a)).map(compactAgent);
+    tx.set(docRef,{moduleSyncV1:{agents:{payload:JSON.stringify(next),updatedAtMs:now,client,reason:reason||"data-hub",compact:false,version:8}},referentialAgents:refs,referentialUpdatedAtIso:new Date(now).toISOString()},{merge:true});
+    committed=next;
+  });
+  agentRecords=clone(committed);
+  readyAgents=true;
+  emit();
+  return committed;
+}
+async function createAgent(label){
+  label=String(label||"").trim();
+  if(!label||/^(agent|sans nom|agent sans nom)$/i.test(label))throw new Error("Nom d’agent requis");
+  const n=splitName(label),now=new Date().toISOString(),a={id:"agent_"+Math.random().toString(16).slice(2)+"_"+Date.now().toString(16),createdAt:now,updatedAt:now,identity:{prenom:n.prenom,nom:n.nom,telephone:"",email:"",adresse:"",dateNaissance:"",secu:"",permis:"",vehicule:""},job:{poste:"",typeContrat:"",dateEntree:"",sitePrincipal:"",disponibilites:"",notes:"",planningCopies:2},docs:[],incidents:[]};
+  await mutateAgents(rows=>[...rows,a],"create-agent-from-planning");
+  return compactAgent(a);
+}
+async function renameAgent(id,label){
+  label=String(label||"").trim();
+  if(!label||/^(agent|sans nom|agent sans nom)$/i.test(label))return false;
+  let changed=false;
+  const n=splitName(label);
+  await mutateAgents(rows=>rows.map(a=>{
+    if(a?.id!==id||isDeletedAgent(a))return a;
+    const next=clone(a);next.identity=next.identity||{};next.identity.prenom=n.prenom;next.identity.nom=n.nom;next.updatedAt=new Date().toISOString();changed=true;return next;
+  }),"rename-agent-from-planning");
+  return changed;
+}
+async function setAgentPlanningCopies(id,value){
+  const n=Math.max(2,Math.min(10,Math.round(Number(value)||2)));
+  let changed=false;
+  await mutateAgents(rows=>rows.map(a=>{
+    if(a?.id!==id||isDeletedAgent(a))return a;
+    const next=clone(a);next.job=next.job||{};next.job.planningCopies=n;next.updatedAt=new Date().toISOString();changed=true;return next;
+  }),"planning-copies");
+  return changed?n:false;
+}
+async function deleteAgent(id){
+  let changed=false;
+  await mutateAgents(rows=>rows.map(current=>{
+    if(current?.id!==id||isDeletedAgent(current))return current;
+    const now=new Date().toISOString(),i=current.identity||{},name=displayName(current);changed=true;
+    return{id:String(current.id),_deleted:true,deletedAt:now,updatedAt:now,createdAt:current.createdAt||now,deletedDisplayName:name,identity:{prenom:i.prenom||"",nom:i.nom||""},job:{},docs:[],incidents:[]};
+  }),"delete-agent-from-planning");
+  return changed;
+}
 function findChantier(value){const n=norm(value);if(!n)return null;return chantiers.find(c=>String(c.id)===String(value)||norm(c.nom)===n||norm(c.adresse)===n)||null}
 function subscribe(fn){if(typeof fn!=="function")return()=>{};listeners.add(fn);try{fn({agents:publicAgents(),chantiers:publicSites(),readyAgents,readyChantiers})}catch{}return()=>listeners.delete(fn)}
 window.InovtecDataHub={get agents(){return publicAgents()},get chantiers(){return publicSites()},get readyAgents(){return readyAgents},get readyChantiers(){return readyChantiers},displayName,findChantier,subscribe,createAgent,renameAgent,setAgentPlanningCopies,deleteAgent};
