@@ -65,7 +65,7 @@ window.InovtecContainerSchedule={DAYS,LABEL,SHORT,FREQ_LABEL,FIELDS,parseDays,se
 
 function notifyScheduleUpdate(){try{window.dispatchEvent(new CustomEvent("inovtec:container-schedule-updated"))}catch{}}
 function startLegacyListener(){
- if(!db||!auth||legacyAuthBound||!["infos","planning"].includes(mode))return;legacyAuthBound=true;
+ if(!db||!auth||legacyAuthBound||mode!=="infos")return;legacyAuthBound=true;
  auth.onAuthStateChanged(user=>{if(legacyUnsub){try{legacyUnsub()}catch{}legacyUnsub=null}legacyPlans=[];if(!user){notifyScheduleUpdate();return}legacyUnsub=db.collection("conteneurs_plannings").onSnapshot(s=>{legacyPlans=s.docs.map(d=>({id:d.id,...d.data()}));notifyScheduleUpdate();if(mode==="infos")setTimeout(()=>{const d=doc();if(d)refresh(d)},80)},e=>console.warn("Lecture des fréquences CONTENEURS indisponible",e))});
 }
 startLegacyListener();
