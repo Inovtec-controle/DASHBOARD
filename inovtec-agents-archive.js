@@ -167,8 +167,15 @@ function install(){
 
     const originalRenderList=w.renderList.bind(w);
     w.renderList=function(){const r=originalRenderList();updateArchiveButton();return r};
+
+    // Ne jamais rerendre toute la fiche au chargement tardif de ce module :
+    // cela effaçait une saisie commencée dans Nom/Prénom avant le clic Enregistrer.
+    const selectedBefore=w.state.selectedId;
     selectFirstActive();
-    w.renderAll();
+    w.renderList();
+    if(w.state.selectedId!==selectedBefore&&typeof w.renderDetails==="function"){
+      w.renderDetails();
+    }
     updateArchiveButton();
   }catch(e){
     console.warn("Agents archive runtime",e);
