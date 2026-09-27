@@ -91,9 +91,20 @@ function agentById(id){return state.agents.find(a=>a.id===id)}
 function entriesForWeek(key){if(!Array.isArray(state.weeks[key]))state.weeks[key]=[];return state.weeks[key]}
 function entriesForDate(d){const key=isoWeekKey(d),day=mondayIndex(d);return entriesForWeek(key).filter(e=>Number(e.day)===day)}
 function eventRef(week,id){return entriesForWeek(week).find(e=>e.id===id)}
-function dataHub(){try{return parent&&parent.InovtecDataHub?parent.InovtecDataHub:null}catch{return null}}
-function hubAgents(){const h=dataHub();return h?.readyAgents?Array.from(h.agents||[]):[]}
-function hubSites(){const h=dataHub();return h?.readyChantiers?Array.from(h.chantiers||[]):[]}
+function dataHub(){
+  try{
+    if(parent&&parent!==window&&parent.InovtecDataHub)return parent.InovtecDataHub;
+  }catch{}
+  try{return window.InovtecDataHub||null}catch{return null}
+}
+function hubAgents(){
+  const h=dataHub();
+  return h?.readyAgents?Array.from(h.agents||[]):[];
+}
+function hubSites(){
+  const h=dataHub();
+  return h?.readyChantiers?Array.from(h.chantiers||[]):[];
+}
 function masterName(a){return[a?.identity?.prenom,a?.identity?.nom].filter(Boolean).join(" ").trim()||a?.displayName||a?.name||"Agent sans nom"}
 function enforceSingleAgent(){visibleAgents=new Set(state.selected?[state.selected]:[])}
 function isFirstTopLevelOpen(){try{const token=String(parent?.performance?.timeOrigin||"");if(!token)return true;const key="ivPlanningTopPageToken",old=parent.sessionStorage.getItem(key)||"";parent.sessionStorage.setItem(key,token);return old!==token}catch{return true}}
@@ -347,7 +358,20 @@ window.InovtecPlanningAPI={
   saveCurrent:(source="module")=>save(source),
   requestRefresh:requestCloudRefresh
 };
-function bindHub(){const h=dataHub();if(!h){setTimeout(bindHub,300);return}if(hubBound)return;hubBound=true;h.subscribe(()=>{const pop=$("editorPopover"),editorOpen=pop.classList.contains("open"),active=document.activeElement,editing=editorOpen&&pop.contains(active),changed=syncAgentsFromHub();if(changed){if(!editing)render()}else if(editorOpen&&active!==$("edTitle")){const e=eventRef(pop.dataset.week,pop.dataset.id);if(e)fillChantierSelect(e)}});if(syncAgentsFromHub())render()}
+function bindHub(){
+  const h=dataHub();
+  if(!h){setTimeout(bindHub,300);return}
+  if(hubBound)return;
+  hubBound=true;
+  h.subscribe(()=>{
+    const pop=$("editorPopover"),editorOpen=pop.classList.contains("open"),editing=editorOpen&&pop.contains(document.activeElement);
+    const changed=syncAgentsFromHub();
+    if(changed&&!editing)render();
+    if(editorOpen)refreshOpenEditorContainerInfo();
+  });
+  if(syncAgentsFromHub())render();
+  if($("editorPopover")?.classList.contains("open"))refreshOpenEditorContainerInfo();
+}
 function selectAgent(id){
   const wanted=safeText(id);
   if(!agentById(wanted))return;
@@ -543,18 +567,21 @@ function renderContainerReminder(){
   if(!box)return;
   const chosen=selectedChantier(),dateValue=$("edDate")?.value||"",selected=editorContainerTasks();
   if(!chosen){
-    box.hidden=true;
-    box.innerHTML="";
+    const pop=$("editorPopover"),e=pop?.dataset?.draft==="1"?draftEvent:eventRef(pop?.dataset?.week,pop?.dataset?.id);
+    const waiting=!dataHub()?.readyChantiers;
+    if(pop?.classList.contains("open")&&(waiting||e?.chantierId||e?.task)){
+      box.hidden=false;
+      box.innerHTML=waiting
+        ?'<div class="pcr-empty">Synchronisation avec Infos chantier…</div>'
+        :'<div class="pcr-empty">Cette ancienne tâche n’est pas encore reliée à une résidence Infos chantier. Sélectionne la résidence ci-dessus pour afficher ses rappels.</div>';
+    }else{
+      box.hidden=true;
+      box.innerHTML="";
+    }
     return;
   }
   const api=window.InovtecContainerSchedule;
   const actions=typeof api?.actionsFromInfosForDate==="function"?api.actionsFromInfosForDate(chosen,dateValue):[];
-  const disponibles=actions.map(containerTaskFromAction).filter(Boolean);
-  const filtres=selected.filter(task=>disponibles.some(x=>sameContainerTask(x,task)));
-  if(filtres.length!==selected.length){
-    selected.splice(0,selected.length,...filtres);
-    setEditorContainerTasks(selected,{render:false});
-  }
   const buttons=actions.map(action=>{
     const task=containerTaskFromAction(action);
     const active=selected.some(x=>sameContainerTask(x,task));
@@ -584,6 +611,27 @@ function renderContainerReminder(){
     scheduleDraftPreview();
   });
 }
+function currentEditorEvent(){
+  const pop=$("editorPopover");
+  if(!pop?.classList.contains("open"))return null;
+  if(pop.dataset.draft==="1")return draftEvent;
+  return eventRef(pop.dataset.week,pop.dataset.id)||null;
+}
+function refreshOpenEditorContainerInfo(){
+  const pop=$("editorPopover");
+  if(!pop?.classList.contains("open"))return;
+  const e=currentEditorEvent();
+  const title=$("edTitle");
+  const currentId=String(title?.value||"");
+  const currentStillExists=currentId&&currentId!=="__legacy__"&&hubSites().some(c=>String(c.id)===currentId);
+  if(e&&!currentStillExists&&document.activeElement!==title)fillChantierSelect(e);
+  renderContainerReminder();
+}
+function scheduleEditorContainerRefresh(){
+  [80,240,650,1400].forEach(delay=>setTimeout(()=>{
+    if($("editorPopover")?.classList.contains("open"))refreshOpenEditorContainerInfo();
+  },delay));
+}
 function applySelectedChantier(){
   /* Le choix du chantier ne doit jamais déclencher de traitement lourd,
      déplacer le focus ou injecter automatiquement l'adresse. */
@@ -612,6 +660,7 @@ function openEditor(week,e,x,y,isDraft=false){
   setEditorContainerTasks(normalizeContainerTasks(e.containerTasks,e.containerTask),{render:false});
   pop.classList.add("open");
   renderContainerReminder();
+  scheduleEditorContainerRefresh();
   if(isDraft)renderDraftPreview();
   pop.style.maxHeight="calc(100vh - 16px)";
   pop.style.overflowY="auto";
@@ -738,7 +787,12 @@ $("edTitle").addEventListener("change",()=>{
   renderContainerReminder();
   scheduleDraftPreview();
 });
-$("edDate").addEventListener("change",()=>{renderContainerReminder();scheduleDraftPreview()});
+$("edDate").addEventListener("change",()=>{
+  setEditorContainerTasks([],{render:false});
+  renderContainerReminder();
+  scheduleEditorContainerRefresh();
+  scheduleDraftPreview();
+});
 $("edSite").addEventListener("input",scheduleDraftPreview);
 ["edStart","edEnd","edAgent","edNote"].forEach(id=>{
   $(id)?.addEventListener("input",scheduleDraftPreview);
