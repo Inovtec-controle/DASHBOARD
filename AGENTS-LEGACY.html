@@ -445,7 +445,10 @@ body{
     <section class="card">
       <div class="cardHeader">
         <h2>Agents</h2>
-        <span class="chip" id="agentCount">0</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button type="button" class="miniBtn" id="btnNewAgentInCard">+ Nouvel agent</button>
+          <span class="chip" id="agentCount">0</span>
+        </div>
       </div>
       <div class="cardBody">
         <div class="search">
@@ -850,12 +853,16 @@ function newAgent(){
   state.agents = state.agents.filter(function(agent){
     return !(agent && agent._draft === true && !agentHasName(agent));
   });
+  state.search = "";
+  var searchInput = $("#search");
+  if(searchInput) searchInput.value = "";
   var a = createEmptyAgent();
   state.agents.push(a);
   state.selectedId = a.id;
+  rememberSelectedAgent(a.id);
   renderAll();
   setTimeout(function(){
-    var el = $("#f_prenom");
+    var el = $("#f_nom");
     if(el) el.focus();
   }, 60);
 }
@@ -954,6 +961,17 @@ function saveAgentForm(){
   touchAgent(agent);
   rememberSelectedAgent(agent.id);
   save();
+
+  // La fiche enregistrée doit rester visible immédiatement, même si une recherche
+  // précédente ne correspond plus au nouveau nom.
+  if(state.search){
+    var stillVisible = filteredAgents().some(function(a){ return a && a.id === agent.id; });
+    if(!stillVisible){
+      state.search = "";
+      var searchInput = $("#search");
+      if(searchInput) searchInput.value = "";
+    }
+  }
 
   // Déclenchement immédiat de la synchronisation Firebase.
   try{
@@ -1336,7 +1354,7 @@ function renderList(){
   for(var k=0;k<agents.length;k++){
     var a = agents[k];
     var i = a.identity || {};
-    var fullName = (safeText(i.prenom)+" "+safeText(i.nom)).trim() || "Sans nom";
+    var fullName = (safeText(i.nom)+" "+safeText(i.prenom)).trim() || "Sans nom";
     var sub = (safeText(a.job.sitePrincipal) || "—")+" • "+(safeText(i.telephone) || "Téléphone : —");
     var incidents = a.incidents || [];
     var openCount = incidents.filter(function(x){return (x.statut||"Ouvert") !== "Clos";}).length;
@@ -1386,7 +1404,7 @@ function renderDetails(){
   var i = agent.identity || {};
   var j = agent.job || {};
 
-  var fullName = (safeText(i.prenom)+" "+safeText(i.nom)).trim() || "Fiche agent";
+  var fullName = (safeText(i.nom)+" "+safeText(i.prenom)).trim() || "Fiche agent";
   $("#agentName").textContent = fullName;
   chip.textContent = fullName;
 
@@ -1522,6 +1540,8 @@ function closePhotoModal(){
 document.addEventListener("DOMContentLoaded", function(){
   // boutons top
   $("#btnNewAgent").onclick = newAgent;
+  var newAgentInCard = $("#btnNewAgentInCard");
+  if(newAgentInCard) newAgentInCard.onclick = newAgent;
   $("#btnExport").onclick = exportJSON;
   $("#btnReset").onclick = resetAll;
   $("#fileImport").onchange = function(e){
@@ -1599,6 +1619,6 @@ document.addEventListener("DOMContentLoaded", function(){
   renderAll();
 });
 </script>
-<script src="inovtec-agents-titulaire.js?v=20260927-agentsave-stable2"></script>
+<script src="inovtec-agents-titulaire.js?v=20260927-agentsflow1"></script>
 </body>
 </html>

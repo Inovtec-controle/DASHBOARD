@@ -69,7 +69,7 @@ await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () =
     job:{poste:'',typeContrat:'',dateEntree:'',sitePrincipal:'',disponibilites:'',notes:''},
     docs:[],incidents:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
   }])));
-  await page.goto(base + '/AGENTS.html?v=20260927-agentfields1', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow1', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.locator('#legacyFrame').waitFor({ state: 'attached', timeout: 30000 });
   await page.waitForFunction(() => {
     const f=document.getElementById('legacyFrame');
@@ -112,54 +112,53 @@ await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () =
 });
 
 
-await check('Agents : vrai parcours Nouvel agent puis Enregistrer', async () => {
+await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () => {
   await page.goto(base + '/AGENTS-LEGACY.html', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.evaluate(() => localStorage.setItem('kontrol_agents_classeur_v2','[]'));
 
-  await page.goto(base + '/AGENTS.html?v=20260927-agentfields1', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(base + '/AGENTS.html?v=20260927-agentsflow1', { waitUntil: 'domcontentloaded', timeout: 45000 });
   const agents=page.frameLocator('#legacyFrame');
-  await agents.locator('#btnSaveAgent').waitFor({state:'attached',timeout:30000});
-  await page.waitForFunction(() => {
-    const f=document.getElementById('legacyFrame');
-    return !!f?.contentDocument?.getElementById('btnNewAgentInCard')
-      || !!f?.contentDocument?.getElementById('btnNewAgent');
-  },null,{timeout:30000});
+  await agents.locator('#btnNewAgentInCard').waitFor({state:'attached',timeout:30000});
+  const visible=await agents.locator('#btnNewAgentInCard').evaluate(el=>!!(el.offsetWidth||el.offsetHeight||el.getClientRects().length));
+  if(!visible)throw new Error('Le bouton Nouvel agent visible dans la liste est masqué');
 
-  const newButton=agents.locator('#btnNewAgentInCard');
-  if(await newButton.count()) await newButton.click();
-  else await agents.locator('#btnNewAgent').click();
+  async function create(nom,prenom){
+    await agents.locator('#btnNewAgentInCard').evaluate(el=>el.click());
+    await agents.locator('#f_nom').fill(nom);
+    await agents.locator('#f_prenom').fill(prenom);
+    await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
+    await page.waitForFunction(({nom,prenom})=>{
+      const f=document.getElementById('legacyFrame'),d=f?.contentDocument,w=f?.contentWindow;
+      if(!d||!w)return false;
+      let rows=[];try{rows=JSON.parse(w.localStorage.getItem('kontrol_agents_classeur_v2')||'[]')}catch{}
+      const saved=rows.some(a=>a?._deleted!==true&&a?._draft!==true&&a?.identity?.nom===nom&&a?.identity?.prenom===prenom);
+      const listed=[...d.querySelectorAll('#agentList .listItem')].some(r=>(r.dataset.sortName||'')===nom);
+      return saved&&listed;
+    },{nom,prenom},{timeout:5000});
+  }
 
-  await agents.locator('#f_nom').fill('Dupont');
-  await agents.locator('#f_prenom').fill('Jeanne');
-  await agents.locator('#f_tel').fill('0601020304');
-  await agents.locator('#btnSaveAgent').click();
+  await create('Dupont','Jeanne');
+  await create('Zulu','Paul');
 
-  await page.waitForFunction(() => {
-    const f=document.getElementById('legacyFrame');
-    const d=f?.contentDocument,w=f?.contentWindow;
+  const before=await agents.locator('#agentList .listItem').evaluateAll(rows=>rows.map(r=>r.dataset.sortName||''));
+  if(JSON.stringify(before)!==JSON.stringify(['Dupont','Zulu']))throw new Error('Les nouveaux agents ne sont pas classés A-Z par Nom');
+
+  await agents.locator('.listItem[data-sort-name="Zulu"]').evaluate(el=>el.click());
+  await agents.locator('#f_nom').fill('Abadie');
+  await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
+
+  await page.waitForFunction(()=>{
+    const f=document.getElementById('legacyFrame'),d=f?.contentDocument,w=f?.contentWindow;
     if(!d||!w)return false;
-    let rows=[];
-    try{rows=JSON.parse(w.localStorage.getItem('kontrol_agents_classeur_v2')||'[]')}catch{}
-    const saved=rows.find(a=>a?._deleted!==true&&a?.identity?.nom==='Dupont'&&a?.identity?.prenom==='Jeanne');
-    const visible=[...d.querySelectorAll('#agentList .listItem .name')].some(x=>/Dupont|Jeanne/.test(x.textContent||''));
-    return !!saved&&visible;
+    const names=[...d.querySelectorAll('#agentList .listItem')].map(r=>r.dataset.sortName||'');
+    let rows=[];try{rows=JSON.parse(w.localStorage.getItem('kontrol_agents_classeur_v2')||'[]')}catch{}
+    return names[0]==='Abadie'
+      && names[1]==='Dupont'
+      && rows.some(a=>a?._deleted!==true&&a?.identity?.nom==='Abadie'&&a?.identity?.prenom==='Paul');
   },null,{timeout:5000});
 
-  const snapshot=await page.evaluate(() => {
-    const f=document.getElementById('legacyFrame'),d=f.contentDocument,w=f.contentWindow;
-    const rows=JSON.parse(w.localStorage.getItem('kontrol_agents_classeur_v2')||'[]');
-    return {
-      rows:rows.filter(a=>a?._deleted!==true).map(a=>({nom:a?.identity?.nom,prenom:a?.identity?.prenom,draft:a?._draft})),
-      names:[...d.querySelectorAll('#agentList .listItem .name')].map(x=>x.textContent.trim()),
-      selected:w.state?.selectedId||null
-    };
-  });
-  if(!snapshot.rows.some(a=>a.nom==='Dupont'&&a.prenom==='Jeanne'&&a.draft!==true)){
-    throw new Error('Nouvel agent non persisté après clic Enregistrer');
-  }
-  if(!snapshot.names.some(n=>/Dupont/.test(n)&&/Jeanne/.test(n))){
-    throw new Error('Nouvel agent non ajouté immédiatement à la liste');
-  }
+  const after=await agents.locator('#agentList .listItem').evaluateAll(rows=>rows.map(r=>r.dataset.sortName||''));
+  if(JSON.stringify(after)!==JSON.stringify(['Abadie','Dupont']))throw new Error('Le renommage ne reclasse pas immédiatement la liste A-Z');
 });
 
 await check('Variables : indicateurs et mois accessibles', async () => {
