@@ -287,4 +287,7 @@ window.addEventListener("inovtec:planning-cloud-saved",event=>{
   schedule(event?.detail?.source||"planning-saved",100);
 });
 try{hub()?.subscribe?.(()=>{if(planningReady)schedule("chantiers-updated",260)})}catch{}
+// Demander explicitement une lecture serveur : la synchronisation ne démarre
+// qu'après réception d'un payload Firebase valide, jamais depuis un état local vide.
+setTimeout(()=>{try{window.InovtecPlanningAPI?.requestRefresh?.()}catch{}},180);
 })();
