@@ -149,8 +149,7 @@ async function refresh(user){
   }
 
   const shared=dataOf(sharedR),personal=dataOf(personalR);
-  const localAgents=localJson("kontrol_agents_classeur_v2",[]);
-  const agentLists=[agentsFrom(shared),agentsFrom(personal),Array.isArray(localAgents)?localAgents:[]],deletedAgents=agentDeletionState(...agentLists);
+  const agentLists=[agentsFrom(shared),agentsFrom(personal)],deletedAgents=agentDeletionState(...agentLists);
   const agents=mergeRows(...agentLists).filter(a=>activeAgent(a,deletedAgents));
   if(agents.length||sharedR.status==="fulfilled"||personalR.status==="fulfilled"){
     set("kpiAgents",agents.length);
