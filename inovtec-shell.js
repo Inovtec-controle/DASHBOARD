@@ -120,7 +120,7 @@ function fitAgentsFullPage(doc){
     agentsResizeObserver.observe(doc.body);
   }
   agentsMutationObserver=new MutationObserver(scheduleResize);
-  agentsMutationObserver.observe(doc.body,{childList:true,subtree:true});
+  agentsMutationObserver.observe(doc.body,{childList:true,subtree:true});\n  removeAgentSaveDuplicate(doc);\n  new MutationObserver(()=>removeAgentSaveDuplicate(doc)).observe(doc.body,{childList:true,subtree:true});
   resize();
   setTimeout(scheduleResize,120);
   setTimeout(scheduleResize,500);
