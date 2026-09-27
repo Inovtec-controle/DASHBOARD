@@ -807,8 +807,9 @@ function activeAgents(){
   return state.agents.filter(function(agent){return !isDeletedAgent(agent) && agentHasName(agent);});
 }
 function compareAgentsByLastName(a,b){
-  var an = safeText(a && a.identity && a.identity.nom).trim();
-  var bn = safeText(b && b.identity && b.identity.nom).trim();
+  // Schéma historique de cette page : le champ visible "Nom" est stocké dans identity.prenom.
+  var an = safeText(a && a.identity && a.identity.prenom).trim();
+  var bn = safeText(b && b.identity && b.identity.prenom).trim();
   if(!an && !bn) return 0;
   if(!an) return 1;
   if(!bn) return -1;

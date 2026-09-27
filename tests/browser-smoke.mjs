@@ -66,15 +66,15 @@ await check('Agents : enregistrement et tri par nom', async () => {
   await page.evaluate(() => localStorage.removeItem('kontrol_agents_classeur_v2'));
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
 
-  async function createAgent(prenom,nom){
+  async function createAgent(nom,prenom){
     await page.locator('#btnNewAgent').click();
-    await page.locator('#f_prenom').fill(prenom);
-    await page.locator('#f_nom').fill(nom);
+    await page.locator('#f_prenom').fill(nom); // champ visible "Nom" (schéma historique)
+    await page.locator('#f_nom').fill(prenom); // champ visible "Prénom"
     await page.locator('#btnSaveAgent').click();
   }
 
-  await createAgent('Aline','Zulu');
-  await createAgent('Zelie','Alpha');
+  await createAgent('Zulu','Aline');
+  await createAgent('Alpha','Zelie');
 
   await page.waitForFunction(() => {
     try{
