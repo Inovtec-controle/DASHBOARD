@@ -49,7 +49,8 @@ function validContainerTask(raw){
     action,
     typeConteneur:type,
     label:safe(raw.label||((action==="sortie"?"Sortie ":"Rentrée ")+type)),
-    source:safe(raw.source||"infos-chantier")
+    source:safe(raw.source||"infos-chantier"),
+    selectedAgentId:safe(raw.selectedAgentId||raw.agentId||"")
   };
 }
 function validContainerTasks(event){
@@ -195,6 +196,9 @@ function isPassiveTeamClone(state,week,event){
   const exceptions=Array.isArray(team?.exceptions?.[week])?team.exceptions[week].map(safe):[];
   if(exceptions.includes(targetId))return false;
 
+  const markers=validContainerTasks(event);
+  if(markers.some(marker=>safe(marker.selectedAgentId)===targetId))return false;
+
   // Une copie liée n'est "passive" que si la tâche source porte exactement
   // les mêmes missions conteneurs. Si l'utilisateur coche une bulle propre
   // au membre lié, cette mission appartient bien à ce membre et doit monter.
@@ -246,6 +250,7 @@ function buildDesiredMissions(state,resolveAgent){
           containerTaskId:marker.id,
           containerTaskLabel:marker.label,
           containerTaskSource:marker.source,
+          containerTaskAgentId:safe(marker.selectedAgentId||event.agentId),
           actif:true,
           planningRemoved:false
         };
