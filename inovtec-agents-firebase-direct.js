@@ -78,7 +78,12 @@ async function writeRows(rows,reason='agents-direct-save'){
     const remote=parse(raw,[]);
     if(!Array.isArray(remote))throw Error('Liste Agents Firebase illisible');
     const map=new Map(remote.filter(x=>x&&x.id).map(x=>[String(x.id),x]));
-    for(const row of incoming)map.set(String(row.id),row);
+    for(const row of incoming){
+      const key=String(row.id),previous=map.get(key);
+      const previousAt=Date.parse(previous?.updatedAt||previous?.deletedAt||previous?.createdAt||0)||0;
+      const incomingAt=Date.parse(row?.updatedAt||row?.deletedAt||row?.createdAt||0)||0;
+      if(!previous||incomingAt>=previousAt)map.set(key,row);
+    }
     written=payloadOf(Array.from(map.values()));
     tx.set(ref,{moduleSyncV1:{agents:{payload:written,updatedAtMs:Date.now(),reason,version:7}}},{merge:true});
   });
