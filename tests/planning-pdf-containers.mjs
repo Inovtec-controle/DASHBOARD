@@ -12,6 +12,7 @@ class FakePDF{
   setLineWidth(){return this}
   roundedRect(){return this}
   rect(){return this}
+  line(){return this}
   setTextColor(){return this}
   setFont(){return this}
   setFontSize(){return this}
