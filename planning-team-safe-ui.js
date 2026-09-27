@@ -43,7 +43,12 @@ function protectAndShare(s,team,week,sourceId,initial=false){
  team.exceptions=team.exceptions&&typeof team.exceptions==='object'?team.exceptions:{};
  const exceptions=new Set(Array.isArray(team.exceptions[week])?team.exceptions[week]:[]);
  for(const targetId of team.members){
-  if(targetId===sourceId||exceptions.has(targetId))continue;
+  if(targetId===sourceId)continue;
+  // Lors d'un enregistrement explicite de la liaison, l'utilisateur demande
+  // que le membre suive réellement le planning de référence. Une ancienne
+  // exception ou un ancien planning individuel ne doit donc pas annuler la liaison.
+  if(initial)exceptions.delete(targetId);
+  else if(exceptions.has(targetId))continue;
   const existing=entries(s,week,targetId),current=signature(existing);
   if(current===sig)continue;
   // Même un créneau auparavant partagé devient individuel s'il a été modifié.
@@ -53,7 +58,10 @@ function protectAndShare(s,team,week,sourceId,initial=false){
   // ne sont pas des personnalisations manuelles : une liaison d'équipe peut
   // donc les remplacer. En revanche, un vrai planning individuel reste protégé.
   const autoInherited=existing.length>0&&existing.every(e=>e?._standardInheritedFrom||e?._parityInheritedFrom||e?._teamInheritedFrom);
-  const safeToReplace=!existing.length||autoInherited||(old!=null&&current===old);
+  // "initial" correspond au clic explicite sur Enregistrer dans la fenêtre
+  // de liaison : dans ce cas on force l'alignement sur le planning de référence.
+  // Les personnalisations faites APRES la liaison restent ensuite protégées.
+  const safeToReplace=initial||!existing.length||autoInherited||(old!=null&&current===old);
   if(!safeToReplace){exceptions.add(targetId);changed=true;continue}
   const keep=(Array.isArray(s.weeks[week])?s.weeks[week]:[]).filter(e=>str(e?.agentId)!==targetId);
   const clones=source.map(e=>{
