@@ -377,6 +377,63 @@ window.addEventListener('inovtec:agent-local-saved',ev=>{
   report('Firebase — sauvegarde Agents en attente…');
   if(initialized)schedule(20);
 });
+function waitForAgentCloudReady(timeoutMs=12000){
+  if(mode!=='agents')return Promise.reject(Error('Module Agents indisponible'));
+  if(user&&initialized&&ref)return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const startAt=Date.now();
+    const tick=()=>{
+      if(user&&initialized&&ref){resolve();return}
+      if(Date.now()-startAt>=timeoutMs){reject(Error(user?'Firebase Agents non initialisé':'Connexion Firebase requise'));return}
+      setTimeout(tick,80);
+    };
+    tick();
+  });
+}
+async function saveAgentPayloadNow(payload,id){
+  if(mode!=='agents')throw Error('Sauvegarde Agents indisponible');
+  const draft=packed(String(payload||''));
+  if(!draft)throw Error('Fiche agent vide');
+  pendingAgentPayload=draft;
+  pendingAgentId=String(id||'');
+  lastLocalAgentSave=Date.now();
+  activity=Date.now();
+
+  // Conserver l'opération avant toute attente réseau afin qu'un F5 ne puisse pas
+  // perdre la fiche pendant que Firebase répond.
+  const knownUid=user?.uid||localStorage.getItem(activeKey)||'';
+  if(knownUid)persistAgentPending(knownUid,draft,pendingAgentId);
+
+  await waitForAgentCloudReady();
+  persistAgentPending(user.uid,draft,pendingAgentId);
+
+  return await new Promise((resolve,reject)=>{
+    let done=false;
+    const finish=(fn,value)=>{
+      if(done)return;done=true;
+      clearTimeout(timer);
+      window.removeEventListener('inovtec:agent-cloud-saved',onSaved);
+      window.removeEventListener('inovtec:agent-cloud-save-failed',onFailed);
+      fn(value);
+    };
+    const onSaved=ev=>{
+      const savedId=String(ev?.detail?.id||'');
+      if(pendingAgentId&&savedId&&savedId!==String(id||''))return;
+      finish(resolve,ev?.detail||{id:String(id||'')});
+    };
+    const onFailed=ev=>{
+      const failedId=String(ev?.detail?.id||'');
+      if(failedId&&String(id||'')&&failedId!==String(id||''))return;
+      finish(reject,Error(ev?.detail?.message||'Sauvegarde Firebase non confirmée'));
+    };
+    const timer=setTimeout(()=>finish(reject,Error('Firebase n’a pas confirmé la sauvegarde dans le délai prévu')),20000);
+    window.addEventListener('inovtec:agent-cloud-saved',onSaved);
+    window.addEventListener('inovtec:agent-cloud-save-failed',onFailed);
+    schedule(0);
+  });
+}
+window.InovtecAgentsCloud=Object.freeze({save:saveAgentPayloadNow});
+
 window.addEventListener('inovtec:planning-request-cloud-refresh',()=>{
   if(mode!=='planning'||!user)return;
   if(!initialized)void boot(user.uid,generation);
