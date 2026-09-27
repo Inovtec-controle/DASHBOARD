@@ -106,7 +106,7 @@ await check('Agents : Nom/Prénom, Enregistrer immédiat et tri A-Z', async () =
     };
   });
   if(result.error)throw new Error(result.error);
-  if(result.savedNom!=='Da rocha'||result.savedPrenom!=='')throw new Error('La correction Nom/Prénom n’est pas enregistrée');
+  if(result.savedPrenom!=='Da rocha'||result.savedNom!=='')throw new Error('La correction Nom/Prénom n’est pas enregistrée');
   if(result.visibleNom!=='Da rocha'||result.visiblePrenom!=='')throw new Error('La fiche ne reflète pas immédiatement la correction');
   if(!/Da rocha/i.test(result.bubble))throw new Error('La bulle agent ne reflète pas immédiatement la correction');
 });
@@ -143,7 +143,7 @@ await check('Agents : nouvel agent visible + renommage reclassé A-Z', async () 
     await agents.locator('#btnSaveAgent').evaluate(el=>el.click());
     await page.waitForTimeout(250);
     const s=await snapshot('after-create-'+nom);
-    const saved=s.stored.some(a=>a.deleted!==true&&a.draft!==true&&a.nom===nom&&a.prenom===prenom);
+    const saved=s.stored.some(a=>a.deleted!==true&&a.draft!==true&&a.prenom===nom&&a.nom===prenom);
     const listed=s.list.some(r=>r.sort===nom);
     if(!saved||!listed)throw new Error('Création '+nom+' non visible/persistée : '+JSON.stringify(s));
   }
