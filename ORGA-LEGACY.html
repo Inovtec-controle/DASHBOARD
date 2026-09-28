@@ -20,7 +20,8 @@
     .task-list.drag-over{outline:2px dashed var(--brand);outline-offset:-5px;background:#ecfdf5}
     .task{background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:8px;box-shadow:0 4px 12px rgba(15,23,42,.06)}
     .task.dragging{opacity:.5}
-    .task-title{font-weight:800;font-size:13px;word-break:break-word}
+    .task-title{font-weight:800;font-size:13px;word-break:break-word;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+    .task-title:active{cursor:grabbing}
     .task-desc{font-size:12px;color:#475569;white-space:pre-wrap;margin-top:5px}
     .task-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
     .tag{font-size:10px;border-radius:999px;padding:4px 7px;border:1px solid var(--border);background:#f8fafc}
@@ -120,6 +121,8 @@
   let syncingFromCloud = false;
   let draggedId = null;
   let migrationPending = false;
+  let pendingWrites = 0;
+  let saveChain = Promise.resolve();
 
   const $ = id => document.getElementById(id);
   const loginScreen = $("loginScreen");
@@ -168,27 +171,46 @@
   function saveLocal(){
     localStorage.setItem(LOCAL_KEY, JSON.stringify(tasks));
   }
-  async function saveCloud(){
+  function saveCloud(){
     saveLocal();
     render();
-    if(!currentUser || syncingFromCloud) return;
-    setSync("Enregistrement…");
-    try{
-      await db.collection("kanban").doc(currentUser.uid).set({
-        tasks,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, {merge:true});
-      setSync("Synchronisé","ok");
-    }catch(error){
-      console.error(error);
-      setSync("Sauvegarde locale seulement","warning");
+    if(!currentUser){
+      setSync("Connexion Firebase requise","warning");
+      return Promise.resolve(false);
     }
+    const owner = currentUser.uid;
+    const payload = JSON.parse(JSON.stringify(tasks));
+    pendingWrites += 1;
+    setSync("Enregistrement…");
+    const write = async () => {
+      try{
+        await db.collection("kanban").doc(owner).set({
+          tasks:payload,
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+        if(currentUser?.uid === owner) setSync("Synchronisé","ok");
+        return true;
+      }catch(error){
+        console.error(error);
+        if(currentUser?.uid === owner) setSync("Enregistrement Firebase impossible","warning");
+        return false;
+      }finally{
+        pendingWrites = Math.max(0,pendingWrites-1);
+      }
+    };
+    saveChain = saveChain.then(write,write);
+    return saveChain;
   }
   function startRealtime(){
     if(unsubscribe){ unsubscribe(); unsubscribe = null; }
     setSync("Synchronisation…");
     unsubscribe = db.collection("kanban").doc(currentUser.uid).onSnapshot(snap=>{
       syncingFromCloud = true;
+      if(pendingWrites > 0){
+        render();
+        setTimeout(()=>{ syncingFromCloud = false; },0);
+        return;
+      }
       if(snap.exists && Array.isArray(snap.data().tasks)){
         tasks = snap.data().tasks;
         saveLocal();
@@ -242,44 +264,58 @@
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = label;
+    button.draggable = false;
     if(className) button.className = className;
-    button.addEventListener("click", handler);
+    button.addEventListener("pointerdown",e=>e.stopPropagation());
+    button.addEventListener("dragstart",e=>e.preventDefault());
+    button.addEventListener("click",e=>{e.stopPropagation();handler(e);});
     return button;
   }
+  function setTaskStatus(id,status){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || task.archived || !FLOW.includes(status)) return false;
+    if(task.status === status) return true;
+    task.status = status;
+    task.updatedAt = new Date().toISOString();
+    saveCloud();
+    return true;
+  }
   function moveTask(id, direction){
-    const task = tasks.find(t=>t.id === id);
+    const task = tasks.find(t=>String(t.id) === String(id));
     if(!task || task.archived) return;
     const i = FLOW.indexOf(task.status);
     const next = direction === "next" ? i + 1 : i - 1;
     if(next < 0 || next >= FLOW.length) return;
-    task.status = FLOW[next];
-    saveCloud();
+    setTaskStatus(task.id,FLOW[next]);
   }
   function archiveTask(id){
-    const task = tasks.find(t=>t.id === id);
-    if(!task || task.status !== "done") return;
-    if(!confirm(`Archiver « ${task.title} » ?`)) return;
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || task.archived) return;
+    if(!confirm(`Archiver « ${task.title || "cette tâche"} » ?`)) return;
+    task.previousStatus = FLOW.includes(task.status) ? task.status : "todo";
     task.archived = true;
     task.archivedAt = new Date().toISOString();
+    task.updatedAt = task.archivedAt;
     saveCloud();
   }
   function restoreTask(id){
-    const task = tasks.find(t=>t.id === id);
+    const task = tasks.find(t=>String(t.id) === String(id));
     if(!task) return;
     task.archived = false;
     task.archivedAt = "";
-    task.status = "done";
+    task.status = FLOW.includes(task.previousStatus) ? task.previousStatus : "todo";
+    task.updatedAt = new Date().toISOString();
     saveCloud();
   }
   function deleteTask(id){
-    const task = tasks.find(t=>t.id === id);
+    const task = tasks.find(t=>String(t.id) === String(id));
     if(!task || !confirm(`Supprimer définitivement « ${task.title} » ?`)) return;
     tasks = tasks.filter(t=>t.id !== id);
     if(editingId === id) resetForm();
     saveCloud();
   }
   function editTask(id){
-    const task = tasks.find(t=>t.id === id);
+    const task = tasks.find(t=>String(t.id) === String(id));
     if(!task) return;
     editingId = id;
     $("title").value = task.title || "";
@@ -301,15 +337,67 @@
     $("submitLabel").textContent = "Ajouter la tâche";
     $("cancelEditBtn").classList.add("hidden");
   }
+  function clearDragOver(){
+    document.querySelectorAll(".task-list.drag-over").forEach(el=>el.classList.remove("drag-over"));
+  }
+  function bindTouchDrag(handle,card,task){
+    let pointerId=null,startX=0,startY=0,active=false;
+    const cleanup=()=>{
+      if(pointerId!==null){
+        try{handle.releasePointerCapture(pointerId);}catch{}
+      }
+      pointerId=null;
+      active=false;
+      card.classList.remove("dragging");
+      clearDragOver();
+    };
+    handle.addEventListener("pointerdown",e=>{
+      if(e.pointerType==="mouse" || e.button!==0 || task.archived) return;
+      pointerId=e.pointerId;
+      startX=e.clientX;
+      startY=e.clientY;
+      active=false;
+      try{handle.setPointerCapture(pointerId);}catch{}
+    });
+    handle.addEventListener("pointermove",e=>{
+      if(pointerId!==e.pointerId)return;
+      const distance=Math.hypot(e.clientX-startX,e.clientY-startY);
+      if(!active && distance<10)return;
+      active=true;
+      card.classList.add("dragging");
+      clearDragOver();
+      const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.(".task-list");
+      if(target)target.classList.add("drag-over");
+      e.preventDefault();
+    });
+    handle.addEventListener("pointerup",e=>{
+      if(pointerId!==e.pointerId)return;
+      if(active){
+        const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.(".task-list");
+        const status=target?.dataset?.status;
+        if(status)setTaskStatus(task.id,status);
+        e.preventDefault();
+      }
+      cleanup();
+    });
+    handle.addEventListener("pointercancel",cleanup);
+  }
   function createTaskCard(task){
     const card = document.createElement("article");
     card.className = "task";
     card.draggable = true;
     card.dataset.id = task.id;
     card.addEventListener("dragstart", e=>{
-      draggedId = task.id;
+      if(e.target?.closest?.("button")){
+        e.preventDefault();
+        return;
+      }
+      draggedId = String(task.id);
       card.classList.add("dragging");
-      e.dataTransfer?.setData("text/plain", task.id);
+      if(e.dataTransfer){
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain",String(task.id));
+      }
     });
     card.addEventListener("dragend", ()=>{
       draggedId = null;
@@ -318,8 +406,10 @@
 
     const title = document.createElement("div");
     title.className = "task-title";
+    title.title = "Faire glisser pour déplacer la tâche";
     title.textContent = task.title || "(Sans titre)";
     card.appendChild(title);
+    bindTouchDrag(title,card,task);
 
     if(task.description){
       const desc = document.createElement("div");
@@ -348,7 +438,7 @@
     if(index > 0) actions.appendChild(makeButton("←",()=>moveTask(task.id,"prev")));
     if(index < FLOW.length-1) actions.appendChild(makeButton("→",()=>moveTask(task.id,"next")));
     actions.appendChild(makeButton("Modifier",()=>editTask(task.id)));
-    if(task.status === "done") actions.appendChild(makeButton("Archiver",()=>archiveTask(task.id)));
+    actions.appendChild(makeButton("Archiver",()=>archiveTask(task.id)));
     actions.appendChild(makeButton("Supprimer",()=>deleteTask(task.id),"danger"));
     card.appendChild(actions);
     return card;
@@ -379,13 +469,12 @@
       list.className = "task-list";
       list.dataset.status = status;
       list.addEventListener("dragover",e=>{e.preventDefault();list.classList.add("drag-over");});
-      list.addEventListener("dragleave",()=>list.classList.remove("drag-over"));
+      list.addEventListener("dragleave",e=>{if(!list.contains(e.relatedTarget))list.classList.remove("drag-over");});
       list.addEventListener("drop",e=>{
         e.preventDefault();
-        list.classList.remove("drag-over");
+        clearDragOver();
         const id = draggedId || e.dataTransfer?.getData("text/plain");
-        const task = tasks.find(t=>t.id === id);
-        if(task && !task.archived){ task.status = status; saveCloud(); }
+        if(id)setTaskStatus(id,status);
       });
       if(!listTasks.length){
         const empty = document.createElement("div");
