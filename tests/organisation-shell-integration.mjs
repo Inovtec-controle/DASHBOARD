@@ -81,7 +81,10 @@ try{
 
   await frame.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver'}).click();
   await frame.locator('#board .task[data-id="shell-archive"]').waitFor({state:'detached',timeout:5000});
-  await frame.locator('#archiveList').getByText('Archiver depuis le shell').waitFor({timeout:5000});
+  await frame.locator('#ivArchiveButton').waitFor({timeout:5000});
+  await frame.locator('#ivArchiveButton').click();
+  await frame.locator('#ivArchiveModal.iv-open').waitFor({timeout:5000});
+  await frame.locator('#archiveList').getByText('Archiver depuis le shell').waitFor({state:'visible',timeout:5000});
 
   const writes=await frame.locator('body').evaluate(()=>window.__orgaShellTest?.writes||0);
   if(writes<2)throw Error('Les actions Organisation du shell ne sont pas envoyées à Firebase');
