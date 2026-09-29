@@ -20,7 +20,7 @@ window.InovtecFirebaseIndicator={setState:(s,m)=>apply(s,m,true),getState:()=>st
 window.addEventListener("inovtec:firebase-status",e=>{const d=e.detail||{};apply(d.state||"loading",d.message||"",true)});
 function infer(text){
   const t=String(text||"").trim().toLowerCase();if(!t)return null;
-  if(/erreur|impossible|indisponible|hors[ -]?ligne|échec|echec|déconnect|deconnect|non connecté|non connecte|permission|refus/.test(t))return{state:"error",message:String(text).trim()};
+  if(/erreur|impossible|indisponible|inaccessible|hors[ -]?ligne|échec|echec|déconnect|deconnect|non connecté|non connecte|permission|refus/.test(t))return{state:"error",message:String(text).trim()};
   if(/connexion|chargement|synchronisation en cours|synchronisation…|synchronisation\.\.\.|sauvegarde en cours|envoi en cours|patiente/.test(t)&&!/connecté|connecte|synchronisé|synchronise/.test(t))return{state:"loading",message:String(text).trim()};
   if(/synchronisé|synchronise|connecté|connecte|en ligne|firebase.*(?:ok|actif)|données synchronisées|donnees synchronisees/.test(t))return{state:"connected",message:String(text).trim()};
   return null;
