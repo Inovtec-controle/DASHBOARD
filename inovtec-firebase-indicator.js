@@ -1,6 +1,7 @@
 (()=>{
 "use strict";
-let state="loading",message="Vérification de Firebase en cours",authResolved=false,signedIn=false,lastExternal=0;\nconst firebaseCheckStartedAt=Date.now();
+let state="loading",message="Vérification de Firebase en cours",authResolved=false,signedIn=false,lastExternal=0;
+const firebaseCheckStartedAt=Date.now();
 const LABELS={loading:"Vérification de Firebase en cours",connected:"Firebase accessible",error:"Problème de connexion Firebase"};
 function host(){return document.querySelector(".iv-date,.hero-date")}
 function indicator(){
@@ -64,7 +65,10 @@ function poll(){
   if(local?.state==="error"){apply("error",local.message);return}
   if(local?.state==="loading"){apply("loading",local.message);return}
   // Une session Auth ouverte, ou un badge d'une page, ne prouve pas que Firestore répond.
-  if(health?.ok!==true){\n    if(Date.now()-firebaseCheckStartedAt>10000){apply("error","Lecture Firebase non confirmée");return}\n    apply("loading","Compte connecté · lecture Firestore non encore confirmée");return\n  }
+  if(health?.ok!==true){
+    if(Date.now()-firebaseCheckStartedAt>10000){apply("error","Lecture Firebase non confirmée");return}
+    apply("loading","Compte connecté · lecture Firestore non encore confirmée");return
+  }
   if(local?.state==="connected"){
     apply("connected","Firebase accessible · "+local.message+" (état annoncé par la rubrique)");return;
   }
