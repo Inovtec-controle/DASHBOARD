@@ -206,7 +206,7 @@
     if(unsubscribe){ unsubscribe(); unsubscribe = null; }
     if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
     const owner = currentUser.uid;
-    const ref = db.collection("kanban").doc(owner);
+    const ref = db.collection("kanban").doc(currentUser.uid);
     let firstRemoteState = false;
     setSync("Synchronisation…");
     realtimeWatchdog = setTimeout(async ()=>{
