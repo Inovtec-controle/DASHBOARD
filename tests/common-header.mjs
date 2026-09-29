@@ -1,7 +1,7 @@
 import {chromium} from 'playwright';
 import {readFileSync} from 'node:fs';
 const config=readFileSync('firebase-config.js','utf8');
-if(!config.includes('inovtec-common-header.js?v=20260923-sync-integrity2'))throw Error('Version Firebase + affichage de l’en-tête non chargée via la configuration commune');
+if(!config.includes('inovtec-common-header.js?v=20260929-organisation5'))throw Error('Version Firebase + affichage de l’en-tête non chargée via la configuration commune');
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 try{
  const page=await browser.newPage({viewport:{width:1280,height:850}});
