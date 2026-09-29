@@ -55,8 +55,8 @@ try{
   const organisation=page.locator('a[data-iv-menu-key="organisation"]').first();
   await organisation.waitFor({timeout:10000});
   const href=await organisation.getAttribute('href');
-  if(!href?.includes('ORGA-LEGACY.html%3Fv%3D20260929-organisation3'))throw Error('Le menu global pointe encore vers une ancienne version Organisation : '+href);
-  if(!href?.includes('build=20260929-organisation3'))throw Error('Le shell Organisation utilise encore un ancien build : '+href);
+  if(!href?.includes('ORGA-LEGACY.html%3Fv%3D20260929-organisation4'))throw Error('Le menu global pointe encore vers une ancienne version Organisation : '+href);
+  if(!href?.includes('build=20260929-organisation4'))throw Error('Le shell Organisation utilise encore un ancien build : '+href);
 
   await organisation.click();
   await page.waitForURL(/inovtec-page-shell\.html.*mode=organisation/i,{timeout:10000});
@@ -67,7 +67,16 @@ try{
   await page.waitForFunction(()=>{
     const el=document.getElementById('ivFirebaseIndicator');
     return el?.dataset?.state==='connected';
-  },null,{timeout:10000});
+  },null,{timeout:12000}).catch(async error=>{
+    const diagnostic=await page.evaluate(()=>({
+      indicator:document.getElementById('ivFirebaseIndicator')?.dataset?.state||'absent',
+      title:document.getElementById('ivFirebaseIndicator')?.title||'',
+      health:window.InovtecFirebaseOperational||null,
+      mirror:document.getElementById('syncMirror')?.textContent||'',
+      frameStatus:document.getElementById('legacyFrame')?.contentDocument?.getElementById('syncStatus')?.textContent||''
+    }));
+    throw Error('Indicateur Firebase non connecté : '+JSON.stringify(diagnostic)+' · '+error.message);
+  });
 
   await frame.locator('.task[data-id="shell-move"]').dragTo(frame.locator('.task-list[data-status="blocked"]'));
   await frame.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]').waitFor({timeout:5000});
