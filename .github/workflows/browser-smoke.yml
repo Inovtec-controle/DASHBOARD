@@ -55,5 +55,6 @@ jobs:
           node tests/planning-recurrence-direct.mjs
           node tests/firebase-org-migration.mjs
           node tests/organisation-actions.mjs
+          node tests/organisation-shell-integration.mjs
           node tests/firebase-diagnostic.mjs
           node tests/shell-refresh-performance.mjs
