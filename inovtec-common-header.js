@@ -3,6 +3,7 @@
 'use strict';
 if(window !== window.top || window.__INOVTEC_COMMON_HEADER_V1__)return;
 window.__INOVTEC_COMMON_HEADER_V1__=true;
+const mode=(new URLSearchParams(location.search).get('mode')||'').toLowerCase();
 const DATE=new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 const TIME=new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit'});
 const STYLES=`
@@ -91,7 +92,7 @@ function tick(){if(!tile?.isConnected)return;const now=new Date();const date=til
 let syncReadyAfter=Date.now()+650,lastLocalState='',syncTimer=null;
 function inferSync(text){
  const raw=String(text||'').trim(),t=raw.toLowerCase();if(!t)return null;
- if(/erreur|impossible|indisponible|hors[ -]?ligne|échec|echec|déconnect|deconnect|non connecté|non connecte|permission|refus/.test(t))return{state:'error',message:raw};
+ if(/erreur|impossible|indisponible|inaccessible|hors[ -]?ligne|échec|echec|déconnect|deconnect|non connecté|non connecte|permission|refus/.test(t))return{state:'error',message:raw};
  if(/connexion|chargement|synchronisation en cours|synchronisation…|synchronisation\.\.\.|sauvegarde en cours|envoi en cours|patiente/.test(t)&&!/connecté|connecte|synchronisé|synchronise/.test(t))return{state:'loading',message:raw};
  if(/synchronisé|synchronise|connecté|connecte|en ligne|firebase.*(?:ok|actif)|données synchronisées|donnees synchronisees|inventaire synchronisé|inventaire synchronise/.test(t))return{state:'connected',message:raw};
  return null;
@@ -153,6 +154,12 @@ function evaluateSyncMark(){
  const firebaseConfirmed=health?.ok===true||local?.state==='connected';
  if(authKnown&&!signedIn&&!firebaseConfirmed){setMarkState('loading','Connexion au compte Firebase en cours');return}
  if(!firebaseConfirmed){setMarkState('loading','Synchronisation Firebase non encore confirmée');return}
+ // Organisation possède déjà son propre état Firebase dans l'iframe.
+ // Dès que Firestore est confirmé ET que la rubrique annonce "Synchronisé",
+ // ne pas laisser la coche tourner à cause d'un contrôle d'affichage secondaire.
+ if(mode==='organisation'&&health?.ok===true&&local?.state==='connected'){
+  setMarkState('connected','Firebase synchronisé · Organisation opérationnelle');return
+ }
  const display=frameDisplayReady();
  if(!display.ok){setMarkState('loading',display.message);return}
  if(Date.now()<syncReadyAfter){setMarkState('loading','Vérification de l’affichage après synchronisation');return}
