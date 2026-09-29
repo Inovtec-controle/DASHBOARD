@@ -61,14 +61,14 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
       if (doc.getElementById('materialFrame')?.contentWindow === window) {
         if (!doc.querySelector('script[data-iv-common-header="1"]') && !p.__INOVTEC_COMMON_HEADER_V1__) {
           const header = doc.createElement('script');
-          header.src = 'inovtec-common-header.js?v=20260923-sync-integrity2';
+          header.src = 'inovtec-common-header.js?v=20260929-organisation5';
           header.dataset.ivCommonHeader = '1';
           header.async = false;
           (doc.head || doc.documentElement).appendChild(header);
         }
         if (!doc.querySelector('script[data-iv-stable-ui="1"]') && !p.__INOVTEC_UI_STABILITY_V1__) {
           const script = doc.createElement('script');
-          script.src = 'inovtec-ui-stability.js?v=20260929-organisation4';
+          script.src = 'inovtec-ui-stability.js?v=20260929-organisation5';
           script.dataset.ivStableUi = '1';
           script.async = false;
           (doc.head || doc.documentElement).appendChild(script);
@@ -78,21 +78,21 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
     }
     if (!document.querySelector('script[data-iv-common-header="1"]') && !window.__INOVTEC_COMMON_HEADER_V1__) {
       const header = document.createElement('script');
-      header.src = 'inovtec-common-header.js?v=20260923-sync-integrity2';
+      header.src = 'inovtec-common-header.js?v=20260929-organisation5';
       header.dataset.ivCommonHeader = '1';
       header.async = false;
       (document.head || document.documentElement).appendChild(header);
     }
     if (!document.querySelector('script[data-inovtec-firebase-operational="1"]')) {
       const script = document.createElement("script");
-      script.src = "inovtec-firebase-operational-guard.js?v=20260929-organisation4";
+      script.src = "inovtec-firebase-operational-guard.js?v=20260929-organisation5";
       script.dataset.inovtecFirebaseOperational = "1";
       script.async = false;
       (document.head || document.documentElement).appendChild(script);
     }
     if (!document.querySelector('script[data-iv-stable-ui="1"]') && !window.__INOVTEC_UI_STABILITY_V1__) {
       const script = document.createElement("script");
-      script.src = "inovtec-ui-stability.js?v=20260929-organisation4";
+      script.src = "inovtec-ui-stability.js?v=20260929-organisation5";
       script.dataset.ivStableUi = "1";
       script.async = false;
       (document.head || document.documentElement).appendChild(script);
