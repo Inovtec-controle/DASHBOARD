@@ -39,7 +39,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js"></script>
+  <script src="firebase-config.js?v=20260929-organisation3"></script>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -123,6 +123,7 @@
   let migrationPending = false;
   let pendingWrites = 0;
   let saveChain = Promise.resolve();
+  let realtimeWatchdog = null;
 
   const $ = id => document.getElementById(id);
   const loginScreen = $("loginScreen");
@@ -203,8 +204,31 @@
   }
   function startRealtime(){
     if(unsubscribe){ unsubscribe(); unsubscribe = null; }
+    if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
+    const owner = currentUser.uid;
+    const ref = db.collection("kanban").doc(owner);
+    let firstRemoteState = false;
     setSync("Synchronisation…");
-    unsubscribe = db.collection("kanban").doc(currentUser.uid).onSnapshot(snap=>{
+    realtimeWatchdog = setTimeout(async ()=>{
+      if(firstRemoteState || !currentUser || currentUser.uid !== owner) return;
+      try{
+        const snap = await ref.get({source:"server"});
+        if(!currentUser || currentUser.uid !== owner) return;
+        firstRemoteState = true;
+        if(snap.exists && Array.isArray(snap.data().tasks)){
+          tasks = snap.data().tasks;
+          saveLocal();
+        }
+        render();
+        setSync("Synchronisé","ok");
+      }catch(error){
+        console.error("Organisation Firebase timeout",error);
+        if(currentUser?.uid === owner) setSync("Firebase inaccessible","warning");
+      }
+    },7000);
+    unsubscribe = ref.onSnapshot(snap=>{
+      firstRemoteState = true;
+      if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
       syncingFromCloud = true;
       if(pendingWrites > 0){
         render();
@@ -254,10 +278,11 @@
       render();
       setTimeout(()=>{ syncingFromCloud = false; },0);
     }, error=>{
+      firstRemoteState = true;
+      if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
       console.error(error);
-      loadLocal();
       render();
-      setSync("Mode local","warning");
+      setSync("Firebase inaccessible","warning");
     });
   }
   function makeButton(label, handler, className=""){
@@ -577,6 +602,7 @@
     }else{
       currentUser = null;
       if(unsubscribe){unsubscribe();unsubscribe=null;}
+      if(realtimeWatchdog){clearTimeout(realtimeWatchdog);realtimeWatchdog=null;}
       app.classList.add("hidden");
       loginScreen.classList.remove("hidden");
       setSync("Déconnecté");
