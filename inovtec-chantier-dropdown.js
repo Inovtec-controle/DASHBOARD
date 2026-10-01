@@ -4,7 +4,7 @@
 if(window.__IV_SITE_DROPDOWN__)return;
 window.__IV_SITE_DROPDOWN__=true;
 const pickers=new Map();
-let sites=[];
+let sites=[],scanTimer=null;
 const labelOf=e=>String((e.labels?.[0]||e.closest('label')||(e.previousElementSibling?.matches?.('label')?e.previousElementSibling:null)||e.parentElement?.querySelector(':scope > label'))?.textContent||'').replace(/\s+/g,' ').trim();
 function eligible(e){
  return !e.dataset.ivSiteDropdown&&!e.closest('#siteForm')&&e.type!=='hidden'&&e.type!=='search'&&!e.disabled&&!e.readOnly&&/^(Chantier(?:\s*\/\s*(?:site|destination))?|Site(?:\s*\/|$)|Lieu\s*\/\s*Site)/i.test(labelOf(e));
@@ -61,8 +61,8 @@ function start(){
    });
   }catch(e){console.warn('Liste des chantiers indisponible',e)}
  }
- new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
- setInterval(scan,1200);
+ const scheduleScan=()=>{clearTimeout(scanTimer);scanTimer=setTimeout(scan,80)};
+ new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
