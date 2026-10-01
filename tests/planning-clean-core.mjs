@@ -43,8 +43,44 @@ try{
   await page.locator('.agent-row[data-agent-id="agent-a"]').click();
   assert((await page.locator('.agent-row.active').getAttribute('data-agent-id'))==='agent-a','Sélection agent incorrecte');
   await page.locator('.agent-row[data-agent-id="agent-b"]').click();
-  assert((await page.locator('.agent-row.active').getAttribute('data-agent-id'))==='agent-b','Le changement d’agent exige encore un clic sur Aujourd’hui');
+  assert((await page.locator('.agent-row.active').getAttribute('data-agent-id'))==='agent-b','Le changement d’agent ne sélectionne pas Bruno');
+
+  // Régression : une semaine récurrente doit apparaître dès le clic sur l'agent,
+  // sans devoir changer de semaine puis revenir.
+  await page.evaluate(()=>{
+    const clone=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    const addDays=(d,n)=>{const x=clone(d);x.setDate(x.getDate()+n);return x};
+    const mondayIndex=d=>(d.getDay()+6)%7;
+    const pad=n=>String(n).padStart(2,'0');
+    const isoWeekKey=d=>{const x=clone(d);x.setDate(x.getDate()+3-mondayIndex(x));const y=new Date(x.getFullYear(),0,4),w=1+Math.round(((x-y)/86400000-3+mondayIndex(y))/7);return x.getFullYear()+'-W'+pad(w)};
+    const current=new Date(),currentWeek=isoWeekKey(current),sourceWeek=isoWeekKey(addDays(current,-7));
+    window.__instantPlanningWeek=currentWeek;
+    window.InovtecPlanningAPI.replaceState({
+      agents:[
+        {id:'agent-a',refId:'agent-a',name:'Alice Test',color:'#4f9f57',copies:2,parityMode:'standard',parityTemplates:{even:'',odd:''},parityInheritedWeeks:{}},
+        {id:'agent-b',refId:'agent-b',name:'Bruno Test',color:'#4f8fd8',copies:2,parityMode:'standard',parityTemplates:{even:'',odd:''},parityInheritedWeeks:{}}
+      ],
+      weeks:{[sourceWeek]:[{id:'instant-seed',agentId:'agent-a',day:0,start:'09:00',end:'10:00',task:'Planning instantané',site:'Chantier Alpha',note:''}]},
+      selected:'agent-b',
+      standardRecurrence:{'agent-a':{template:sourceWeek,inheritedWeeks:{}}}
+    },{persist:false,source:'test-agent-instant'});
+  });
   await page.locator('.agent-row[data-agent-id="agent-a"]').click();
+  await page.locator('.event-card').filter({hasText:'Planning instantané'}).waitFor({state:'visible',timeout:5000});
+  const instantVisible=await page.evaluate(()=>{
+    const s=window.InovtecPlanningAPI.getState(),week=window.__instantPlanningWeek;
+    return (s.weeks?.[week]||[]).some(e=>e.agentId==='agent-a'&&e.task==='Planning instantané');
+  });
+  assert(instantVisible,'Le planning récurrent de l’agent ne s’affiche pas immédiatement au clic');
+
+  // Remise à zéro du scénario de régression pour la suite des tests.
+  await page.evaluate(()=>window.InovtecPlanningAPI.replaceState({
+    agents:[
+      {id:'agent-a',refId:'agent-a',name:'Alice Test',color:'#4f9f57',copies:2,parityMode:'standard',parityTemplates:{even:'',odd:''},parityInheritedWeeks:{}},
+      {id:'agent-b',refId:'agent-b',name:'Bruno Test',color:'#4f8fd8',copies:2,parityMode:'standard',parityTemplates:{even:'',odd:''},parityInheritedWeeks:{}}
+    ],
+    weeks:{},selected:'agent-a',standardRecurrence:{}
+  },{persist:false,source:'test-reset'}));
 
   // Vues
   for(const [view,selector] of [['day','.day-column'],['month','.month-view'],['list','.list-view'],['week','.day-column']]){
