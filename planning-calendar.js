@@ -381,8 +381,10 @@ function selectAgent(id){
   closeContext();
   state.selected=wanted;
   enforceSingleAgent();
-  renderAgents();
-  renderCalendarOnly();
+  // Un changement d'agent doit suivre exactement le même chemin de rendu
+  // qu'un changement de semaine : cela matérialise immédiatement les
+  // récurrences standard / paire-impaire de la semaine affichée.
+  render();
 }
 function updateMeta(){
   const key=isoWeekKey(currentDate),selected=agentById(state.selected),rows=entriesForWeek(key).filter(e=>String(e.agentId)===String(state.selected)).sort((a,b)=>Number(a.day)-Number(b.day)||String(a.start).localeCompare(String(b.start)));
@@ -398,8 +400,7 @@ function updateMeta(){
 function prepareAgentContext(a){
   state.selected=a.id;
   enforceSingleAgent();
-  renderAgents();
-  renderCalendarOnly();
+  render();
 }
 function renderAgents(){const q=$("agentSearch").value.trim().toLowerCase(),box=$("agentList");box.innerHTML="";const list=state.agents.filter(a=>!q||safeText(a.name).toLowerCase().includes(q));if(!list.length){const empty=document.createElement("div");empty.className="empty-state";empty.style.padding="28px 12px";empty.textContent=dataHub()?.readyAgents?"Aucun agent dans le Classeur Agents.":"Chargement des agents…";box.appendChild(empty);return}list.forEach(a=>{const row=document.createElement("div");row.className="agent-row"+(a.id===state.selected?" active":"");row.dataset.agentId=a.id;const dot=document.createElement("button");dot.type="button";dot.className="agent-dot"+(a.id===state.selected?" visible":"");dot.style.color=a.color;dot.title="Afficher uniquement le calendrier de "+a.name;dot.onclick=e=>{e.stopPropagation();selectAgent(a.id)};const name=document.createElement("div");name.className="agent-name";name.textContent=a.name;row.append(dot,name);row.onclick=()=>selectAgent(a.id);row.oncontextmenu=e=>{e.preventDefault();prepareAgentContext(a);openAgentMenu(a,e.clientX,e.clientY)};let press=null;row.addEventListener("touchstart",e=>{const t=e.touches[0];press=setTimeout(()=>{prepareAgentContext(a);openAgentMenu(a,t.clientX,t.clientY)},520)},{passive:true});row.addEventListener("touchend",()=>clearTimeout(press));row.addEventListener("touchmove",()=>clearTimeout(press));box.appendChild(row)})}
 async function addAgent(){const n=prompt("Nom du nouvel agent :");if(!n?.trim())return;const h=dataHub();try{if(h?.createAgent){const created=await h.createAgent(n.trim());syncAgentsFromHub();const a=state.agents.find(x=>x.refId===created.id);if(a)state.selected=a.id;save();render();return}}catch(e){console.error(e);alert("Création impossible dans le Classeur Agents.");return}const a={id:uid("a"),name:n.trim(),copies:2,color:COLORS[state.agents.length%COLORS.length],parityMode:"standard",parityTemplates:{even:"",odd:""},parityInheritedWeeks:{}};state.agents.push(a);state.selected=a.id;save();render()}
