@@ -39,7 +39,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20260929-organisation5"></script>
+  <script src="firebase-config.js?v=20261001-organisation6"></script>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -120,10 +120,10 @@
   let editingId = null;
   let syncingFromCloud = false;
   let draggedId = null;
-  let migrationPending = false;
   let pendingWrites = 0;
   let saveChain = Promise.resolve();
   let realtimeWatchdog = null;
+  let mutationRevision = 0;
 
   const $ = id => document.getElementById(id);
   const loginScreen = $("loginScreen");
@@ -172,7 +172,7 @@
   function saveLocal(){
     localStorage.setItem(LOCAL_KEY, JSON.stringify(tasks));
   }
-  function saveCloud(){
+  fu  function saveCloud(){
     saveLocal();
     render();
     if(!currentUser){
@@ -180,20 +180,39 @@
       return Promise.resolve(false);
     }
     const owner = currentUser.uid;
+    const ref = db.collection("kanban").doc(owner);
     const payload = JSON.parse(JSON.stringify(tasks));
+    const revision = ++mutationRevision;
     pendingWrites += 1;
     setSync("Enregistrement…");
+
     const write = async () => {
       try{
-        await db.collection("kanban").doc(owner).set({
+        await ref.set({
           tasks:payload,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         },{merge:true});
-        if(currentUser?.uid === owner) setSync("Synchronisé","ok");
+
+        // Ne jamais dépendre uniquement de onSnapshot pour valider une action.
+        // Après la dernière modification locale, relire explicitement le serveur.
+        if(currentUser?.uid === owner && revision === mutationRevision){
+          const check = await ref.get({source:"server"});
+          if(!check.exists || !Array.isArray(check.data()?.tasks)){
+            throw new Error("Firebase n’a pas confirmé la liste Organisation");
+          }
+          if(revision === mutationRevision){
+            tasks = check.data().tasks;
+            saveLocal();
+            render();
+            setSync("Synchronisé","ok");
+          }
+        }
         return true;
       }catch(error){
-        console.error(error);
-        if(currentUser?.uid === owner) setSync("Enregistrement Firebase impossible","warning");
+        console.error("Organisation Firebase save",error);
+        if(currentUser?.uid === owner && revision === mutationRevision){
+          setSync("Enregistrement Firebase impossible","warning");
+        }
         return false;
       }finally{
         pendingWrites = Math.max(0,pendingWrites-1);
@@ -202,90 +221,112 @@
     saveChain = saveChain.then(write,write);
     return saveChain;
   }
+
+  async function recoverRemoteTasks(owner, ref){
+    try{
+      // Si la liste personnelle n'existe pas, Firebase partagé passe avant
+      // toute ancienne copie navigateur.
+      const sharedRef = db.collection("chantiers").doc("__inovtec_shared_workspace_v1__");
+      const shared = await sharedRef.get({source:"server"});
+      if(!currentUser || currentUser.uid !== owner) return;
+
+      if(shared.exists && Array.isArray(shared.data()?.tasks)){
+        tasks = JSON.parse(JSON.stringify(shared.data().tasks));
+        saveLocal();
+        render();
+
+        // Matérialiser la liste partagée dans le document personnel afin que
+        // toutes les actions suivantes aient une seule cible Firebase stable.
+        await ref.set({
+          tasks:JSON.parse(JSON.stringify(tasks)),
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+        if(currentUser?.uid === owner) setSync("Synchronisé","ok");
+        return;
+      }
+
+      loadLocal();
+      render();
+      if(tasks.length){
+        // Dernier secours de migration historique : une seule écriture vers
+        // Firebase, puis Firebase redevient immédiatement la source de vérité.
+        await ref.set({
+          tasks:JSON.parse(JSON.stringify(tasks)),
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+        if(currentUser?.uid === owner) setSync("Synchronisé","ok");
+      }else if(currentUser?.uid === owner){
+        setSync("Aucune tâche enregistrée","ok");
+      }
+    }catch(error){
+      console.error("Organisation Firebase recovery",error);
+      if(currentUser?.uid === owner) setSync("Firebase inaccessible","warning");
+    }
+  }
+
   function startRealtime(){
     if(unsubscribe){ unsubscribe(); unsubscribe = null; }
     if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
     const owner = currentUser.uid;
-    const ref = db.collection("kanban").doc(currentUser.uid);
+    const ref = db.collection("kanban").doc(owner);
     let firstRemoteState = false;
+    let recoveryStarted = false;
     setSync("Synchronisation…");
+
     realtimeWatchdog = setTimeout(async ()=>{
       if(firstRemoteState || !currentUser || currentUser.uid !== owner) return;
       try{
         const snap = await ref.get({source:"server"});
         if(!currentUser || currentUser.uid !== owner) return;
         firstRemoteState = true;
-        if(snap.exists && Array.isArray(snap.data().tasks)){
+        if(snap.exists && Array.isArray(snap.data()?.tasks)){
           tasks = snap.data().tasks;
           saveLocal();
+          render();
+          setSync("Synchronisé","ok");
+        }else if(!recoveryStarted){
+          recoveryStarted = true;
+          await recoverRemoteTasks(owner,ref);
         }
-        render();
-        setSync("Synchronisé","ok");
       }catch(error){
         console.error("Organisation Firebase timeout",error);
         if(currentUser?.uid === owner) setSync("Firebase inaccessible","warning");
       }
     },7000);
+
     unsubscribe = ref.onSnapshot(snap=>{
       firstRemoteState = true;
       if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
-      syncingFromCloud = true;
+
+      // Les écritures locales sont déjà rendues à l'écran. Un instantané reçu
+      // pendant l'écriture ne doit jamais remettre l'ancienne version par-dessus.
       if(pendingWrites > 0){
         render();
-        setTimeout(()=>{ syncingFromCloud = false; },0);
         return;
       }
-      if(snap.exists && Array.isArray(snap.data().tasks)){
+
+      syncingFromCloud = true;
+      if(snap.exists && Array.isArray(snap.data()?.tasks)){
         tasks = snap.data().tasks;
         saveLocal();
+        render();
         setSync("Synchronisé","ok");
+      }else if(!recoveryStarted){
+        recoveryStarted = true;
+        void recoverRemoteTasks(owner,ref);
       }else{
-        loadLocal();
-        if(tasks.length && !migrationPending && currentUser){
-          // Une lecture distante ne doit pas se transformer en remplacement aveugle
-          // de tâches déjà présentes dans le document partagé ou personnel.
-          migrationPending = true;
-          const owner = currentUser.uid;
-          const localCopy = JSON.parse(JSON.stringify(tasks));
-          setSync("Vérification des tâches partagées…");
-          db.collection("chantiers").doc("__inovtec_shared_workspace_v1__").get()
-            .then(shared=>{
-              if(currentUser?.uid !== owner) return;
-              if(shared.exists && Array.isArray(shared.data()?.tasks)){
-                setSync("Reprise depuis l’espace partagé en cours…");
-                return;
-              }
-              // Relecture serveur immédiatement avant la migration : ne jamais
-              // remplacer une liste créée entre-temps par un autre appareil.
-              return db.collection("kanban").doc(owner).get({source:"server"}).then(fresh=>{
-                if(currentUser?.uid !== owner) return;
-                if(fresh.exists && Array.isArray(fresh.data()?.tasks)) return;
-                return db.collection("kanban").doc(owner).set({
-                  tasks:localCopy,
-                  updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-                },{merge:true}).then(()=>setSync("Tâches locales enregistrées sur Firebase","ok"));
-              });
-            })
-            .catch(error=>{
-              console.error("Reprise Firebase des tâches locales",error);
-              setSync("Reprise Firebase impossible — tâches locales conservées","warning");
-            })
-            .finally(()=>{migrationPending=false;});
-        }else if(!tasks.length){
-          setSync("Aucune tâche enregistrée","ok");
-        }
+        render();
       }
-      render();
       setTimeout(()=>{ syncingFromCloud = false; },0);
     }, error=>{
       firstRemoteState = true;
       if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
-      console.error(error);
+      console.error("Organisation Firebase realtime",error);
       render();
       setSync("Firebase inaccessible","warning");
     });
   }
-  function makeButton(label, handler, className=""){
+nction makeButton(label, handler, className=""){
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = label;
