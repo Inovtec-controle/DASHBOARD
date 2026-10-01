@@ -91,7 +91,7 @@ function publishOperational(ok,error=""){
 }
 function dataHubOperational(detail){
  const d=detail||{};
- if(d.readyAgents||d.readyChantiers){clearTimeout(connectivityTimer);publishOperational(true);return true}
+ if(d.firebaseAgentsOk===true&&d.firebaseSitesOk===true){clearTimeout(connectivityTimer);publishOperational(true);return true}
  return false;
 }
 async function connectivityCheck(){
@@ -109,7 +109,7 @@ function start(u){
   unsubs.push(p.onSnapshot(()=>reconcileVariables(),()=>{}),s.onSnapshot(()=>reconcileVariables(),()=>{}));
   reconcileVariables();
  }
- if(!dataHubOperational({readyAgents:window.InovtecDataHub?.readyAgents,readyChantiers:window.InovtecDataHub?.readyChantiers}))scheduleConnectivityCheck();
+ if(!dataHubOperational({firebaseAgentsOk:window.InovtecDataHub?.firebaseAgentsOk,firebaseSitesOk:window.InovtecDataHub?.firebaseSitesOk}))scheduleConnectivityCheck();
 }
 function boot(){
   if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG||!firebase.auth||!firebase.firestore){setTimeout(boot,120);return}
