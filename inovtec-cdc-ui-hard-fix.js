@@ -43,7 +43,6 @@ function install(){
   }
   apply();
 }
-frame?.addEventListener("load",()=>{setTimeout(install,120);setTimeout(install,500);setTimeout(install,1200)});
-setTimeout(install,300);
-setInterval(install,1000);
+frame?.addEventListener("load",()=>{setTimeout(install,100);setTimeout(install,420);setTimeout(install,1000)});
+setTimeout(install,240);
 })();
