@@ -1,5 +1,6 @@
 (()=>{
 "use strict";
+try{if(parent&&parent!==window&&parent.InovtecDataHub){window.InovtecDataHub=parent.InovtecDataHub;return}}catch{}
 const client="hub_"+Date.now()+"_"+Math.random().toString(16).slice(2);
 let user=null,docRef=null,agentRecords=[],chantiers=[],referentialLinks={},referentialUnresolvedSites=[],readyAgents=false,readyChantiers=false,unsubDoc=null,unsubSites=null;
 const listeners=new Set();
