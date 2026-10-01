@@ -27,6 +27,190 @@
   const DIRECT_PHOTO_CHUNK_SIZE = 180000;
   const MAX_DIRECT_PHOTOS = 20;
   const MAX_DIRECT_PHOTO_CHARS = 18 * 1024 * 1024;
+  let chantierReferences = [];
+  let chantierReferencesPromise = null;
+  let activeChecklistSiteId = "";
+  let checklistLoadSeq = 0;
+
+  function chantierName(site) {
+    return String(site?.nom || site?.name || site?.site || "").trim();
+  }
+
+  async function loadChantierReferences(force = false) {
+    if (!force && chantierReferences.length) return chantierReferences;
+    if (!force && chantierReferencesPromise) return chantierReferencesPromise;
+    chantierReferencesPromise = db.collection("chantiers").get().then(snap => {
+      chantierReferences = snap.docs
+        .map(doc => ({ id:doc.id, ...(doc.data() || {}) }))
+        .filter(site => !site._hidden && chantierName(site))
+        .sort((a,b) => chantierName(a).localeCompare(chantierName(b), "fr", { sensitivity:"base" }));
+      return chantierReferences;
+    }).finally(() => { chantierReferencesPromise = null; });
+    return chantierReferencesPromise;
+  }
+
+  function resolveChantierReference(raw) {
+    const target = normalize(raw);
+    if (!target) return null;
+    const exact = chantierReferences.filter(site => normalize(chantierName(site)) === target);
+    if (exact.length === 1) return exact[0];
+    const byAddress = chantierReferences.filter(site => normalize(site?.adresse || "") === target);
+    return byAddress.length === 1 ? byAddress[0] : null;
+  }
+
+  function checklistApi() {
+    try { return frame.contentWindow?.InovtecKontrolChecklist || null; }
+    catch { return null; }
+  }
+
+  function setChecklistSource(doc, mode) {
+    const count = doc.getElementById("tasksCount");
+    if (!count) return;
+    let badge = doc.getElementById("ivKontrolChecklistSource");
+    if (!badge) {
+      badge = doc.createElement("span");
+      badge.id = "ivKontrolChecklistSource";
+      badge.style.cssText = "font-size:12px;color:#64748b;margin-left:8px;font-weight:600";
+      count.insertAdjacentElement("afterend", badge);
+    }
+    badge.textContent = mode === "custom"
+      ? "Liste personnalisée pour ce chantier"
+      : mode === "default"
+        ? "Gabarit général copropriété"
+        : "";
+  }
+
+  async function applyChecklistForSite(site, doc = frame.contentDocument) {
+    const id = String(site?.id || "").trim();
+    if (!id || !doc?.body) return;
+    if (activeChecklistSiteId === id && doc.body.dataset.ivChecklistLoadedFor === id) return;
+    const seq = ++checklistLoadSeq;
+    activeChecklistSiteId = id;
+    const siteField = doc.getElementById("site");
+    if (siteField) siteField.dataset.ivChantierId = id;
+    try {
+      const snap = await db.collection("chantiers").doc(id).get();
+      if (seq !== checklistLoadSeq || !snap.exists) return;
+      const data = snap.data() || {};
+      const config = data.kontrolChecklistV1 || {};
+      const api = checklistApi();
+      if (!api) throw new Error("Le module de liste KONTROL n’est pas prêt");
+      if (config.customized === true && Array.isArray(config.items)) {
+        api.replaceChecklist(config.items, { silent:true });
+        setChecklistSource(doc, "custom");
+      } else {
+        api.useDefaultChecklist({ silent:true });
+        setChecklistSource(doc, "default");
+      }
+      doc.body.dataset.ivChecklistLoadedFor = id;
+    } catch (error) {
+      console.error("Chargement de la liste KONTROL impossible", error);
+      showToast("Impossible de charger la liste de contrôle de ce chantier.", true);
+    }
+  }
+
+  async function saveChecklistForActiveSite(detail, doc = frame.contentDocument) {
+    if (!doc?.body) return;
+    const siteField = doc.getElementById("site");
+    if (String(detail?.reason || "") === "import") {
+      const importedSite = resolveChantierReference(siteField?.value || "");
+      if (importedSite) {
+        activeChecklistSiteId = String(importedSite.id);
+        if (siteField) siteField.dataset.ivChantierId = activeChecklistSiteId;
+      }
+    }
+    const chantierId = String(siteField?.dataset?.ivChantierId || activeChecklistSiteId || "").trim();
+    if (!chantierId) {
+      showToast("Sélectionne d’abord un chantier enregistré pour personnaliser sa liste.", true);
+      return;
+    }
+    const reason = String(detail?.reason || "manual");
+    const items = (Array.isArray(detail?.items) ? detail.items : checklistApi()?.getChecklistNames?.() || [])
+      .map(value => String(value || "").trim())
+      .filter(Boolean);
+    const now = Date.now();
+    const config = reason === "reset-default"
+      ? { version:1, customized:false, updatedAtMs:now, source:"default-template" }
+      : { version:1, customized:true, items, updatedAtMs:now, source:"manual" };
+    try {
+      await db.collection("chantiers").doc(chantierId).set({ kontrolChecklistV1:config }, { merge:true });
+      const cached = chantierReferences.find(site => String(site.id) === chantierId);
+      if (cached) cached.kontrolChecklistV1 = config;
+      if (reason === "reset-default") {
+        setChecklistSource(doc, "default");
+        doc.body.dataset.ivChecklistLoadedFor = "";
+        if (!siteField?.value?.trim()) activeChecklistSiteId = "";
+        showToast("Le chantier utilise de nouveau le gabarit général.");
+      } else {
+        setChecklistSource(doc, "custom");
+        showToast("Liste de contrôle personnalisée enregistrée pour ce chantier.");
+      }
+    } catch (error) {
+      console.error("Sauvegarde de la liste KONTROL impossible", error);
+      showToast("La liste personnalisée n’a pas pu être enregistrée dans Firebase.", true);
+    }
+  }
+
+  function bindChecklistPersistence(doc) {
+    const child = frame.contentWindow;
+    if (!child || child.__ivKontrolChecklistPersistenceBound) return;
+    child.__ivKontrolChecklistPersistenceBound = true;
+    child.addEventListener("inovtec:kontrol-checklist-changed", event => {
+      void saveChecklistForActiveSite(event?.detail || {}, doc);
+    });
+  }
+
+  async function configureSitePicker(doc) {
+    const siteField = doc?.getElementById("site");
+    if (!siteField) return;
+    const sites = await loadChantierReferences();
+    if (!siteField.isConnected) return;
+    let list = doc.getElementById("ivKontrolSites");
+    if (!list) {
+      list = doc.createElement("datalist");
+      list.id = "ivKontrolSites";
+      doc.body.appendChild(list);
+    }
+    list.innerHTML = "";
+    sites.forEach(site => {
+      const option = doc.createElement("option");
+      option.value = chantierName(site);
+      const address = String(site?.adresse || "").trim();
+      if (address) option.label = address;
+      list.appendChild(option);
+    });
+    siteField.setAttribute("list", list.id);
+    siteField.placeholder = "Choisir un chantier enregistré…";
+
+    if (siteField.dataset.ivKontrolSitePickerBound !== "1") {
+      siteField.dataset.ivKontrolSitePickerBound = "1";
+      let timer = null;
+      const resolveSelection = () => {
+        clearTimeout(timer);
+        const selected = resolveChantierReference(siteField.value);
+        if (selected) {
+          siteField.dataset.ivChantierId = String(selected.id);
+          void applyChecklistForSite(selected, doc);
+        } else {
+          activeChecklistSiteId = "";
+          delete siteField.dataset.ivChantierId;
+          doc.body.dataset.ivChecklistLoadedFor = "";
+          setChecklistSource(doc, "");
+        }
+      };
+      siteField.addEventListener("change", resolveSelection);
+      siteField.addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(resolveSelection, 250);
+      });
+    }
+
+    const selected = resolveChantierReference(siteField.value);
+    if (selected) {
+      siteField.dataset.ivChantierId = String(selected.id);
+      void applyChecklistForSite(selected, doc);
+    }
+  }
 
   function showToast(message, isError = false) {
     clearTimeout(toastTimer);
@@ -91,6 +275,11 @@
         site.addEventListener("input", refresh);
         site.addEventListener("change", refresh);
       }
+      bindChecklistPersistence(doc);
+      void configureSitePicker(doc).catch(error => {
+        console.error("Préparation du sélecteur de chantier KONTROL impossible", error);
+        showToast("Impossible de charger les chantiers disponibles.", true);
+      });
       doc.getElementById("importFile")?.addEventListener("change", () => {
         setTimeout(() => updateControlWorkspaceVisibility(doc), 120);
       });
