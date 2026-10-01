@@ -28,7 +28,7 @@ const navDefinitions=[
  ['Classeur agents','♙','AGENTS.html?v=20260927-agentsflow19','agents','AGENTS-LEGACY.html?v=20260927-agentsflow19'],
  ['Matériel','▣','MATERIEL.html','materiel'],
  ['Réassort','↻','REASSORT.html','reassort'],
- ['Congés & absences','☂','CONGES.html','conges','CONGES-LEGACY.html?v=20260927-savecontrols1'],
+ ['Congés & absences','☂','CONGES.html?v=20261001-congesrealm1','conges','CONGES-LEGACY.html?v=20261001-congesrealm1'],
  ['Variables agents','◷','VARIABLES.html','variables','VARIABLES-DASHBOARD.html?v=20260927-savecontrols1'],
  ['Organisation','◎','ORGA.html?v=20261001-organisation6','organisation','ORGA-LEGACY.html?v=20261001-organisation6'],
  ['Conversion temps','⇄','TEMPS.html','temps','TEMPS-LEGACY.html?v=20260829-operational1'],
