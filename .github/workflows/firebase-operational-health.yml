@@ -45,7 +45,7 @@ jobs:
             'inovtec-firebase-operational-guard.js':['const VARIABLE_MODE="variables"','agentBinaryChunk','ivBinaryV1','__inovtec_shared_workspace_v1__'],
             'conges.js':['moduleSyncV1:{conges:'],
             'variables.js':['moduleSyncV1:{variables:'],
-            'ORGA-LEGACY.html':['db.collection("kanban").doc(currentUser.uid)'],
+            'ORGA-LEGACY.html':['const ref = db.collection("kanban").doc(owner)'],
             'inovtec-info-persistence-stable.js':['const ref=db.collection("chantiers").doc(String(site.id))','await ref.set(data,{merge:true})','await ref.get({source:"server"})','persist(d,wasNew,token,snapshot)'],
             'INFOCHANTIERS-V2-LEGACY.html':['collectSupplementalFields(data)','applySupplementalFields(site)','setSaveButtonState("saving")','setSaveButtonState("saved")','setSaveButtonState("error")','ivControlHistoryCard'],
             'inovtec-info-control-history.js':['chantierId','deleteControlRecord','readControlPhoto'],

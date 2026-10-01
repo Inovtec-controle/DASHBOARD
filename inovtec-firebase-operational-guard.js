@@ -10,7 +10,7 @@ const VARIABLE_MODE="variables";
 const CHUNK_SIZE=180000;
 const MAX_BINARY_SIZE=12*1024*1024;
 const mode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
-let auth=null,db=null,user=null,unsubs=[],busyVariables=false,variablesQueued=false,busyBinaries=false,binaryTimer=null;
+let auth=null,db=null,user=null,unsubs=[],busyVariables=false,variablesQueued=false,busyBinaries=false,binaryTimer=null,connectivityTimer=null;
 
 const clone=v=>v==null?v:JSON.parse(JSON.stringify(v));
 const parse=(s,f=null)=>{try{const v=JSON.parse(String(s||""));return v??f}catch{return f}};
@@ -83,12 +83,44 @@ function refreshAgentsFrame(){if(mode!=="agents")return;try{const f=document.get
 function patchAgentsMessage(){if(mode!=="agents")return;try{const d=document.getElementById("legacyFrame")?.contentDocument;if(!d?.body)return;const input=d.getElementById("docUpload");const note=input?.parentElement?.querySelector(".muted");if(note&&/stockés dans le navigateur/i.test(note.textContent||""))note.textContent="Les documents sont synchronisés en ligne pour rester disponibles sur ordinateur et téléphone."}catch{}}
 function scheduleBinaries(delay=350){clearTimeout(binaryTimer);binaryTimer=setTimeout(syncAgentBinaries,delay)}
 
-async function connectivityCheck(){if(!user||!db)return;try{await Promise.all([db.collection("kanban").doc(user.uid).get(),db.collection("chantiers").limit(1).get()]);window.InovtecFirebaseOperational={ok:true,checkedAt:new Date().toISOString(),projectId:window.INOVTEC_FIREBASE_CONFIG?.projectId||""};window.dispatchEvent(new CustomEvent("inovtec:firebase-operational",{detail:window.InovtecFirebaseOperational}))}catch(e){window.InovtecFirebaseOperational={ok:false,checkedAt:new Date().toISOString(),error:String(e?.message||e)};window.dispatchEvent(new CustomEvent("inovtec:firebase-operational",{detail:window.InovtecFirebaseOperational}))}}
+function publishOperational(ok,error=""){
+ window.InovtecFirebaseOperational=ok
+  ?{ok:true,checkedAt:new Date().toISOString(),projectId:window.INOVTEC_FIREBASE_CONFIG?.projectId||"",source:"operational-guard"}
+  :{ok:false,checkedAt:new Date().toISOString(),error:String(error||"lecture refusée")};
+ window.dispatchEvent(new CustomEvent("inovtec:firebase-operational",{detail:window.InovtecFirebaseOperational}));
+}
+function dataHubOperational(detail){
+ const d=detail||{};
+ if(d.firebaseAgentsOk===true&&d.firebaseSitesOk===true){clearTimeout(connectivityTimer);publishOperational(true);return true}
+ return false;
+}
+async function connectivityCheck(){
+ if(!user||!db||window.InovtecFirebaseOperational?.ok===true)return;
+ try{await db.collection("kanban").doc(user.uid).get();publishOperational(true)}
+ catch(e){publishOperational(false,e?.message||e)}
+}
+function scheduleConnectivityCheck(delay=2500){clearTimeout(connectivityTimer);connectivityTimer=setTimeout(()=>{if(window.InovtecFirebaseOperational?.ok!==true)void connectivityCheck()},delay)}
 function clearSubs(){unsubs.forEach(fn=>{try{fn()}catch{}});unsubs=[]}
-function start(u){clearSubs();user=u||null;if(!user)return;const p=db.collection("kanban").doc(user.uid),s=db.collection("chantiers").doc(SHARED_WORKSPACE_ID);unsubs.push(p.onSnapshot(()=>reconcileVariables(),()=>{}),s.onSnapshot(()=>reconcileVariables(),()=>{}));reconcileVariables();if(mode!=="agents")scheduleBinaries(500);connectivityCheck()}
+function start(u){
+ clearSubs();user=u||null;
+ if(!user){clearTimeout(connectivityTimer);return}
+ if(mode==="variables"){
+  const p=db.collection("kanban").doc(user.uid),s=db.collection("chantiers").doc(SHARED_WORKSPACE_ID);
+  unsubs.push(p.onSnapshot(()=>reconcileVariables(),()=>{}),s.onSnapshot(()=>reconcileVariables(),()=>{}));
+  reconcileVariables();
+ }
+ if(!dataHubOperational({firebaseAgentsOk:window.InovtecDataHub?.firebaseAgentsOk,firebaseSitesOk:window.InovtecDataHub?.firebaseSitesOk}))scheduleConnectivityCheck();
+}
 function boot(){
   if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG||!firebase.auth||!firebase.firestore){setTimeout(boot,120);return}
-  try{if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();auth.onAuthStateChanged(start);window.addEventListener("online",()=>{if(user){reconcileVariables();if(mode!=="agents")scheduleBinaries(150);connectivityCheck()}});window.addEventListener("focus",()=>{if(user){reconcileVariables();if(mode!=="agents")scheduleBinaries(180)}});document.addEventListener("visibilitychange",()=>{if(!document.hidden&&user){reconcileVariables();if(mode!=="agents")scheduleBinaries(180)}});document.getElementById("legacyFrame")?.addEventListener("load",()=>{if(mode!=="agents")scheduleBinaries(250);setTimeout(patchAgentsMessage,350)})}catch(e){console.warn("Démarrage garde-fou Firebase",e)}
+  try{
+   if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();auth.onAuthStateChanged(start);
+   window.addEventListener("inovtec:datahub",e=>dataHubOperational(e.detail));
+   window.addEventListener("online",()=>{if(!user)return;if(mode==="variables")reconcileVariables();scheduleConnectivityCheck(500)});
+   window.addEventListener("focus",()=>{if(user&&mode==="variables")reconcileVariables()});
+   document.addEventListener("visibilitychange",()=>{if(!document.hidden&&user&&mode==="variables")reconcileVariables()});
+   document.getElementById("legacyFrame")?.addEventListener("load",()=>setTimeout(patchAgentsMessage,350));
+  }catch(e){console.warn("Démarrage garde-fou Firebase",e)}
 }
 boot();
 })();

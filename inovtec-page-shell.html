@@ -10,6 +10,9 @@
 <title>Inovtec Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="//firestore.googleapis.com">
+<link rel="dns-prefetch" href="//identitytoolkit.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="inovtec-shell.css?v=20260829-agentfull1">
 <link rel="stylesheet" href="inovtec-shell-v2.css?v=20260815-2">
@@ -43,12 +46,12 @@
 </div>
 <nav id="mobileNav" class="iv-mobile-nav" aria-label="Navigation mobile"></nav>
 <!-- Initialiser l'iframe locale AVANT les services externes : une panne Firebase ne doit pas bloquer l'affichage. -->
-<script src="inovtec-shell.js?v=20261001-congesmonth1"></script>
+<script src="inovtec-shell.js?v=20261001-perf1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=20261001-organisation6"></script>
-<script src="inovtec-data-hub.js?v=20260927-agentsfirebase4"></script>
+<script src="firebase-config.js?v=20261001-perf1"></script>
+<script src="inovtec-data-hub.js?v=20261001-perf1"></script>
 <script>
 {
   const shellMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
@@ -59,7 +62,14 @@
   }
 }
 </script>
-<script src="inovtec-shared-workspace.js?v=20260829-agentclean1"></script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(["planning","agents","heures","conges","organisation","discipline"].includes(ivMode)){
+    document.write('<scr'+'ipt src="inovtec-shared-workspace.js?v=20261001-perf1"></scr'+'ipt>');
+  }
+}
+</script>
 <script>
 {
   const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
@@ -68,8 +78,7 @@
   }
 }
 </script>
-<script src="inovtec-firebase-operational-guard.js?v=20261001-organisation6"></script>
-<script src="inovtec-firebase-indicator.js?v=20261001-organisation6"></script>
+<script src="inovtec-firebase-indicator.js?v=20261001-perf1"></script>
 <script>
 {
   const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
@@ -78,8 +87,17 @@
   }
 }
 </script>
-<script src="inovtec-referential.js?v=20260829-agentclean1"></script>
-<script src="inovtec-cross-page-data.js?v=20260829-agentclean1"></script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(["discipline","infos","heures","kontrol","organisation","planning","agents"].includes(ivMode)){
+    document.write('<scr'+'ipt src="inovtec-referential.js?v=20261001-perf1"></scr'+'ipt>');
+  }
+  if(["heures","kontrol"].includes(ivMode)){
+    document.write('<scr'+'ipt src="inovtec-cross-page-data.js?v=20261001-perf1"></scr'+'ipt>');
+  }
+}
+</script>
 <script src="inovtec-visual-runtime.js?v=20260917-planning-live3"></script>
 <script>
 {
@@ -160,7 +178,7 @@
 {
   const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(ivMode==="infos"){
-    ["inovtec-cahier-des-charges.js?v=20260904-observations1","inovtec-cdc-source-formats.js?v=20260829-operational1","inovtec-cdc-schedule-fields.js?v=20260904-editdays1","inovtec-cdc-import-excel.js?v=20260904-excel4","inovtec-cdc-import-pdf.js?v=20260815-1","inovtec-cdc-importer.js?v=20260904-importui1","inovtec-cdc-compact-columns.js?v=20260904-observations1","inovtec-cdc-operational-fix.js?v=20260904-editdays1","inovtec-cdc-ui-hard-fix.js?v=20260829-operational1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+    ["inovtec-cahier-des-charges.js?v=20260904-observations1","inovtec-cdc-source-formats.js?v=20260829-operational1","inovtec-cdc-schedule-fields.js?v=20260904-editdays1","inovtec-cdc-import-excel.js?v=20260904-excel4","inovtec-cdc-import-pdf.js?v=20260815-1","inovtec-cdc-importer.js?v=20260904-importui1","inovtec-cdc-compact-columns.js?v=20260904-observations1","inovtec-cdc-operational-fix.js?v=20261001-perf1","inovtec-cdc-ui-hard-fix.js?v=20261001-perf1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
   }
 }
 </script>
@@ -176,7 +194,7 @@
 {
   const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(ivMode==="infos"){
-    ["inovtec-info-save-placement.js?v=20260829-sitehistory3","inovtec-info-contact-mode.js?v=20260829-idlock1","inovtec-info-contract-fields.js?v=20260829-idlock1","inovtec-info-top-layout.js?v=20260818-4","inovtec-info-persistence-stable.js?v=20260924-materiel-residence1","inovtec-pdf-cdc-header-white.js?v=20260819-3","inovtec-info-agent-pdf-v8.js?v=20260924-agent-no-material-list1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+    ["inovtec-info-save-placement.js?v=20261001-perf1","inovtec-info-contact-mode.js?v=20260829-idlock1","inovtec-info-contract-fields.js?v=20260829-idlock1","inovtec-info-top-layout.js?v=20260818-4","inovtec-info-persistence-stable.js?v=20261001-perf1","inovtec-pdf-cdc-header-white.js?v=20260819-3","inovtec-info-agent-pdf-v8.js?v=20261001-perf1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
   }
 }
 </script>

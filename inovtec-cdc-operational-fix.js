@@ -7,7 +7,7 @@ const frame=document.getElementById("legacyFrame"),fb=window.firebase;
 let db=fb?.firestore?.(),auth=fb?.auth?.();
 function refreshFirebase(){db=db||fb?.firestore?.();auth=auth||fb?.auth?.();return db}
 const DAYS=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-let patchedDoc=null,suggestionSiteId="",suggestionRows=[],suggestionLoadedAt=0,suggestionLoadPromise=null,dismissedSuggestions={zone:new Set(),prestation:new Set()};
+let patchedDoc=null,installObserver=null,installTimer=null,suggestionSiteId="",suggestionRows=[],suggestionLoadedAt=0,suggestionLoadPromise=null,dismissedSuggestions={zone:new Set(),prestation:new Set()};
 const GLOBAL_SUGGESTION_TTL=60000;
 const txt=v=>String(v??"").trim(),uid=()=>"cdc_"+Date.now()+"_"+Math.random().toString(16).slice(2),norm=v=>txt(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 function legacyRowId(row){
@@ -335,6 +335,16 @@ function patchImport(d){
  b.replaceWith(n);
 }
 window.InovtecCdcOperationalSave=d=>save(d);
-function install(){refreshFirebase();const d=D();if(!d?.body)return;if(d!==patchedDoc)patchedDoc=d;patchManual(d);patchImport(d)}
-frame?.addEventListener("load",()=>{setTimeout(install,300);setTimeout(install,900);setTimeout(install,1700)});setTimeout(install,600);setInterval(install,900);
+function scheduleInstall(){clearTimeout(installTimer);installTimer=setTimeout(install,60)}
+function install(){
+ refreshFirebase();const d=D();if(!d?.body)return;
+ if(d!==patchedDoc){
+  patchedDoc=d;
+  try{installObserver?.disconnect()}catch{}
+  installObserver=new MutationObserver(scheduleInstall);
+  installObserver.observe(d.body,{childList:true,subtree:true});
+ }
+ patchManual(d);patchImport(d)
+}
+frame?.addEventListener("load",()=>{setTimeout(install,180);setTimeout(install,650);setTimeout(install,1400)});setTimeout(install,350);
 })();

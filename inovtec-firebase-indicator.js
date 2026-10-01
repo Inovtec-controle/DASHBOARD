@@ -87,8 +87,9 @@ function bindFirebase(){
   }catch(e){authResolved=true;signedIn=false;apply("error","Problème de connexion Firebase")}
 }
 window.addEventListener("inovtec:firebase-operational",poll);
+window.addEventListener("inovtec:datahub",poll);
 window.addEventListener("offline",()=>apply("error","Pas de connexion réseau"));
 window.addEventListener("online",()=>{apply("loading","Reconnexion à Firebase en cours");setTimeout(poll,300)});
 document.getElementById("legacyFrame")?.addEventListener("load",()=>{apply("loading","Vérification Firebase en cours");setTimeout(poll,180);setTimeout(poll,700)});
-bindFirebase();poll();setInterval(()=>{if(document.visibilityState==="visible")poll()},5000);
+bindFirebase();poll();setInterval(()=>{if(document.visibilityState==="visible")poll()},15000);
 })();

@@ -38,7 +38,37 @@ function localAgentData(){try{const a=JSON.parse(localStorage.getItem(AGENTS_KEY
 function importLegacyAgents(){let changed=false;const local=localAgentData(),d=deletionState();const beforeLen=registry.agents.length;registry.agents=registry.agents.filter(a=>!d.ids.has(String(a.id||""))&&!d.names.has(norm(displayName(a))));if(registry.agents.length!==beforeLen)changed=true;local.forEach(a=>{if(a?._deleted===true||!agentHasName(a))return;const before=registry.agents.find(x=>x.id===a.id)?.updatedAt||"";const merged=mergeAgent(a);if(merged&&merged.updatedAt!==before)changed=true;});if(changed)saveRegistry();}
 function syncRegistryIntoLegacyAgents(){let arr=localAgentData(),changed=false;const d=deletionState(),beforeLen=registry.agents.length;registry.agents=registry.agents.filter(a=>!d.ids.has(String(a.id||""))&&!d.names.has(norm(displayName(a))));if(beforeLen!==registry.agents.length)changed=true;registry.agents=registry.agents.filter(agentHasName);registry.agents.forEach(c=>{if(isDeletedReference(c))return;const idx=arr.findIndex(a=>a.id===c.id);if(idx<0){arr.push(Object.assign({},compactAgent(c),{docs:[],incidents:[]}));changed=true;return;}const l=arr[idx];if(l?._deleted===true)return;const lt=Date.parse(l.updatedAt||0)||0,ct=Date.parse(c.updatedAt||0)||0;if(ct>lt){l.identity=clone(c.identity||{});l.job=clone(c.job||{});l.updatedAt=c.updatedAt;changed=true;}});if(changed)localStorage.setItem(AGENTS_KEY,JSON.stringify(arr));}
 function discoverLooseAgents(){try{const p=JSON.parse(localStorage.getItem(PLAN_KEY)||"null");(p?.agents||[]).forEach(a=>{if(a?.name&&!isDeletedReference("",a.name)&&!findAgent(a.name))ensureAgent(a.name,"planning");});}catch{}try{const h=JSON.parse(localStorage.getItem(HS_KEY)||"null");(h?.employees||[]).forEach(n=>{if(n&&!/^employé\s*1$/i.test(n)&&!isDeletedReference("",n)&&!findAgent(n))ensureAgent(n,"heures-sup");});}catch{}}
-async function initFirebase(){if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG)return;try{if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();auth.onAuthStateChanged(async u=>{user=u||null;if(!user)return;await loadCloud();await loadChantiers();setupCurrentFrame();});}catch(e){console.warn("Référentiel Firebase",e);}}
+function applyDataHub(detail){
+  if(!detail||typeof detail!=="object")return;
+  let changed=false;
+  if(detail.readyAgents&&Array.isArray(detail.agents)){
+    const d=deletionState(),before=JSON.stringify(registry.agents||[]);
+    registry.agents=(registry.agents||[]).filter(a=>!d.ids.has(String(a?.id||""))&&!d.names.has(norm(displayName(a))));
+    detail.agents.filter(agentHasName).forEach(mergeAgent);
+    if(JSON.stringify(registry.agents)!==before)changed=true;
+  }
+  if(detail.referentialLinks&&typeof detail.referentialLinks==="object"){
+    for(const k of Object.keys(registry.links||{}))registry.links[k]=Object.assign({},detail.referentialLinks[k]||{},registry.links[k]||{});
+    changed=true;
+  }
+  if(Array.isArray(detail.referentialUnresolvedSites)){
+    const seen=new Set((registry.unresolvedSites||[]).map(x=>norm(x?.label)));
+    detail.referentialUnresolvedSites.forEach(x=>{const k=norm(x?.label);if(k&&!seen.has(k)){seen.add(k);(registry.unresolvedSites||(registry.unresolvedSites=[])).push(clone(x));changed=true}});
+  }
+  if(detail.readyChantiers&&Array.isArray(detail.chantiers)){chantiers=detail.chantiers.slice();changed=true}
+  if(changed){saveRegistry(false);syncRegistryIntoLegacyAgents();renderContext();setupCurrentFrame()}
+}
+async function initFirebase(){
+  if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG)return;
+  try{
+    if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+    auth=firebase.auth();db=firebase.firestore();
+    auth.onAuthStateChanged(u=>{user=u||null});
+    const hub=window.InovtecDataHub;
+    if(hub?.subscribe){hub.subscribe(applyDataHub);return}
+    auth.onAuthStateChanged(async u=>{user=u||null;if(!user)return;await loadCloud();await loadChantiers();setupCurrentFrame()});
+  }catch(e){console.warn("Référentiel Firebase",e)}
+}
 async function loadCloud(){if(!db||!user)return;try{const snap=await db.collection("kanban").doc(user.uid).get(),data=snap.exists?(snap.data()||{}):{};let moduleRows=[];try{const x=JSON.parse(data?.moduleSyncV1?.agents?.payload||"[]");if(Array.isArray(x))moduleRows=x}catch{}const tombstones=moduleRows.filter(a=>a?._deleted===true);if(tombstones.length){let local=localAgentData(),changed=false;tombstones.forEach(t=>{const idx=local.findIndex(a=>String(a?.id||"")===String(t.id||""));if(idx<0){local.push(clone(t));changed=true}else if(local[idx]?._deleted!==true){local[idx]=clone(t);changed=true}});if(changed)localStorage.setItem(AGENTS_KEY,JSON.stringify(local));const d=deletionState();registry.agents=registry.agents.filter(a=>!d.ids.has(String(a.id||""))&&!d.names.has(norm(displayName(a))))}const cloud=Array.isArray(data.referentialAgents)?data.referentialAgents:[];cloud.filter(a=>agentHasName(a)&&!isDeletedReference(a)).forEach(mergeAgent);const cloudLinks=data.referentialLinks;if(cloudLinks&&typeof cloudLinks==="object")Object.keys(registry.links).forEach(k=>registry.links[k]=Object.assign({},cloudLinks[k]||{},registry.links[k]||{}));saveRegistry(false);syncRegistryIntoLegacyAgents();await pushCloud();}catch(e){console.warn("Lecture référentiel",e);}}
 async function loadChantiers(){if(!db||!user)return;try{const snap=await db.collection("chantiers").get();chantiers=snap.docs.map(d=>({id:d.id,...(d.data()||{})})).filter(c=>c._type!=="disciplinePhotoChunk"&&c._hidden!==true);renderContext();}catch(e){console.warn("Lecture chantiers",e);}}
 function scheduleCloud(){if(!db||!user)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(pushCloud,500);}
@@ -75,7 +105,11 @@ function safeRefreshCurrentFrame(){
 function start(){
   frame=document.getElementById("legacyFrame");
   const p=new URLSearchParams(location.search);mode=(p.get("mode")||"").toLowerCase();
-  importLegacyAgents();discoverLooseAgents();syncRegistryIntoLegacyAgents();scanPlanning();scanHeures();
+  importLegacyAgents();
+  if(mode==="planning"||mode==="heures")discoverLooseAgents();
+  syncRegistryIntoLegacyAgents();
+  if(mode==="planning")scanPlanning();
+  if(mode==="heures")scanHeures();
   frame?.addEventListener("load",()=>setTimeout(setupCurrentFrame,120));
   window.addEventListener("storage",e=>{if([REF_KEY,AGENTS_KEY,PLAN_KEY,HS_KEY,ORGA_KEY].includes(e.key))setTimeout(safeRefreshCurrentFrame,180)});
   window.addEventListener("focus",()=>setTimeout(safeRefreshCurrentFrame,250));

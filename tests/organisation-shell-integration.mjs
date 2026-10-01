@@ -26,8 +26,11 @@ await context.addInitScript(()=>{
         return Promise.resolve();
       }
     }),
+    get(){return Promise.resolve({empty:false,docs:[],size:0});},
+    onSnapshot(cb){queueMicrotask(()=>cb({docs:[]}));return()=>{};},
     limit(){return {get:()=>Promise.resolve({empty:false,docs:[snap(state.shared)]})};},
-    orderBy(){return {onSnapshot(cb){queueMicrotask(()=>cb({docs:[]}));return()=>{};}};}
+    where(){return {get:()=>Promise.resolve({empty:true,docs:[],size:0}),onSnapshot(cb){queueMicrotask(()=>cb({docs:[]}));return()=>{};},limit(){return this;}};},
+    orderBy(){return {get:()=>Promise.resolve({empty:true,docs:[],size:0}),onSnapshot(cb){queueMicrotask(()=>cb({docs:[]}));return()=>{};},limit(){return this;}};}
   });
   const db={collection,batch(){return {set(){},commit(){return Promise.resolve();}}}};
   const auth={

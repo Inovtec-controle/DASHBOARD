@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 const config=readFileSync('firebase-config.js','utf8');
-if(!config.includes('inovtec-chantier-dropdown.js?v=20260917-1'))throw Error('Sélecteur non chargé par la configuration commune');
+if(!config.includes('inovtec-chantier-dropdown.js?v=20261001-perf1'))throw Error('Sélecteur non chargé par la configuration commune');
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 try{
  const page=await browser.newPage({viewport:{width:1260,height:800}});

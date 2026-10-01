@@ -170,9 +170,10 @@ function bindSyncChecks(){
  document.querySelectorAll('iframe').forEach(f=>f.addEventListener('load',arm));
  window.addEventListener('inovtec:firebase-operational',evaluateSyncMark);
  window.addEventListener('inovtec:firebase-status',evaluateSyncMark);
+ window.addEventListener('inovtec:datahub',evaluateSyncMark);
  window.addEventListener('online',arm);window.addEventListener('offline',evaluateSyncMark);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)evaluateSyncMark()});
- clearInterval(syncTimer);syncTimer=setInterval(()=>{if(!document.hidden)evaluateSyncMark()},700);
+ clearInterval(syncTimer);syncTimer=setInterval(()=>{if(!document.hidden)evaluateSyncMark()},4000);
  evaluateSyncMark();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{init();bindSyncChecks()},{once:true});else{init();bindSyncChecks()}

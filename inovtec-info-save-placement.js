@@ -3,7 +3,7 @@
 const mode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
 if(mode!=="infos")return;
 const frame=document.getElementById("legacyFrame");
-let lastDoc=null,observer=null;
+let lastDoc=null,observer=null,placeTimer=null;
 function doc(){try{return frame?.contentDocument||null}catch{return null}}
 function ensureStyle(d){
   if(!d?.head||d.getElementById("ivInfoSavePlacementStyle"))return;
@@ -48,7 +48,7 @@ function install(){
   if(d!==lastDoc){
     lastDoc=d;
     try{observer?.disconnect()}catch{}
-    observer=new MutationObserver(()=>place());
+    observer=new MutationObserver(()=>{clearTimeout(placeTimer);placeTimer=setTimeout(place,60)});
     observer.observe(d.body,{childList:true,subtree:true});
   }
   place();

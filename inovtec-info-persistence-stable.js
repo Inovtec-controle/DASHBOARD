@@ -8,7 +8,7 @@ const EXTRA_MAP={ivTypeChantier:"typeChantier",ivDateDebutPrestation:"dateDebutP
 const CONTAINER_FREQ={sortieOM:"frequenceSortieOM",rentreeOM:"frequenceRentreeOM",sortieTRI:"frequenceSortieTRI",rentreeTRI:"frequenceRentreeTRI"};
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-let lastDoc=null,observer=null,saveToken=0,loadToken=0;
+let lastDoc=null,observer=null,installTimer=null,saveToken=0,loadToken=0;
 function doc(){try{return frame.contentDocument||null}catch{return null}}
 function hubSites(){try{return Array.from(window.InovtecDataHub?.chantiers||[])}catch{return[]}}
 function formValue(d,id){const e=d?.getElementById(id);return e&&"value" in e?String(e.value??"").trim():""}
@@ -111,6 +111,8 @@ async function loadSelected(d,force=false){
  const form=d?.getElementById("siteForm");if(!form||form.classList.contains("hidden"))return;if(!force&&form.dataset.ivInfoDirty==="1")return;
  const state=d.getElementById("recordState")?.textContent||"";if(/nouveau/i.test(state))return;
  const token=++loadToken,site=await resolveSite(d,{retries:18});if(token!==loadToken||!site?.id)return;
+ const cached=hubSites().find(x=>String(x?.id||"")===String(site.id));
+ if(cached){applyExtras(d,cached);setSaveState(d,"saved");return}
  try{const snap=await db.collection("chantiers").doc(String(site.id)).get({source:"server"});if(token!==loadToken||!snap.exists)return;applyExtras(d,{id:snap.id,...snap.data()});setSaveState(d,"saved")}catch(e){console.warn("Rechargement unifié Infos chantier",e)}
 }
 function bind(d){
@@ -119,6 +121,6 @@ function bind(d){
  form.addEventListener("submit",()=>{const wasNew=/nouveau/i.test(d.getElementById("recordState")?.textContent||"");const token=++saveToken,snapshot=collect(d);setSaveState(d,"saving");persist(d,wasNew,token,snapshot);setTimeout(()=>{if(token===saveToken&&form.dataset.ivInfoDirty==="1")persist(d,wasNew,token,snapshot)},900)},true);
  d.addEventListener("click",e=>{const site=e.target?.closest?.(".site-item"),fresh=e.target?.closest?.("#newBtn"),del=e.target?.closest?.("#deleteBtn");if(site){loadToken++;form.removeAttribute("data-iv-info-dirty");setTimeout(()=>loadSelected(d,true),180);setTimeout(()=>loadSelected(d,true),700)}else if(fresh||del){loadToken++;form.removeAttribute("data-iv-info-dirty");if(fresh)form.removeAttribute("data-iv-chantier-id")}},true);
 }
-function install(){const d=doc();if(!d?.body)return;if(d!==lastDoc){lastDoc=d;try{observer?.disconnect()}catch{}observer=new MutationObserver(()=>{bind(d)});observer.observe(d.body,{childList:true,subtree:true})}bind(d);setTimeout(()=>loadSelected(d,false),120)}
+function install(){const d=doc();if(!d?.body)return;if(d!==lastDoc){lastDoc=d;try{observer?.disconnect()}catch{}observer=new MutationObserver(()=>{clearTimeout(installTimer);installTimer=setTimeout(()=>bind(d),60)});observer.observe(d.body,{childList:true,subtree:true})}bind(d);setTimeout(()=>loadSelected(d,false),100)}
 frame.addEventListener("load",()=>{setTimeout(install,120);setTimeout(install,600);setTimeout(install,1400)});setTimeout(install,450);try{window.InovtecDataHub?.subscribe?.(()=>{const d=doc();if(d&&d.getElementById("siteForm")?.dataset.ivInfoDirty!=="1")setTimeout(()=>loadSelected(d,false),90)})}catch{}
 })();
