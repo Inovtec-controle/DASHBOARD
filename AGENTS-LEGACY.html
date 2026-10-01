@@ -114,6 +114,9 @@ body{
 }
 .agentActionBar .miniBtn:disabled{opacity:.45;cursor:not-allowed}
 .agentsDetailCard{grid-column:2;grid-row:2}
+@media(min-width:981px){
+  .content{grid-template-rows:60px auto}
+}
 @media(max-width:980px){
   .content{grid-template-columns:1fr}
   .agentsListCard,.agentActionBar,.agentsDetailCard{grid-column:1;grid-row:auto}
