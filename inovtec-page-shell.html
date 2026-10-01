@@ -10,6 +10,9 @@
 <title>Inovtec Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="//firestore.googleapis.com">
+<link rel="dns-prefetch" href="//identitytoolkit.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="inovtec-shell.css?v=20260829-agentfull1">
 <link rel="stylesheet" href="inovtec-shell-v2.css?v=20260815-2">
@@ -59,7 +62,14 @@
   }
 }
 </script>
-<script src="inovtec-shared-workspace.js?v=20260829-agentclean1"></script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(["planning","agents","heures","conges","organisation","discipline"].includes(ivMode)){
+    document.write('<scr'+'ipt src="inovtec-shared-workspace.js?v=20261001-perf1"></scr'+'ipt>');
+  }
+}
+</script>
 <script>
 {
   const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
@@ -78,8 +88,17 @@
   }
 }
 </script>
-<script src="inovtec-referential.js?v=20260829-agentclean1"></script>
-<script src="inovtec-cross-page-data.js?v=20260829-agentclean1"></script>
+<script>
+{
+  const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+  if(["discipline","infos","heures","kontrol","organisation","planning","agents"].includes(ivMode)){
+    document.write('<scr'+'ipt src="inovtec-referential.js?v=20261001-perf1"></scr'+'ipt>');
+  }
+  if(["heures","kontrol"].includes(ivMode)){
+    document.write('<scr'+'ipt src="inovtec-cross-page-data.js?v=20261001-perf1"></scr'+'ipt>');
+  }
+}
+</script>
 <script src="inovtec-visual-runtime.js?v=20260917-planning-live3"></script>
 <script>
 {
