@@ -828,7 +828,7 @@
       appShell.classList.remove("hidden");
       if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) {
         clearWorkingDraft();
-        frame.src = "KONTROL.html?v=20260830-pdfphotos1";
+        frame.src = "KONTROL.html?v=20261001-checklist1";
       }
     } else {
       hideArchive();
