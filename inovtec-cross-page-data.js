@@ -2,12 +2,14 @@
 "use strict";
 if(window.__INOVTEC_CROSS_PAGE_DATA_V1__)return;
 window.__INOVTEC_CROSS_PAGE_DATA_V1__=true;
+const mode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
+if(!["heures","kontrol"].includes(mode))return;
 if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG)return;
 if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
 if(!firebase.auth||!firebase.firestore)return;
 const auth=firebase.auth(),db=firebase.firestore();
 const SHARED_ID="__inovtec_shared_workspace_v1__",REF_KEY="inovtec_referential_v1",AGENTS_KEY="kontrol_agents_classeur_v2",HS_KEY="HSUPP_DUR_APP_V1";
-let user=null,busy=false,queued=false,unsubs=[],frame=document.getElementById("legacyFrame"),mode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase(),uiTimer=null;
+let user=null,busy=false,queued=false,unsubs=[],frame=document.getElementById("legacyFrame"),uiTimer=null;
 const clone=v=>v==null?v:JSON.parse(JSON.stringify(v));
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const parse=(s,f=null)=>{try{const v=JSON.parse(String(s||""));return v??f}catch{return f}};
