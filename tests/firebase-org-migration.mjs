@@ -3,8 +3,8 @@ import { chromium } from 'playwright';
 const browser = await chromium.launch({headless:true,args:['--no-sandbox']});
 const scenarios = [
   {name:'Reprise locale lorsque Firebase est vide',personal:null,shared:null,local:[{id:'local-1',title:'Tâche locale',status:'todo'}],expectedWrites:1,expectedId:'local-1'},
-  {name:'Ne pas écraser les tâches partagées',personal:null,shared:{tasks:[{id:'shared-1',title:'Tâche partagée',status:'todo'}]},local:[{id:'stale-1',title:'Ancienne tâche',status:'todo'}],expectedWrites:0,expectedId:'stale-1'},
-  {name:'Ne pas rétablir les tâches volontairement supprimées',personal:null,shared:{tasks:[]},local:[{id:'deleted-1',title:'Ancienne tâche',status:'todo'}],expectedWrites:0,expectedId:'deleted-1'},
+  {name:'Reprise réelle des tâches partagées',personal:null,shared:{tasks:[{id:'shared-1',title:'Tâche partagée',status:'todo'}]},local:[{id:'stale-1',title:'Ancienne tâche',status:'todo'}],expectedWrites:1,expectedId:'shared-1'},
+  {name:'Respect d’une liste partagée volontairement vide',personal:null,shared:{tasks:[]},local:[{id:'deleted-1',title:'Ancienne tâche',status:'todo'}],expectedWrites:1,expectedId:null},
   {name:'Priorité aux tâches déjà présentes dans Firebase',personal:{tasks:[{id:'remote-1',title:'Tâche distante',status:'todo'}]},shared:null,local:[{id:'stale-2',title:'Ancienne tâche',status:'todo'}],expectedWrites:0,expectedId:'remote-1'}
 ];
 let failures=0;
@@ -51,8 +51,9 @@ try {
       if(errors.length)throw Error('JavaScript : '+errors.join('; '));
       if(result.writes.length!==sc.expectedWrites)throw Error('Écritures Firebase : '+result.writes.length+' au lieu de '+sc.expectedWrites);
       if(result.writes.some(w=>w.name!=='kanban'||w.id!=='test-user'))throw Error('Mauvaise collection ou mauvais compte');
-      if(result.writes.length && result.writes[0].tasks?.[0]?.id!=='local-1')throw Error('Migration locale incorrecte');
-      if(result.items?.[0]?.id!==sc.expectedId)throw Error('Liste locale remplacée à tort : '+JSON.stringify(result.items));
+      if(result.writes.length && result.writes.some(w=>!Array.isArray(w.tasks)))throw Error('Écriture Organisation sans liste tasks');
+      const firstId=result.items?.[0]?.id??null;
+      if(firstId!==sc.expectedId)throw Error('Liste Firebase/cache inattendue : '+JSON.stringify(result.items));
       console.log('OK : '+sc.name);
     }catch(error){failures++;console.error('ÉCHEC : '+sc.name+' : '+String(error?.message||error));}
     finally {await context.close()}
