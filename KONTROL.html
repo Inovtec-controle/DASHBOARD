@@ -540,10 +540,40 @@
   /* ===== Données & constantes ===== */
   const DEFAULTS = {
     Residence: [
-      "Déchets extérieurs","Nettoyage platine et digicode","vitrerie et miroiterie lavage racletteet mouilleur","Vitrerie et miroiterie enlevement des traces de doigts","Nettoyage des encadrements des vitres et montant porte d'entrée",
-      "Enroulement des tapis","Aspirations des sols","Lavage des sols","Aspirations des escaliers de services","Lavage des escaliers de services","Enlevement des toiles d'araignées","Nettoyage des rampes et gardes corps","Nettoyages porte de services",
-      "Nettoyage des portes des gaines technique","Depoussierage ou nettoyage des plinthes","Nettoyage boites aux lettres","Vidage des corbeilles","Mise en poches des corbeilles","Accès sous sol","Ramassage des dechets dans le parking","Nettoyage des façade ascenseur","Nettoyage des tranches latérales des ascenseurs",
-      "Nettoyage des façade interieures des ascenceurs","Nettoyage rails ascenceurs","Nettoyages plaque de commande","Rentrée conteneurs","Sortie conteneurs","Nettoyage conteneurs","Lavage local poubelle","Local nettoyage et état matériels"
+      "EXTÉRIEURS — Ramassage des détritus aux abords des entrées et parking",
+      "EXTÉRIEURS — Nettoyage des boîtes aux lettres",
+      "HALLS — Nettoyage ascenseur (sols, façades, rails, miroiterie)",
+      "HALLS — Nettoyage interphone",
+      "HALLS — Nettoyage interrupteurs",
+      "HALLS — Nettoyage des portes vitrées, vitres et miroirs",
+      "HALLS — Enlèvement des toiles d'araignées",
+      "HALLS — Dépoussiérage plinthes",
+      "HALLS — Aspiration des sols carrelés et paillassons",
+      "HALLS — Lavage sols carrelés",
+      "HALLS — Remplacement des ampoules défectueuses EN SUS",
+      "ÉTAGES — Balayage des sols",
+      "ÉTAGES — Lavage des sols",
+      "ÉTAGES — Dépoussiérage plinthes",
+      "ÉTAGES — Nettoyage interrupteurs",
+      "ÉTAGES — Enlèvement des toiles d'araignées",
+      "ÉTAGES — Remplacement des ampoules défectueuses EN SUS",
+      "ESCALIERS — Aspiration des sols",
+      "ESCALIERS — Lavage des sols",
+      "ESCALIERS — Enlèvement des toiles d'araignées",
+      "ESCALIERS — Dépoussiérage des rampes",
+      "ESCALIERS — Remplacement ampoules",
+      "ACCÈS SOUS-SOLS — Balayage/lavage des accès",
+      "ACCÈS SOUS-SOLS — Enlèvement des toiles d'araignées",
+      "SOUS-SOLS — Balayage parking, pente et zone appartenant à la copropriété",
+      "SOUS-SOLS — Enlèvement des toiles d'araignées",
+      "SOUS-SOLS — Balayage local vélo",
+      "CONTENEURS — Sortie conteneurs OM",
+      "CONTENEURS — Sortie conteneurs de tri",
+      "CONTENEURS — Rentrée conteneur OM",
+      "CONTENEURS — Rentrée conteneurs TRI",
+      "CONTENEURS — Nettoyage conteneurs",
+      "CONTENEURS — Nettoyage locaux poubelles",
+      "CONTENEURS — Nettoyage aire de présentation"
     ],
     Bureau: [
       "Accueil – comptoir & sol","Bureaux – surfaces & écrans hors tension","Sols – aspiration / lavage",
@@ -695,6 +725,37 @@
   function currentTasks(){ return state.dataByCategory[state.category]; }
   function setTasks(tasks){ state.dataByCategory[state.category] = tasks; saveState(); }
 
+  function checklistNames(){
+    return currentTasks().map(t=>String(t?.name||'').trim()).filter(Boolean);
+  }
+  function emitChecklistChanged(reason){
+    try{
+      window.dispatchEvent(new CustomEvent('inovtec:kontrol-checklist-changed', {
+        detail:{ reason:String(reason||'manual'), items:checklistNames() }
+      }));
+    }catch(e){}
+  }
+  function replaceChecklist(items, options={}){
+    const names=(Array.isArray(items)?items:[])
+      .map(item=>typeof item==='string'?item:(item?.name||item?.title||item?.prestation||''))
+      .map(v=>String(v||'').trim())
+      .filter(Boolean);
+    state.category='Residence';
+    state.dataByCategory.Residence=names.map(name=>({id:uid(),name,status:'',comment:''}));
+    saveState();
+    renderTasks();
+    updateScoreAndVisuals();
+    if(options?.silent!==true) emitChecklistChanged(options?.reason||'replace');
+  }
+  function useDefaultChecklist(options={}){
+    replaceChecklist(DEFAULTS.Residence, options);
+  }
+  window.InovtecKontrolChecklist={
+    getChecklistNames:()=>checklistNames().slice(),
+    replaceChecklist,
+    useDefaultChecklist
+  };
+
   function switchCategory(cat){
     state.category = (cat && state.dataByCategory?.[cat]) ? cat : 'Residence';
     if(els.activePill) els.activePill.textContent = 'Actif : Chantier';
@@ -727,6 +788,7 @@
           span.textContent = t.name;
           saveState();
           updateScoreAndVisuals();
+          emitChecklistChanged('rename');
         }
       });
       delBtn.addEventListener('click', ()=>{ deleteTask(t.id); });
@@ -793,6 +855,7 @@
     setTasks(currentTasks().filter(x=>x.id!==id));
     renderTasks();
     updateScoreAndVisuals();
+    emitChecklistChanged('delete');
   }
 
   function addTaskFromInput(){
@@ -805,6 +868,7 @@
     updateScoreAndVisuals();
     els.newTaskInput.focus({preventScroll:true});
     saveState();
+    emitChecklistChanged('add');
   }
 
   function resetAll(){
@@ -838,6 +902,7 @@
     saveState();
     renderTasks();
     updateScoreAndVisuals();
+    emitChecklistChanged('reset-default');
   }
 
   /* ===== Export / Import JSON ===== */
@@ -892,6 +957,7 @@
         switchCategory(state.category);
         setDisplay(state.display);
         renderPhotos();
+        emitChecklistChanged('import');
         alert("Import réussi.");
       }catch(err){
         alert("Import impossible : " + err.message);
