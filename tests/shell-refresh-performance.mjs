@@ -9,7 +9,7 @@ try {
     const nativeSetInterval = window.setInterval;
     window.__inovtecStatusPollingCount = 0;
     window.setInterval = function (callback, delay, ...args) {
-      if (delay === 2400) window.__inovtecStatusPollingCount += 1;
+      if (delay === 8000) window.__inovtecStatusPollingCount += 1;
       return nativeSetInterval.call(this, callback, delay, ...args);
     };
   });
