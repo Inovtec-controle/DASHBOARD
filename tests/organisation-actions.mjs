@@ -11,13 +11,13 @@ try{
       {id:'archive-1',title:'Tâche à archiver',description:'',status:'done',priority:'normal',dueDate:'',archived:false,archivedAt:'',createdAt:'2026-09-28T08:00:00.000Z',updatedAt:'2026-09-28T08:00:00.000Z'}
     ]};
     localStorage.setItem('orga_task_board_v2',JSON.stringify(personal.tasks));
-    const state={personal,writes:[],listeners:[]};
+    const state={personal,shared:{tasks:JSON.parse(JSON.stringify(personal.tasks))},writes:[],listeners:[]};
     window.__orgaActionsTest=state;
     const snap=()=>({exists:true,data:()=>state.personal,metadata:{hasPendingWrites:false}});
     const db={collection:name=>({doc:id=>({
       onSnapshot(cb){if(name==='kanban'){state.listeners.push(cb);queueMicrotask(()=>cb(snap()))}return()=>{}},
-      get(){return Promise.resolve(name==='kanban'?snap():{exists:false,data:()=>({}),metadata:{hasPendingWrites:false}})},
-      set(data){state.writes.push({name,id,data:JSON.parse(JSON.stringify(data))});if(name==='kanban'){state.personal={...(state.personal||{}),...data};queueMicrotask(()=>state.listeners.forEach(cb=>cb(snap())))}return Promise.resolve()}
+      get(){return Promise.resolve(name==='kanban'?snap():{exists:!!state.shared,data:()=>state.shared||{},metadata:{hasPendingWrites:false}})},
+      set(data){state.writes.push({name,id,data:JSON.parse(JSON.stringify(data))});if(name==='kanban'){state.personal={...(state.personal||{}),...data};queueMicrotask(()=>state.listeners.forEach(cb=>cb(snap())))}else if(name==='chantiers'){state.shared={...(state.shared||{}),...JSON.parse(JSON.stringify(data))}}return Promise.resolve()}
     })})};
     const firebase={apps:[],initializeApp(){this.apps.push({})},auth(){return {onAuthStateChanged(cb){queueMicrotask(()=>cb({uid:'test-user'}));return()=>{}},signOut(){return Promise.resolve()}}},firestore(){return db}};
     firebase.firestore.FieldValue={serverTimestamp:()=> 'test-server-timestamp'};
@@ -58,8 +58,9 @@ try{
   const restored=await page.evaluate(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='archive-1'));
   if(restored.status!=='done')throw Error('La restauration ne conserve pas le statut précédent');
 
-  const result=await page.evaluate(()=>({writes:window.__orgaActionsTest.writes.length,status:document.querySelector('#syncStatus')?.textContent||''}));
-  if(result.writes<4)throw Error('Toutes les actions n’ont pas été persistées dans Firebase');
+  const result=await page.evaluate(()=>({writes:window.__orgaActionsTest.writes.length,status:document.querySelector('#syncStatus')?.textContent||'',personal:window.__orgaActionsTest.personal.tasks,shared:window.__orgaActionsTest.shared.tasks}));
+  if(result.writes<8)throw Error('Toutes les actions n’ont pas été persistées dans les deux copies Firebase');
+  if(JSON.stringify(result.personal)!==JSON.stringify(result.shared))throw Error('La copie Firebase partagée ne suit pas les actions Organisation');
   if(errors.length)throw Error('JavaScript : '+errors.join('; '));
   console.log('OK : déplacement boutons, drag & drop, archivage et restauration Organisation');
   console.log('Écritures Firebase simulées : '+result.writes+' · '+result.status);
