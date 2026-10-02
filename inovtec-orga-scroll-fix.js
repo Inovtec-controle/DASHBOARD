@@ -163,8 +163,8 @@ body main.page>section.card:nth-of-type(2){grid-column:2!important;grid-row:1!im
 body main.page>section.card:nth-of-type(3){display:none!important}
 body .board{grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-auto-rows:max-content!important;align-items:start!important;align-content:start!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding-bottom:0!important;scrollbar-width:none!important;-ms-overflow-style:none!important}
 body .board::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
-body .column{min-width:0!important;height:auto!important;min-height:0!important;max-height:none!important;align-self:start!important;overflow:visible!important}
-body .task-list{flex:0 0 auto!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+body .column{min-width:0!important;height:auto!important;min-height:220px!important;max-height:none!important;align-self:start!important;overflow:visible!important}
+body .task-list{flex:1 1 auto!important;height:auto!important;min-height:145px!important;max-height:none!important;overflow:visible!important}
 body .task,body .table-wrap{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
 @media(max-width:900px){body .board{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:619px){
