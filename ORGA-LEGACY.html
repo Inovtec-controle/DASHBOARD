@@ -39,7 +39,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261002-organisation8"></script>
+  <script src="firebase-config.js?v=20261002-organisation9"></script>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -162,11 +162,30 @@
       return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
     });
   }
+  function stableLegacyId(task,index){
+    const seed=[task?.title||"",task?.createdAt||"",task?.dueDate||"",index].join("|");
+    let h=2166136261;
+    for(let i=0;i<seed.length;i++){ h^=seed.charCodeAt(i); h=Math.imul(h,16777619); }
+    return "legacy_"+(h>>>0).toString(36);
+  }
+  function normalizeTasks(list){
+    return (Array.isArray(list)?list:[]).filter(t=>t&&typeof t==="object").map((raw,index)=>{
+      const task={...raw};
+      task.id=String(task.id||stableLegacyId(task,index));
+      task.status=FLOW.includes(task.status)?task.status:"todo";
+      task.priority=["high","normal","low"].includes(task.priority)?task.priority:"normal";
+      task.archived=task.archived===true||task.archived==="true";
+      task.archivedAt=task.archivedAt||"";
+      task.title=String(task.title||"");
+      task.description=String(task.description||"");
+      task.dueDate=safeDate(task.dueDate);
+      return task;
+    });
+  }
   function loadLocal(){
     try{
       const raw = localStorage.getItem(LOCAL_KEY);
-      tasks = raw ? JSON.parse(raw) : [];
-      if(!Array.isArray(tasks)) tasks = [];
+      tasks = normalizeTasks(raw ? JSON.parse(raw) : []);
     }catch{ tasks = []; }
   }
   function saveLocal(){
@@ -182,6 +201,7 @@
     const owner = currentUser.uid;
     const ref = db.collection("kanban").doc(owner);
     const sharedRef = db.collection("chantiers").doc("__inovtec_shared_workspace_v1__");
+    tasks = normalizeTasks(tasks);
     const payload = JSON.parse(JSON.stringify(tasks));
     const revision = ++mutationRevision;
     pendingWrites += 1;
@@ -219,7 +239,7 @@
             throw new Error("Firebase n’a pas confirmé la liste Organisation");
           }
           if(revision === mutationRevision){
-            tasks = check.data().tasks;
+            tasks = normalizeTasks(check.data().tasks);
             saveLocal();
             render();
             setSync("Synchronisé","ok");
@@ -249,7 +269,7 @@
       if(!currentUser || currentUser.uid !== owner) return;
 
       if(shared.exists && Array.isArray(shared.data()?.tasks)){
-        tasks = JSON.parse(JSON.stringify(shared.data().tasks));
+        tasks = normalizeTasks(shared.data().tasks);
         saveLocal();
         render();
 
@@ -298,7 +318,7 @@
         if(!currentUser || currentUser.uid !== owner) return;
         firstRemoteState = true;
         if(snap.exists && Array.isArray(snap.data()?.tasks)){
-          tasks = snap.data().tasks;
+          tasks = normalizeTasks(snap.data().tasks);
           saveLocal();
           render();
           setSync("Synchronisé","ok");
@@ -325,7 +345,7 @@
 
       syncingFromCloud = true;
       if(snap.exists && Array.isArray(snap.data()?.tasks)){
-        tasks = snap.data().tasks;
+        tasks = normalizeTasks(snap.data().tasks);
         saveLocal();
         render();
         setSync("Synchronisé","ok");
@@ -375,7 +395,6 @@
   function archiveTask(id){
     const task = tasks.find(t=>String(t.id) === String(id));
     if(!task || task.archived) return;
-    if(!confirm(`Archiver « ${task.title || "cette tâche"} » ?`)) return;
     task.previousStatus = FLOW.includes(task.status) ? task.status : "todo";
     task.archived = true;
     task.archivedAt = new Date().toISOString();
@@ -424,7 +443,7 @@
   function clearDragOver(){
     document.querySelectorAll(".task-list.drag-over").forEach(el=>el.classList.remove("drag-over"));
   }
-  function bindTouchDrag(handle,card,task){
+  function bindPointerDrag(handle,card,task){
     let pointerId=null,startX=0,startY=0,active=false;
     const cleanup=()=>{
       if(pointerId!==null){
@@ -436,17 +455,19 @@
       clearDragOver();
     };
     handle.addEventListener("pointerdown",e=>{
-      if(e.pointerType==="mouse" || e.button!==0 || task.archived) return;
+      if(e.button!==0 || task.archived) return;
       pointerId=e.pointerId;
       startX=e.clientX;
       startY=e.clientY;
       active=false;
+      card.classList.add("drag-ready");
       try{handle.setPointerCapture(pointerId);}catch{}
+      e.preventDefault();
     });
     handle.addEventListener("pointermove",e=>{
       if(pointerId!==e.pointerId)return;
       const distance=Math.hypot(e.clientX-startX,e.clientY-startY);
-      if(!active && distance<10)return;
+      if(!active && distance<6)return;
       active=true;
       card.classList.add("dragging");
       clearDragOver();
@@ -462,38 +483,22 @@
         if(status)setTaskStatus(task.id,status);
         e.preventDefault();
       }
+      card.classList.remove("drag-ready");
       cleanup();
     });
-    handle.addEventListener("pointercancel",cleanup);
+    handle.addEventListener("pointercancel",()=>{card.classList.remove("drag-ready");cleanup();});
   }
   function createTaskCard(task){
     const card = document.createElement("article");
     card.className = "task";
-    card.draggable = true;
+    card.draggable = false;
     card.dataset.id = task.id;
-    card.addEventListener("dragstart", e=>{
-      if(e.target?.closest?.("button")){
-        e.preventDefault();
-        return;
-      }
-      draggedId = String(task.id);
-      card.classList.add("dragging");
-      if(e.dataTransfer){
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain",String(task.id));
-      }
-    });
-    card.addEventListener("dragend", ()=>{
-      draggedId = null;
-      card.classList.remove("dragging");
-    });
-
     const title = document.createElement("div");
     title.className = "task-title";
     title.title = "Faire glisser pour déplacer la tâche";
     title.textContent = task.title || "(Sans titre)";
     card.appendChild(title);
-    bindTouchDrag(title,card,task);
+    bindPointerDrag(title,card,task);
 
     if(task.description){
       const desc = document.createElement("div");
