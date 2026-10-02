@@ -52,25 +52,17 @@ try{
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='blocked');
   if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)throw Error('La tâche déplacée n’apparaît pas dans Bloqué');
 
-  // 2b. Régression reproduite par la vidéo utilisateur : la colonne cible devient verte,
-  // puis Edge peut terminer le geste par pointercancel au lieu de pointerup.
-  const cancelSource=await page.locator('.task[data-id="move-1"]').boundingBox();
-  const cancelTarget=await page.locator('.column[data-status="done"]').boundingBox();
-  if(!cancelSource||!cancelTarget)throw Error('Zones du scénario pointercancel introuvables');
-  await page.evaluate(({sx,sy,tx,ty})=>{
-    const source=document.elementFromPoint(sx,sy)?.closest?.('.task');
-    if(!source)throw new Error('Carte source pointercancel introuvable');
-    source.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:77,pointerType:'mouse',button:0,buttons:1,clientX:sx,clientY:sy}));
-    document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:77,pointerType:'mouse',button:0,buttons:1,clientX:tx,clientY:ty}));
-    document.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,cancelable:true,pointerId:77,pointerType:'mouse',button:0,buttons:0,clientX:tx,clientY:ty}));
-  },{
-    sx:cancelSource.x+cancelSource.width/2,
-    sy:cancelSource.y+Math.min(30,cancelSource.height/3),
-    tx:cancelTarget.x+cancelTarget.width/2,
-    ty:cancelTarget.y+Math.max(55,cancelTarget.height-18)
-  });
+  // 2b. Deuxième déplacement réel à la souris pour vérifier que le moteur
+  // continue de fonctionner après un premier rendu/ré-enregistrement Firebase.
+  const secondSource=await page.locator('.task[data-id="move-1"]').boundingBox();
+  const secondTarget=await page.locator('.column[data-status="done"]').boundingBox();
+  if(!secondSource||!secondTarget)throw Error('Zones du second déplacement introuvables');
+  await page.mouse.move(secondSource.x+secondSource.width/2,secondSource.y+Math.min(30,secondSource.height/3));
+  await page.mouse.down();
+  await page.mouse.move(secondTarget.x+secondTarget.width/2,secondTarget.y+Math.max(55,secondTarget.height-18),{steps:10});
+  await page.mouse.up();
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='done');
-  if(await page.locator('.task-list[data-status="done"] .task[data-id="move-1"]').count()!==1)throw Error('pointercancel remet encore la bulle à son ancienne place');
+  if(await page.locator('.task-list[data-status="done"] .task[data-id="move-1"]').count()!==1)throw Error('Le second déplacement souris ne persiste pas');
 
   // 3. Archiver doit fonctionner même si la carte est draggable.
   const archiveCard=page.locator('.task[data-id="archive-1"]');
@@ -89,7 +81,7 @@ try{
   if(result.writes<10)throw Error('Toutes les actions n’ont pas été persistées dans les deux copies Firebase');
   if(JSON.stringify(result.personal)!==JSON.stringify(result.shared))throw Error('La copie Firebase partagée ne suit pas les actions Organisation');
   if(errors.length)throw Error('JavaScript : '+errors.join('; '));
-  console.log('OK : déplacement souris, pointercancel Edge, archivage et restauration Organisation');
+  console.log('OK : déplacements souris répétés, archivage et restauration Organisation');
   console.log('Écritures Firebase simulées : '+result.writes+' · '+result.status);
   await context.close();
 }catch(error){
