@@ -29,7 +29,7 @@ jobs:
           from pathlib import Path
           from html.parser import HTMLParser
           from urllib.parse import urlsplit
-          must_exist=['index.html','dashboard-index.js','dashboard-concept3.css','dashboard-index-shared.js','dashboard-global-search.js','inovtec-page-shell.html','inovtec-shell.js','inovtec-data-hub.js','inovtec-cloud-sync.js','firebase-config.js','PLANNINGS.html','PLANNINGS-APP.html','PLANNINGS-LEGACY.html','planning-calendar.js','planning-firebase-direct-v2.js','planning-context-fit.js','planning-autoheight.js','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','CONGES.html','ORGA.html','MATERIEL.html','REASSORT.html']
+          must_exist=['index.html','dashboard-index.js','dashboard-concept3.css','dashboard-index-shared.js','dashboard-global-search.js','inovtec-page-shell.html','inovtec-shell.js','inovtec-data-hub.js','inovtec-cloud-sync.js','firebase-config.js','PLANNINGS.html','PLANNINGS-APP.html','PLANNINGS-LEGACY.html','planning-calendar.js','planning-firebase-direct-v2.js','planning-context-fit.js','planning-autoheight.js','VARIABLES.html','VARIABLES-DASHBOARD.html','VARIABLES-LEGACY.html','AGENTS.html','INFOCHANTIERS-V2.html','KONTROL-CLOUD.html','CONGES.html','ORGA.html','ORGANISATION-LIVE-V16.html','MATERIEL.html','REASSORT.html']
           issues=[]
           for p in must_exist:
               f=Path(p)
@@ -45,7 +45,7 @@ jobs:
           for name in ('index.html','inovtec-page-shell.html','PLANNINGS.html','PLANNINGS-APP.html','VARIABLES-DASHBOARD.html'):
               parser=Refs();parser.feed(Path(name).read_text(encoding='utf-8'));pages[name]=parser
           home=pages['index.html'];shell=pages['inovtec-page-shell.html'];planning=pages['PLANNINGS-APP.html']
-          for page in ('PLANNINGS.html','KONTROL-CLOUD.html','INFOCHANTIERS-V2.html','AGENTS.html','CONGES.html','VARIABLES.html','ORGA.html','MATERIEL.html','REASSORT.html'):
+          for page in ('PLANNINGS.html','KONTROL-CLOUD.html','INFOCHANTIERS-V2.html','AGENTS.html','CONGES.html','VARIABLES.html','ORGANISATION-LIVE-V16.html','MATERIEL.html','REASSORT.html'):
               if not any(urlsplit(h).path==page for h in home.links):issues.append(f'Navigation accueil absente : {page}')
           if any('discipline' in urlsplit(h).path.lower() for h in home.links):issues.append('Ancien module Discipline encore lié depuis l’accueil')
           for name in ('globalSearch','heroUserName','heroSyncText','kpiVariables','kpiIncidents'):
@@ -102,16 +102,16 @@ jobs:
         run: |
           set -euo pipefail
           base='https://inovtec-controle.github.io/DASHBOARD'
-          for page in index.html PLANNINGS.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html REASSORT.html inovtec-page-shell.html inovtec-shell.js ORGA-LEGACY.html planning-calendar.js inovtec-cloud-sync-v2.js planning-firebase-direct-v2.js; do
+          for page in index.html PLANNINGS.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html ORGANISATION-LIVE-V16.html MATERIEL.html REASSORT.html inovtec-page-shell.html inovtec-shell.js ORGA-LEGACY.html planning-calendar.js inovtec-cloud-sync-v2.js planning-firebase-direct-v2.js; do
             curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$base/$page" -o "/tmp/$(basename "$page")" || { echo "::error::$page inaccessible sur le site public";exit 1; }
           done
-          # Vérifie la FRAÎCHEUR réelle du site public, pas seulement un HTTP 200.
-          # Cela détecte immédiatement une page GitHub Pages qui sert encore une ancienne Organisation.
-          grep -q '20261002-organisation15' /tmp/ORGA.html || { echo "::error::ORGA.html public est encore ancien"; grep -o '2026[0-9-]*organisation[0-9]*' /tmp/ORGA.html | head -5 || true; exit 1; }
-          grep -q '20261002-organisation15' /tmp/inovtec-shell.js || { echo "::error::inovtec-shell.js public est encore ancien"; grep -o '2026[0-9-]*organisation[0-9]*' /tmp/inovtec-shell.js | head -5 || true; exit 1; }
-          grep -q 'inovtec-shell.js?v=20261002-organisation15' /tmp/inovtec-page-shell.html || { echo "::error::Le shell public charge encore une ancienne URL de inovtec-shell.js"; grep -o 'inovtec-shell.js?v=[^"<]*' /tmp/inovtec-page-shell.html | head -5 || true; exit 1; }
-          grep -q 'Promise.allSettled' /tmp/ORGA-LEGACY.html || { echo "::error::ORGA-LEGACY.html public n'a pas le correctif Firebase courant"; exit 1; }
-          echo 'Organisation publique : version courante confirmée.'
+          # Organisation utilise désormais une page autonome avec un nom de fichier neuf.
+          # On vérifie le fichier réellement utilisé par l'accueil, sans dépendre de l'ancien shell.
+          grep -q 'ORGANISATION-LIVE-V16.html' /tmp/index.html || { echo "::error::L'accueil public pointe encore vers l'ancienne Organisation"; exit 1; }
+          grep -q 'LIVE v16' /tmp/ORGANISATION-LIVE-V16.html || { echo "::error::La page Organisation autonome publique n'est pas la v16"; exit 1; }
+          grep -q 'Promise.allSettled' /tmp/ORGANISATION-LIVE-V16.html || { echo "::error::La page Organisation autonome n'a pas le moteur Firebase attendu"; exit 1; }
+          grep -q 'ORGANISATION-LIVE-V16.html' /tmp/ORGA.html || { echo "::error::L'ancien ORGA.html ne redirige pas vers la nouvelle page"; exit 1; }
+          echo 'Organisation publique autonome v16 : confirmée.'
           for attempt in $(seq 1 12); do
             curl -fsSL --retry 2 --retry-delay 2 "$base/index.html?check=${GITHUB_SHA}" -o /tmp/inovtec-home.html
             if grep -Eq 'href="REASSORT\.html([?"][^"]*)?"' /tmp/inovtec-home.html; then
