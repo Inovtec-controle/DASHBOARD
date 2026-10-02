@@ -40,8 +40,14 @@ try{
   await moveCard.locator('.task-actions button').first().click();
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='inprogress');
 
-  // 2. Le glisser-déposer change réellement la colonne et persiste dans Firebase.
-  await page.locator('.task[data-id="move-1"]').dragTo(page.locator('.task-list[data-status="blocked"]'));
+  // 2. Vrai geste souris (pointer events) : ne dépend plus du drag HTML5 du navigateur.
+  const sourceBox=await page.locator('.task[data-id="move-1"] .task-title').boundingBox();
+  const targetBox=await page.locator('.task-list[data-status="blocked"]').boundingBox();
+  if(!sourceBox||!targetBox)throw Error('Zones de déplacement Organisation introuvables');
+  await page.mouse.move(sourceBox.x+sourceBox.width/2,sourceBox.y+sourceBox.height/2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x+targetBox.width/2,targetBox.y+Math.min(45,targetBox.height/2),{steps:8});
+  await page.mouse.up();
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='blocked');
   if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)throw Error('La tâche déplacée n’apparaît pas dans Bloqué');
 
