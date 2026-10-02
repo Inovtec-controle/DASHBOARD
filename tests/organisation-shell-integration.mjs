@@ -54,67 +54,52 @@ page.on('dialog',dialog=>dialog.accept());
 const errors=[];page.on('pageerror',e=>errors.push(String(e.message||e)));
 
 try{
+  // Parcours réel utilisateur : Accueil -> menu reconstruit -> Organisation autonome.
   await page.goto('http://127.0.0.1:8765/index.html',{waitUntil:'domcontentloaded',timeout:30000});
   const organisation=page.locator('a[data-iv-menu-key="organisation"]').first();
   await organisation.waitFor({timeout:10000});
   const href=await organisation.getAttribute('href');
-  if(!href?.includes('ORGA-LEGACY.html%3Fv%3D20261002-organisation15'))throw Error('Le menu global pointe encore vers une ancienne version Organisation : '+href);
-  if(!href?.includes('build=20261002-organisation15'))throw Error('Le shell Organisation utilise encore un ancien build : '+href);
+  if(!href?.includes('ORGANISATION-LIVE-V16.html'))throw Error('Le menu réellement visible ne pointe pas vers Organisation LIVE v16 : '+href);
+  if(href?.includes('inovtec-page-shell.html')||href?.includes('ORGA-LEGACY'))throw Error('Le menu visible repasse encore par l’ancien shell : '+href);
 
   await organisation.click();
-  await page.waitForURL(/inovtec-page-shell\.html.*mode=organisation/i,{timeout:10000});
-  const frame=page.frameLocator('#legacyFrame');
-  await frame.locator('#app:not(.hidden)').waitFor({timeout:10000});
-  await frame.locator('.task[data-id="shell-move"]').waitFor({timeout:10000});
-  await frame.locator('#orgaBoardBuild').waitFor({timeout:5000});
-  const buildText=(await frame.locator('#orgaBoardBuild').textContent()||'').trim();
-  if(buildText!=='v15')throw Error('La page Organisation visible n’affiche pas la version v15 : '+buildText);
+  await page.waitForURL(/ORGANISATION-LIVE-V16\.html/i,{timeout:10000});
+  await page.locator('#app:not(.hidden)').waitFor({timeout:10000});
+  await page.locator('.task[data-id="shell-move"]').waitFor({timeout:10000});
 
-  await page.waitForFunction(()=>window.InovtecHeaderSyncState?.state==='connected',null,{timeout:12000}).catch(async error=>{
-    const diagnostic=await page.evaluate(()=>({
-      header:window.InovtecHeaderSyncState||null,
-      mark:document.querySelector('.iv-head-mark')?.dataset?.state||'absent',
-      markTitle:document.querySelector('.iv-head-mark')?.title||'',
-      health:window.InovtecFirebaseOperational||null,
-      mirror:document.getElementById('syncMirror')?.textContent||'',
-      frameStatus:document.getElementById('legacyFrame')?.contentDocument?.getElementById('syncStatus')?.textContent||''
-    }));
-    throw Error('Symbole Firebase du bandeau non validé : '+JSON.stringify(diagnostic)+' · '+error.message);
-  });
+  const buildText=(await page.locator('#orgaBoardBuild').textContent()||'').trim();
+  if(buildText!=='LIVE v16')throw Error('La page visible n’est pas Organisation LIVE v16 : '+buildText);
 
-  const shellSource=await frame.locator('.task[data-id="shell-move"] .task-title').boundingBox();
-  const shellTarget=await frame.locator('.column[data-status="blocked"]').boundingBox();
-  if(!shellSource||!shellTarget)throw Error('Zones de déplacement Organisation introuvables dans le shell');
-  await page.mouse.move(shellSource.x+shellSource.width/2,shellSource.y+shellSource.height/2);
+  // Déplacement réel à la souris dans la page réellement ouverte depuis l'accueil.
+  const source=await page.locator('.task[data-id="shell-move"]').boundingBox();
+  const target=await page.locator('.column[data-status="blocked"]').boundingBox();
+  if(!source||!target)throw Error('Zones de déplacement Organisation LIVE introuvables');
+  await page.mouse.move(source.x+source.width/2,source.y+Math.min(30,source.height/3));
   await page.mouse.down();
-  await page.mouse.move(shellTarget.x+shellTarget.width/2,shellTarget.y+Math.max(55,shellTarget.height-18),{steps:10});
-  if(await frame.locator('.task-drag-ghost').count()!==1)throw Error('La bulle fantôme de déplacement ne s’affiche pas dans le shell');
+  await page.mouse.move(target.x+target.width/2,target.y+Math.max(55,target.height-18),{steps:10});
   await page.waitForTimeout(260);
-  await frame.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]').waitFor({timeout:5000});
+  await page.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]').waitFor({timeout:5000});
   await page.mouse.up();
 
-  await frame.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver'}).click();
-  await frame.locator('#board .task[data-id="shell-archive"]').waitFor({state:'detached',timeout:5000});
-  await frame.locator('#ivArchiveButton').waitFor({timeout:5000});
-  await frame.locator('#ivArchiveButton').click();
-  await frame.locator('#ivArchiveModal.iv-open').waitFor({timeout:5000});
-  await frame.locator('#archiveList').getByText('Archiver depuis le shell').waitFor({state:'visible',timeout:5000});
+  // Archivage sur cette même page autonome.
+  await page.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver'}).click();
+  await page.locator('#board .task[data-id="shell-archive"]').waitFor({state:'detached',timeout:5000});
+  await page.locator('#archiveList').getByText('Archiver depuis le shell').waitFor({state:'visible',timeout:5000});
 
-  const writes=await frame.locator('body').evaluate(()=>window.__orgaShellTest?.writes||0);
-  if(writes<2)throw Error('Les actions Organisation du shell ne sont pas envoyées à Firebase');
+  const writes=await page.evaluate(()=>window.__orgaShellTest?.writes||0);
+  if(writes<2)throw Error('Les actions Organisation LIVE ne sont pas envoyées à Firebase');
 
-  // Régression réelle rencontrée : un ancien favori / cache pouvait encore demander
-  // ORGA-LEGACY avec une ancienne version et contourner les correctifs courants.
-  const stale=await context.newPage();
-  await stale.route('https://www.gstatic.com/firebasejs/**',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
-  await stale.goto('http://127.0.0.1:8765/inovtec-page-shell.html?mode=organisation&page=ORGA-LEGACY.html%3Fv%3D20260927-savecontrols1',{waitUntil:'domcontentloaded',timeout:30000});
-  await stale.frameLocator('#legacyFrame').locator('#app:not(.hidden)').waitFor({timeout:10000});
-  const forcedSrc=await stale.locator('#legacyFrame').getAttribute('src');
-  if(!forcedSrc?.includes('ORGA-LEGACY.html?v=20261002-organisation15'))throw Error('Une ancienne URL Organisation contourne encore la version courante : '+forcedSrc);
-  await stale.close();
+  // Même un ancien accès ORGA.html doit quitter définitivement l'ancien shell.
+  const legacy=await context.newPage();
+  await legacy.route('https://www.gstatic.com/firebasejs/**',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
+  await legacy.goto('http://127.0.0.1:8765/ORGA.html',{waitUntil:'domcontentloaded',timeout:30000});
+  await legacy.waitForURL(/ORGANISATION-LIVE-V16\.html/i,{timeout:10000});
+  const legacyBuild=(await legacy.locator('#orgaBoardBuild').textContent()||'').trim();
+  if(legacyBuild!=='LIVE v16')throw Error('ORGA.html ne mène pas à la nouvelle page autonome');
+  await legacy.close();
 
   if(errors.length)throw Error('JavaScript : '+errors.join('; '));
-  console.log('OK : vraie navigation Organisation, ancienne URL forcée vers la version courante, déplacement et archivage via le shell');
+  console.log('OK : accueil réel -> menu visible -> Organisation LIVE v16 -> déplacement -> Firebase');
 }finally{
   await context.close();
   await browser.close();
