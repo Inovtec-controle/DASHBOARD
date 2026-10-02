@@ -66,6 +66,9 @@ try{
   const frame=page.frameLocator('#legacyFrame');
   await frame.locator('#app:not(.hidden)').waitFor({timeout:10000});
   await frame.locator('.task[data-id="shell-move"]').waitFor({timeout:10000});
+  await frame.locator('#orgaBoardBuild').waitFor({timeout:5000});
+  const buildText=(await frame.locator('#orgaBoardBuild').textContent()||'').trim();
+  if(buildText!=='v14')throw Error('La page Organisation visible n’affiche pas la version v14 : '+buildText);
 
   await page.waitForFunction(()=>window.InovtecHeaderSyncState?.state==='connected',null,{timeout:12000}).catch(async error=>{
     const diagnostic=await page.evaluate(()=>({
@@ -86,8 +89,9 @@ try{
   await page.mouse.down();
   await page.mouse.move(shellTarget.x+shellTarget.width/2,shellTarget.y+Math.max(55,shellTarget.height-18),{steps:10});
   if(await frame.locator('.task-drag-ghost').count()!==1)throw Error('La bulle fantôme de déplacement ne s’affiche pas dans le shell');
-  await page.mouse.up();
+  await page.waitForTimeout(260);
   await frame.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]').waitFor({timeout:5000});
+  await page.mouse.up();
 
   await frame.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver'}).click();
   await frame.locator('#board .task[data-id="shell-archive"]').waitFor({state:'detached',timeout:5000});
