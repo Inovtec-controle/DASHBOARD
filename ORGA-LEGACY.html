@@ -17,11 +17,12 @@
     .column-help{font-size:10px;color:var(--muted);margin-top:2px}
     .count{font-size:11px;font-weight:800;background:#e2e8f0;border-radius:999px;padding:4px 8px;height:max-content}
     .task-list{padding:8px;flex:1}
-    .task-list.drag-over{outline:2px dashed var(--brand);outline-offset:-5px;background:#ecfdf5}
-    .task{background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:8px;box-shadow:0 4px 12px rgba(15,23,42,.06)}
-    .task.dragging{opacity:.5}
-    .task-title{font-weight:800;font-size:13px;word-break:break-word;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
-    .task-title:active{cursor:grabbing}
+    .task-list.drag-over,.column.drag-over{outline:2px dashed var(--brand);outline-offset:-5px;background:#ecfdf5}
+    .task{background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:8px;box-shadow:0 4px 12px rgba(15,23,42,.06);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+    .task.dragging{opacity:.35;cursor:grabbing}
+    .task-title{font-weight:800;font-size:13px;word-break:break-word}
+    .task-actions,.task-actions *{touch-action:auto}
+    .task-drag-ghost{position:fixed;z-index:2147483000;pointer-events:none;margin:0;opacity:.94;transform:rotate(.8deg);box-shadow:0 18px 45px rgba(15,23,42,.22);background:#fff;border:1px solid var(--brand);border-radius:14px;padding:10px}
     .task-desc{font-size:12px;color:#475569;white-space:pre-wrap;margin-top:5px}
     .task-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
     .tag{font-size:10px;border-radius:999px;padding:4px 7px;border:1px solid var(--border);background:#f8fafc}
@@ -39,7 +40,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261002-organisation9"></script>
+  <script src="firebase-config.js?v=20261002-organisation10"></script>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -441,52 +442,99 @@
     $("cancelEditBtn").classList.add("hidden");
   }
   function clearDragOver(){
-    document.querySelectorAll(".task-list.drag-over").forEach(el=>el.classList.remove("drag-over"));
+    document.querySelectorAll(".task-list.drag-over,.column.drag-over").forEach(el=>el.classList.remove("drag-over"));
   }
-  function bindPointerDrag(handle,card,task){
-    let pointerId=null,startX=0,startY=0,active=false;
+  function pickDropColumn(clientX,clientY){
+    const board=$("board");
+    const boardRect=board?.getBoundingClientRect();
+    if(!boardRect) return null;
+    // Une marge verticale permet de déposer facilement dans une colonne courte ou vide.
+    if(clientY < boardRect.top-35 || clientY > boardRect.bottom+80) return null;
+    const columns=[...document.querySelectorAll(".column[data-status]")];
+    let direct=null;
+    let nearest=null;
+    let nearestDistance=Infinity;
+    for(const column of columns){
+      const r=column.getBoundingClientRect();
+      if(clientX>=r.left && clientX<=r.right){
+        direct=column;
+        break;
+      }
+      const cx=(r.left+r.right)/2;
+      const distance=Math.abs(clientX-cx);
+      if(distance<nearestDistance){nearestDistance=distance;nearest=column;}
+    }
+    return direct || (nearestDistance<120?nearest:null);
+  }
+  function bindPointerDrag(card,task){
+    let pointerId=null,startX=0,startY=0,active=false,ghost=null,targetColumn=null;
+    const removeGhost=()=>{ if(ghost){ghost.remove();ghost=null;} };
     const cleanup=()=>{
       if(pointerId!==null){
-        try{handle.releasePointerCapture(pointerId);}catch{}
+        try{card.releasePointerCapture(pointerId);}catch{}
       }
       pointerId=null;
       active=false;
-      card.classList.remove("dragging");
+      targetColumn=null;
+      card.classList.remove("dragging","drag-ready");
       clearDragOver();
+      removeGhost();
     };
-    handle.addEventListener("pointerdown",e=>{
-      if(e.button!==0 || task.archived) return;
+    const moveGhost=(x,y)=>{
+      if(!ghost)return;
+      ghost.style.left=(x+14)+"px";
+      ghost.style.top=(y+14)+"px";
+    };
+    card.addEventListener("pointerdown",e=>{
+      if(task.archived || e.button!==0 || e.target?.closest?.("button,input,textarea,select,a")) return;
       pointerId=e.pointerId;
       startX=e.clientX;
       startY=e.clientY;
       active=false;
       card.classList.add("drag-ready");
-      try{handle.setPointerCapture(pointerId);}catch{}
+      try{card.setPointerCapture(pointerId);}catch{}
       e.preventDefault();
     });
-    handle.addEventListener("pointermove",e=>{
+    card.addEventListener("pointermove",e=>{
       if(pointerId!==e.pointerId)return;
       const distance=Math.hypot(e.clientX-startX,e.clientY-startY);
-      if(!active && distance<6)return;
-      active=true;
-      card.classList.add("dragging");
+      if(!active && distance<5)return;
+      if(!active){
+        active=true;
+        card.classList.add("dragging");
+        const rect=card.getBoundingClientRect();
+        ghost=card.cloneNode(true);
+        ghost.classList.remove("dragging","drag-ready");
+        ghost.classList.add("task-drag-ghost");
+        ghost.style.width=Math.max(180,rect.width)+"px";
+        ghost.querySelectorAll("button").forEach(btn=>btn.remove());
+        document.body.appendChild(ghost);
+      }
+      moveGhost(e.clientX,e.clientY);
       clearDragOver();
-      const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.(".task-list");
-      if(target)target.classList.add("drag-over");
+      targetColumn=pickDropColumn(e.clientX,e.clientY);
+      if(targetColumn){
+        targetColumn.classList.add("drag-over");
+        targetColumn.querySelector(".task-list")?.classList.add("drag-over");
+      }
       e.preventDefault();
     });
-    handle.addEventListener("pointerup",e=>{
+    card.addEventListener("pointerup",e=>{
       if(pointerId!==e.pointerId)return;
       if(active){
-        const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.(".task-list");
-        const status=target?.dataset?.status;
-        if(status)setTaskStatus(task.id,status);
+        const column=targetColumn || pickDropColumn(e.clientX,e.clientY);
+        const status=column?.dataset?.status;
+        if(status && FLOW.includes(status)){
+          setTaskStatus(task.id,status);
+        }
         e.preventDefault();
       }
-      card.classList.remove("drag-ready");
       cleanup();
     });
-    handle.addEventListener("pointercancel",()=>{card.classList.remove("drag-ready");cleanup();});
+    card.addEventListener("pointercancel",cleanup);
+    card.addEventListener("lostpointercapture",()=>{
+      if(pointerId!==null && !active) cleanup();
+    });
   }
   function createTaskCard(task){
     const card = document.createElement("article");
@@ -498,7 +546,7 @@
     title.title = "Faire glisser pour déplacer la tâche";
     title.textContent = task.title || "(Sans titre)";
     card.appendChild(title);
-    bindPointerDrag(title,card,task);
+    bindPointerDrag(card,task);
 
     if(task.description){
       const desc = document.createElement("div");
@@ -538,6 +586,7 @@
     FLOW.forEach(status=>{
       const column = document.createElement("section");
       column.className = "column";
+      column.dataset.status = status;
       const header = document.createElement("div");
       header.className = "column-header";
       const left = document.createElement("div");
@@ -557,14 +606,6 @@
       const list = document.createElement("div");
       list.className = "task-list";
       list.dataset.status = status;
-      list.addEventListener("dragover",e=>{e.preventDefault();list.classList.add("drag-over");});
-      list.addEventListener("dragleave",e=>{if(!list.contains(e.relatedTarget))list.classList.remove("drag-over");});
-      list.addEventListener("drop",e=>{
-        e.preventDefault();
-        clearDragOver();
-        const id = draggedId || e.dataTransfer?.getData("text/plain");
-        if(id)setTaskStatus(id,status);
-      });
       if(!listTasks.length){
         const empty = document.createElement("div");
         empty.className = "muted";
