@@ -58,8 +58,8 @@ try{
   const organisation=page.locator('a[data-iv-menu-key="organisation"]').first();
   await organisation.waitFor({timeout:10000});
   const href=await organisation.getAttribute('href');
-  if(!href?.includes('ORGA-LEGACY.html%3Fv%3D20261002-organisation7'))throw Error('Le menu global pointe encore vers une ancienne version Organisation : '+href);
-  if(!href?.includes('build=20261002-organisation7'))throw Error('Le shell Organisation utilise encore un ancien build : '+href);
+  if(!href?.includes('ORGA-LEGACY.html%3Fv%3D20261002-organisation8'))throw Error('Le menu global pointe encore vers une ancienne version Organisation : '+href);
+  if(!href?.includes('build=20261002-organisation8'))throw Error('Le shell Organisation utilise encore un ancien build : '+href);
 
   await organisation.click();
   await page.waitForURL(/inovtec-page-shell\.html.*mode=organisation/i,{timeout:10000});
