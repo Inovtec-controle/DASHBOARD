@@ -40,7 +40,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261002-organisation13"></script>
+  <script src="firebase-config.js?v=20261002-organisation14"></script>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -60,7 +60,7 @@
       <div class="topbar-actions">
         <a class="btn btn-secondary" href="index.html">← Accueil</a>
         <span id="syncStatus" class="status">Connexion…</span>
-        <span id="orgaBuildBadge" class="status ok" title="Version réellement chargée">Organisation v13</span>
+        <span id="orgaBuildBadge" class="status ok" title="Version réellement chargée">Organisation v14</span>
         <button id="logoutBtn" class="btn btn-secondary" type="button">Déconnexion</button>
       </div>
     </header>
@@ -86,7 +86,7 @@
       </section>
 
       <section class="card">
-        <div class="section-title"><h2>Tableau des tâches</h2><span id="overdueStatus" class="status">Aucun retard</span></div>
+        <div class="section-title"><h2>Tableau des tâches <span id="orgaBoardBuild" class="status ok" style="margin-left:8px;vertical-align:middle">v14</span></h2><span id="overdueStatus" class="status">Aucun retard</span></div>
         <div id="board" class="board"></div>
       </section>
 
@@ -469,9 +469,12 @@
   }
   function bindPointerDrag(card,task){
     let dragging=false,ghost=null,targetColumn=null,startX=0,startY=0,lastX=0,lastY=0;
+    let hoverTimer=null,hoverStatus="";
 
     const removeGhost=()=>{if(ghost){ghost.remove();ghost=null;}};
+    const clearHoverTimer=()=>{if(hoverTimer){clearTimeout(hoverTimer);hoverTimer=null;}hoverStatus="";};
     const clearAll=()=>{
+      clearHoverTimer();
       document.removeEventListener("mousemove",onMouseMove,true);
       document.removeEventListener("mouseup",onMouseUp,true);
       document.removeEventListener("touchmove",onTouchMove,true);
@@ -502,6 +505,26 @@
       document.body.appendChild(ghost);
     };
 
+    const commitStatus=status=>{
+      if(!dragging||!FLOW.includes(status)||status===task.status)return;
+      task.status=status;
+      task.updatedAt=new Date().toISOString();
+      saveLocal();
+      render();
+      void saveCloud();
+    };
+
+    const armTarget=status=>{
+      if(!status||status===task.status){clearHoverTimer();return;}
+      if(hoverStatus===status&&hoverTimer)return;
+      clearHoverTimer();
+      hoverStatus=status;
+      hoverTimer=setTimeout(()=>{
+        hoverTimer=null;
+        if(dragging&&targetColumn?.dataset?.status===status)commitStatus(status);
+      },180);
+    };
+
     const update=(x,y)=>{
       lastX=x;lastY=y;
       if(ghost){
@@ -514,17 +537,13 @@
         targetColumn.classList.add("drag-over");
         targetColumn.querySelector(".task-list")?.classList.add("drag-over");
       }
+      armTarget(targetColumn?.dataset?.status||"");
     };
 
-    const commit=()=>{
+    const finalCommit=()=>{
+      clearHoverTimer();
       const status=targetColumn?.dataset?.status;
-      if(dragging&&status&&FLOW.includes(status)&&status!==task.status){
-        task.status=status;
-        task.updatedAt=new Date().toISOString();
-        saveLocal();
-        render();
-        void saveCloud();
-      }
+      if(dragging&&status&&FLOW.includes(status)&&status!==task.status)commitStatus(status);
       clearAll();
     };
 
@@ -537,10 +556,10 @@
     };
     const onMouseUp=e=>{
       if(dragging)update(e.clientX,e.clientY);
-      commit();
+      finalCommit();
       e.preventDefault();
     };
-    const onParentMouseUp=()=>commit();
+    const onParentMouseUp=()=>finalCommit();
 
     const onTouchMove=e=>{
       const t=e.touches?.[0];
@@ -551,8 +570,8 @@
       update(t.clientX,t.clientY);
       e.preventDefault();
     };
-    const onTouchEnd=()=>commit();
-    const onTouchCancel=()=>commit();
+    const onTouchEnd=()=>finalCommit();
+    const onTouchCancel=()=>finalCommit();
 
     card.addEventListener("mousedown",e=>{
       if(task.archived||e.button!==0||e.target?.closest?.("button,input,textarea,select,a"))return;
