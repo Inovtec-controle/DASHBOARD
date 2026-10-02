@@ -15,12 +15,12 @@ const definitions=[
  ['Réassort','↻','REASSORT.html','reassort'],
  ['Congés & absences','☂','CONGES.html','conges','CONGES-LEGACY.html?v=20260829-operational1'],
  ['Variables agents','◷','VARIABLES.html','variables','VARIABLES-DASHBOARD.html?v=20260916-1'],
- ['Organisation','◎','ORGA.html?v=20261002-organisation12','organisation','ORGA-LEGACY.html?v=20261002-organisation12'],
+ ['Organisation','◎','ORGA.html?v=20261002-organisation13','organisation','ORGA-LEGACY.html?v=20261002-organisation13'],
  ['Conversion temps','⇄','TEMPS.html','temps','TEMPS-LEGACY.html?v=20260829-operational1'],
  ['Salaire','€','SALAIRE.html','salaire','SALAIRE-LEGACY.html?v=20260829-operational1'],
  ['Dépense carburant','⛽','ESSENCE.html','essence','ESSENCE-LEGACY.html?v=20260829-operational1']
 ];
-const route=d=>d[3]==='planning'?'PLANNINGS.html':(d[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:d[3],page:d[4],build:d[3]==='organisation'?'20261002-organisation12':'20260917-ui-stable1'}).toString():d[2]);
+const route=d=>d[3]==='planning'?'PLANNINGS.html':(d[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:d[3],page:d[4],build:d[3]==='organisation'?'20261002-organisation13':'20260917-ui-stable1'}).toString():d[2]);
 const active=mode||({'INDEX.HTML':'home','MATERIEL.HTML':'materiel','REASSORT.HTML':'reassort'}[pathname]||'');
 function desktopLink(doc,d,kind){const a=doc.createElement('a');a.href=route(d);a.dataset.ivMenuKey=d[3];if(d[3]===active)a.classList.add('active');
  if(kind==='shell')a.innerHTML='<span class="iv-ico">'+d[1]+'</span><span>'+d[0]+'</span>';
