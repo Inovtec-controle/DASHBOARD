@@ -107,8 +107,8 @@ jobs:
           done
           # Vérifie la FRAÎCHEUR réelle du site public, pas seulement un HTTP 200.
           # Cela détecte immédiatement une page GitHub Pages qui sert encore une ancienne Organisation.
-          grep -q '20261002-organisation12' /tmp/ORGA.html || { echo "::error::ORGA.html public est encore ancien"; grep -o '2026[0-9-]*organisation[0-9]*' /tmp/ORGA.html | head -5 || true; exit 1; }
-          grep -q '20261002-organisation12' /tmp/inovtec-shell.js || { echo "::error::inovtec-shell.js public est encore ancien"; grep -o '2026[0-9-]*organisation[0-9]*' /tmp/inovtec-shell.js | head -5 || true; exit 1; }
+          grep -q '20261002-organisation13' /tmp/ORGA.html || { echo "::error::ORGA.html public est encore ancien"; grep -o '2026[0-9-]*organisation[0-9]*' /tmp/ORGA.html | head -5 || true; exit 1; }
+          grep -q '20261002-organisation13' /tmp/inovtec-shell.js || { echo "::error::inovtec-shell.js public est encore ancien"; grep -o '2026[0-9-]*organisation[0-9]*' /tmp/inovtec-shell.js | head -5 || true; exit 1; }
           grep -q 'Promise.allSettled' /tmp/ORGA-LEGACY.html || { echo "::error::ORGA-LEGACY.html public n'a pas le correctif Firebase courant"; exit 1; }
           echo 'Organisation publique : version courante confirmée.'
           for attempt in $(seq 1 12); do
