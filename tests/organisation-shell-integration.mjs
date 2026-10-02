@@ -91,8 +91,19 @@ try{
 
   const writes=await frame.locator('body').evaluate(()=>window.__orgaShellTest?.writes||0);
   if(writes<2)throw Error('Les actions Organisation du shell ne sont pas envoyées à Firebase');
+
+  // Régression réelle rencontrée : un ancien favori / cache pouvait encore demander
+  // ORGA-LEGACY avec une ancienne version et contourner les correctifs courants.
+  const stale=await context.newPage();
+  await stale.route('https://www.gstatic.com/firebasejs/**',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
+  await stale.goto('http://127.0.0.1:8765/inovtec-page-shell.html?mode=organisation&page=ORGA-LEGACY.html%3Fv%3D20260927-savecontrols1',{waitUntil:'domcontentloaded',timeout:30000});
+  await stale.frameLocator('#legacyFrame').locator('#app:not(.hidden)').waitFor({timeout:10000});
+  const forcedSrc=await stale.locator('#legacyFrame').getAttribute('src');
+  if(!forcedSrc?.includes('ORGA-LEGACY.html?v=20261002-organisation8'))throw Error('Une ancienne URL Organisation contourne encore la version courante : '+forcedSrc);
+  await stale.close();
+
   if(errors.length)throw Error('JavaScript : '+errors.join('; '));
-  console.log('OK : vraie navigation Organisation, indicateur Firebase, déplacement et archivage via le shell');
+  console.log('OK : vraie navigation Organisation, ancienne URL forcée vers la version courante, déplacement et archivage via le shell');
 }finally{
   await context.close();
   await browser.close();
