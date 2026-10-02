@@ -48,8 +48,10 @@ try{
   await page.mouse.down();
   await page.mouse.move(targetBox.x+targetBox.width/2,targetBox.y+Math.max(55,targetBox.height-18),{steps:10});
   if(await page.locator('.task-drag-ghost').count()!==1)throw Error('La bulle fantôme de déplacement ne s’affiche pas');
-  await page.mouse.up();
+  // Le nouveau moteur doit enregistrer AVANT le relâchement si la cible reste stable.
+  await page.waitForTimeout(260);
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='blocked');
+  await page.mouse.up();
   if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)throw Error('La tâche déplacée n’apparaît pas dans Bloqué');
 
   // 2b. Deuxième déplacement réel à la souris pour vérifier que le moteur
@@ -60,8 +62,9 @@ try{
   await page.mouse.move(secondSource.x+secondSource.width/2,secondSource.y+Math.min(30,secondSource.height/3));
   await page.mouse.down();
   await page.mouse.move(secondTarget.x+secondTarget.width/2,secondTarget.y+Math.max(55,secondTarget.height-18),{steps:10});
-  await page.mouse.up();
+  await page.waitForTimeout(260);
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='done');
+  await page.mouse.up();
   if(await page.locator('.task-list[data-status="done"] .task[data-id="move-1"]').count()!==1)throw Error('Le second déplacement souris ne persiste pas');
 
   // 3. Archiver doit fonctionner même si la carte est draggable.
