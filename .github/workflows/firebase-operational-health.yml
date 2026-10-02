@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          files=(firebase-config.js firestore.rules storage.rules inovtec-firebase-operational-guard.js inovtec-cloud-sync.js inovtec-cloud-sync-v2.js inovtec-common-header.js inovtec-data-hub.js inovtec-shared-workspace.js inovtec-cross-page-data.js conges.js variables.js ORGA-LEGACY.html INFOCHANTIERS-V2-LEGACY.html inovtec-info-persistence-stable.js inovtec-info-control-history.js inovtec-site-management-layout.js inovtec-container-schedule.js discipline-firestore-bridge.js kontrol-cloud.js inovtec-kontrol-shared-archive.js AGENTS-LEGACY.html PLANNINGS.html AGENTS.html CONGES.html VARIABLES.html ORGA.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html)
+          files=(firebase-config.js firestore.rules storage.rules inovtec-firebase-operational-guard.js inovtec-cloud-sync.js inovtec-cloud-sync-v2.js inovtec-common-header.js inovtec-data-hub.js inovtec-shared-workspace.js inovtec-cross-page-data.js conges.js variables.js ORGA-LEGACY.html ORGANISATION-LIVE-V16.html INFOCHANTIERS-V2-LEGACY.html inovtec-info-persistence-stable.js inovtec-info-control-history.js inovtec-site-management-layout.js inovtec-container-schedule.js discipline-firestore-bridge.js kontrol-cloud.js inovtec-kontrol-shared-archive.js AGENTS-LEGACY.html PLANNINGS.html AGENTS.html CONGES.html VARIABLES.html ORGA.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html)
           for f in "${files[@]}"; do
             test -s "$f" || { echo "::error file=$f::Fichier Firebase absent ou vide"; exit 1; }
           done
@@ -46,6 +46,7 @@ jobs:
             'conges.js':['moduleSyncV1:{conges:'],
             'variables.js':['moduleSyncV1:{variables:'],
             'ORGA-LEGACY.html':['const ref = db.collection("kanban").doc(owner)'],
+            'ORGANISATION-LIVE-V16.html':['const ref = db.collection("kanban").doc(owner)','LIVE v16'],
             'inovtec-info-persistence-stable.js':['const ref=db.collection("chantiers").doc(String(site.id))','await ref.set(data,{merge:true})','await ref.get({source:"server"})','persist(d,wasNew,token,snapshot)'],
             'INFOCHANTIERS-V2-LEGACY.html':['collectSupplementalFields(data)','applySupplementalFields(site)','setSaveButtonState("saving")','setSaveButtonState("saved")','setSaveButtonState("error")','ivControlHistoryCard'],
             'inovtec-info-control-history.js':['chantierId','deleteControlRecord','readControlPhoto'],
@@ -73,7 +74,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          checks={'CONGES.html':'mode=conges','VARIABLES.html':'mode=variables','PLANNINGS.html':'mode=planning','ORGA.html':'mode=organisation','AGENTS.html':'mode=agents','INFOCHANTIERS-V2.html':'mode=infos','KONTROL-CLOUD.html':'mode=kontrol'}
+          checks={'CONGES.html':'mode=conges','VARIABLES.html':'mode=variables','PLANNINGS.html':'mode=planning','ORGA.html':'ORGANISATION-LIVE-V16.html','ORGANISATION-LIVE-V16.html':'LIVE v16','AGENTS.html':'mode=agents','INFOCHANTIERS-V2.html':'mode=infos','KONTROL-CLOUD.html':'mode=kontrol'}
           errors=[]
           for page,token in checks.items():
             if token not in Path(page).read_text(encoding='utf-8'):
