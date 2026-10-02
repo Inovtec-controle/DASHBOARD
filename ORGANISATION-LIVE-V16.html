@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16a34a">
+  <title>Inovtec — Organisation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="inovtec-common.css?v=20260817-orga-final">
+  <style>
+    .board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:12px;overflow-x:auto;padding-bottom:5px}
+    .column{background:#f8fafc;border:1px solid var(--border);border-radius:16px;min-height:260px;display:flex;flex-direction:column}
+    .column-header{padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px}
+    .column-title{font-weight:800;font-size:13px}
+    .column-help{font-size:10px;color:var(--muted);margin-top:2px}
+    .count{font-size:11px;font-weight:800;background:#e2e8f0;border-radius:999px;padding:4px 8px;height:max-content}
+    .task-list{padding:8px;flex:1}
+    .task-list.drag-over,.column.drag-over{outline:2px dashed var(--brand);outline-offset:-5px;background:#ecfdf5}
+    .task{background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:8px;box-shadow:0 4px 12px rgba(15,23,42,.06);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+    .task.dragging{opacity:.35;cursor:grabbing}
+    .task-title{font-weight:800;font-size:13px;word-break:break-word}
+    .task-actions,.task-actions *{touch-action:auto}
+    .task-drag-ghost{position:fixed;z-index:2147483000;pointer-events:none;margin:0;opacity:.94;transform:rotate(.8deg);box-shadow:0 18px 45px rgba(15,23,42,.22);background:#fff;border:1px solid var(--brand);border-radius:14px;padding:10px}
+    .task-desc{font-size:12px;color:#475569;white-space:pre-wrap;margin-top:5px}
+    .task-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+    .tag{font-size:10px;border-radius:999px;padding:4px 7px;border:1px solid var(--border);background:#f8fafc}
+    .tag.high{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+    .tag.normal{background:#dcfce7;color:#166534;border-color:#86efac}
+    .tag.low{background:#e2e8f0;color:#475569}
+    .tag.overdue{background:#fee2e2;color:#991b1b;border-color:#fecaca;font-weight:800}
+    .task-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+    .task-actions button{border:1px solid var(--border);background:#fff;border-radius:9px;padding:6px 8px;font-size:11px}
+    .task-actions button.danger{color:#b91c1c;background:#fff1f2;border-color:#fecdd3}
+    .archive-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid var(--border)}
+    .archive-item:last-child{border-bottom:0}
+    @media(max-width:900px){.board{grid-template-columns:repeat(4,280px)}}
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js?v=20261002-organisation16"></script>
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card">
+      <h1>Connexion Inovtec</h1>
+      <p>Connecte-toi pour accéder aux tâches synchronisées.</p>
+      <div class="field"><label for="loginEmail">Adresse email</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+      <div class="field" style="margin-top:10px"><label for="loginPassword">Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px" type="submit">Se connecter</button>
+      <div id="loginError" class="muted" role="alert" style="margin-top:10px;color:#b91c1c"></div>
+    </form>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div><h1>Organisation</h1><p>Tâches, priorités, échéances et archives</p></div>
+      <div class="topbar-actions">
+        <a class="btn btn-secondary" href="index.html?build=organisation-live-v16">← Accueil</a>
+        <span id="syncStatus" class="status">Connexion…</span>
+        <span id="orgaBuildBadge" class="status ok" title="Version réellement chargée">Organisation LIVE v16</span>
+        <button id="logoutBtn" class="btn btn-secondary" type="button">Déconnexion</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="card">
+        <div class="section-title">
+          <h2 id="formTitle">Nouvelle tâche</h2>
+          <button id="cancelEditBtn" class="btn btn-secondary hidden" type="button">Annuler la modification</button>
+        </div>
+        <form id="taskForm">
+          <div class="field"><label for="title">Titre *</label><input id="title" maxlength="140" required placeholder="Ex. Relancer le syndic"></div>
+          <div class="field" style="margin-top:10px"><label for="status">Statut</label>
+            <select id="status"><option value="todo">À faire</option><option value="inprogress">En cours</option><option value="blocked">Bloqué</option><option value="done">Fait</option></select>
+          </div>
+          <div class="field" style="margin-top:10px"><label for="priority">Priorité</label>
+            <select id="priority"><option value="normal">Normale</option><option value="high">Haute</option><option value="low">Basse</option></select>
+          </div>
+          <div class="field" style="margin-top:10px"><label for="dueDate">Date limite</label><input id="dueDate" type="date"></div>
+          <div class="field" style="margin-top:10px"><label for="description">Description</label><textarea id="description" maxlength="1000" placeholder="Informations utiles, personne à contacter…"></textarea></div>
+          <button class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Ajouter la tâche</span></button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-title"><h2>Tableau des tâches <span id="orgaBoardBuild" class="status ok" style="margin-left:8px;vertical-align:middle">LIVE v16</span></h2><span id="overdueStatus" class="status">Aucun retard</span></div>
+        <div id="board" class="board"></div>
+      </section>
+
+      <section id="archiveCard" class="card hidden">
+        <div class="section-title"><h2>Archives</h2><span id="archiveCount" class="status">0</span></div>
+        <div id="archiveList" class="table-wrap"></div>
+      </section>
+    </main>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+  if (!window.INOVTEC_FIREBASE_CONFIG) {
+    document.getElementById("loginError").textContent = "Configuration Firebase introuvable.";
+    return;
+  }
+  if (!firebase.apps.length) firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const FLOW = ["todo","inprogress","blocked","done"];
+  const STATUS = {
+    todo:{label:"À faire",help:"À planifier ou lancer"},
+    inprogress:{label:"En cours",help:"Traitement en cours"},
+    blocked:{label:"Bloqué",help:"En attente d’une information"},
+    done:{label:"Fait",help:"Terminé, prêt à archiver"}
+  };
+  const LOCAL_KEY = "orga_task_board_v2";
+  let tasks = [];
+  let currentUser = null;
+  let unsubscribe = null;
+  let editingId = null;
+  let syncingFromCloud = false;
+  let draggedId = null;
+  let pendingWrites = 0;
+  let saveChain = Promise.resolve();
+  let realtimeWatchdog = null;
+  let mutationRevision = 0;
+
+  const $ = id => document.getElementById(id);
+  const loginScreen = $("loginScreen");
+  const app = $("app");
+  const syncStatus = $("syncStatus");
+
+  function setSync(text, type=""){
+    syncStatus.textContent = text;
+    syncStatus.className = "status" + (type ? " " + type : "");
+  }
+  function safeDate(value){
+    if (!value) return "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+  }
+  function shortDate(value){
+    const valid = safeDate(value);
+    if(!valid) return "";
+    const [y,m,d] = valid.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  function isOverdue(task){
+    if(!task.dueDate || task.status === "done" || task.archived) return false;
+    const end = new Date(task.dueDate + "T23:59:59");
+    return Number.isFinite(end.getTime()) && end.getTime() < Date.now();
+  }
+  function priorityWeight(p){ return p === "high" ? 0 : p === "normal" ? 1 : 2; }
+  function sorted(items){
+    return [...items].sort((a,b)=>{
+      const overdue = Number(isOverdue(b)) - Number(isOverdue(a));
+      if(overdue) return overdue;
+      const ad = a.dueDate || "9999-12-31";
+      const bd = b.dueDate || "9999-12-31";
+      if(ad !== bd) return ad.localeCompare(bd);
+      const p = priorityWeight(a.priority) - priorityWeight(b.priority);
+      if(p) return p;
+      return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+    });
+  }
+  function stableLegacyId(task,index){
+    const seed=[task?.title||"",task?.createdAt||"",task?.dueDate||"",index].join("|");
+    let h=2166136261;
+    for(let i=0;i<seed.length;i++){ h^=seed.charCodeAt(i); h=Math.imul(h,16777619); }
+    return "legacy_"+(h>>>0).toString(36);
+  }
+  function normalizeTasks(list){
+    return (Array.isArray(list)?list:[]).filter(t=>t&&typeof t==="object").map((raw,index)=>{
+      const task={...raw};
+      task.id=String(task.id||stableLegacyId(task,index));
+      task.status=FLOW.includes(task.status)?task.status:"todo";
+      task.priority=["high","normal","low"].includes(task.priority)?task.priority:"normal";
+      task.archived=task.archived===true||task.archived==="true";
+      task.archivedAt=task.archivedAt||"";
+      task.title=String(task.title||"");
+      task.description=String(task.description||"");
+      task.dueDate=safeDate(task.dueDate);
+      return task;
+    });
+  }
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(LOCAL_KEY);
+      tasks = normalizeTasks(raw ? JSON.parse(raw) : []);
+    }catch{ tasks = []; }
+  }
+  function saveLocal(){
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(tasks));
+  }
+  function saveCloud(){
+    saveLocal();
+    render();
+    if(!currentUser){
+      setSync("Connexion Firebase requise","warning");
+      return Promise.resolve(false);
+    }
+    const owner = currentUser.uid;
+    const ref = db.collection("kanban").doc(owner);
+    const sharedRef = db.collection("chantiers").doc("__inovtec_shared_workspace_v1__");
+    tasks = normalizeTasks(tasks);
+    const payload = JSON.parse(JSON.stringify(tasks));
+    const revision = ++mutationRevision;
+    pendingWrites += 1;
+    setSync("Enregistrement…");
+
+    const write = async () => {
+      try{
+        // Une action Organisation doit atteindre immédiatement les deux sources
+        // Firebase utilisées par l'application. Cela évite qu'une ancienne copie
+        // partagée ne remette une tâche dans son état précédent juste après un
+        // déplacement, un archivage ou une restauration.
+        const [personalWrite,sharedWrite] = await Promise.allSettled([
+          ref.set({
+            tasks:payload,
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+          },{merge:true}),
+          sharedRef.set({
+            _hidden:true,
+            _type:"inovtecSharedWorkspace",
+            sharedVersion:1,
+            tasks:payload,
+            tasksUpdatedAtMs:Date.now()
+          },{merge:true})
+        ]);
+        if(personalWrite.status !== "fulfilled") throw personalWrite.reason;
+        if(sharedWrite.status !== "fulfilled"){
+          console.warn("Organisation Firebase shared save",sharedWrite.reason);
+        }
+
+        // Ne jamais dépendre uniquement de onSnapshot pour valider une action.
+        // Après la dernière modification locale, relire explicitement le serveur.
+        if(currentUser?.uid === owner && revision === mutationRevision){
+          const check = await ref.get({source:"server"});
+          if(!check.exists || !Array.isArray(check.data()?.tasks)){
+            throw new Error("Firebase n’a pas confirmé la liste Organisation");
+          }
+          if(revision === mutationRevision){
+            tasks = normalizeTasks(check.data().tasks);
+            saveLocal();
+            render();
+            setSync("Synchronisé","ok");
+          }
+        }
+        return true;
+      }catch(error){
+        console.error("Organisation Firebase save",error);
+        if(currentUser?.uid === owner && revision === mutationRevision){
+          setSync("Enregistrement Firebase impossible","warning");
+        }
+        return false;
+      }finally{
+        pendingWrites = Math.max(0,pendingWrites-1);
+      }
+    };
+    saveChain = saveChain.then(write,write);
+    return saveChain;
+  }
+
+  async function recoverRemoteTasks(owner, ref){
+    try{
+      // Si la liste personnelle n'existe pas, Firebase partagé passe avant
+      // toute ancienne copie navigateur.
+      const sharedRef = db.collection("chantiers").doc("__inovtec_shared_workspace_v1__");
+      const shared = await sharedRef.get({source:"server"});
+      if(!currentUser || currentUser.uid !== owner) return;
+
+      if(shared.exists && Array.isArray(shared.data()?.tasks)){
+        tasks = normalizeTasks(shared.data().tasks);
+        saveLocal();
+        render();
+
+        // Matérialiser la liste partagée dans le document personnel afin que
+        // toutes les actions suivantes aient une seule cible Firebase stable.
+        await ref.set({
+          tasks:JSON.parse(JSON.stringify(tasks)),
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+        if(currentUser?.uid === owner) setSync("Synchronisé","ok");
+        return;
+      }
+
+      loadLocal();
+      render();
+      if(tasks.length){
+        // Dernier secours de migration historique : une seule écriture vers
+        // Firebase, puis Firebase redevient immédiatement la source de vérité.
+        await ref.set({
+          tasks:JSON.parse(JSON.stringify(tasks)),
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+        if(currentUser?.uid === owner) setSync("Synchronisé","ok");
+      }else if(currentUser?.uid === owner){
+        setSync("Aucune tâche enregistrée","ok");
+      }
+    }catch(error){
+      console.error("Organisation Firebase recovery",error);
+      if(currentUser?.uid === owner) setSync("Firebase inaccessible","warning");
+    }
+  }
+
+  function startRealtime(){
+    if(unsubscribe){ unsubscribe(); unsubscribe = null; }
+    if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
+    const owner = currentUser.uid;
+    const ref = db.collection("kanban").doc(owner);
+    let firstRemoteState = false;
+    let recoveryStarted = false;
+    setSync("Synchronisation…");
+
+    realtimeWatchdog = setTimeout(async ()=>{
+      if(firstRemoteState || !currentUser || currentUser.uid !== owner) return;
+      try{
+        const snap = await ref.get({source:"server"});
+        if(!currentUser || currentUser.uid !== owner) return;
+        firstRemoteState = true;
+        if(snap.exists && Array.isArray(snap.data()?.tasks)){
+          tasks = normalizeTasks(snap.data().tasks);
+          saveLocal();
+          render();
+          setSync("Synchronisé","ok");
+        }else if(!recoveryStarted){
+          recoveryStarted = true;
+          await recoverRemoteTasks(owner,ref);
+        }
+      }catch(error){
+        console.error("Organisation Firebase timeout",error);
+        if(currentUser?.uid === owner) setSync("Firebase inaccessible","warning");
+      }
+    },7000);
+
+    unsubscribe = ref.onSnapshot(snap=>{
+      firstRemoteState = true;
+      if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
+
+      // Les écritures locales sont déjà rendues à l'écran. Un instantané reçu
+      // pendant l'écriture ne doit jamais remettre l'ancienne version par-dessus.
+      if(pendingWrites > 0){
+        render();
+        return;
+      }
+
+      syncingFromCloud = true;
+      if(snap.exists && Array.isArray(snap.data()?.tasks)){
+        tasks = normalizeTasks(snap.data().tasks);
+        saveLocal();
+        render();
+        setSync("Synchronisé","ok");
+      }else if(!recoveryStarted){
+        recoveryStarted = true;
+        void recoverRemoteTasks(owner,ref);
+      }else{
+        render();
+      }
+      setTimeout(()=>{ syncingFromCloud = false; },0);
+    }, error=>{
+      firstRemoteState = true;
+      if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
+      console.error("Organisation Firebase realtime",error);
+      render();
+      setSync("Firebase inaccessible","warning");
+    });
+  }
+  function makeButton(label, handler, className=""){
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.draggable = false;
+    if(className) button.className = className;
+    button.addEventListener("pointerdown",e=>e.stopPropagation());
+    button.addEventListener("dragstart",e=>e.preventDefault());
+    button.addEventListener("click",e=>{e.stopPropagation();handler(e);});
+    return button;
+  }
+  function setTaskStatus(id,status){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || task.archived || !FLOW.includes(status)) return false;
+    if(task.status === status) return true;
+    task.status = status;
+    task.updatedAt = new Date().toISOString();
+    saveCloud();
+    return true;
+  }
+  function moveTask(id, direction){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || task.archived) return;
+    const i = FLOW.indexOf(task.status);
+    const next = direction === "next" ? i + 1 : i - 1;
+    if(next < 0 || next >= FLOW.length) return;
+    setTaskStatus(task.id,FLOW[next]);
+  }
+  function archiveTask(id){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || task.archived) return;
+    task.previousStatus = FLOW.includes(task.status) ? task.status : "todo";
+    task.archived = true;
+    task.archivedAt = new Date().toISOString();
+    task.updatedAt = task.archivedAt;
+    saveCloud();
+  }
+  function restoreTask(id){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task) return;
+    task.archived = false;
+    task.archivedAt = "";
+    task.status = FLOW.includes(task.previousStatus) ? task.previousStatus : "todo";
+    task.updatedAt = new Date().toISOString();
+    saveCloud();
+  }
+  function deleteTask(id){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || !confirm(`Supprimer définitivement « ${task.title} » ?`)) return;
+    tasks = tasks.filter(t=>t.id !== id);
+    if(editingId === id) resetForm();
+    saveCloud();
+  }
+  function editTask(id){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task) return;
+    editingId = id;
+    $("title").value = task.title || "";
+    $("description").value = task.description || "";
+    $("status").value = FLOW.includes(task.status) ? task.status : "todo";
+    $("priority").value = ["high","normal","low"].includes(task.priority) ? task.priority : "normal";
+    $("dueDate").value = safeDate(task.dueDate);
+    $("formTitle").textContent = "Modifier la tâche";
+    $("submitLabel").textContent = "Enregistrer les modifications";
+    $("cancelEditBtn").classList.remove("hidden");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  function resetForm(){
+    editingId = null;
+    $("taskForm").reset();
+    $("status").value = "todo";
+    $("priority").value = "normal";
+    $("formTitle").textContent = "Nouvelle tâche";
+    $("submitLabel").textContent = "Ajouter la tâche";
+    $("cancelEditBtn").classList.add("hidden");
+  }
+  function clearDragOver(){
+    document.querySelectorAll(".task-list.drag-over,.column.drag-over").forEach(el=>el.classList.remove("drag-over"));
+  }
+  function pickDropColumn(clientX,clientY){
+    const board=$("board");
+    const boardRect=board?.getBoundingClientRect();
+    if(!boardRect) return null;
+    // Une marge verticale permet de déposer facilement dans une colonne courte ou vide.
+    if(clientY < boardRect.top-35 || clientY > boardRect.bottom+80) return null;
+    const columns=[...document.querySelectorAll(".column[data-status]")];
+    let direct=null;
+    let nearest=null;
+    let nearestDistance=Infinity;
+    for(const column of columns){
+      const r=column.getBoundingClientRect();
+      if(clientX>=r.left && clientX<=r.right){
+        direct=column;
+        break;
+      }
+      const cx=(r.left+r.right)/2;
+      const distance=Math.abs(clientX-cx);
+      if(distance<nearestDistance){nearestDistance=distance;nearest=column;}
+    }
+    return direct || (nearestDistance<120?nearest:null);
+  }
+  function bindPointerDrag(card,task){
+    let dragging=false,ghost=null,targetColumn=null,startX=0,startY=0,lastX=0,lastY=0;
+    let hoverTimer=null,hoverStatus="";
+
+    const removeGhost=()=>{if(ghost){ghost.remove();ghost=null;}};
+    const clearHoverTimer=()=>{if(hoverTimer){clearTimeout(hoverTimer);hoverTimer=null;}hoverStatus="";};
+    const clearAll=()=>{
+      clearHoverTimer();
+      document.removeEventListener("mousemove",onMouseMove,true);
+      document.removeEventListener("mouseup",onMouseUp,true);
+      document.removeEventListener("touchmove",onTouchMove,true);
+      document.removeEventListener("touchend",onTouchEnd,true);
+      document.removeEventListener("touchcancel",onTouchCancel,true);
+      try{
+        if(window.parent&&window.parent!==window){
+          window.parent.document.removeEventListener("mouseup",onParentMouseUp,true);
+        }
+      }catch{}
+      dragging=false;
+      targetColumn=null;
+      card.classList.remove("dragging","drag-ready");
+      clearDragOver();
+      removeGhost();
+    };
+
+    const startVisual=()=>{
+      if(dragging)return;
+      dragging=true;
+      card.classList.add("dragging");
+      const rect=card.getBoundingClientRect();
+      ghost=card.cloneNode(true);
+      ghost.classList.remove("dragging","drag-ready");
+      ghost.classList.add("task-drag-ghost");
+      ghost.style.width=Math.max(180,rect.width)+"px";
+      ghost.querySelectorAll("button").forEach(btn=>btn.remove());
+      document.body.appendChild(ghost);
+    };
+
+    const commitStatus=status=>{
+      if(!dragging||!FLOW.includes(status)||status===task.status)return;
+      task.status=status;
+      task.updatedAt=new Date().toISOString();
+      saveLocal();
+      render();
+      void saveCloud();
+    };
+
+    const armTarget=status=>{
+      if(!status||status===task.status){clearHoverTimer();return;}
+      if(hoverStatus===status&&hoverTimer)return;
+      clearHoverTimer();
+      hoverStatus=status;
+      hoverTimer=setTimeout(()=>{
+        hoverTimer=null;
+        if(dragging&&targetColumn?.dataset?.status===status)commitStatus(status);
+      },180);
+    };
+
+    const update=(x,y)=>{
+      lastX=x;lastY=y;
+      if(ghost){
+        ghost.style.left=(x+14)+"px";
+        ghost.style.top=(y+14)+"px";
+      }
+      clearDragOver();
+      targetColumn=pickDropColumn(x,y);
+      if(targetColumn){
+        targetColumn.classList.add("drag-over");
+        targetColumn.querySelector(".task-list")?.classList.add("drag-over");
+      }
+      armTarget(targetColumn?.dataset?.status||"");
+    };
+
+    const finalCommit=()=>{
+      clearHoverTimer();
+      const status=targetColumn?.dataset?.status;
+      if(dragging&&status&&FLOW.includes(status)&&status!==task.status)commitStatus(status);
+      clearAll();
+    };
+
+    const onMouseMove=e=>{
+      const distance=Math.hypot(e.clientX-startX,e.clientY-startY);
+      if(!dragging&&distance<4)return;
+      startVisual();
+      update(e.clientX,e.clientY);
+      e.preventDefault();
+    };
+    const onMouseUp=e=>{
+      if(dragging)update(e.clientX,e.clientY);
+      finalCommit();
+      e.preventDefault();
+    };
+    const onParentMouseUp=()=>finalCommit();
+
+    const onTouchMove=e=>{
+      const t=e.touches?.[0];
+      if(!t)return;
+      const distance=Math.hypot(t.clientX-startX,t.clientY-startY);
+      if(!dragging&&distance<7)return;
+      startVisual();
+      update(t.clientX,t.clientY);
+      e.preventDefault();
+    };
+    const onTouchEnd=()=>finalCommit();
+    const onTouchCancel=()=>finalCommit();
+
+    card.addEventListener("mousedown",e=>{
+      if(task.archived||e.button!==0||e.target?.closest?.("button,input,textarea,select,a"))return;
+      clearAll();
+      startX=lastX=e.clientX;
+      startY=lastY=e.clientY;
+      card.classList.add("drag-ready");
+      document.addEventListener("mousemove",onMouseMove,{capture:true,passive:false});
+      document.addEventListener("mouseup",onMouseUp,{capture:true,passive:false});
+      try{
+        if(window.parent&&window.parent!==window){
+          window.parent.document.addEventListener("mouseup",onParentMouseUp,true);
+        }
+      }catch{}
+      e.preventDefault();
+    });
+
+    card.addEventListener("touchstart",e=>{
+      if(task.archived||e.target?.closest?.("button,input,textarea,select,a"))return;
+      const t=e.touches?.[0];
+      if(!t)return;
+      clearAll();
+      startX=lastX=t.clientX;
+      startY=lastY=t.clientY;
+      card.classList.add("drag-ready");
+      document.addEventListener("touchmove",onTouchMove,{capture:true,passive:false});
+      document.addEventListener("touchend",onTouchEnd,{capture:true,passive:false});
+      document.addEventListener("touchcancel",onTouchCancel,{capture:true,passive:false});
+    },{passive:true});
+  }
+  function createTaskCard(task){
+    const card = document.createElement("article");
+    card.className = "task";
+    card.draggable = false;
+    card.dataset.id = task.id;
+    const title = document.createElement("div");
+    title.className = "task-title";
+    title.title = "Faire glisser pour déplacer la tâche";
+    title.textContent = task.title || "(Sans titre)";
+    card.appendChild(title);
+    bindPointerDrag(card,task);
+
+    if(task.description){
+      const desc = document.createElement("div");
+      desc.className = "task-desc";
+      desc.textContent = task.description;
+      card.appendChild(desc);
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "task-meta";
+    const priority = document.createElement("span");
+    priority.className = "tag " + (task.priority || "normal");
+    priority.textContent = task.priority === "high" ? "Priorité haute" : task.priority === "low" ? "Priorité basse" : "Priorité normale";
+    meta.appendChild(priority);
+    if(task.dueDate){
+      const due = document.createElement("span");
+      due.className = "tag" + (isOverdue(task) ? " overdue" : "");
+      due.textContent = "Échéance " + shortDate(task.dueDate);
+      meta.appendChild(due);
+    }
+    card.appendChild(meta);
+
+    const actions = document.createElement("div");
+    actions.className = "task-actions";
+    const index = FLOW.indexOf(task.status);
+    if(index > 0) actions.appendChild(makeButton("←",()=>moveTask(task.id,"prev")));
+    if(index < FLOW.length-1) actions.appendChild(makeButton("→",()=>moveTask(task.id,"next")));
+    actions.appendChild(makeButton("Modifier",()=>editTask(task.id)));
+    actions.appendChild(makeButton("Archiver",()=>archiveTask(task.id)));
+    actions.appendChild(makeButton("Supprimer",()=>deleteTask(task.id),"danger"));
+    card.appendChild(actions);
+    return card;
+  }
+  function renderBoard(){
+    const board = $("board");
+    board.innerHTML = "";
+    FLOW.forEach(status=>{
+      const column = document.createElement("section");
+      column.className = "column";
+      column.dataset.status = status;
+      const header = document.createElement("div");
+      header.className = "column-header";
+      const left = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "column-title";
+      title.textContent = STATUS[status].label;
+      const help = document.createElement("div");
+      help.className = "column-help";
+      help.textContent = STATUS[status].help;
+      left.append(title,help);
+      const count = document.createElement("span");
+      count.className = "count";
+      const listTasks = sorted(tasks.filter(t=>!t.archived && t.status === status));
+      count.textContent = String(listTasks.length);
+      header.append(left,count);
+
+      const list = document.createElement("div");
+      list.className = "task-list";
+      list.dataset.status = status;
+      if(!listTasks.length){
+        const empty = document.createElement("div");
+        empty.className = "muted";
+        empty.style.padding = "8px";
+        empty.textContent = "Aucune tâche";
+        list.appendChild(empty);
+      }else listTasks.forEach(t=>list.appendChild(createTaskCard(t)));
+      column.append(header,list);
+      board.appendChild(column);
+    });
+  }
+  function renderArchive(){
+    const archived = [...tasks].filter(t=>t.archived).sort((a,b)=>String(b.archivedAt||"").localeCompare(String(a.archivedAt||"")));
+    $("archiveCount").textContent = String(archived.length);
+    $("archiveCard").classList.toggle("hidden", archived.length === 0);
+    const list = $("archiveList");
+    list.innerHTML = "";
+    archived.forEach(task=>{
+      const row = document.createElement("div");
+      row.className = "archive-item";
+      const info = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = task.title || "(Sans titre)";
+      const date = document.createElement("div");
+      date.className = "muted";
+      date.textContent = task.archivedAt ? "Archivée le " + new Date(task.archivedAt).toLocaleString("fr-FR") : "Archivée";
+      info.append(title,date);
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      actions.append(makeButton("Restaurer",()=>restoreTask(task.id)),makeButton("Supprimer",()=>deleteTask(task.id),"danger"));
+      row.append(info,actions);
+      list.appendChild(row);
+    });
+  }
+  function render(){
+    renderBoard();
+    renderArchive();
+    const overdue = tasks.filter(t=>!t.archived && isOverdue(t)).length;
+    $("overdueStatus").textContent = overdue ? `${overdue} tâche${overdue>1?"s":""} en retard` : "Aucun retard";
+    $("overdueStatus").className = "status " + (overdue ? "error" : "ok");
+  }
+
+  $("taskForm").addEventListener("submit", e=>{
+    e.preventDefault();
+    const title = $("title").value.trim();
+    if(!title) return;
+    const dueDate = safeDate($("dueDate").value);
+    if($("dueDate").value && !dueDate){
+      alert("La date limite est invalide.");
+      return;
+    }
+    if(editingId){
+      const task = tasks.find(t=>t.id === editingId);
+      if(task){
+        task.title = title;
+        task.description = $("description").value.trim();
+        task.status = FLOW.includes($("status").value) ? $("status").value : "todo";
+        task.priority = ["high","normal","low"].includes($("priority").value) ? $("priority").value : "normal";
+        task.dueDate = dueDate;
+        task.updatedAt = new Date().toISOString();
+      }
+    }else{
+      tasks.push({
+        id:"t_"+Date.now()+"_"+Math.random().toString(16).slice(2),
+        title,
+        description:$("description").value.trim(),
+        status:FLOW.includes($("status").value) ? $("status").value : "todo",
+        priority:["high","normal","low"].includes($("priority").value) ? $("priority").value : "normal",
+        dueDate,
+        createdAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString(),
+        archived:false,
+        archivedAt:""
+      });
+    }
+    resetForm();
+    saveCloud();
+  });
+  $("cancelEditBtn").addEventListener("click",resetForm);
+  $("logoutBtn").addEventListener("click",()=>auth.signOut());
+  $("loginForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    $("loginError").textContent = "";
+    try{
+      await auth.signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value);
+    }catch(error){
+      $("loginError").textContent = "Connexion impossible : " + (error.message || "vérifie les identifiants.");
+    }
+  });
+
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      currentUser = user;
+      loginScreen.classList.add("hidden");
+      app.classList.remove("hidden");
+      loadLocal();
+      render();
+      startRealtime();
+    }else{
+      currentUser = null;
+      if(unsubscribe){unsubscribe();unsubscribe=null;}
+      if(realtimeWatchdog){clearTimeout(realtimeWatchdog);realtimeWatchdog=null;}
+      app.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+      setSync("Déconnecté");
+    }
+  });
+})();
+</script>
+</body>
+</html>
