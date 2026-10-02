@@ -40,7 +40,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261002-organisation10"></script>
+  <script src="firebase-config.js?v=20261002-organisation11"></script>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -468,11 +468,15 @@
   }
   function bindPointerDrag(card,task){
     let pointerId=null,startX=0,startY=0,active=false,ghost=null,targetColumn=null;
-    const removeGhost=()=>{ if(ghost){ghost.remove();ghost=null;} };
+
+    const removeGhost=()=>{if(ghost){ghost.remove();ghost=null;}};
+    const clearDocumentListeners=()=>{
+      document.removeEventListener("pointermove",onPointerMove);
+      document.removeEventListener("pointerup",onPointerUp);
+      document.removeEventListener("pointercancel",onPointerCancel);
+    };
     const cleanup=()=>{
-      if(pointerId!==null){
-        try{card.releasePointerCapture(pointerId);}catch{}
-      }
+      clearDocumentListeners();
       pointerId=null;
       active=false;
       targetColumn=null;
@@ -485,17 +489,7 @@
       ghost.style.left=(x+14)+"px";
       ghost.style.top=(y+14)+"px";
     };
-    card.addEventListener("pointerdown",e=>{
-      if(task.archived || e.button!==0 || e.target?.closest?.("button,input,textarea,select,a")) return;
-      pointerId=e.pointerId;
-      startX=e.clientX;
-      startY=e.clientY;
-      active=false;
-      card.classList.add("drag-ready");
-      try{card.setPointerCapture(pointerId);}catch{}
-      e.preventDefault();
-    });
-    card.addEventListener("pointermove",e=>{
+    const onPointerMove=e=>{
       if(pointerId!==e.pointerId)return;
       const distance=Math.hypot(e.clientX-startX,e.clientY-startY);
       if(!active && distance<5)return;
@@ -518,22 +512,34 @@
         targetColumn.querySelector(".task-list")?.classList.add("drag-over");
       }
       e.preventDefault();
-    });
-    card.addEventListener("pointerup",e=>{
+    };
+    const onPointerUp=e=>{
       if(pointerId!==e.pointerId)return;
       if(active){
-        const column=targetColumn || pickDropColumn(e.clientX,e.clientY);
+        const column=targetColumn||pickDropColumn(e.clientX,e.clientY);
         const status=column?.dataset?.status;
-        if(status && FLOW.includes(status)){
-          setTaskStatus(task.id,status);
-        }
+        if(status&&FLOW.includes(status)) setTaskStatus(task.id,status);
         e.preventDefault();
       }
       cleanup();
-    });
-    card.addEventListener("pointercancel",cleanup);
-    card.addEventListener("lostpointercapture",()=>{
-      if(pointerId!==null && !active) cleanup();
+    };
+    const onPointerCancel=e=>{
+      if(pointerId!==e.pointerId)return;
+      cleanup();
+    };
+
+    card.addEventListener("pointerdown",e=>{
+      if(task.archived||e.button!==0||e.target?.closest?.("button,input,textarea,select,a"))return;
+      cleanup();
+      pointerId=e.pointerId;
+      startX=e.clientX;
+      startY=e.clientY;
+      active=false;
+      card.classList.add("drag-ready");
+      document.addEventListener("pointermove",onPointerMove,{passive:false});
+      document.addEventListener("pointerup",onPointerUp,{passive:false});
+      document.addEventListener("pointercancel",onPointerCancel,{passive:false});
+      e.preventDefault();
     });
   }
   function createTaskCard(task){
