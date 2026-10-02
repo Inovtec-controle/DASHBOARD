@@ -32,8 +32,10 @@ try{
   page.on('pageerror',error=>errors.push(error.message));
   page.on('dialog',dialog=>dialog.accept());
 
-  await page.goto('http://127.0.0.1:8765/ORGA-LEGACY.html',{waitUntil:'domcontentloaded',timeout:30000});
+  await page.goto('http://127.0.0.1:8765/ORGANISATION-LIVE-V16.html',{waitUntil:'domcontentloaded',timeout:30000});
   await page.locator('#app:not(.hidden)').waitFor({timeout:10000});
+  const liveBuild=(await page.locator('#orgaBoardBuild').textContent()||'').trim();
+  if(liveBuild!=='LIVE v16')throw Error('La page autonome Organisation v16 n’est pas chargée : '+liveBuild);
 
   // 1. Le bouton de déplacement reste cliquable dans une carte draggable.
   const moveCard=page.locator('.task[data-id="move-1"]');
