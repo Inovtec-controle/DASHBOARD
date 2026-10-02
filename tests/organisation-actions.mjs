@@ -52,6 +52,26 @@ try{
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='blocked');
   if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)throw Error('La tâche déplacée n’apparaît pas dans Bloqué');
 
+  // 2b. Régression reproduite par la vidéo utilisateur : la colonne cible devient verte,
+  // puis Edge peut terminer le geste par pointercancel au lieu de pointerup.
+  const cancelSource=await page.locator('.task[data-id="move-1"]').boundingBox();
+  const cancelTarget=await page.locator('.column[data-status="done"]').boundingBox();
+  if(!cancelSource||!cancelTarget)throw Error('Zones du scénario pointercancel introuvables');
+  await page.evaluate(({sx,sy,tx,ty})=>{
+    const source=document.elementFromPoint(sx,sy)?.closest?.('.task');
+    if(!source)throw new Error('Carte source pointercancel introuvable');
+    source.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:77,pointerType:'mouse',button:0,buttons:1,clientX:sx,clientY:sy}));
+    document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:77,pointerType:'mouse',button:0,buttons:1,clientX:tx,clientY:ty}));
+    document.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,cancelable:true,pointerId:77,pointerType:'mouse',button:0,buttons:0,clientX:tx,clientY:ty}));
+  },{
+    sx:cancelSource.x+cancelSource.width/2,
+    sy:cancelSource.y+Math.min(30,cancelSource.height/3),
+    tx:cancelTarget.x+cancelTarget.width/2,
+    ty:cancelTarget.y+Math.max(55,cancelTarget.height-18)
+  });
+  await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='done');
+  if(await page.locator('.task-list[data-status="done"] .task[data-id="move-1"]').count()!==1)throw Error('pointercancel remet encore la bulle à son ancienne place');
+
   // 3. Archiver doit fonctionner même si la carte est draggable.
   const archiveCard=page.locator('.task[data-id="archive-1"]');
   await archiveCard.getByRole('button',{name:'Archiver'}).click();
@@ -66,10 +86,10 @@ try{
   if(restored.status!=='done')throw Error('La restauration ne conserve pas le statut précédent');
 
   const result=await page.evaluate(()=>({writes:window.__orgaActionsTest.writes.length,status:document.querySelector('#syncStatus')?.textContent||'',personal:window.__orgaActionsTest.personal.tasks,shared:window.__orgaActionsTest.shared.tasks}));
-  if(result.writes<8)throw Error('Toutes les actions n’ont pas été persistées dans les deux copies Firebase');
+  if(result.writes<10)throw Error('Toutes les actions n’ont pas été persistées dans les deux copies Firebase');
   if(JSON.stringify(result.personal)!==JSON.stringify(result.shared))throw Error('La copie Firebase partagée ne suit pas les actions Organisation');
   if(errors.length)throw Error('JavaScript : '+errors.join('; '));
-  console.log('OK : déplacement boutons, drag & drop, archivage et restauration Organisation');
+  console.log('OK : déplacement souris, pointercancel Edge, archivage et restauration Organisation');
   console.log('Écritures Firebase simulées : '+result.writes+' · '+result.status);
   await context.close();
 }catch(error){
