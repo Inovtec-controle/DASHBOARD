@@ -58,8 +58,8 @@ try{
   const organisation=page.locator('a[data-iv-menu-key="organisation"]').first();
   await organisation.waitFor({timeout:10000});
   const href=await organisation.getAttribute('href');
-  if(!href?.includes('ORGA-LEGACY.html%3Fv%3D20261002-organisation14'))throw Error('Le menu global pointe encore vers une ancienne version Organisation : '+href);
-  if(!href?.includes('build=20261002-organisation14'))throw Error('Le shell Organisation utilise encore un ancien build : '+href);
+  if(!href?.includes('ORGA-LEGACY.html%3Fv%3D20261002-organisation15'))throw Error('Le menu global pointe encore vers une ancienne version Organisation : '+href);
+  if(!href?.includes('build=20261002-organisation15'))throw Error('Le shell Organisation utilise encore un ancien build : '+href);
 
   await organisation.click();
   await page.waitForURL(/inovtec-page-shell\.html.*mode=organisation/i,{timeout:10000});
@@ -68,7 +68,7 @@ try{
   await frame.locator('.task[data-id="shell-move"]').waitFor({timeout:10000});
   await frame.locator('#orgaBoardBuild').waitFor({timeout:5000});
   const buildText=(await frame.locator('#orgaBoardBuild').textContent()||'').trim();
-  if(buildText!=='v14')throw Error('La page Organisation visible n’affiche pas la version v14 : '+buildText);
+  if(buildText!=='v15')throw Error('La page Organisation visible n’affiche pas la version v15 : '+buildText);
 
   await page.waitForFunction(()=>window.InovtecHeaderSyncState?.state==='connected',null,{timeout:12000}).catch(async error=>{
     const diagnostic=await page.evaluate(()=>({
@@ -110,7 +110,7 @@ try{
   await stale.goto('http://127.0.0.1:8765/inovtec-page-shell.html?mode=organisation&page=ORGA-LEGACY.html%3Fv%3D20260927-savecontrols1',{waitUntil:'domcontentloaded',timeout:30000});
   await stale.frameLocator('#legacyFrame').locator('#app:not(.hidden)').waitFor({timeout:10000});
   const forcedSrc=await stale.locator('#legacyFrame').getAttribute('src');
-  if(!forcedSrc?.includes('ORGA-LEGACY.html?v=20261002-organisation14'))throw Error('Une ancienne URL Organisation contourne encore la version courante : '+forcedSrc);
+  if(!forcedSrc?.includes('ORGA-LEGACY.html?v=20261002-organisation15'))throw Error('Une ancienne URL Organisation contourne encore la version courante : '+forcedSrc);
   await stale.close();
 
   if(errors.length)throw Error('JavaScript : '+errors.join('; '));
