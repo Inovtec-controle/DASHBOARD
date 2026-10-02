@@ -80,11 +80,12 @@ try{
   });
 
   const shellSource=await frame.locator('.task[data-id="shell-move"] .task-title').boundingBox();
-  const shellTarget=await frame.locator('.task-list[data-status="blocked"]').boundingBox();
+  const shellTarget=await frame.locator('.column[data-status="blocked"]').boundingBox();
   if(!shellSource||!shellTarget)throw Error('Zones de déplacement Organisation introuvables dans le shell');
   await page.mouse.move(shellSource.x+shellSource.width/2,shellSource.y+shellSource.height/2);
   await page.mouse.down();
-  await page.mouse.move(shellTarget.x+shellTarget.width/2,shellTarget.y+Math.min(45,shellTarget.height/2),{steps:8});
+  await page.mouse.move(shellTarget.x+shellTarget.width/2,shellTarget.y+Math.max(55,shellTarget.height-18),{steps:10});
+  if(await frame.locator('.task-drag-ghost').count()!==1)throw Error('La bulle fantôme de déplacement ne s’affiche pas dans le shell');
   await page.mouse.up();
   await frame.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]').waitFor({timeout:5000});
 
