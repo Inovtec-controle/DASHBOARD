@@ -4,7 +4,10 @@ if(window.__INOVTEC_SHARED_WORKSPACE_V1__)return;
 window.__INOVTEC_SHARED_WORKSPACE_V1__=true;
 const PAGE_MODE=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
 const NEED_DISCIPLINE=PAGE_MODE==="discipline";
-const NEED_WORKSPACE=["planning","agents","heures","conges","organisation"].includes(PAGE_MODE);
+// Organisation possède désormais sa propre synchronisation Firebase complète (personnelle + partagée).
+// Ne pas lancer ici un second moteur de fusion sur les mêmes tâches : sur d’anciens jeux de données,
+// il pouvait réinjecter un état précédent juste après un déplacement ou un archivage.
+const NEED_WORKSPACE=["planning","agents","heures","conges"].includes(PAGE_MODE);
 if(!NEED_WORKSPACE&&!NEED_DISCIPLINE)return;
 if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG)return;
 if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
