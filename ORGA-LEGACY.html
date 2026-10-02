@@ -39,7 +39,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261001-organisation6"></script>
+  <script src="firebase-config.js?v=20261002-organisation7"></script>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -181,6 +181,7 @@
     }
     const owner = currentUser.uid;
     const ref = db.collection("kanban").doc(owner);
+    const sharedRef = db.collection("chantiers").doc("__inovtec_shared_workspace_v1__");
     const payload = JSON.parse(JSON.stringify(tasks));
     const revision = ++mutationRevision;
     pendingWrites += 1;
@@ -188,10 +189,27 @@
 
     const write = async () => {
       try{
-        await ref.set({
-          tasks:payload,
-          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-        },{merge:true});
+        // Une action Organisation doit atteindre immédiatement les deux sources
+        // Firebase utilisées par l'application. Cela évite qu'une ancienne copie
+        // partagée ne remette une tâche dans son état précédent juste après un
+        // déplacement, un archivage ou une restauration.
+        const [personalWrite,sharedWrite] = await Promise.allSettled([
+          ref.set({
+            tasks:payload,
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+          },{merge:true}),
+          sharedRef.set({
+            _hidden:true,
+            _type:"inovtecSharedWorkspace",
+            sharedVersion:1,
+            tasks:payload,
+            tasksUpdatedAtMs:Date.now()
+          },{merge:true})
+        ]);
+        if(personalWrite.status !== "fulfilled") throw personalWrite.reason;
+        if(sharedWrite.status !== "fulfilled"){
+          console.warn("Organisation Firebase shared save",sharedWrite.reason);
+        }
 
         // Ne jamais dépendre uniquement de onSnapshot pour valider une action.
         // Après la dernière modification locale, relire explicitement le serveur.
