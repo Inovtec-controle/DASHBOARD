@@ -102,9 +102,15 @@ jobs:
         run: |
           set -euo pipefail
           base='https://inovtec-controle.github.io/DASHBOARD'
-          for page in index.html PLANNINGS.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html REASSORT.html inovtec-page-shell.html planning-calendar.js inovtec-cloud-sync-v2.js planning-firebase-direct-v2.js; do
-            curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$base/$page" -o /dev/null || { echo "::error::$page inaccessible sur le site public";exit 1; }
+          for page in index.html PLANNINGS.html VARIABLES.html VARIABLES-DASHBOARD.html AGENTS.html INFOCHANTIERS-V2.html KONTROL-CLOUD.html CONGES.html ORGA.html MATERIEL.html REASSORT.html inovtec-page-shell.html inovtec-shell.js ORGA-LEGACY.html planning-calendar.js inovtec-cloud-sync-v2.js planning-firebase-direct-v2.js; do
+            curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$base/$page" -o "/tmp/$(basename "$page")" || { echo "::error::$page inaccessible sur le site public";exit 1; }
           done
+          # Vérifie la FRAÎCHEUR réelle du site public, pas seulement un HTTP 200.
+          # Cela détecte immédiatement une page GitHub Pages qui sert encore une ancienne Organisation.
+          grep -q '20261002-organisation8' /tmp/ORGA.html || { echo "::error::ORGA.html public est encore ancien"; grep -o '2026[0-9-]*organisation[0-9]*' /tmp/ORGA.html | head -5 || true; exit 1; }
+          grep -q '20261002-organisation8' /tmp/inovtec-shell.js || { echo "::error::inovtec-shell.js public est encore ancien"; grep -o '2026[0-9-]*organisation[0-9]*' /tmp/inovtec-shell.js | head -5 || true; exit 1; }
+          grep -q 'Promise.allSettled' /tmp/ORGA-LEGACY.html || { echo "::error::ORGA-LEGACY.html public n'a pas le correctif Firebase courant"; exit 1; }
+          echo 'Organisation publique : version courante confirmée.'
           for attempt in $(seq 1 12); do
             curl -fsSL --retry 2 --retry-delay 2 "$base/index.html?check=${GITHUB_SHA}" -o /tmp/inovtec-home.html
             if grep -Eq 'href="REASSORT\.html([?"][^"]*)?"' /tmp/inovtec-home.html; then
