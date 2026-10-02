@@ -3,7 +3,7 @@
 // Le menu est rendu une seule fois par inovtec-ui-stability.js.
 const mode=(new URLSearchParams(location.search).get('mode')||'').toLowerCase();
 if(!document.querySelector('script[data-iv-stable-ui="1"]')&&!window.__INOVTEC_UI_STABILITY_V1__){
- const s=document.createElement('script');s.src='inovtec-ui-stability.js?v=20260917-ui-stable2';s.dataset.ivStableUi='1';s.async=false;document.head.appendChild(s);
+ const s=document.createElement('script');s.src='inovtec-ui-stability.js?v=20261002-organisation-live16';s.dataset.ivStableUi='1';s.async=false;document.head.appendChild(s);
 }
 if(mode==='conges'){
  if(!document.querySelector('script[data-iv-conges-full-list="1"]')){
