@@ -79,7 +79,13 @@ try{
     throw Error('Symbole Firebase du bandeau non validé : '+JSON.stringify(diagnostic)+' · '+error.message);
   });
 
-  await frame.locator('.task[data-id="shell-move"]').dragTo(frame.locator('.task-list[data-status="blocked"]'));
+  const shellSource=await frame.locator('.task[data-id="shell-move"] .task-title').boundingBox();
+  const shellTarget=await frame.locator('.task-list[data-status="blocked"]').boundingBox();
+  if(!shellSource||!shellTarget)throw Error('Zones de déplacement Organisation introuvables dans le shell');
+  await page.mouse.move(shellSource.x+shellSource.width/2,shellSource.y+shellSource.height/2);
+  await page.mouse.down();
+  await page.mouse.move(shellTarget.x+shellTarget.width/2,shellTarget.y+Math.min(45,shellTarget.height/2),{steps:8});
+  await page.mouse.up();
   await frame.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]').waitFor({timeout:5000});
 
   await frame.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver'}).click();
