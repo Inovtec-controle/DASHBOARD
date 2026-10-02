@@ -40,7 +40,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261002-organisation11"></script>
+  <script src="firebase-config.js?v=20261002-organisation12"></script>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -467,19 +467,28 @@
     return direct || (nearestDistance<120?nearest:null);
   }
   function bindPointerDrag(card,task){
-    let pointerId=null,startX=0,startY=0,active=false,ghost=null,targetColumn=null;
+    let pointerId=null,startX=0,startY=0,active=false,ghost=null,targetColumn=null,lastX=0,lastY=0,finished=false;
 
     const removeGhost=()=>{if(ghost){ghost.remove();ghost=null;}};
-    const clearDocumentListeners=()=>{
-      document.removeEventListener("pointermove",onPointerMove);
-      document.removeEventListener("pointerup",onPointerUp);
-      document.removeEventListener("pointercancel",onPointerCancel);
+    const clearListeners=()=>{
+      document.removeEventListener("pointermove",onPointerMove,true);
+      document.removeEventListener("pointerup",onPointerUp,true);
+      document.removeEventListener("pointercancel",onPointerCancel,true);
+      document.removeEventListener("mouseup",onMouseUpFallback,true);
+      window.removeEventListener("blur",onWindowBlur,true);
+      try{
+        if(window.parent&&window.parent!==window){
+          window.parent.document.removeEventListener("mouseup",onParentMouseUp,true);
+          window.parent.removeEventListener("blur",onWindowBlur,true);
+        }
+      }catch{}
     };
     const cleanup=()=>{
-      clearDocumentListeners();
+      clearListeners();
       pointerId=null;
       active=false;
       targetColumn=null;
+      finished=false;
       card.classList.remove("dragging","drag-ready");
       clearDragOver();
       removeGhost();
@@ -489,56 +498,107 @@
       ghost.style.left=(x+14)+"px";
       ghost.style.top=(y+14)+"px";
     };
-    const onPointerMove=e=>{
-      if(pointerId!==e.pointerId)return;
-      const distance=Math.hypot(e.clientX-startX,e.clientY-startY);
-      if(!active && distance<5)return;
-      if(!active){
-        active=true;
-        card.classList.add("dragging");
-        const rect=card.getBoundingClientRect();
-        ghost=card.cloneNode(true);
-        ghost.classList.remove("dragging","drag-ready");
-        ghost.classList.add("task-drag-ghost");
-        ghost.style.width=Math.max(180,rect.width)+"px";
-        ghost.querySelectorAll("button").forEach(btn=>btn.remove());
-        document.body.appendChild(ghost);
+    const resolveTarget=(x,y)=>targetColumn||pickDropColumn(x,y);
+
+    const commitDrop=(x=lastX,y=lastY)=>{
+      if(finished)return;
+      finished=true;
+      const column=resolveTarget(x,y);
+      const status=column?.dataset?.status;
+      const shouldMove=active&&status&&FLOW.includes(status);
+      const previous=task.status;
+      if(shouldMove&&status!==previous){
+        // Rendre le déplacement visible immédiatement avant toute écriture Firebase.
+        task.status=status;
+        task.updatedAt=new Date().toISOString();
+        saveLocal();
+        render();
+        void saveCloud();
       }
-      moveGhost(e.clientX,e.clientY);
+      cleanup();
+    };
+
+    const beginVisualDrag=()=>{
+      if(active)return;
+      active=true;
+      card.classList.add("dragging");
+      const rect=card.getBoundingClientRect();
+      ghost=card.cloneNode(true);
+      ghost.classList.remove("dragging","drag-ready");
+      ghost.classList.add("task-drag-ghost");
+      ghost.style.width=Math.max(180,rect.width)+"px";
+      ghost.querySelectorAll("button").forEach(btn=>btn.remove());
+      document.body.appendChild(ghost);
+    };
+
+    const updateTarget=(x,y)=>{
+      lastX=x; lastY=y;
+      moveGhost(x,y);
       clearDragOver();
-      targetColumn=pickDropColumn(e.clientX,e.clientY);
+      targetColumn=pickDropColumn(x,y);
       if(targetColumn){
         targetColumn.classList.add("drag-over");
         targetColumn.querySelector(".task-list")?.classList.add("drag-over");
       }
+    };
+
+    const onPointerMove=e=>{
+      if(pointerId!==e.pointerId)return;
+      lastX=e.clientX; lastY=e.clientY;
+      const distance=Math.hypot(e.clientX-startX,e.clientY-startY);
+      if(!active&&distance<5)return;
+      beginVisualDrag();
+      updateTarget(e.clientX,e.clientY);
       e.preventDefault();
     };
     const onPointerUp=e=>{
       if(pointerId!==e.pointerId)return;
-      if(active){
-        const column=targetColumn||pickDropColumn(e.clientX,e.clientY);
-        const status=column?.dataset?.status;
-        if(status&&FLOW.includes(status)) setTaskStatus(task.id,status);
-        e.preventDefault();
-      }
-      cleanup();
+      lastX=e.clientX; lastY=e.clientY;
+      commitDrop(e.clientX,e.clientY);
+      e.preventDefault();
     };
     const onPointerCancel=e=>{
-      if(pointerId!==e.pointerId)return;
-      cleanup();
+      if(pointerId!==null&&e.pointerId!==pointerId)return;
+      // Edge/Windows peut terminer le geste par pointercancel dans une iframe.
+      // Si une colonne cible est déjà identifiée, on considère le dépôt comme valide.
+      commitDrop(lastX,lastY);
+    };
+    const onMouseUpFallback=e=>{
+      if(!active)return;
+      lastX=e.clientX; lastY=e.clientY;
+      commitDrop(e.clientX,e.clientY);
+    };
+    const onParentMouseUp=()=>{
+      if(!active)return;
+      // Les coordonnées du parent ne sont pas celles de l'iframe :
+      // on conserve donc la dernière colonne cible valide rencontrée.
+      commitDrop(lastX,lastY);
+    };
+    const onWindowBlur=()=>{
+      if(active&&targetColumn)commitDrop(lastX,lastY);
     };
 
     card.addEventListener("pointerdown",e=>{
       if(task.archived||e.button!==0||e.target?.closest?.("button,input,textarea,select,a"))return;
       cleanup();
       pointerId=e.pointerId;
-      startX=e.clientX;
-      startY=e.clientY;
+      startX=lastX=e.clientX;
+      startY=lastY=e.clientY;
       active=false;
+      finished=false;
       card.classList.add("drag-ready");
-      document.addEventListener("pointermove",onPointerMove,{passive:false});
-      document.addEventListener("pointerup",onPointerUp,{passive:false});
-      document.addEventListener("pointercancel",onPointerCancel,{passive:false});
+
+      document.addEventListener("pointermove",onPointerMove,{capture:true,passive:false});
+      document.addEventListener("pointerup",onPointerUp,{capture:true,passive:false});
+      document.addEventListener("pointercancel",onPointerCancel,{capture:true,passive:false});
+      document.addEventListener("mouseup",onMouseUpFallback,true);
+      window.addEventListener("blur",onWindowBlur,true);
+      try{
+        if(window.parent&&window.parent!==window){
+          window.parent.document.addEventListener("mouseup",onParentMouseUp,true);
+          window.parent.addEventListener("blur",onWindowBlur,true);
+        }
+      }catch{}
       e.preventDefault();
     });
   }
