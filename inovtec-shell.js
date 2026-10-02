@@ -11,7 +11,7 @@ const configs={
  discipline:{label:"Discipline",eyebrow:"DISCIPLINE",title:"Gestion des dossiers <em>disciplinaires</em>",subtitle:"Consultez, enregistrez et suivez vos dossiers, photos et PDF avec la même logique de sauvegarde.",route:"DISCIPLINE-V9.html",icon:"⚑"},
  infos:{label:"Infos chantier",eyebrow:"INFOS CHANTIER",title:"Informations <em>chantiers</em>",subtitle:"Retrouvez les accès, contacts, plannings et consignes de chaque résidence dans une présentation plus lisible.",route:"INFOCHANTIERS-V2.html?v=20260927-savecontrols1",icon:"ⓘ"},
  agents:{label:"Classeur agents",eyebrow:"AGENTS",title:"Classeur <em>agents</em>",subtitle:"Consultez les profils et informations de vos agents dans une interface unifiée.",route:"AGENTS.html?v=20260927-agentsflow19",icon:"♙"},
- organisation:{label:"Organisation",eyebrow:"ORGANISATION",title:"Organisation",subtitle:"Planifiez, suivez et pilotez vos tâches, priorités et échéances sans changer leur stockage.",route:"ORGA.html?v=20261002-organisation12",icon:"◎"},
+ organisation:{label:"Organisation",eyebrow:"ORGANISATION",title:"Organisation",subtitle:"Planifiez, suivez et pilotez vos tâches, priorités et échéances sans changer leur stockage.",route:"ORGA.html?v=20261002-organisation13",icon:"◎"},
  variables:{label:"Variables agents",eyebrow:"VARIABLES DE PAIE",title:"Variables <em>agents</em>",subtitle:"Centralisez les heures complémentaires, supplémentaires, dimanches, jours fériés, nuits et absences liées à chaque agent.",route:"VARIABLES.html?v=20260927-savecontrols1",icon:"◷"},
  temps:{label:"Conversion temps",eyebrow:"OUTILS",title:"Conversion <em>temps</em>",subtitle:"Convertissez vos durées avec le calculateur existant dans une présentation modernisée.",route:"TEMPS.html",icon:"◷"},
  salaire:{label:"Salaire",eyebrow:"SALAIRE",title:"Calculateur de <em>salaire</em>",subtitle:"Utilisez les calculs de rémunération existants avec une lecture plus graphique.",route:"SALAIRE.html",icon:"€"},
@@ -21,7 +21,7 @@ const cfg=configs[mode]||configs.planning;
 // Organisation doit toujours ouvrir la version canonique courante, même si une ancienne URL
 // du shell contient encore page=ORGA-LEGACY.html?v=.... Cela évite qu’un favori ou un cache
 // ancien contourne les correctifs de déplacement, archivage et synchronisation Firebase.
-if(mode==="organisation") legacyPage="ORGA-LEGACY.html?v=20261002-organisation12";
+if(mode==="organisation") legacyPage="ORGA-LEGACY.html?v=20261002-organisation13";
 // La navigation complète doit exister dès le premier rendu, avant le chargement de Firebase.
 // Ces destinations et leur ordre correspondent au référentiel de inovtec-ui-stability.js.
 const navDefinitions=[
@@ -34,7 +34,7 @@ const navDefinitions=[
  ['Réassort','↻','REASSORT.html','reassort'],
  ['Congés & absences','☂','CONGES.html?v=20261001-congesmonth1','conges','CONGES-LEGACY.html?v=20261001-congesmonth1'],
  ['Variables agents','◷','VARIABLES.html','variables','VARIABLES-DASHBOARD.html?v=20260927-savecontrols1'],
- ['Organisation','◎','ORGA.html?v=20261002-organisation12','organisation','ORGA-LEGACY.html?v=20261002-organisation12'],
+ ['Organisation','◎','ORGA.html?v=20261002-organisation13','organisation','ORGA-LEGACY.html?v=20261002-organisation13'],
  ['Conversion temps','⇄','TEMPS.html','temps','TEMPS-LEGACY.html?v=20260829-operational1'],
  ['Salaire','€','SALAIRE.html','salaire','SALAIRE-LEGACY.html?v=20260829-operational1'],
  ['Dépense carburant','⛽','ESSENCE.html','essence','ESSENCE-LEGACY.html?v=20260829-operational1']
