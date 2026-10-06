@@ -139,11 +139,11 @@
       await db.collection("chantiers").doc(chantierId).set({ kontrolChecklistV1:config }, { merge:true });
       const cached = chantierReferences.find(site => String(site.id) === chantierId);
       if (cached) cached.kontrolChecklistV1 = config;
-      if (reason === "reset-default") {
+      if (config.customized !== true) {
         setChecklistSource(doc, "default");
         doc.body.dataset.ivChecklistLoadedFor = "";
         if (!siteField?.value?.trim()) activeChecklistSiteId = "";
-        showToast("Le chantier utilise de nouveau le gabarit général.");
+        showToast("Le chantier utilise le gabarit général.");
       } else {
         setChecklistSource(doc, "custom");
         showToast("Liste de contrôle personnalisée enregistrée pour ce chantier.");
@@ -585,7 +585,15 @@
     const details = readKontrolMetadata();
     const chantierId = await resolveChantierId(details);
     if (!chantierId) throw new Error("Choisis un chantier enregistré avant d’enregistrer le contrôle");
-    const tasks = readKontrolTasks();
+    let tasks = readKontrolTasks();
+    if (!tasks.length) {
+      const api = checklistApi();
+      if (api?.useDefaultChecklist) {
+        api.useDefaultChecklist({ silent:true });
+        tasks = readKontrolTasks();
+      }
+    }
+    if (!tasks.length) throw new Error("La liste de points de contrôle est vide");
     const photos = readKontrolPhotos();
     const now = Date.now();
     const recordId = "__kontrol_control__" + hash([user.uid, chantierId, now, details.controlDate, details.controlTime].join("|"));
