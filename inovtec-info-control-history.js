@@ -102,6 +102,7 @@ function ensureStyle(){
     #ivControlHistoryCard .iv-history-observation{margin-top:7px;padding:6px 8px;border-left:3px solid #d5e5dc;border-radius:0 8px 8px 0;background:#fafcfb;color:#64736c;font-size:9.5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
     #ivControlHistoryCard .iv-control-history-actions{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;justify-content:flex-end;min-width:0}
     #ivControlHistoryCard .iv-control-history-open{min-height:35px!important;padding:7px 10px!important;border-radius:9px!important;font-size:10px!important;font-weight:800!important;white-space:nowrap}
+    #ivControlHistoryCard .iv-control-history-pdf{min-height:35px!important;padding:7px 10px!important;border-radius:9px!important;font-size:10px!important;font-weight:800!important;white-space:nowrap}
     #ivControlHistoryCard .iv-control-history-delete{min-height:35px!important;padding:7px 9px!important;border-radius:9px!important;font-size:10px!important}
     #ivControlHistoryCard .iv-control-history-empty{padding:28px 18px;border:1px dashed #c9dbd2;border-radius:14px;background:#f8fbf9;color:#6f7f77;font-size:11px;text-align:center}
     #ivControlHistoryCard .iv-history-more-wrap{display:flex;justify-content:center;margin-top:11px}
@@ -122,7 +123,7 @@ function ensureStyle(){
       #ivControlHistoryCard .iv-history-date{min-height:53px}
       #ivControlHistoryCard .iv-history-date-day{font-size:17px}
       #ivControlHistoryCard .iv-control-history-copy{min-width:0}
-      #ivControlHistoryCard .iv-control-history-actions{display:grid;grid-template-columns:1fr auto;width:100%;grid-column:1/-1}
+      #ivControlHistoryCard .iv-control-history-actions{display:grid;grid-template-columns:1fr auto auto;width:100%;grid-column:1/-1}
       #ivControlHistoryCard .iv-control-history-open{width:100%}
       #ivControlHistoryCard .iv-control-history-delete{width:auto}
     }
@@ -214,6 +215,196 @@ function createdMs(meta){
   const n=Number(meta?.createdAtMs)||0;if(n)return n;
   const x=Date.parse(meta?.timeCreated||"");return Number.isNaN(x)?0:x;
 }
+
+async function ensureHistoryJsPdf(){
+  if(window.jspdf?.jsPDF)return window.jspdf.jsPDF;
+  let script=d.getElementById("ivControlHistoryJsPdf");
+  if(!script){
+    script=d.createElement("script");
+    script.id="ivControlHistoryJsPdf";
+    script.src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
+    script.crossOrigin="anonymous";
+    d.head.appendChild(script);
+  }
+  await new Promise((resolve,reject)=>{
+    if(window.jspdf?.jsPDF)return resolve();
+    let done=false;
+    const finish=()=>{
+      if(done)return;
+      done=true;
+      if(window.jspdf?.jsPDF)resolve();
+      else reject(new Error("jsPDF indisponible"));
+    };
+    script.addEventListener("load",finish,{once:true});
+    script.addEventListener("error",()=>{if(!done){done=true;reject(new Error("Chargement jsPDF impossible"))}},{once:true});
+    setTimeout(finish,7000);
+  });
+  if(!window.jspdf?.jsPDF)throw new Error("jsPDF indisponible");
+  return window.jspdf.jsPDF;
+}
+function cleanControlPdfFilename(value){
+  return String(value||"controle")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"")
+    .slice(0,80)||"controle";
+}
+function pdfSafeText(value){
+  return String(value==null?"":value).replace(/\s+/g," ").trim();
+}
+function historyPhotoFormat(dataUrl){
+  const m=String(dataUrl||"").match(/^data:image\/(png|jpe?g|webp)/i);
+  if(!m)return"JPEG";
+  const x=m[1].toLowerCase();
+  return x==="png"?"PNG":x==="webp"?"WEBP":"JPEG";
+}
+async function generateControlRecordPdf(item,button){
+  const oldText=button?.textContent||"";
+  if(button){button.disabled=true;button.textContent="PDF…"}
+  try{
+    const JsPDF=await ensureHistoryJsPdf();
+    const pdf=new JsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
+    const pageW=210,pageH=297,left=12,right=12,bottom=14,contentW=pageW-left-right;
+    const site=pdfSafeText(item?.site||selectedSiteName()||"Résidence");
+    const controlDate=formatControlDate(item?.controlDate)||"Date non renseignée";
+    const controlTime=pdfSafeText(item?.controlTime);
+    let y=0;
+
+    function drawHeader(){
+      pdf.setFillColor(6,78,59);
+      pdf.rect(0,0,pageW,34,"F");
+      pdf.setTextColor(255,255,255);
+      pdf.setFont("helvetica","bold");
+      pdf.setFontSize(8);
+      pdf.text("INOVTEC - CONTROLE QUALITE",left,9);
+      pdf.setFontSize(17);
+      const titleLines=pdf.splitTextToSize(site,contentW);
+      pdf.text(titleLines,left,18);
+      pdf.setFont("helvetica","normal");
+      pdf.setFontSize(9);
+      pdf.text([controlDate,controlTime].filter(Boolean).join(" - "),left,30);
+      pdf.setTextColor(23,57,45);
+      y=42;
+    }
+    function newPage(){
+      pdf.addPage();
+      drawHeader();
+    }
+    function need(height){
+      if(y+height>pageH-bottom)newPage();
+    }
+    function sectionTitle(text){
+      need(11);
+      pdf.setFont("helvetica","bold");
+      pdf.setFontSize(11);
+      pdf.setTextColor(7,95,66);
+      pdf.text(pdfSafeText(text),left,y);
+      pdf.setDrawColor(205,224,215);
+      pdf.line(left,y+2,pageW-right,y+2);
+      y+=8;
+    }
+    function infoBox(label,value){
+      value=pdfSafeText(value);
+      if(!value)return;
+      const lines=pdf.splitTextToSize(value,contentW-6);
+      const h=8+lines.length*4.2;
+      need(h+2);
+      pdf.setFillColor(248,252,250);
+      pdf.setDrawColor(220,233,227);
+      pdf.roundedRect(left,y,contentW,h,2,2,"FD");
+      pdf.setFont("helvetica","bold");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(103,121,112);
+      pdf.text(pdfSafeText(label).toUpperCase(),left+3,y+4);
+      pdf.setFont("helvetica","normal");
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(23,57,45);
+      pdf.text(lines,left+3,y+9);
+      y+=h+3;
+    }
+    function taskBox(task,index){
+      const title=pdfSafeText(task?.title||("Point "+(index+1)))||("Point "+(index+1));
+      const status=statusLabel(task?.status);
+      const comment=pdfSafeText(task?.comment);
+      const titleLines=pdf.splitTextToSize(title,132);
+      const commentLines=comment?pdf.splitTextToSize(comment,contentW-8):[];
+      const h=Math.max(12,7+titleLines.length*4.2+(commentLines.length?3+commentLines.length*3.8:0));
+      need(h+3);
+      pdf.setFillColor(255,255,255);
+      pdf.setDrawColor(225,235,230);
+      pdf.roundedRect(left,y,contentW,h,2,2,"FD");
+      pdf.setFont("helvetica","bold");
+      pdf.setFontSize(9.2);
+      pdf.setTextColor(36,61,51);
+      pdf.text(titleLines,left+3,y+5);
+      pdf.setFontSize(7.8);
+      pdf.setTextColor(67,93,81);
+      pdf.text(pdfSafeText(status)||"—",pageW-right-3,y+5,{align:"right"});
+      if(commentLines.length){
+        const offset=6+titleLines.length*4.2;
+        pdf.setFont("helvetica","normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(102,119,111);
+        pdf.text(commentLines,left+3,y+offset);
+      }
+      y+=h+3;
+    }
+
+    drawHeader();
+    sectionTitle("Synthèse du contrôle");
+    infoBox("Note",item?.score||"—");
+    infoBox("Contrôleur",item?.controller||"—");
+    infoBox("Agent(s)",item?.agents||"—");
+    if(item?.category)infoBox("Catégorie",item.category);
+    infoBox("Nombre de photos",String(Number(item?.photoCount)||0));
+
+    const tasks=Array.isArray(item?.tasks)?item.tasks:[];
+    sectionTitle("Détail du contrôle");
+    if(tasks.length)tasks.forEach(taskBox);
+    else infoBox("Détail","Aucun détail de point enregistré pour ce contrôle.");
+
+    sectionTitle("Observations");
+    infoBox("Observations",item?.observations||"Aucune observation.");
+
+    const refs=Array.isArray(item?.photoRefs)?item.photoRefs:[];
+    if(refs.length){
+      sectionTitle("Photos du contrôle");
+      for(let i=0;i<refs.length;i++){
+        const ref=refs[i];
+        try{
+          const dataUrl=await readControlPhoto(ref);
+          const props=pdf.getImageProperties(dataUrl);
+          const maxW=contentW,maxH=105;
+          const ratio=Math.min(maxW/props.width,maxH/props.height);
+          const w=Math.max(1,props.width*ratio),h=Math.max(1,props.height*ratio);
+          const caption=pdfSafeText(ref?.caption||ref?.name||("Photo "+(i+1)));
+          need(h+14);
+          pdf.setFont("helvetica","bold");
+          pdf.setFontSize(8.5);
+          pdf.setTextColor(55,80,69);
+          pdf.text("Photo "+(i+1)+(caption?(" - "+caption):""),left,y);
+          y+=4;
+          pdf.addImage(dataUrl,historyPhotoFormat(dataUrl),left,y,w,h,undefined,"FAST");
+          y+=h+6;
+        }catch(error){
+          console.warn("Photo PDF historique KONTROL indisponible",error);
+          infoBox("Photo "+(i+1),"Photo indisponible au moment de la génération du PDF.");
+        }
+      }
+    }
+
+    const suffix=[item?.controlDate,item?.controlTime].filter(Boolean).join("_").replace(/[:/\\]+/g,"-");
+    const filename="Controle_"+cleanControlPdfFilename(site)+(suffix?"_"+cleanControlPdfFilename(suffix):"")+".pdf";
+    pdf.save(filename);
+    return{ok:true,filename};
+  }catch(error){
+    console.error("Génération PDF historique KONTROL impossible",error);
+    alert("Impossible de générer le PDF de ce contrôle pour le moment.");
+    return{ok:false,error};
+  }finally{
+    if(button){button.disabled=false;button.textContent=oldText||"Éditer PDF"}
+  }
+}
+
 function dataUrlToBlob(dataUrl){
   const i=dataUrl.indexOf(",");if(i<0)throw new Error("PDF partagé invalide");
   const head=dataUrl.slice(0,i),b64=dataUrl.slice(i+1),mime=(head.match(/^data:([^;]+)/)||[])[1]||"application/pdf";
@@ -274,7 +465,7 @@ function ensureViewer(){
   viewer=d.createElement("div");
   viewer.id="ivControlViewer";
   viewer.hidden=true;
-  viewer.innerHTML='<section class="iv-control-viewer-panel" role="dialog" aria-modal="true" aria-labelledby="ivControlViewerTitle"><div class="iv-control-viewer-head"><div><h2 id="ivControlViewerTitle" class="iv-control-viewer-title">Contrôle qualité</h2><div id="ivControlViewerSub" class="iv-control-viewer-sub"></div></div><div class="iv-control-viewer-actions"><button id="ivControlViewerDelete" class="iv-control-viewer-delete" type="button">Supprimer</button><button id="ivControlViewerClose" class="btn btn-secondary iv-control-close" type="button">Fermer</button></div></div><div id="ivControlViewerBody" class="iv-control-viewer-body"></div></section>';
+  viewer.innerHTML='<section class="iv-control-viewer-panel" role="dialog" aria-modal="true" aria-labelledby="ivControlViewerTitle"><div class="iv-control-viewer-head"><div><h2 id="ivControlViewerTitle" class="iv-control-viewer-title">Contrôle qualité</h2><div id="ivControlViewerSub" class="iv-control-viewer-sub"></div></div><div class="iv-control-viewer-actions"><button id="ivControlViewerPdf" class="btn btn-primary iv-control-viewer-pdf" type="button">Éditer PDF</button><button id="ivControlViewerDelete" class="iv-control-viewer-delete" type="button">Supprimer</button><button id="ivControlViewerClose" class="btn btn-secondary iv-control-close" type="button">Fermer</button></div></div><div id="ivControlViewerBody" class="iv-control-viewer-body"></div></section>';
   d.body.appendChild(viewer);
   viewer.querySelector("#ivControlViewerClose")?.addEventListener("click",()=>{viewer.hidden=true});
   viewer.addEventListener("click",event=>{if(event.target===viewer)viewer.hidden=true});
@@ -292,6 +483,8 @@ async function openControlViewer(item,button){
   viewer.hidden=false;
   title.textContent="Contrôle qualité — "+(item.site||selectedSiteName()||"Chantier");
   sub.textContent=[formatControlDate(item.controlDate),item.controlTime,item.createdByEmail?("Enregistré par "+item.createdByEmail):""].filter(Boolean).join(" • ");
+  const viewerPdf=viewer.querySelector("#ivControlViewerPdf");
+  if(viewerPdf){viewerPdf.onclick=()=>generateControlRecordPdf(item,viewerPdf);viewerPdf.disabled=false;viewerPdf.textContent="Éditer PDF"}
   const viewerDelete=viewer.querySelector("#ivControlViewerDelete");
   if(viewerDelete){
     viewerDelete.onclick=()=>deleteControlRecord(item,viewerDelete);
@@ -526,9 +719,11 @@ function render(){
 
       const button=d.createElement("button");button.type="button";button.className="btn btn-secondary iv-control-history-open";button.textContent="Voir le contrôle";
       button.addEventListener("click",()=>openControlViewer(item,button));
+      const pdfBtn=d.createElement("button");pdfBtn.type="button";pdfBtn.className="btn btn-primary iv-control-history-pdf";pdfBtn.textContent="Éditer PDF";pdfBtn.title="Générer le PDF de ce contrôle";
+      pdfBtn.addEventListener("click",()=>generateControlRecordPdf(item,pdfBtn));
       const del=d.createElement("button");del.type="button";del.className="iv-control-history-delete";del.textContent="Supprimer";del.title="Supprimer ce contrôle";del.setAttribute("aria-label","Supprimer ce contrôle");
       del.addEventListener("click",()=>deleteControlRecord(item,del));
-      actions.append(button,del);
+      actions.append(button,pdfBtn,del);
     }else{
       const custom=item.customMetadata||{};
       title.textContent="Contrôle archivé";
