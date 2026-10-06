@@ -839,7 +839,7 @@
       appShell.classList.remove("hidden");
       if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) {
         clearWorkingDraft();
-        frame.src = "KONTROL.html?v=20261006-pdffallback1";
+        frame.src = "KONTROL.html?v=20261006-pdfpie2";
       }
     } else {
       hideArchive();
