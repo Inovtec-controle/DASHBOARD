@@ -725,6 +725,14 @@
   function currentTasks(){ return state.dataByCategory[state.category]; }
   function setTasks(tasks){ state.dataByCategory[state.category] = tasks; saveState(); }
 
+  function tasksForPdf(){
+    const active = Array.isArray(currentTasks())
+      ? currentTasks().filter(t=>String(t?.name||'').trim())
+      : [];
+    if(active.length) return active;
+    return DEFAULTS.Residence.map(name=>({ id:uid(), name, status:'', comment:'' }));
+  }
+
   function checklistNames(){
     return currentTasks().map(t=>String(t?.name||'').trim()).filter(Boolean);
   }
@@ -1236,7 +1244,7 @@
       ctrlNotes: (els.ctrlNotes.value || '').trim(),
       category: state.category==='Residence'?'Résidence':'Bureau'
     };
-    const rows = currentTasks().map(t=>[ t.name, STATUS_LABEL[t.status || ''] || '', t.comment||'' ]);
+    const rows = tasksForPdf().map(t=>[ t.name, STATUS_LABEL[t.status || ''] || '', t.comment||'' ]);
 
     const metrics = computeMetrics();
     const doc = new jsPDF({unit:'pt', format:'a4'}), margin = 36, lineH = 16, pageW = 595, pageH = 842;
