@@ -36,6 +36,144 @@
     return String(site?.nom || site?.name || site?.site || "").trim();
   }
 
+  const SHARED_WORKSPACE_ID = "__inovtec_shared_workspace_v1__";
+  let agentReferences = [];
+  let agentReferencesPromise = null;
+
+  function agentName(agent) {
+    const identity = agent?.identity || {};
+    return [identity.prenom, identity.nom].filter(Boolean).join(" ").trim()
+      || String(agent?.displayName || agent?.name || "").trim();
+  }
+
+  function parseJson(value) {
+    try { return JSON.parse(String(value || "")); }
+    catch { return null; }
+  }
+
+  async function loadAgentReferences(force = false) {
+    if (!force && agentReferences.length) return agentReferences;
+    if (!force && agentReferencesPromise) return agentReferencesPromise;
+    agentReferencesPromise = db.collection("chantiers").doc(SHARED_WORKSPACE_ID).get().then(snap => {
+      const data = snap.exists ? (snap.data() || {}) : {};
+      const payload = parseJson(data?.moduleSyncV1?.agents?.payload || "");
+      const source = Array.isArray(payload)
+        ? payload
+        : Array.isArray(data?.referentialAgents)
+          ? data.referentialAgents
+          : [];
+      agentReferences = source
+        .filter(agent => agent && agent._deleted !== true && !agent.archivedAt && agentName(agent))
+        .sort((a,b) => agentName(a).localeCompare(agentName(b), "fr", { sensitivity:"base" }));
+      return agentReferences;
+    }).finally(() => { agentReferencesPromise = null; });
+    return agentReferencesPromise;
+  }
+
+  function resolveAgentReference(raw) {
+    const target = normalize(raw);
+    if (!target) return null;
+    const matches = agentReferences.filter(agent => normalize(agentName(agent)) === target);
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  async function configureAgentPicker(doc) {
+    const agentField = doc?.getElementById("agents");
+    if (!agentField) return;
+    const agents = await loadAgentReferences();
+    if (!agentField.isConnected) return;
+
+    let picker = doc.getElementById("ivKontrolAgentSelect");
+    if (!picker) {
+      picker = doc.createElement("select");
+      picker.id = "ivKontrolAgentSelect";
+      picker.setAttribute("aria-label", "Sélection de l’agent");
+      picker.style.cssText = "width:100%;background:#f8fafc;color:#0f172a;border:1px solid rgba(148,163,184,.4);border-radius:12px;padding:12px 38px 12px 12px;outline:none;font:500 16px/1.4 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;min-height:48px;";
+      agentField.insertAdjacentElement("beforebegin", picker);
+
+      // On conserve le champ historique masqué pour les sauvegardes, PDF et anciens imports.
+      agentField.style.display = "none";
+      agentField.setAttribute("aria-hidden", "true");
+      agentField.tabIndex = -1;
+      const label = doc.querySelector('label[for="agents"]');
+      if (label) {
+        label.setAttribute("for", picker.id);
+        label.textContent = "Agent de propreté contrôlé";
+      }
+    }
+
+    const previousId = String(agentField.dataset.ivAgentId || "").trim();
+    const previousName = String(agentField.value || "").trim();
+    picker.replaceChildren();
+
+    const placeholder = doc.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Sélectionner un agent…";
+    picker.appendChild(placeholder);
+
+    agents.forEach(agent => {
+      const option = doc.createElement("option");
+      option.value = String(agent.id || agentName(agent));
+      option.textContent = agentName(agent);
+      option.dataset.ivAgentId = String(agent.id || "");
+      picker.appendChild(option);
+    });
+
+    let initial = previousId
+      ? agentReferences.find(agent => String(agent.id || "") === previousId) || null
+      : null;
+    if (!initial && previousName) initial = resolveAgentReference(previousName);
+
+    if (initial) {
+      picker.value = String(initial.id || agentName(initial));
+      agentField.value = agentName(initial);
+      agentField.dataset.ivAgentId = String(initial.id || "");
+    } else {
+      picker.value = "";
+      if (previousName) {
+        agentField.value = "";
+        delete agentField.dataset.ivAgentId;
+      }
+    }
+
+    if (picker.dataset.ivKontrolAgentPickerBound !== "1") {
+      picker.dataset.ivKontrolAgentPickerBound = "1";
+      picker.addEventListener("change", () => {
+        const selected = agentReferences.find(agent =>
+          String(agent.id || agentName(agent)) === String(picker.value || "")
+        ) || null;
+
+        if (selected) {
+          agentField.value = agentName(selected);
+          agentField.dataset.ivAgentId = String(selected.id || "");
+        } else {
+          agentField.value = "";
+          delete agentField.dataset.ivAgentId;
+        }
+
+        agentField.dispatchEvent(new Event("input", { bubbles:true }));
+        agentField.dispatchEvent(new Event("change", { bubbles:true }));
+      });
+    }
+
+    if (agentField.dataset.ivKontrolAgentLegacySyncBound !== "1") {
+      agentField.dataset.ivKontrolAgentLegacySyncBound = "1";
+      const syncFromLegacy = () => {
+        const selected = resolveAgentReference(agentField.value);
+        if (selected) {
+          picker.value = String(selected.id || agentName(selected));
+          agentField.dataset.ivAgentId = String(selected.id || "");
+        } else if (!agentField.value.trim()) {
+          picker.value = "";
+          delete agentField.dataset.ivAgentId;
+        }
+      };
+      agentField.addEventListener("input", syncFromLegacy);
+      agentField.addEventListener("change", syncFromLegacy);
+    }
+  }
+
+
   async function loadChantierReferences(force = false) {
     if (!force && chantierReferences.length) return chantierReferences;
     if (!force && chantierReferencesPromise) return chantierReferencesPromise;
@@ -357,6 +495,10 @@
       void configureSitePicker(doc).catch(error => {
         console.error("Préparation du sélecteur de chantier KONTROL impossible", error);
         showToast("Impossible de charger les chantiers disponibles.", true);
+      });
+      void configureAgentPicker(doc).catch(error => {
+        console.error("Préparation du sélecteur d’agent KONTROL impossible", error);
+        showToast("Impossible de charger les agents disponibles.", true);
       });
       doc.getElementById("importFile")?.addEventListener("change", () => {
         setTimeout(() => updateControlWorkspaceVisibility(doc), 120);
