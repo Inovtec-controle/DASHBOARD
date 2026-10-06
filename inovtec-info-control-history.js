@@ -217,29 +217,54 @@ function createdMs(meta){
 }
 
 async function ensureHistoryJsPdf(){
-  if(window.jspdf?.jsPDF)return window.jspdf.jsPDF;
-  let script=d.getElementById("ivControlHistoryJsPdf");
-  if(!script){
-    script=d.createElement("script");
-    script.id="ivControlHistoryJsPdf";
-    script.src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
-    script.crossOrigin="anonymous";
-    d.head.appendChild(script);
+  if(!window.jspdf?.jsPDF){
+    let script=d.getElementById("ivControlHistoryJsPdf");
+    if(!script){
+      script=d.createElement("script");
+      script.id="ivControlHistoryJsPdf";
+      script.src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
+      script.crossOrigin="anonymous";
+      d.head.appendChild(script);
+    }
+    await new Promise((resolve,reject)=>{
+      if(window.jspdf?.jsPDF)return resolve();
+      let done=false;
+      const finish=()=>{
+        if(done)return;
+        done=true;
+        if(window.jspdf?.jsPDF)resolve();
+        else reject(new Error("jsPDF indisponible"));
+      };
+      script.addEventListener("load",finish,{once:true});
+      script.addEventListener("error",()=>{if(!done){done=true;reject(new Error("Chargement jsPDF impossible"))}},{once:true});
+      setTimeout(finish,7000);
+    });
   }
-  await new Promise((resolve,reject)=>{
-    if(window.jspdf?.jsPDF)return resolve();
-    let done=false;
-    const finish=()=>{
-      if(done)return;
-      done=true;
-      if(window.jspdf?.jsPDF)resolve();
-      else reject(new Error("jsPDF indisponible"));
-    };
-    script.addEventListener("load",finish,{once:true});
-    script.addEventListener("error",()=>{if(!done){done=true;reject(new Error("Chargement jsPDF impossible"))}},{once:true});
-    setTimeout(finish,7000);
-  });
   if(!window.jspdf?.jsPDF)throw new Error("jsPDF indisponible");
+
+  if(typeof window.jspdf.jsPDF.API?.autoTable!=="function"){
+    let plugin=d.getElementById("ivControlHistoryAutoTable");
+    if(!plugin){
+      plugin=d.createElement("script");
+      plugin.id="ivControlHistoryAutoTable";
+      plugin.src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.3/dist/jspdf.plugin.autotable.min.js";
+      plugin.crossOrigin="anonymous";
+      d.head.appendChild(plugin);
+    }
+    await new Promise((resolve,reject)=>{
+      if(typeof window.jspdf?.jsPDF?.API?.autoTable==="function")return resolve();
+      let done=false;
+      const finish=()=>{
+        if(done)return;
+        done=true;
+        if(typeof window.jspdf?.jsPDF?.API?.autoTable==="function")resolve();
+        else reject(new Error("AutoTable indisponible"));
+      };
+      plugin.addEventListener("load",finish,{once:true});
+      plugin.addEventListener("error",()=>{if(!done){done=true;reject(new Error("Chargement AutoTable impossible"))}},{once:true});
+      setTimeout(finish,7000);
+    });
+  }
   return window.jspdf.jsPDF;
 }
 function cleanControlPdfFilename(value){
@@ -262,133 +287,139 @@ async function generateControlRecordPdf(item,button){
   if(button){button.disabled=true;button.textContent="PDF…"}
   try{
     const JsPDF=await ensureHistoryJsPdf();
-    const pdf=new JsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
-    const pageW=210,pageH=297,left=12,right=12,bottom=14,contentW=pageW-left-right;
+    const pdf=new JsPDF({unit:"pt",format:"a4"});
+    const margin=36,lineH=16,pageW=595,pageH=842;
     const site=pdfSafeText(item?.site||selectedSiteName()||"Résidence");
     const controlDate=formatControlDate(item?.controlDate)||"Date non renseignée";
     const controlTime=pdfSafeText(item?.controlTime);
-    let y=0;
+    const category=pdfSafeText(item?.category)||"Résidence";
+    const controller=pdfSafeText(item?.controller)||"-";
+    const agents=pdfSafeText(item?.agents)||"-";
+    const tasks=(Array.isArray(item?.tasks)?item.tasks:[])
+      .filter(task=>["ok","mid","bad","na"].includes(String(task?.status||"")));
 
-    function drawHeader(){
-      pdf.setFillColor(6,78,59);
-      pdf.rect(0,0,pageW,34,"F");
-      pdf.setTextColor(255,255,255);
-      pdf.setFont("helvetica","bold");
-      pdf.setFontSize(8);
-      pdf.text("INOVTEC - CONTROLE QUALITE",left,9);
-      pdf.setFontSize(17);
-      const titleLines=pdf.splitTextToSize(site,contentW);
-      pdf.text(titleLines,left,18);
-      pdf.setFont("helvetica","normal");
-      pdf.setFontSize(9);
-      pdf.text([controlDate,controlTime].filter(Boolean).join(" - "),left,30);
-      pdf.setTextColor(23,57,45);
-      y=42;
-    }
-    function newPage(){
-      pdf.addPage();
-      pdf.setTextColor(23,57,45);
-      y=14;
-    }
-    function need(height){
-      if(y+height>pageH-bottom)newPage();
-    }
-    function sectionTitle(text){
-      need(11);
-      pdf.setFont("helvetica","bold");
-      pdf.setFontSize(11);
-      pdf.setTextColor(7,95,66);
-      pdf.text(pdfSafeText(text),left,y);
-      pdf.setDrawColor(205,224,215);
-      pdf.line(left,y+2,pageW-right,y+2);
-      y+=8;
-    }
-    function infoBox(label,value){
-      value=pdfSafeText(value);
-      if(!value)return;
-      const lines=pdf.splitTextToSize(value,contentW-6);
-      const h=8+lines.length*4.2;
-      need(h+2);
-      pdf.setFillColor(248,252,250);
-      pdf.setDrawColor(220,233,227);
-      pdf.roundedRect(left,y,contentW,h,2,2,"FD");
-      pdf.setFont("helvetica","bold");
-      pdf.setFontSize(7.5);
-      pdf.setTextColor(103,121,112);
-      pdf.text(pdfSafeText(label).toUpperCase(),left+3,y+4);
-      pdf.setFont("helvetica","normal");
-      pdf.setFontSize(9.5);
-      pdf.setTextColor(23,57,45);
-      pdf.text(lines,left+3,y+9);
-      y+=h+3;
-    }
-    function taskBox(task,index){
-      const title=pdfSafeText(task?.title||("Point "+(index+1)))||("Point "+(index+1));
-      const status=statusLabel(task?.status);
-      const comment=pdfSafeText(task?.comment);
-      const titleLines=pdf.splitTextToSize(title,132);
-      const commentLines=comment?pdf.splitTextToSize(comment,contentW-8):[];
-      const h=Math.max(12,7+titleLines.length*4.2+(commentLines.length?3+commentLines.length*3.8:0));
-      need(h+3);
-      pdf.setFillColor(255,255,255);
-      pdf.setDrawColor(225,235,230);
-      pdf.roundedRect(left,y,contentW,h,2,2,"FD");
-      pdf.setFont("helvetica","bold");
-      pdf.setFontSize(9.2);
-      pdf.setTextColor(36,61,51);
-      pdf.text(titleLines,left+3,y+5);
-      pdf.setFontSize(7.8);
-      pdf.setTextColor(67,93,81);
-      pdf.text(pdfSafeText(status)||"—",pageW-right-3,y+5,{align:"right"});
-      if(commentLines.length){
-        const offset=6+titleLines.length*4.2;
-        pdf.setFont("helvetica","normal");
-        pdf.setFontSize(8);
-        pdf.setTextColor(102,119,111);
-        pdf.text(commentLines,left+3,y+offset);
+    let nOK=0,nMID=0,nBAD=0,nNA=0;
+    tasks.forEach(task=>{
+      if(task.status==="ok")nOK++;
+      else if(task.status==="mid")nMID++;
+      else if(task.status==="bad")nBAD++;
+      else if(task.status==="na")nNA++;
+    });
+    const totalPossible=tasks.length*3;
+    const totalGot=nOK*3+nMID;
+    const pct=totalPossible>0?Math.round(totalGot/totalPossible*100):NaN;
+
+    pdf.setFont("helvetica","bold");pdf.setFontSize(14);
+    pdf.text("Contrôle Qualité – "+category,margin,42);
+    pdf.setFont("helvetica","normal");pdf.setFontSize(10);
+    [
+      "Date : "+controlDate,
+      "Heure : "+(controlTime||"-"),
+      "Site : "+(site||"-"),
+      "Contrôleur : "+controller,
+      "Agent(s) : "+agents
+    ].forEach((text,index)=>pdf.text(text,margin,66+index*lineH));
+
+    const noteY=66+5*lineH+22;
+    pdf.setFont("helvetica","bold");pdf.setFontSize(11);
+    pdf.text("Note : "+(Number.isFinite(pct)?pct+"%":"—"),margin,noteY);
+    pdf.setFont("helvetica","normal");pdf.setFontSize(10);
+    pdf.text("La moyenne de référence cible est de 95%",margin,noteY+14);
+
+    try{
+      const canvas=d.createElement("canvas");
+      canvas.width=420;canvas.height=420;
+      const ctx=canvas.getContext("2d");
+      const values=[nOK,nMID,nBAD,nNA];
+      const colors=["#16a34a","#f59e0b","#dc2626","#000000"];
+      const total=values.reduce((sum,n)=>sum+(Number(n)||0),0);
+      const cx=210,cy=210,r=178;
+      if(total>0){
+        let angle=-Math.PI/2;
+        values.forEach((value,index)=>{
+          const slice=(Number(value)||0)/total*Math.PI*2;
+          if(slice<=0)return;
+          ctx.beginPath();
+          ctx.moveTo(cx,cy);
+          ctx.arc(cx,cy,r,angle,angle+slice);
+          ctx.closePath();
+          ctx.fillStyle=colors[index];
+          ctx.fill();
+          angle+=slice;
+        });
+        ctx.strokeStyle="#ffffff";ctx.lineWidth=3;
+        ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+      }else{
+        ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+        ctx.fillStyle="#e5e7eb";ctx.fill();
       }
-      y+=h+3;
+      pdf.addImage(canvas.toDataURL("image/png",1),"PNG",360,40,200,200);
+    }catch(error){
+      console.warn("Camembert PDF historique indisponible",error);
+      pdf.setFont("helvetica","normal");pdf.setFontSize(10);
+      ["Bien fait : "+nOK,"Passable : "+nMID,"Mal fait : "+nBAD,"Pas faits : "+nNA]
+        .forEach((text,index)=>pdf.text(text,360,60+index*14));
     }
 
-    drawHeader();
-    sectionTitle("Synthèse du contrôle");
-    infoBox("Note",item?.score||"—");
-    infoBox("Contrôleur",item?.controller||"—");
-    infoBox("Agent(s)",item?.agents||"—");
-    if(item?.category)infoBox("Catégorie",item.category);
-    infoBox("Nombre de photos",String(Number(item?.photoCount)||0));
+    const rows=tasks.map((task,index)=>[
+      pdfSafeText(task?.title||task?.name||("Point "+(index+1))),
+      statusLabel(task?.status),
+      pdfSafeText(task?.comment)
+    ]);
 
-    const tasks=(Array.isArray(item?.tasks)?item.tasks:[]).filter(task=>["ok","mid","bad","na"].includes(String(task?.status||"")));
-    sectionTitle("Détail du contrôle");
-    if(tasks.length)tasks.forEach(taskBox);
-    else infoBox("Détail","Aucun point renseigné pour ce contrôle.");
+    pdf.autoTable({
+      startY:260,
+      head:[["Tâche","Statut","Commentaire"]],
+      body:rows,
+      styles:{font:"helvetica",fontSize:9,cellPadding:4,overflow:"linebreak"},
+      headStyles:{fillColor:[15,118,110],textColor:[248,250,252]},
+      columnStyles:{0:{cellWidth:260},1:{cellWidth:110},2:{cellWidth:145}},
+      margin:{left:margin,right:margin}
+    });
 
-    sectionTitle("Observations");
-    infoBox("Observations",item?.observations||"Aucune observation.");
+    let y=pdf.lastAutoTable?pdf.lastAutoTable.finalY+20:300;
+    if(y>pageH-90){pdf.addPage();y=42}
+    pdf.setFont("helvetica","bold");pdf.setFontSize(11);
+    pdf.text("Observations / actions correctives :",margin,y);
+    pdf.setFont("helvetica","normal");pdf.setFontSize(10);
+    const observations=pdf.splitTextToSize(pdfSafeText(item?.observations)||"—",pageW-margin*2);
+    pdf.text(observations,margin,y+16);
 
     const refs=Array.isArray(item?.photoRefs)?item.photoRefs:[];
     if(refs.length){
-      sectionTitle("Photos du contrôle");
+      pdf.addPage();
+      pdf.setFont("helvetica","bold");pdf.setFontSize(14);
+      pdf.text("Photos du contrôle",margin,42);
+      pdf.setFont("helvetica","normal");pdf.setFontSize(9);
+      pdf.text(refs.length+" photo"+(refs.length>1?"s":"")+" intégrée"+(refs.length>1?"s":""),margin,56);
+
+      const cols=2,gap=14;
+      const cellW=Math.floor((pageW-margin*2-gap*(cols-1))/cols);
+      const maxImgH=245,capH=46;
+      let cx=margin,cy=72;
+
       for(let i=0;i<refs.length;i++){
         const ref=refs[i];
         try{
           const dataUrl=await readControlPhoto(ref);
           const props=pdf.getImageProperties(dataUrl);
-          const maxW=contentW,maxH=105;
-          const ratio=Math.min(maxW/props.width,maxH/props.height);
-          const w=Math.max(1,props.width*ratio),h=Math.max(1,props.height*ratio);
-          const caption=pdfSafeText(ref?.caption||ref?.name||("Photo "+(i+1)));
-          need(h+14);
-          pdf.setFont("helvetica","bold");
-          pdf.setFontSize(8.5);
-          pdf.setTextColor(55,80,69);
-          pdf.text("Photo "+(i+1)+(caption?(" - "+caption):""),left,y);
-          y+=4;
-          pdf.addImage(dataUrl,historyPhotoFormat(dataUrl),left,y,w,h,undefined,"FAST");
-          y+=h+6;
+          const ratio=(Number(props.height)||1)/(Number(props.width)||1);
+          const imgH=Math.min(maxImgH,Math.max(120,Math.round(cellW*ratio)));
+          if(cy+imgH+capH>pageH-margin){
+            pdf.addPage();cx=margin;cy=42;
+          }
+          pdf.addImage(dataUrl,historyPhotoFormat(dataUrl),cx,cy,cellW,imgH,undefined,"FAST");
+          pdf.setFont("helvetica","bold");pdf.setFontSize(9);
+          pdf.text("Photo "+(i+1)+" / "+refs.length,cx,cy+imgH+12);
+          const caption=pdfSafeText(ref?.caption||ref?.name);
+          if(caption){
+            pdf.setFont("helvetica","normal");pdf.setFontSize(9);
+            pdf.text(pdf.splitTextToSize(caption,cellW),cx,cy+imgH+24);
+          }
+          if((i%cols)===cols-1){cx=margin;cy+=imgH+capH}
+          else cx+=cellW+gap;
         }catch(error){
           console.warn("Photo PDF historique KONTROL indisponible",error);
-          infoBox("Photo "+(i+1),"Photo indisponible au moment de la génération du PDF.");
         }
       }
     }
