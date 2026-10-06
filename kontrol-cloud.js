@@ -501,7 +501,18 @@
         showToast("Impossible de charger les agents disponibles.", true);
       });
       doc.getElementById("importFile")?.addEventListener("change", () => {
-        setTimeout(() => updateControlWorkspaceVisibility(doc), 120);
+        setTimeout(() => {
+          updateControlWorkspaceVisibility(doc);
+          void configureSitePicker(doc).catch(()=>{});
+          void configureAgentPicker(doc).catch(()=>{});
+        }, 120);
+      });
+      doc.getElementById("clearAllBtn")?.addEventListener("click", () => {
+        setTimeout(() => {
+          updateControlWorkspaceVisibility(doc);
+          void configureSitePicker(doc).catch(()=>{});
+          void configureAgentPicker(doc).catch(()=>{});
+        }, 80);
       });
 
       const saveControlBtn = doc.getElementById("pdfBtn");
