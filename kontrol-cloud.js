@@ -88,13 +88,27 @@
     activeChecklistSiteId = id;
     const siteField = doc.getElementById("site");
     if (siteField) siteField.dataset.ivChantierId = id;
+
+    const api = checklistApi();
+    if (!api) {
+      showToast("Le module de liste KONTROL n’est pas prêt.", true);
+      return;
+    }
+
+    // Toujours repartir du gabarit général dès qu'un chantier est choisi.
+    // La liste personnalisée, si elle existe réellement dans Firebase, remplace ensuite ce gabarit.
+    api.useDefaultChecklist({ silent:true });
+    setChecklistSource(doc, "default");
+
     try {
       const snap = await db.collection("chantiers").doc(id).get();
-      if (seq !== checklistLoadSeq || !snap.exists) return;
+      if (seq !== checklistLoadSeq) return;
+      if (!snap.exists) {
+        doc.body.dataset.ivChecklistLoadedFor = id;
+        return;
+      }
       const data = snap.data() || {};
       const config = data.kontrolChecklistV1 || {};
-      const api = checklistApi();
-      if (!api) throw new Error("Le module de liste KONTROL n’est pas prêt");
       const customItems = Array.isArray(config.items)
         ? config.items.map(value => String(value || "").trim()).filter(Boolean)
         : [];
@@ -108,7 +122,11 @@
       doc.body.dataset.ivChecklistLoadedFor = id;
     } catch (error) {
       console.error("Chargement de la liste KONTROL impossible", error);
-      showToast("Impossible de charger la liste de contrôle de ce chantier.", true);
+      // Ne jamais conserver par erreur la liste personnalisée du chantier précédent.
+      api.useDefaultChecklist({ silent:true });
+      setChecklistSource(doc, "default");
+      doc.body.dataset.ivChecklistLoadedFor = id;
+      showToast("Liste personnalisée indisponible : le gabarit général est utilisé.", true);
     }
   }
 
@@ -120,6 +138,9 @@
       if (importedSite) {
         activeChecklistSiteId = String(importedSite.id);
         if (siteField) siteField.dataset.ivChantierId = activeChecklistSiteId;
+        const picker = doc.getElementById("ivKontrolSiteSelect");
+        const option = picker ? [...picker.options].find(opt => String(opt.dataset.ivChantierId || "") === activeChecklistSiteId) : null;
+        if (picker && option) picker.value = option.value;
       }
     }
     const chantierId = String(siteField?.dataset?.ivChantierId || activeChecklistSiteId || "").trim();
@@ -142,7 +163,11 @@
       if (config.customized !== true) {
         setChecklistSource(doc, "default");
         doc.body.dataset.ivChecklistLoadedFor = "";
-        if (!siteField?.value?.trim()) activeChecklistSiteId = "";
+        if (!siteField?.value?.trim()) {
+          activeChecklistSiteId = "";
+          const picker = doc.getElementById("ivKontrolSiteSelect");
+          if (picker) picker.value = "";
+        }
         showToast("Le chantier utilise le gabarit général.");
       } else {
         setChecklistSource(doc, "custom");
@@ -168,50 +193,100 @@
     if (!siteField) return;
     const sites = await loadChantierReferences();
     if (!siteField.isConnected) return;
-    let list = doc.getElementById("ivKontrolSites");
-    if (!list) {
-      list = doc.createElement("datalist");
-      list.id = "ivKontrolSites";
-      doc.body.appendChild(list);
+
+    let picker = doc.getElementById("ivKontrolSiteSelect");
+    if (!picker) {
+      picker = doc.createElement("select");
+      picker.id = "ivKontrolSiteSelect";
+      picker.setAttribute("aria-label", "Sélection du chantier");
+      picker.style.cssText = "width:100%;background:#f8fafc;color:#0f172a;border:1px solid rgba(148,163,184,.4);border-radius:12px;padding:12px 38px 12px 12px;outline:none;font:500 16px/1.4 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;min-height:48px;";
+      siteField.insertAdjacentElement("beforebegin", picker);
+
+      // Le champ historique reste présent pour ne casser ni le PDF, ni l'import/export,
+      // ni les sauvegardes existantes. Le menu déroulant le pilote en transparence.
+      siteField.style.display = "none";
+      siteField.setAttribute("aria-hidden", "true");
+      siteField.tabIndex = -1;
+      const label = doc.querySelector('label[for="site"]');
+      if (label) label.setAttribute("for", picker.id);
     }
-    list.innerHTML = "";
+
+    const previousId = String(siteField.dataset.ivChantierId || activeChecklistSiteId || "").trim();
+    const previousName = String(siteField.value || "").trim();
+    picker.replaceChildren();
+
+    const placeholder = doc.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Sélectionner un chantier…";
+    picker.appendChild(placeholder);
+
     sites.forEach(site => {
       const option = doc.createElement("option");
-      option.value = chantierName(site);
+      const name = chantierName(site);
       const address = String(site?.adresse || "").trim();
-      if (address) option.label = address;
-      list.appendChild(option);
+      option.value = name;
+      option.dataset.ivChantierId = String(site.id);
+      option.textContent = address ? (name + " — " + address) : name;
+      picker.appendChild(option);
     });
-    siteField.setAttribute("list", list.id);
-    siteField.placeholder = "Choisir un chantier enregistré…";
 
-    if (siteField.dataset.ivKontrolSitePickerBound !== "1") {
-      siteField.dataset.ivKontrolSitePickerBound = "1";
-      let timer = null;
-      const resolveSelection = () => {
-        clearTimeout(timer);
-        const selected = resolveChantierReference(siteField.value);
+    const selectOptionForSite = site => {
+      if (!site) {
+        picker.value = "";
+        return;
+      }
+      const option = [...picker.options].find(opt => String(opt.dataset.ivChantierId || "") === String(site.id));
+      picker.value = option ? option.value : "";
+    };
+
+    let initial = previousId
+      ? chantierReferences.find(site => String(site.id) === previousId) || null
+      : null;
+    if (!initial && previousName) initial = resolveChantierReference(previousName);
+    selectOptionForSite(initial);
+
+    if (picker.dataset.ivKontrolSitePickerBound !== "1") {
+      picker.dataset.ivKontrolSitePickerBound = "1";
+      picker.addEventListener("change", () => {
+        const option = picker.options[picker.selectedIndex];
+        const id = String(option?.dataset?.ivChantierId || "").trim();
+        const selected = id
+          ? chantierReferences.find(site => String(site.id) === id) || null
+          : null;
+
         if (selected) {
+          siteField.value = chantierName(selected);
           siteField.dataset.ivChantierId = String(selected.id);
-          void applyChecklistForSite(selected, doc);
+          activeChecklistSiteId = String(selected.id);
         } else {
+          siteField.value = "";
           activeChecklistSiteId = "";
           delete siteField.dataset.ivChantierId;
           doc.body.dataset.ivChecklistLoadedFor = "";
+          checklistApi()?.useDefaultChecklist?.({ silent:true });
           setChecklistSource(doc, "");
         }
-      };
-      siteField.addEventListener("change", resolveSelection);
-      siteField.addEventListener("input", () => {
-        clearTimeout(timer);
-        timer = setTimeout(resolveSelection, 250);
+
+        // Déclenche les gestionnaires historiques : heure auto, sauvegarde du brouillon,
+        // visibilité de la zone de contrôle, etc.
+        siteField.dispatchEvent(new Event("input", { bubbles:true }));
+        siteField.dispatchEvent(new Event("change", { bubbles:true }));
+
+        if (selected) void applyChecklistForSite(selected, doc);
       });
     }
 
-    const selected = resolveChantierReference(siteField.value);
-    if (selected) {
-      siteField.dataset.ivChantierId = String(selected.id);
-      void applyChecklistForSite(selected, doc);
+    if (initial) {
+      siteField.value = chantierName(initial);
+      siteField.dataset.ivChantierId = String(initial.id);
+      void applyChecklistForSite(initial, doc);
+    } else if (previousName) {
+      // Une ancienne valeur libre non reliée à un chantier ne doit plus rester active.
+      siteField.value = "";
+      activeChecklistSiteId = "";
+      delete siteField.dataset.ivChantierId;
+      doc.body.dataset.ivChecklistLoadedFor = "";
+      picker.value = "";
     }
   }
 
