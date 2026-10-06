@@ -287,7 +287,8 @@ async function generateControlRecordPdf(item,button){
     }
     function newPage(){
       pdf.addPage();
-      drawHeader();
+      pdf.setTextColor(23,57,45);
+      y=14;
     }
     function need(height){
       if(y+height>pageH-bottom)newPage();
@@ -357,10 +358,10 @@ async function generateControlRecordPdf(item,button){
     if(item?.category)infoBox("Catégorie",item.category);
     infoBox("Nombre de photos",String(Number(item?.photoCount)||0));
 
-    const tasks=Array.isArray(item?.tasks)?item.tasks:[];
+    const tasks=(Array.isArray(item?.tasks)?item.tasks:[]).filter(task=>["ok","mid","bad","na"].includes(String(task?.status||"")));
     sectionTitle("Détail du contrôle");
     if(tasks.length)tasks.forEach(taskBox);
-    else infoBox("Détail","Aucun détail de point enregistré pour ce contrôle.");
+    else infoBox("Détail","Aucun point renseigné pour ce contrôle.");
 
     sectionTitle("Observations");
     infoBox("Observations",item?.observations||"Aucune observation.");
