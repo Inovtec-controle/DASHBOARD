@@ -95,8 +95,11 @@
       const config = data.kontrolChecklistV1 || {};
       const api = checklistApi();
       if (!api) throw new Error("Le module de liste KONTROL n’est pas prêt");
-      if (config.customized === true && Array.isArray(config.items)) {
-        api.replaceChecklist(config.items, { silent:true });
+      const customItems = Array.isArray(config.items)
+        ? config.items.map(value => String(value || "").trim()).filter(Boolean)
+        : [];
+      if (config.customized === true && customItems.length > 0) {
+        api.replaceChecklist(customItems, { silent:true });
         setChecklistSource(doc, "custom");
       } else {
         api.useDefaultChecklist({ silent:true });
@@ -129,7 +132,7 @@
       .map(value => String(value || "").trim())
       .filter(Boolean);
     const now = Date.now();
-    const config = reason === "reset-default"
+    const config = (reason === "reset-default" || items.length === 0)
       ? { version:1, customized:false, updatedAtMs:now, source:"default-template" }
       : { version:1, customized:true, items, updatedAtMs:now, source:"manual" };
     try {
@@ -828,7 +831,7 @@
       appShell.classList.remove("hidden");
       if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) {
         clearWorkingDraft();
-        frame.src = "KONTROL.html?v=20261001-checklist1";
+        frame.src = "KONTROL.html?v=20261006-pdffallback1";
       }
     } else {
       hideArchive();
