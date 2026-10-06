@@ -1244,7 +1244,7 @@
       ctrlNotes: (els.ctrlNotes.value || '').trim(),
       category: state.category==='Residence'?'Résidence':'Bureau'
     };
-    const rows = tasksForPdf().map(t=>[ t.name, STATUS_LABEL[t.status || ''] || '', t.comment||'' ]);
+    const rows = tasksForPdf().filter(t=>['ok','mid','bad','na'].includes(String(t?.status||''))).map(t=>[ t.name, STATUS_LABEL[t.status || ''] || '', t.comment||'' ]);
 
     const metrics = computeMetrics();
     const doc = new jsPDF({unit:'pt', format:'a4'}), margin = 36, lineH = 16, pageW = 595, pageH = 842;
@@ -1279,6 +1279,41 @@
         }
       }
     }catch(e){}
+    // Le PDF doit toujours garder l'ancienne présentation avec le diagramme rond,
+    // même si Chart.js ou le graphique visible à l'écran n'est pas prêt.
+    if(!haveChartImage){
+      try{
+        const canvas=document.createElement('canvas');
+        canvas.width=420; canvas.height=420;
+        const ctx=canvas.getContext('2d');
+        const values=[metrics.nOK,metrics.nMID,metrics.nBAD,metrics.nNA];
+        const colors=['#16a34a','#f59e0b','#dc2626','#000000'];
+        const total=values.reduce((sum,n)=>sum+(Number(n)||0),0);
+        const cx=210,cy=210,r=178;
+        if(total>0){
+          let angle=-Math.PI/2;
+          values.forEach((value,index)=>{
+            const slice=(Number(value)||0)/total*Math.PI*2;
+            if(slice<=0)return;
+            ctx.beginPath();
+            ctx.moveTo(cx,cy);
+            ctx.arc(cx,cy,r,angle,angle+slice);
+            ctx.closePath();
+            ctx.fillStyle=colors[index];
+            ctx.fill();
+            angle+=slice;
+          });
+          ctx.strokeStyle='#ffffff';ctx.lineWidth=3;
+          ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+        }else{
+          ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+          ctx.fillStyle='#e5e7eb';ctx.fill();
+        }
+        const dataUrl=canvas.toDataURL('image/png',1.0);
+        doc.addImage(dataUrl,'PNG',360,40,200,200);
+        haveChartImage=true;
+      }catch(e){}
+    }
     if(!haveChartImage){
       const recap = [
         `Bien fait : ${metrics.nOK}`, `Passable : ${metrics.nMID}`,
