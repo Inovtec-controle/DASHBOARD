@@ -46,17 +46,17 @@
 </div>
 <nav id="mobileNav" class="iv-mobile-nav" aria-label="Navigation mobile"></nav>
 <!-- Initialiser l'iframe locale AVANT les services externes : une panne Firebase ne doit pas bloquer l'affichage. -->
-<script src="inovtec-shell.js?v=20261002-organisation-live16"></script>
+<script src="inovtec-shell.js?v=20261009-performance1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js?v=20261002-organisation-live16"></script>
-<script src="inovtec-data-hub.js?v=20261001-perf1"></script>
+<script src="inovtec-data-hub.js?v=20261009-performance1"></script>
 <script>
 {
   const shellMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(shellMode==="agents"){
-    document.write('<script src="inovtec-agents-firebase-direct.js?v=20260927-authfix1"><\/script>');
+    document.write('<script src="inovtec-agents-firebase-direct.js?v=20261009-performance1"><\/script>');
   }else if(shellMode!=="kontrol"&&shellMode!=="planning"){
     document.write('<script src="inovtec-cloud-sync.js?v=20260927-authfix1"><\/script>');
   }
@@ -91,7 +91,7 @@
 {
   const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(["discipline","infos","heures","kontrol","organisation","planning","agents"].includes(ivMode)){
-    document.write('<scr'+'ipt src="inovtec-referential.js?v=20261001-perf1"></scr'+'ipt>');
+    document.write('<scr'+'ipt src="inovtec-referential.js?v=20261009-performance1"></scr'+'ipt>');
   }
   if(["heures","kontrol"].includes(ivMode)){
     document.write('<scr'+'ipt src="inovtec-cross-page-data.js?v=20261001-perf1"></scr'+'ipt>');
@@ -194,7 +194,7 @@
 {
   const ivMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(ivMode==="infos"){
-    ["inovtec-info-save-placement.js?v=20261001-perf1","inovtec-info-contact-mode.js?v=20260829-idlock1","inovtec-info-contract-fields.js?v=20260829-idlock1","inovtec-info-top-layout.js?v=20260818-4","inovtec-info-persistence-stable.js?v=20261001-perf1","inovtec-pdf-cdc-header-white.js?v=20260819-3","inovtec-info-agent-pdf-v8.js?v=20261001-perf1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
+    ["inovtec-info-save-placement.js?v=20261001-perf1","inovtec-info-contact-mode.js?v=20260829-idlock1","inovtec-info-contract-fields.js?v=20260829-idlock1","inovtec-info-top-layout.js?v=20260818-4","inovtec-info-persistence-stable.js?v=20261009-performance1","inovtec-pdf-cdc-header-white.js?v=20260819-3","inovtec-info-agent-pdf-v8.js?v=20261001-perf1"].forEach(src=>document.write('<scr'+'ipt src="'+src+'"></scr'+'ipt>'));
   }
 }
 </script>
