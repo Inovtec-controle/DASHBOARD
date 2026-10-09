@@ -33,7 +33,7 @@ function mergeAgent(agent){if(!agent?.id||agent?._deleted===true||!agentHasName(
 function findAgent(label){const n=norm(label);if(!validAgentLabel(label)||!n||isDeletedReference("",label))return null;return registry.agents.find(a=>!isDeletedReference(a)&&norm(displayName(a))===n)||null;}
 function ensureAgent(label,source="selection"){if(!validAgentLabel(label)||isDeletedReference("",label))return null;let a=findAgent(label);if(a)return a;const n=splitName(label),id="agent_ref_"+Date.now().toString(16)+"_"+Math.random().toString(16).slice(2);a={id,createdAt:iso(),updatedAt:iso(),identity:{prenom:n.prenom,nom:n.nom,telephone:"",email:"",adresse:"",dateNaissance:"",secu:"",permis:"",vehicule:""},job:{poste:"",typeContrat:"",dateEntree:"",sitePrincipal:"",disponibilites:"",notes:""},displayName:String(label||"").trim(),source};registry.agents.push(a);saveRegistry();syncRegistryIntoLegacyAgents();return a;}
 function findChantier(label){const n=norm(label);if(!n)return null;return chantiers.find(c=>norm(c.nom)===n||norm(c.adresse)===n)||null;}
-function rememberUnresolvedSite(label,source){label=String(label||"").trim();if(!label||findChantier(label))return;registry.unresolvedSites=registry.unresolvedSites||[];if(!registry.unresolvedSites.some(x=>norm(x.label)===norm(label)))registry.unresolvedSites.push({label,source,firstSeenAt:iso()});saveRegistry();}
+function rememberUnresolvedSite(label,source,persist=true){label=String(label||"").trim();if(!label||findChantier(label))return false;registry.unresolvedSites=registry.unresolvedSites||[];if(registry.unresolvedSites.some(x=>norm(x.label)===norm(label)))return false;registry.unresolvedSites.push({label,source,firstSeenAt:iso()});if(persist)saveRegistry();return true;}
 function localAgentData(){try{const a=JSON.parse(localStorage.getItem(AGENTS_KEY)||"[]");return Array.isArray(a)?a:[];}catch{return[];}}
 function importLegacyAgents(){let changed=false;const local=localAgentData(),d=deletionState();const beforeLen=registry.agents.length;registry.agents=registry.agents.filter(a=>!d.ids.has(String(a.id||""))&&!d.names.has(norm(displayName(a))));if(registry.agents.length!==beforeLen)changed=true;local.forEach(a=>{if(a?._deleted===true||!agentHasName(a))return;const before=registry.agents.find(x=>x.id===a.id)?.updatedAt||"";const merged=mergeAgent(a);if(merged&&merged.updatedAt!==before)changed=true;});if(changed)saveRegistry();}
 function syncRegistryIntoLegacyAgents(){let arr=localAgentData(),changed=false;const d=deletionState(),beforeLen=registry.agents.length;registry.agents=registry.agents.filter(a=>!d.ids.has(String(a.id||""))&&!d.names.has(norm(displayName(a))));if(beforeLen!==registry.agents.length)changed=true;registry.agents=registry.agents.filter(agentHasName);registry.agents.forEach(c=>{if(isDeletedReference(c))return;const idx=arr.findIndex(a=>a.id===c.id);if(idx<0){arr.push(Object.assign({},compactAgent(c),{docs:[],incidents:[]}));changed=true;return;}const l=arr[idx];if(l?._deleted===true)return;const lt=Date.parse(l.updatedAt||0)||0,ct=Date.parse(c.updatedAt||0)||0;if(ct>lt){l.identity=clone(c.identity||{});l.job=clone(c.job||{});l.updatedAt=c.updatedAt;changed=true;}});if(changed)localStorage.setItem(AGENTS_KEY,JSON.stringify(arr));}
@@ -48,14 +48,19 @@ function applyDataHub(detail){
     if(JSON.stringify(registry.agents)!==before)changed=true;
   }
   if(detail.referentialLinks&&typeof detail.referentialLinks==="object"){
+    const before=JSON.stringify(registry.links||{});
     for(const k of Object.keys(registry.links||{}))registry.links[k]=Object.assign({},detail.referentialLinks[k]||{},registry.links[k]||{});
-    changed=true;
+    if(JSON.stringify(registry.links||{})!==before)changed=true;
   }
   if(Array.isArray(detail.referentialUnresolvedSites)){
     const seen=new Set((registry.unresolvedSites||[]).map(x=>norm(x?.label)));
     detail.referentialUnresolvedSites.forEach(x=>{const k=norm(x?.label);if(k&&!seen.has(k)){seen.add(k);(registry.unresolvedSites||(registry.unresolvedSites=[])).push(clone(x));changed=true}});
   }
-  if(detail.readyChantiers&&Array.isArray(detail.chantiers)){chantiers=detail.chantiers.slice();changed=true}
+  if(detail.readyChantiers&&Array.isArray(detail.chantiers)){
+    const before=JSON.stringify(chantiers.map(x=>[x?.id,x?.nom,x?.adresse]));
+    const after=JSON.stringify(detail.chantiers.map(x=>[x?.id,x?.nom,x?.adresse]));
+    if(before!==after){chantiers=detail.chantiers.slice();changed=true}
+  }
   if(changed){saveRegistry(false);syncRegistryIntoLegacyAgents();renderContext();setupCurrentFrame()}
 }
 async function initFirebase(){
@@ -82,10 +87,37 @@ const listRefreshTimers=new WeakMap();
 function addList(doc,id,items){let dl=doc.getElementById(id);if(!dl){dl=doc.createElement("datalist");dl.id=id;doc.body.appendChild(dl);}const values=[...new Set((items||[]).map(x=>String(x||"").trim()).filter(Boolean))],signature=JSON.stringify(values);if(dl.dataset.ivListSignature===signature)return dl;const active=doc.activeElement;if(active&&active.getAttribute&&active.getAttribute("list")===id){if(!listRefreshTimers.has(dl)){const timer=setTimeout(()=>{listRefreshTimers.delete(dl);addList(doc,id,values);},350);listRefreshTimers.set(dl,timer);}return dl;}const pending=listRefreshTimers.get(dl);if(pending){clearTimeout(pending);listRefreshTimers.delete(dl);}const frag=doc.createDocumentFragment();values.forEach(x=>{const o=doc.createElement("option");o.value=x;frag.appendChild(o);});dl.replaceChildren(frag);dl.dataset.ivListSignature=signature;return dl;}
 function bindAgentInput(doc,input,opts={}){if(!input)return;const listId="iv-agent-list";addList(doc,listId,registry.agents.map(displayName).sort((a,b)=>a.localeCompare(b,"fr")));input.setAttribute("list",listId);if(input.dataset.ivRefBound)return;input.dataset.ivRefBound="1";const resolve=()=>{const label=String(input.value||"").trim();if(!label)return;const a=findAgent(label)||(opts.allowCreate===false?null:ensureAgent(label,opts.source||mode));if(!a)return;input.dataset.refId=a.id;setAgentContext(a);};input.addEventListener("change",resolve);input.addEventListener("blur",resolve);const ca=contextAgent();if(ca&&!input.value&&opts.prefill!==false){input.value=displayName(ca);input.dataset.refId=ca.id;}}
 function bindSiteInput(doc,input,opts={}){if(!input)return;const listId="iv-site-list";addList(doc,listId,chantiers.map(c=>c.nom||c.adresse||c.id).filter(Boolean).sort((a,b)=>a.localeCompare(b,"fr")));input.setAttribute("list",listId);if(input.dataset.ivRefBound)return;input.dataset.ivRefBound="1";const resolve=()=>{const label=String(input.value||"").trim();if(!label)return;const c=findChantier(label);if(c){input.dataset.refId=c.id;setSiteContext(c);}else rememberUnresolvedSite(label,opts.source||mode);};input.addEventListener("change",resolve);input.addEventListener("blur",resolve);const cs=contextSite();if(cs&&!input.value&&opts.prefill!==false){input.value=cs.nom||cs.adresse||"";input.dataset.refId=cs.id;}}
-function link(bucket,id,agentId,chantierId,extra={}){if(!id)return;registry.links[bucket]=registry.links[bucket]||{};registry.links[bucket][id]=Object.assign({},registry.links[bucket][id]||{},agentId?{agentId}:{},chantierId?{chantierId}:{},extra,{updatedAt:iso()});saveRegistry();}
-function scanPlanning(){try{const st=JSON.parse(localStorage.getItem(PLAN_KEY)||"null");if(!st)return;(st.agents||[]).forEach(a=>{if(!a?.name)return;let ca=a.refId?registry.agents.find(x=>x.id===a.refId&&!isDeletedReference(x)):null;ca=ca||findAgent(a.name)||ensureAgent(a.name,"planning");if(ca){a.refId=ca.id;a.name=displayName(ca);}});Object.values(st.weeks||{}).flat().forEach(e=>{const pa=(st.agents||[]).find(a=>a.id===e.agentId),ca=pa?.refId?registry.agents.find(a=>a.id===pa.refId):findAgent(pa?.name),cs=findChantier(e.site);if(e.site&&!cs)rememberUnresolvedSite(e.site,"planning");link("planning",e.id,ca?.id,cs?.id,{legacyAgentId:e.agentId});});localStorage.setItem(PLAN_KEY,JSON.stringify(st));}catch(e){console.warn(e);}}
-function scanHeures(){try{const st=JSON.parse(localStorage.getItem(HS_KEY)||"null");if(!st)return;const rename=new Map();(st.entries||[]).forEach(e=>{const old=String(e.employee||"");const prev=registry.links.heures?.[e.id],linked=prev?.agentId?registry.agents.find(a=>a.id===prev.agentId):null,ca=linked||findAgent(old)||ensureAgent(old,"heures-sup"),cs=findChantier(e.site);if(ca&&old&&old!==displayName(ca))rename.set(norm(old),displayName(ca));if(ca)e.employee=displayName(ca);if(e.site&&!cs)rememberUnresolvedSite(e.site,"heures-sup");link("heures",e.id,ca?.id,cs?.id);});if(Array.isArray(st.employees))st.employees=st.employees.map(n=>rename.get(norm(n))||n).filter((n,i,a)=>a.findIndex(x=>norm(x)===norm(n))===i);localStorage.setItem(HS_KEY,JSON.stringify(st));}catch(e){console.warn(e);}}
-async function scanDiscipline(){if(!db||!user)return;try{const snap=await db.collection("discipline").doc(user.uid).get(),data=snap.exists?(snap.data()||{}):{},rows=Array.isArray(data.recordsV9)?data.recordsV9:Array.isArray(data.recordsV8)?data.recordsV8:[];rows.forEach(r=>{const ca=findAgent(r.agent)||ensureAgent(r.agent,"discipline"),cs=findChantier(r.site);if(r.site&&!cs)rememberUnresolvedSite(r.site,"discipline");link("discipline",r.id,ca?.id,cs?.id);});}catch(e){console.warn("Liens discipline",e);}}
+function setLink(bucket,id,agentId,chantierId,extra={}){
+ if(!id)return false;
+ registry.links[bucket]=registry.links[bucket]||{};
+ const prev=registry.links[bucket][id]||{};
+ let changed=false;
+ if(agentId&&prev.agentId!==agentId)changed=true;
+ if(chantierId&&prev.chantierId!==chantierId)changed=true;
+ for(const [k,v] of Object.entries(extra||{})){if(JSON.stringify(prev[k])!==JSON.stringify(v)){changed=true;break}}
+ if(!changed)return false;
+ registry.links[bucket][id]=Object.assign({},prev,agentId?{agentId}:{},chantierId?{chantierId}:{},extra,{updatedAt:iso()});
+ return true;
+}
+function link(bucket,id,agentId,chantierId,extra={}){if(setLink(bucket,id,agentId,chantierId,extra))saveRegistry();}
+function scanPlanning(){try{
+ const st=JSON.parse(localStorage.getItem(PLAN_KEY)||"null");if(!st)return;
+ let registryChanged=false,stateChanged=false;
+ (st.agents||[]).forEach(a=>{if(!a?.name)return;let ca=a.refId?registry.agents.find(x=>x.id===a.refId&&!isDeletedReference(x)):null;ca=ca||findAgent(a.name)||ensureAgent(a.name,"planning");if(ca){const name=displayName(ca);if(a.refId!==ca.id||a.name!==name)stateChanged=true;a.refId=ca.id;a.name=name;}});
+ const byAgent=new Map((st.agents||[]).map(a=>[a.id,a]));
+ Object.values(st.weeks||{}).flat().forEach(e=>{const pa=byAgent.get(e.agentId),ca=pa?.refId?registry.agents.find(a=>a.id===pa.refId):findAgent(pa?.name),cs=findChantier(e.site);if(e.site&&!cs&&rememberUnresolvedSite(e.site,"planning",false))registryChanged=true;if(setLink("planning",e.id,ca?.id,cs?.id,{legacyAgentId:e.agentId}))registryChanged=true;});
+ if(registryChanged)saveRegistry();
+ if(stateChanged)localStorage.setItem(PLAN_KEY,JSON.stringify(st));
+}catch(e){console.warn(e);}}
+function scanHeures(){try{
+ const st=JSON.parse(localStorage.getItem(HS_KEY)||"null");if(!st)return;
+ const rename=new Map();let registryChanged=false,stateChanged=false;
+ (st.entries||[]).forEach(e=>{const old=String(e.employee||"");const prev=registry.links.heures?.[e.id],linked=prev?.agentId?registry.agents.find(a=>a.id===prev.agentId):null,ca=linked||findAgent(old)||ensureAgent(old,"heures-sup"),cs=findChantier(e.site);if(ca&&old&&old!==displayName(ca))rename.set(norm(old),displayName(ca));if(ca&&e.employee!==displayName(ca)){e.employee=displayName(ca);stateChanged=true}if(e.site&&!cs&&rememberUnresolvedSite(e.site,"heures-sup",false))registryChanged=true;if(setLink("heures",e.id,ca?.id,cs?.id))registryChanged=true;});
+ if(Array.isArray(st.employees)){const next=st.employees.map(n=>rename.get(norm(n))||n).filter((n,i,a)=>a.findIndex(x=>norm(x)===norm(n))===i);if(JSON.stringify(next)!==JSON.stringify(st.employees)){st.employees=next;stateChanged=true}}
+ if(registryChanged)saveRegistry();
+ if(stateChanged)localStorage.setItem(HS_KEY,JSON.stringify(st));
+}catch(e){console.warn(e);}}
+async function scanDiscipline(){if(!db||!user)return;try{const snap=await db.collection("discipline").doc(user.uid).get(),data=snap.exists?(snap.data()||{}):{},rows=Array.isArray(data.recordsV9)?data.recordsV9:Array.isArray(data.recordsV8)?data.recordsV8:[];let changed=false;rows.forEach(r=>{const ca=findAgent(r.agent)||ensureAgent(r.agent,"discipline"),cs=findChantier(r.site);if(r.site&&!cs&&rememberUnresolvedSite(r.site,"discipline",false))changed=true;if(setLink("discipline",r.id,ca?.id,cs?.id))changed=true;});if(changed)saveRegistry();}catch(e){console.warn("Liens discipline",e);}}
 function setupOrga(doc){const form=doc.getElementById("taskForm");if(!form||doc.getElementById("ivOrgaRefs"))return;const row=doc.createElement("div");row.id="ivOrgaRefs";row.className="grid grid-2";row.style.marginTop="10px";row.innerHTML='<div class="field"><label for="ivTaskAgent">Agent lié</label><input id="ivTaskAgent" placeholder="Optionnel"></div><div class="field"><label for="ivTaskSite">Chantier lié</label><input id="ivTaskSite" placeholder="Optionnel"></div>';const submit=form.querySelector('button[type="submit"]');form.insertBefore(row,submit);const ai=doc.getElementById("ivTaskAgent"),si=doc.getElementById("ivTaskSite");bindAgentInput(doc,ai,{source:"organisation"});bindSiteInput(doc,si,{source:"organisation"});doc.getElementById("board")?.addEventListener("click",e=>{const card=e.target.closest(".task");if(!card)return;lastOrgaTaskId=card.dataset.id||null;const l=registry.links.organisation?.[lastOrgaTaskId];if(l){const a=registry.agents.find(x=>x.id===l.agentId),c=chantiers.find(x=>x.id===l.chantierId);if(a)ai.value=displayName(a);if(c)si.value=c.nom||c.adresse||"";}});form.addEventListener("submit",()=>{const title=doc.getElementById("title")?.value||"",aid=(findAgent(ai.value)||null)?.id,sid=(findChantier(si.value)||null)?.id;setTimeout(()=>{try{const arr=JSON.parse(localStorage.getItem(ORGA_KEY)||"[]"),cands=arr.filter(t=>t.title===title).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||""))),id=lastOrgaTaskId||cands[0]?.id;if(id)link("organisation",id,aid,sid);lastOrgaTaskId=null;}catch{}},450);},true);}
 function setupDoc(doc,targetMode){if(!doc?.body)return;mode=targetMode||mode;const firstSetup=doc.body.dataset.ivRefSetup!==mode;if(firstSetup)doc.body.dataset.ivRefSetup=mode;if(mode==="discipline"){bindAgentInput(doc,doc.getElementById("agent"),{source:"discipline"});bindSiteInput(doc,doc.getElementById("site"),{source:"discipline"});if(firstSetup)doc.getElementById("recordForm")?.addEventListener("submit",()=>setTimeout(scanDiscipline,900),true);}
 if(mode==="infos"){bindAgentInput(doc,doc.getElementById("agentNom"),{source:"infos-chantier",prefill:false});const agent=doc.getElementById("agentNom"),tel=doc.getElementById("agentTel"),capture=()=>{const label=doc.querySelector(".site-item.active strong")?.textContent||"",c=findChantier(label),a=findAgent(agent?.value);if(c)setSiteContext(c);if(c&&a)link("chantiers",c.id,a.id,c.id);if(a&&tel&&!tel.value)tel.value=a.identity?.telephone||"";};if(firstSetup){agent?.addEventListener("change",capture);doc.getElementById("siteList")?.addEventListener("click",()=>setTimeout(capture,80));}setTimeout(capture,50);}
@@ -108,7 +140,7 @@ function start(){
   importLegacyAgents();
   if(mode==="planning"||mode==="heures")discoverLooseAgents();
   syncRegistryIntoLegacyAgents();
-  if(mode==="planning")scanPlanning();
+  // Le Planning sera scanné une seule fois quand son iframe est réellement prête.
   if(mode==="heures")scanHeures();
   frame?.addEventListener("load",()=>setTimeout(setupCurrentFrame,120));
   window.addEventListener("storage",e=>{if([REF_KEY,AGENTS_KEY,PLAN_KEY,HS_KEY,ORGA_KEY].includes(e.key))setTimeout(safeRefreshCurrentFrame,180)});
