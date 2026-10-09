@@ -27,7 +27,7 @@ if(mode==="organisation") window.location.replace("ORGANISATION-LIVE-V16.html?v=
 const navDefinitions=[
  ['Accueil','⌂','index.html','home'],
  ['Planning','▦','PLANNINGS.html?v=20260927-planningrestore1','planning'],
- ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20260927-savecontrols1'],
+ ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20261009-agentpicker-fix1'],
  ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos','INFOCHANTIERS-V2-LEGACY.html?v=20261009-performance1'],
  ['Classeur agents','♙','AGENTS.html?v=20260927-agentsflow19','agents','AGENTS-LEGACY.html?v=20260927-agentsflow19'],
  ['Matériel','▣','MATERIEL.html','materiel'],
