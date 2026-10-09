@@ -77,9 +77,8 @@ try{
   await page.mouse.move(source.x+source.width/2,source.y+Math.min(30,source.height/3));
   await page.mouse.down();
   await page.mouse.move(target.x+target.width/2,target.y+Math.max(55,target.height-18),{steps:10});
-  await page.waitForTimeout(260);
-  await page.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]').waitFor({timeout:5000});
   await page.mouse.up();
+  await page.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]').waitFor({timeout:5000});
 
   // Archivage sur cette même page autonome.
   await page.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver'}).click();
