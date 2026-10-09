@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="inovtec-common.css?v=20260817-orga-final">
+  <link rel="stylesheet" href="inovtec-shell.css?v=20261009-organisation-presentation1">
   <style>
     .board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:12px;overflow-x:auto;padding-bottom:5px}
     .column{background:#f8fafc;border:1px solid var(--border);border-radius:16px;min-height:260px;display:flex;flex-direction:column}
@@ -36,13 +37,45 @@
     .archive-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid var(--border)}
     .archive-item:last-child{border-bottom:0}
     @media(max-width:900px){.board{grid-template-columns:repeat(4,280px)}}
+    /* Restore the dashboard page presentation without the former iframe/legacy business scripts. */
+    body.iv-organisation-restored{overflow-y:auto;overflow-x:hidden;background:#f5f9f7}
+    .iv-organisation-restored #app.iv-shell{height:auto;min-height:100dvh;align-items:start}
+    .iv-organisation-restored .iv-sidebar{position:sticky;top:0;align-self:start;height:100dvh}
+    .iv-organisation-restored .iv-main{display:block;min-width:0;height:auto;min-height:100dvh;overflow:visible}
+    .iv-organisation-restored .iv-topbar{position:sticky;top:0;z-index:50}
+    .iv-organisation-restored .iv-top-actions{flex-wrap:wrap;justify-content:flex-end}
+    .iv-organisation-restored .iv-topbar #syncStatus{font-size:11px}
+    .iv-organisation-restored .iv-hero{min-height:145px}
+    .iv-organisation-restored .iv-toolbar{margin-top:0;margin-bottom:0}
+    .iv-organisation-restored .page{width:100%;max-width:none;margin:0;padding:14px 18px 28px}
+    .iv-organisation-restored .page>section.card:first-child{top:68px;z-index:12}
+    .iv-organisation-restored .iv-nav a.active{background:linear-gradient(135deg,#059669,#16a34a)}
+    .iv-organisation-restored .iv-mobile-nav a.active{background:#0d8a5c}
+    @media(max-width:1050px){
+      .iv-organisation-restored .iv-shell{grid-template-columns:82px minmax(0,1fr)}
+    }
+    @media(max-width:760px){
+      .iv-organisation-restored #app.iv-shell{display:block}
+      .iv-organisation-restored .iv-sidebar{display:none}
+      .iv-organisation-restored .iv-main{height:auto;min-height:100dvh;padding-bottom:72px}
+      .iv-organisation-restored .iv-topbar{min-height:52px;height:auto;padding:8px 11px}
+      .iv-organisation-restored .iv-hero{min-height:140px;padding:18px}
+      .iv-organisation-restored .iv-hero-copy{padding-bottom:32px}
+      .iv-organisation-restored .iv-hero h1{font-size:25px}
+      .iv-organisation-restored .iv-date{min-width:auto}
+      .iv-organisation-restored .page{padding:10px 8px 20px}
+      .iv-organisation-restored .page>section.card:first-child{top:64px}
+      .iv-organisation-restored .iv-mobile-nav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr))}
+      .iv-organisation-restored .iv-mobile-nav a{min-width:0}
+      .iv-organisation-restored .iv-mobile-nav a span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    }
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="firebase-config.js?v=20261002-organisation16"></script>
 </head>
-<body>
+<body class="iv-organisation-restored">
   <div id="loginScreen" class="login-screen">
     <form id="loginForm" class="login-card">
       <h1>Connexion Inovtec</h1>
@@ -54,16 +87,43 @@
     </form>
   </div>
 
-  <div id="app" class="hidden">
-    <header class="topbar">
-      <div><h1>Organisation</h1><p>Tâches, priorités, échéances et archives</p></div>
-      <div class="topbar-actions">
-        <a class="btn btn-secondary" href="index.html?build=organisation-live-v16">← Accueil</a>
+  <div id="app" class="iv-shell hidden">
+    <aside class="iv-sidebar" aria-label="Navigation du dashboard">
+      <a class="iv-brand" href="index.html" aria-label="Accueil Inovtec Dashboard"><span class="iv-brand-mark" aria-hidden="true"></span><span class="iv-brand-copy"><strong>INOVTEC</strong><span>DASHBOARD</span></span></a>
+      <nav class="iv-nav" aria-label="Navigation principale">
+        <a href="index.html"><span class="iv-ico">⌂</span><span>Accueil</span></a>
+        <a href="PLANNINGS.html"><span class="iv-ico">▦</span><span>Planning</span></a>
+        <a href="KONTROL-CLOUD.html"><span class="iv-ico">✓</span><span>KONTROL</span></a>
+        <a href="INFOCHANTIERS-V2.html"><span class="iv-ico">ⓘ</span><span>Infos chantier</span></a>
+        <a href="AGENTS.html"><span class="iv-ico">♙</span><span>Classeur agents</span></a>
+        <a href="MATERIEL.html"><span class="iv-ico">▣</span><span>Matériel</span></a>
+        <a href="REASSORT.html"><span class="iv-ico">↻</span><span>Réassort</span></a>
+        <a href="CONGES.html"><span class="iv-ico">☂</span><span>Congés &amp; absences</span></a>
+        <a href="VARIABLES.html"><span class="iv-ico">◷</span><span>Variables agents</span></a>
+        <a href="ORGANISATION-LIVE-V16.html" class="active" aria-current="page"><span class="iv-ico">◎</span><span>Organisation</span></a>
+        <a href="TEMPS.html"><span class="iv-ico">⇄</span><span>Conversion temps</span></a>
+        <a href="SALAIRE.html"><span class="iv-ico">€</span><span>Salaire</span></a>
+        <a href="ESSENCE.html"><span class="iv-ico">⛽</span><span>Dépense carburant</span></a>
+      </nav>
+      <div class="iv-sidebar-note"><strong>Inovtec Construction</strong><br>Interface unifiée du dashboard.</div>
+    </aside>
+    <div class="iv-main">
+    <header class="iv-topbar">
+      <div class="iv-top-left"><span class="iv-status-dot" aria-hidden="true"></span><strong>Organisation</strong><span>Dashboard Inovtec</span></div>
+      <div class="iv-top-actions">
         <span id="syncStatus" class="status">Connexion…</span>
         <span id="orgaBuildBadge" class="status ok" title="Version réellement chargée">Organisation LIVE v16</span>
-        <button id="logoutBtn" class="btn btn-secondary" type="button">Déconnexion</button>
+        <button id="logoutBtn" class="iv-small-btn" type="button">Déconnexion</button>
       </div>
     </header>
+    <section class="iv-hero" aria-label="Présentation Organisation">
+      <div class="iv-hero-copy"><div class="iv-eyebrow">ORGANISATION</div><h1>Organisation</h1><p>Planifiez, suivez et pilotez vos tâches, priorités et échéances.</p></div>
+      <div class="iv-geometry" aria-hidden="true"><span class="iv-dots"></span><span class="iv-circle a"></span><span class="iv-circle b"></span><span class="iv-rect a"></span><span class="iv-rect b"></span><span class="iv-diag one"></span><span class="iv-diag two"></span><span class="iv-diag three"></span></div>
+    </section>
+    <div class="iv-toolbar" aria-label="Raccourcis Organisation">
+      <a class="iv-tool primary" href="#taskForm"><span>＋</span><span>Nouvelle tâche</span></a>
+      <a class="iv-tool" href="#board"><span>▦</span><span>Tableau des tâches</span></a>
+    </div>
 
     <main class="page">
       <section class="card">
@@ -95,6 +155,15 @@
         <div id="archiveList" class="table-wrap"></div>
       </section>
     </main>
+    </div>
+    <nav class="iv-mobile-nav" aria-label="Navigation mobile">
+      <a href="index.html"><span>⌂</span><span>Accueil</span></a>
+      <a href="PLANNINGS.html"><span>▦</span><span>Planning</span></a>
+      <a href="KONTROL-CLOUD.html"><span>✓</span><span>KONTROL</span></a>
+      <a href="INFOCHANTIERS-V2.html"><span>ⓘ</span><span>Chantiers</span></a>
+      <a href="AGENTS.html"><span>♙</span><span>Agents</span></a>
+      <a href="ORGANISATION-LIVE-V16.html" class="active" aria-current="page"><span>◎</span><span>Organisation</span></a>
+    </nav>
   </div>
 
 <script>
