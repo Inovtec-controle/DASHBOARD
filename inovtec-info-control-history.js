@@ -899,7 +899,7 @@ d.addEventListener("iv:chantier-saved",event=>{
   if(evt.eventType!=="creation"&&!fields.length)return;
   const now=new Date();
   db.collection("chantiers").doc("ivActivity_"+now.getTime().toString(36)+"_"+Math.random().toString(36).slice(2,10)).set({
-    _type:"residenceActivity",chantierId:id,eventType:evt.eventType==="creation"?"creation":"change",
+    _type:"residenceActivity",_hidden:true,chantierId:id,eventType:evt.eventType==="creation"?"creation":"change",
     summary:evt.eventType==="creation"?"Fiche résidence créée":"Informations de résidence modifiées",
     fields,timeCreated:now.toISOString(),createdAtMs:now.getTime(),
     createdByEmail:String(auth.currentUser.email||"")
