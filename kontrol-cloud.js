@@ -51,22 +51,98 @@
     catch { return null; }
   }
 
+  function cleanAgentReferences(source) {
+    return (Array.isArray(source) ? source : [])
+      .filter(agent => agent && agent._deleted !== true && !agent.archivedAt && agentName(agent))
+      .sort((a,b) => agentName(a).localeCompare(agentName(b), "fr", { sensitivity:"base" }));
+  }
+
+  function dataHub() {
+    try {
+      if (window.InovtecDataHub) return window.InovtecDataHub;
+      if (window.parent && window.parent !== window && window.parent.InovtecDataHub) return window.parent.InovtecDataHub;
+      if (window.parent?.parent && window.parent.parent !== window.parent && window.parent.parent.InovtecDataHub) return window.parent.parent.InovtecDataHub;
+    } catch (_e) {}
+    return null;
+  }
+
+  function agentsFromData(data) {
+    const payload = parseJson(data?.moduleSyncV1?.agents?.payload || "");
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(data?.referentialAgents)) return data.referentialAgents;
+    return [];
+  }
+
+  async function waitForDataHubAgents(timeoutMs = 1400) {
+    const hub = dataHub();
+    if (!hub) return null;
+    const immediate = cleanAgentReferences(Array.from(hub.agents || []));
+    if (immediate.length || hub.readyAgents === true) return immediate;
+    if (typeof hub.subscribe !== "function") return null;
+
+    return await new Promise(resolve => {
+      let done = false;
+      let unsub = null;
+      const finish = value => {
+        if (done) return;
+        done = true;
+        try { unsub?.(); } catch (_e) {}
+        clearTimeout(timer);
+        resolve(value);
+      };
+      const timer = setTimeout(() => finish(null), timeoutMs);
+      try {
+        unsub = hub.subscribe(detail => {
+          if (!detail?.readyAgents) return;
+          finish(cleanAgentReferences(detail.agents || []));
+        });
+      } catch (_e) {
+        finish(null);
+      }
+    });
+  }
+
   async function loadAgentReferences(force = false) {
     if (!force && agentReferences.length) return agentReferences;
     if (!force && agentReferencesPromise) return agentReferencesPromise;
-    agentReferencesPromise = db.collection("chantiers").doc(SHARED_WORKSPACE_ID).get().then(snap => {
-      const data = snap.exists ? (snap.data() || {}) : {};
-      const payload = parseJson(data?.moduleSyncV1?.agents?.payload || "");
-      const source = Array.isArray(payload)
-        ? payload
-        : Array.isArray(data?.referentialAgents)
-          ? data.referentialAgents
-          : [];
-      agentReferences = source
-        .filter(agent => agent && agent._deleted !== true && !agent.archivedAt && agentName(agent))
-        .sort((a,b) => agentName(a).localeCompare(agentName(b), "fr", { sensitivity:"base" }));
-      return agentReferences;
-    }).finally(() => { agentReferencesPromise = null; });
+
+    agentReferencesPromise = (async () => {
+      // 1) Source principale : le même référentiel que le Classeur Agents.
+      const hubAgents = await waitForDataHubAgents();
+      if (Array.isArray(hubAgents) && hubAgents.length) {
+        agentReferences = hubAgents;
+        return agentReferences;
+      }
+
+      // 2) Secours direct : document personnel Firebase du compte connecté.
+      const uid = auth.currentUser?.uid || "";
+      if (uid) {
+        try {
+          const personal = await db.collection("kanban").doc(uid).get();
+          const personalAgents = cleanAgentReferences(agentsFromData(personal.exists ? (personal.data() || {}) : {}));
+          if (personalAgents.length) {
+            agentReferences = personalAgents;
+            return agentReferences;
+          }
+        } catch (error) {
+          console.warn("KONTROL : lecture directe des agents personnels indisponible", error);
+        }
+      }
+
+      // 3) Compatibilité avec les anciennes versions qui copiaient les agents
+      // dans l’espace partagé.
+      try {
+        const shared = await db.collection("chantiers").doc(SHARED_WORKSPACE_ID).get();
+        const sharedAgents = cleanAgentReferences(agentsFromData(shared.exists ? (shared.data() || {}) : {}));
+        agentReferences = sharedAgents;
+        return agentReferences;
+      } catch (error) {
+        console.warn("KONTROL : ancien référentiel partagé indisponible", error);
+        agentReferences = [];
+        return agentReferences;
+      }
+    })().finally(() => { agentReferencesPromise = null; });
+
     return agentReferencesPromise;
   }
 
