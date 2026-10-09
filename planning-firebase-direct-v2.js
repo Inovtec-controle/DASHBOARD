@@ -4,7 +4,7 @@ if(window.__INOVTEC_PLANNING_FIREBASE_DIRECT_V1__)return;
 window.__INOVTEC_PLANNING_FIREBASE_DIRECT_V1__=true;
 
 const client=sessionStorage.ivPlanningFirebaseClient||(sessionStorage.ivPlanningFirebaseClient="pf_"+Date.now()+"_"+Math.random().toString(36).slice(2));
-let user=null,ref=null,unsubscribe=null,generation=0,saving=false,queuedPayload="",lastConfirmedPayload="",lastStatus="",directProtocolActive=false;
+let user=null,ref=null,unsubscribe=null,hubUnsubscribe=null,hubActive=false,generation=0,saving=false,queuedPayload="",lastConfirmedPayload="",lastStatus="",directProtocolActive=false;
 const parse=s=>{try{return JSON.parse(s)}catch{return null}};
 const validPayload=s=>{
   if(typeof s!=="string"||!s)return false;
@@ -109,56 +109,68 @@ function login(){
   });
   return box;
 }
-async function readServer(source="firebase-refresh"){
-  if(!ref||!user)return;
-  // Ne jamais relire une ancienne version Firebase pendant qu'une modification
-  // locale est en cours d'enregistrement. C'était la cause du "ça apparaît puis
-  // ça disparaît" quand on changeait d'agent juste après une liaison.
+function applyServerData(data,source="firebase-hub"){
   if(saving||queuedPayload)return;
+  const entry=data?.moduleSyncV1?.planning||null;
+  const directBackup=data?.planningDirectV1||null;
+  const backupPayload=typeof directBackup?.payload==="string"&&validPayload(directBackup.payload)?directBackup.payload:"";
+  if(backupPayload){
+    const isDirect=Number(entry?.version)>=6&&entry?.protocol==="firebase-direct"&&entry?.payload===backupPayload;
+    directProtocolActive=true;
+    const changed=lastConfirmedPayload!==backupPayload;
+    lastConfirmedPayload=backupPayload;
+    if(!isDirect){
+      report("Firebase — restauration de la version directe…");
+      void writeFirebase(backupPayload,"restore-direct-backup");
+      return;
+    }
+    if(changed)emitPayload(backupPayload,source);
+    report("Firebase — synchronisé",true);
+    return;
+  }
+  if(!entry){
+    const empty=JSON.stringify({agents:[],weeks:{},selected:null});
+    const changed=lastConfirmedPayload!==empty;
+    lastConfirmedPayload=empty;
+    if(changed)emitPayload(empty,source);
+    report("Firebase — synchronisé",true);
+    return;
+  }
+  if(typeof entry.payload!=="string"||!validPayload(entry.payload))throw new Error("planning serveur illisible");
+  const isDirect=Number(entry.version)>=6&&entry.protocol==="firebase-direct";
+  if(directProtocolActive&&!isDirect&&lastConfirmedPayload&&entry.payload!==lastConfirmedPayload){
+    report("Firebase — ancienne écriture détectée, restauration…");
+    void writeFirebase(lastConfirmedPayload,"reject-legacy-refresh");
+    return;
+  }
+  directProtocolActive=directProtocolActive||isDirect;
+  const changed=lastConfirmedPayload!==entry.payload;
+  lastConfirmedPayload=entry.payload;
+  if(changed)emitPayload(entry.payload,source);
+  report("Firebase — synchronisé",true);
+}
+async function readServer(source="firebase-refresh"){
+  if(!ref||!user||saving||queuedPayload)return;
   const token=generation;
+  const hub=window.InovtecDataHub;
+  if(hubActive&&hub?.readyPersonal&&hub?.firebasePersonalOk===true&&typeof hub.getPersonalData==="function"){
+    try{applyServerData(hub.getPersonalData(),source+"-hub")}catch(e){report("Firebase — lecture impossible : "+(e.code||e.message||"erreur"))}
+    return;
+  }
+  if(hubActive){
+    report("Firebase — synchronisation en cours…");
+    return;
+  }
   try{
     report("Firebase — lecture du serveur…");
     const snap=await ref.get({source:"server"});
     if(token!==generation||saving||queuedPayload)return;
-    const data=snap.exists?(snap.data()||{}):{};
-    const entry=data?.moduleSyncV1?.planning||null;
-    const directBackup=data?.planningDirectV1||null;
-    const backupPayload=typeof directBackup?.payload==="string"&&validPayload(directBackup.payload)?directBackup.payload:"";
-    if(backupPayload){
-      const isDirect=Number(entry?.version)>=6&&entry?.protocol==="firebase-direct"&&entry?.payload===backupPayload;
-      directProtocolActive=true;
-      lastConfirmedPayload=backupPayload;
-      if(!isDirect){
-        report("Firebase — restauration de la version directe…");
-        void writeFirebase(backupPayload,"restore-direct-backup");
-        return;
-      }
-      emitPayload(backupPayload,source);
-      report("Firebase — synchronisé",true);
-      return;
-    }
-    if(!entry){
-      const empty=JSON.stringify({agents:[],weeks:{},selected:null});
-      lastConfirmedPayload=empty;
-      emitPayload(empty,source);
-      report("Firebase — synchronisé",true);
-      return;
-    }
-    if(typeof entry.payload!=="string"||!validPayload(entry.payload))throw new Error("planning serveur illisible");
-    const isDirect=Number(entry.version)>=6&&entry.protocol==="firebase-direct";
-    if(directProtocolActive&&!isDirect&&lastConfirmedPayload&&entry.payload!==lastConfirmedPayload){
-      report("Firebase — ancienne écriture détectée, restauration…");
-      void writeFirebase(lastConfirmedPayload,"reject-legacy-refresh");
-      return;
-    }
-    directProtocolActive=directProtocolActive||isDirect;
-    lastConfirmedPayload=entry.payload;
-    emitPayload(entry.payload,source);
-    report("Firebase — synchronisé",true);
+    applyServerData(snap.exists?(snap.data()||{}):{},source);
   }catch(e){
     report("Firebase — lecture impossible : "+(e.code||e.message||"erreur"));
   }
 }
+
 async function writeFirebase(payload,source="planning"){
   if(!validPayload(payload)){
     window.dispatchEvent(new CustomEvent("inovtec:planning-cloud-save-failed",{detail:{message:"payload planning invalide"}}));
@@ -282,10 +294,22 @@ function bindSnapshot(doc,token){
     report("Firebase — synchronisé",true);
   },e=>report("Firebase — écoute interrompue : "+(e.code||e.message||"erreur")));
 }
+function bindDataHub(token){
+  const hub=window.InovtecDataHub;
+  if(!hub?.subscribe||typeof hub.getPersonalData!=="function")return false;
+  hubActive=true;
+  hubUnsubscribe=hub.subscribe(detail=>{
+    if(token!==generation||!detail?.readyPersonal||detail?.firebasePersonalOk!==true||saving||queuedPayload)return;
+    try{applyServerData(hub.getPersonalData(),"firebase-datahub")}catch(e){report("Firebase — lecture impossible : "+(e.code||e.message||"erreur"))}
+  });
+  return true;
+}
 async function start(nextUser){
   generation++;
   const token=generation;
   if(unsubscribe){try{unsubscribe()}catch{}unsubscribe=null}
+  if(hubUnsubscribe){try{hubUnsubscribe()}catch{}hubUnsubscribe=null}
+  hubActive=false;
   user=nextUser||null;
   ref=null;
   saving=false;
@@ -299,9 +323,14 @@ async function start(nextUser){
   const box=document.getElementById("ivPlanningFirebaseLogin");
   if(box)box.style.display="none";
   ref=firebase.firestore().collection("kanban").doc(user.uid);
-  await readServer("firebase-initial");
-  if(token!==generation||!ref)return;
-  bindSnapshot(ref,token);
+  const usingHub=bindDataHub(token);
+  if(!usingHub){
+    await readServer("firebase-initial");
+    if(token!==generation||!ref)return;
+    bindSnapshot(ref,token);
+  }else if(!window.InovtecDataHub?.readyPersonal){
+    report("Firebase — synchronisation en cours…");
+  }
   if(queuedPayload){
     const next=queuedPayload;
     queuedPayload="";
