@@ -8,7 +8,7 @@ const EXTRA_MAP={ivTypeChantier:"typeChantier",ivDateDebutPrestation:"dateDebutP
 const CONTAINER_FREQ={sortieOM:"frequenceSortieOM",rentreeOM:"frequenceRentreeOM",sortieTRI:"frequenceSortieTRI",rentreeTRI:"frequenceRentreeTRI"};
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-let lastDoc=null,observer=null,installTimer=null,saveToken=0,loadToken=0;
+let lastDoc=null,observer=null,installTimer=null,installLoadTimer=null,saveToken=0,loadToken=0;
 function doc(){try{return frame.contentDocument||null}catch{return null}}
 function hubSites(){try{return Array.from(window.InovtecDataHub?.chantiers||[])}catch{return[]}}
 function formValue(d,id){const e=d?.getElementById(id);return e&&"value" in e?String(e.value??"").trim():""}
@@ -44,14 +44,25 @@ function applyMaterialResidence(d,site){
 function activeHubSite(d){const n=formValue(d,"nom"),a=formValue(d,"adresse");if(!n&&!a)return null;const list=hubSites();return list.find(s=>norm(s.nom)===norm(n)&&a&&norm(s.adresse)===norm(a))||list.find(s=>n&&norm(s.nom)===norm(n))||list.find(s=>a&&norm(s.adresse)===norm(a))||null}
 async function resolveSite(d,{waitForNew=false,retries=24}={}){
  const form=d?.getElementById("siteForm");
+ let fallbackQueried=false;
  for(let i=0;i<retries;i++){
   const exact=String(form?.dataset.ivChantierId||"").trim();
   if(exact)return{id:exact};
-  if(waitForNew){await wait(160);continue}
+  if(waitForNew){await wait(140);continue}
   const h=activeHubSite(d);if(h?.id)return h;
+  const hub=window.InovtecDataHub;
+  if(hub&&hub.readyChantiers!==true){await wait(120);continue}
   const n=formValue(d,"nom"),a=formValue(d,"adresse");
-  if(n){try{const q=await db.collection("chantiers").where("nom","==",n).limit(12).get(),rows=q.docs.map(x=>({id:x.id,...x.data()}));const exactAddress=rows.filter(x=>a&&norm(x.adresse)===norm(a));if(exactAddress.length===1)return exactAddress[0];if(rows.length===1)return rows[0]}catch{}}
-  await wait(160);
+  if(n&&!fallbackQueried){
+   fallbackQueried=true;
+   try{
+    const q=await db.collection("chantiers").where("nom","==",n).limit(12).get(),rows=q.docs.map(x=>({id:x.id,...x.data()}));
+    const exactAddress=rows.filter(x=>a&&norm(x.adresse)===norm(a));
+    if(exactAddress.length===1)return exactAddress[0];
+    if(rows.length===1)return rows[0];
+   }catch{}
+  }
+  await wait(120);
  }
  return null;
 }
@@ -119,8 +130,8 @@ function bind(d){
  const form=d.getElementById("siteForm");if(!form||form.dataset.ivUnifiedPersistence==="1")return;form.dataset.ivUnifiedPersistence="1";
  form.addEventListener("input",()=>{form.dataset.ivInfoDirty="1";setSaveState(d,"dirty")},true);form.addEventListener("change",()=>{form.dataset.ivInfoDirty="1";setSaveState(d,"dirty")},true);
  form.addEventListener("submit",()=>{const wasNew=/nouveau/i.test(d.getElementById("recordState")?.textContent||"");const token=++saveToken,snapshot=collect(d);setSaveState(d,"saving");persist(d,wasNew,token,snapshot);setTimeout(()=>{if(token===saveToken&&form.dataset.ivInfoDirty==="1")persist(d,wasNew,token,snapshot)},900)},true);
- d.addEventListener("click",e=>{const site=e.target?.closest?.(".site-item"),fresh=e.target?.closest?.("#newBtn"),del=e.target?.closest?.("#deleteBtn");if(site){loadToken++;form.removeAttribute("data-iv-info-dirty");setTimeout(()=>loadSelected(d,true),180);setTimeout(()=>loadSelected(d,true),700)}else if(fresh||del){loadToken++;form.removeAttribute("data-iv-info-dirty");if(fresh)form.removeAttribute("data-iv-chantier-id")}},true);
+ d.addEventListener("click",e=>{const site=e.target?.closest?.(".site-item"),fresh=e.target?.closest?.("#newBtn"),del=e.target?.closest?.("#deleteBtn");if(site){loadToken++;form.removeAttribute("data-iv-info-dirty");setTimeout(()=>loadSelected(d,true),140)}else if(fresh||del){loadToken++;form.removeAttribute("data-iv-info-dirty");if(fresh)form.removeAttribute("data-iv-chantier-id")}},true);
 }
-function install(){const d=doc();if(!d?.body)return;if(d!==lastDoc){lastDoc=d;try{observer?.disconnect()}catch{}observer=new MutationObserver(()=>{clearTimeout(installTimer);installTimer=setTimeout(()=>bind(d),60)});observer.observe(d.body,{childList:true,subtree:true})}bind(d);setTimeout(()=>loadSelected(d,false),100)}
+function install(){const d=doc();if(!d?.body)return;if(d!==lastDoc){lastDoc=d;try{observer?.disconnect()}catch{}observer=new MutationObserver(()=>{clearTimeout(installTimer);installTimer=setTimeout(()=>bind(d),60)});observer.observe(d.body,{childList:true,subtree:true})}bind(d);clearTimeout(installLoadTimer);installLoadTimer=setTimeout(()=>loadSelected(d,false),100)}
 frame.addEventListener("load",()=>{setTimeout(install,120);setTimeout(install,600);setTimeout(install,1400)});setTimeout(install,450);try{window.InovtecDataHub?.subscribe?.(()=>{const d=doc();if(d&&d.getElementById("siteForm")?.dataset.ivInfoDirty!=="1")setTimeout(()=>loadSelected(d,false),90)})}catch{}
 })();
