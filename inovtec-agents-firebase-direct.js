@@ -6,7 +6,7 @@ if(mode!=='agents')return;
 const LIMIT=900000;
 const parse=(s,f)=>{try{const v=JSON.parse(String(s||''));return v??f}catch{return f}};
 const clone=v=>JSON.parse(JSON.stringify(v));
-let user=null,db=null,ref=null,unsubscribe=null,lastRealtimePayload=null,readyResolve,readyReject;
+let user=null,db=null,ref=null,unsubscribe=null,hubUnsubscribe=null,hubActive=false,lastRealtimePayload=null,readyResolve,readyReject;
 let readyPromise=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject});
 
 function status(text,ok=false){
@@ -69,8 +69,46 @@ async function waitReady(){
   await readyPromise;
   if(!ref||!user)throw Error('Firebase Agents indisponible');
 }
+function hubRawAgents(){
+  const hub=window.InovtecDataHub;
+  if(!hub?.readyPersonal||typeof hub.getPersonalData!=='function')return null;
+  const data=hub.getPersonalData();
+  const raw=data?.moduleSyncV1?.agents?.payload;
+  return typeof raw==='string'?raw:'[]';
+}
+function applyRealtimeRaw(raw,meta={}){
+  const rows=parse(raw,null);
+  if(!Array.isArray(rows))return false;
+  if(raw!==lastRealtimePayload){
+    lastRealtimePayload=raw;
+    emit('inovtec:agents-cloud-updated',{payload:raw,fromCache:!!meta.fromCache,pending:!!meta.pending});
+  }
+  if(!meta.pending&&meta.confirmed!==false)status('Firebase — synchronisé',true);
+  return true;
+}
 async function readServer(){
   await waitReady();
+  const immediate=hubRawAgents();
+  if(immediate!==null){
+    const rows=parse(immediate,'invalid');
+    if(!Array.isArray(rows))throw Error('Liste Agents Firebase illisible');
+    status('Firebase — synchronisé',true);
+    return clone(rows);
+  }
+  if(hubActive){
+    status('Firebase — lecture des agents…');
+    const started=Date.now();
+    while(Date.now()-started<4000){
+      await new Promise(resolve=>setTimeout(resolve,80));
+      const raw=hubRawAgents();
+      if(raw!==null){
+        const rows=parse(raw,'invalid');
+        if(!Array.isArray(rows))throw Error('Liste Agents Firebase illisible');
+        status('Firebase — synchronisé',true);
+        return clone(rows);
+      }
+    }
+  }
   status('Firebase — lecture des agents…');
   const snap=await ref.get({source:'server'});
   const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
@@ -163,6 +201,8 @@ window.InovtecAgentsCloud=Object.freeze({
 
 function start(u){
   if(unsubscribe){try{unsubscribe()}catch(e){}unsubscribe=null}
+  if(hubUnsubscribe){try{hubUnsubscribe()}catch(e){}hubUnsubscribe=null}
+  hubActive=false;
   user=u||null;
   if(!user){
     ref=null;
@@ -173,20 +213,23 @@ function start(u){
   const box=document.getElementById('ivAgentsFirebaseLogin');
   if(box)box.style.display='none';
   ref=db.collection('kanban').doc(user.uid);
-  unsubscribe=ref.onSnapshot({includeMetadataChanges:true},snap=>{
-    const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
-    const rows=parse(raw,null);
-    if(Array.isArray(rows)){
-      if(raw!==lastRealtimePayload){
-        lastRealtimePayload=raw;
-        emit('inovtec:agents-cloud-updated',{payload:raw,fromCache:!!snap.metadata?.fromCache,pending:!!snap.metadata?.hasPendingWrites});
-      }
-      if(!snap.metadata?.hasPendingWrites)status('Firebase — synchronisé',true);
-    }
-  },err=>{
-    console.error('Firebase Agents temps réel',err);
-    status('Firebase — '+(err.code||err.message||'erreur'));
-  });
+  const hub=window.InovtecDataHub;
+  if(hub?.subscribe&&typeof hub.getPersonalData==='function'){
+    hubActive=true;
+    hubUnsubscribe=hub.subscribe(detail=>{
+      if(!detail?.readyPersonal)return;
+      const raw=hubRawAgents();
+      if(raw!==null)applyRealtimeRaw(raw,{confirmed:detail.firebasePersonalOk===true});
+    });
+  }else{
+    unsubscribe=ref.onSnapshot({includeMetadataChanges:true},snap=>{
+      const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
+      applyRealtimeRaw(raw,{fromCache:!!snap.metadata?.fromCache,pending:!!snap.metadata?.hasPendingWrites,confirmed:!snap.metadata?.fromCache});
+    },err=>{
+      console.error('Firebase Agents temps réel',err);
+      status('Firebase — '+(err.code||err.message||'erreur'));
+    });
+  }
   status('Firebase — connecté',true);
   readyResolve();
 }
