@@ -91,7 +91,9 @@ function publishOperational(ok,error=""){
 }
 function dataHubOperational(detail){
  const d=detail||{};
- if(d.firebaseAgentsOk===true&&d.firebaseSitesOk===true){clearTimeout(connectivityTimer);publishOperational(true);return true}
+ // Une lecture confirmée du document personnel suffit à prouver que Firestore répond.
+ // Ne pas attendre toute la collection des chantiers avant de valider Firebase.
+ if(d.firebasePersonalOk===true||(d.firebaseAgentsOk===true&&d.firebaseSitesOk===true)){clearTimeout(connectivityTimer);publishOperational(true);return true}
  return false;
 }
 async function connectivityCheck(){
@@ -109,7 +111,7 @@ function start(u){
   unsubs.push(p.onSnapshot(()=>reconcileVariables(),()=>{}),s.onSnapshot(()=>reconcileVariables(),()=>{}));
   reconcileVariables();
  }
- if(!dataHubOperational({firebaseAgentsOk:window.InovtecDataHub?.firebaseAgentsOk,firebaseSitesOk:window.InovtecDataHub?.firebaseSitesOk}))scheduleConnectivityCheck();
+ if(!dataHubOperational({firebasePersonalOk:window.InovtecDataHub?.firebasePersonalOk,firebaseAgentsOk:window.InovtecDataHub?.firebaseAgentsOk,firebaseSitesOk:window.InovtecDataHub?.firebaseSitesOk}))scheduleConnectivityCheck();
 }
 function boot(){
   if(!window.firebase||!window.INOVTEC_FIREBASE_CONFIG||!firebase.auth||!firebase.firestore){setTimeout(boot,120);return}
