@@ -607,12 +607,13 @@
     };
     const onUp=event=>{
       if(event.pointerId!==activePointer)return;
-      const target=moving?touchedColumn(event.clientX,event.clientY):null;
+      const wasDragging=moving;
+      const target=wasDragging?touchedColumn(event.clientX,event.clientY):null;
       cleanup();
       if(target&&FLOW.includes(target.dataset.status)){
         setTaskStatus(task.id,target.dataset.status);
       }
-      if(moving&&event.cancelable)event.preventDefault();
+      if(wasDragging&&event.cancelable)event.preventDefault();
     };
     const onCancel=()=>cleanup();
     const onKey=event=>{if(event.key==="Escape")cleanup();};
