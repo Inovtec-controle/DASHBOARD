@@ -68,7 +68,7 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
         }
         if (!doc.querySelector('script[data-iv-stable-ui="1"]') && !p.__INOVTEC_UI_STABILITY_V1__) {
           const script = doc.createElement('script');
-          script.src = 'inovtec-ui-stability.js?v=20261002-organisation-live16';
+          script.src = 'inovtec-ui-stability.js?v=20261009-performance1';
           script.dataset.ivStableUi = '1';
           script.async = false;
           (doc.head || doc.documentElement).appendChild(script);
@@ -85,14 +85,14 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
     }
     if (!document.querySelector('script[data-inovtec-firebase-operational="1"]')) {
       const script = document.createElement("script");
-      script.src = "inovtec-firebase-operational-guard.js?v=20261001-perf1";
+      script.src = "inovtec-firebase-operational-guard.js?v=20261009-performance1";
       script.dataset.inovtecFirebaseOperational = "1";
       script.async = false;
       (document.head || document.documentElement).appendChild(script);
     }
     if (!document.querySelector('script[data-iv-stable-ui="1"]') && !window.__INOVTEC_UI_STABILITY_V1__) {
       const script = document.createElement("script");
-      script.src = "inovtec-ui-stability.js?v=20261002-organisation-live16";
+      script.src = "inovtec-ui-stability.js?v=20261009-performance1";
       script.dataset.ivStableUi = "1";
       script.async = false;
       (document.head || document.documentElement).appendChild(script);
