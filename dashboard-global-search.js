@@ -60,7 +60,7 @@ function buildRows(sites,agents,tasks){
     label:String(t.title||"Tâche"),
     sub:[t.status==="done"?"Terminée":t.status==="inprogress"?"En cours":t.status==="blocked"?"Bloquée":"À faire",t.dueDate].filter(Boolean).join(" • "),
     search:norm([t.title,t.description,t.status,t.dueDate].filter(Boolean).join(" ")),
-    href:"ORGANISATION-LIVE-V16.html?v=16",
+    href:"ORGANISATION-LIVE-V16.html?v=20261009-drag2",
     handoff:{mode:"organisation",id:String(t.id||""),label:String(t.title||"")}
   }));
   rows=out;
