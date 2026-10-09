@@ -89,7 +89,8 @@ function init(){
  tick();
 }
 function tick(){if(!tile?.isConnected)return;const now=new Date();const date=tile.querySelector('.iv-head-date');const time=tile.querySelector('.iv-head-time');if(date)date.textContent=DATE.format(now).replace(/^./,s=>s.toUpperCase());if(time)time.textContent=TIME.format(now)}
-let syncReadyAfter=Date.now()+650,lastLocalState='',syncTimer=null;
+const STALE_LOADING_MS=8000;
+let syncReadyAfter=Date.now()+650,lastLocalState='',localLoadingSince=0,syncTimer=null;
 function inferSync(text){
  const raw=String(text||'').trim(),t=raw.toLowerCase();if(!t)return null;
  if(/erreur|impossible|indisponible|inaccessible|hors[ -]?ligne|échec|echec|déconnect|deconnect|non connecté|non connecte|permission|refus/.test(t))return{state:'error',message:raw};
@@ -144,16 +145,29 @@ function evaluateSyncMark(){
  if(!tile?.isConnected)return;
  if(!navigator.onLine){setMarkState('error','Pas de connexion réseau');return}
  const local=localSyncState();
- if(local?.state!==lastLocalState){lastLocalState=local?.state||'';if(local?.state==='connected')syncReadyAfter=Date.now()+900}
+ if(local?.state!==lastLocalState){
+  lastLocalState=local?.state||'';
+  localLoadingSince=local?.state==='loading'?Date.now():0;
+  if(local?.state==='connected')syncReadyAfter=Date.now()+900;
+ }
  if(local?.state==='error'){setMarkState('error',local.message);return}
- if(local?.state==='loading'){setMarkState('loading',local.message);return}
  const health=window.InovtecFirebaseOperational;
  if(health?.ok===false){setMarkState('error','Firebase inaccessible : '+String(health.error||'lecture refusée'));return}
  let authKnown=false,signedIn=false;
  try{if(window.firebase?.auth){authKnown=true;signedIn=!!firebase.auth().currentUser}}catch{}
  const firebaseConfirmed=health?.ok===true||local?.state==='connected';
  if(authKnown&&!signedIn&&!firebaseConfirmed){setMarkState('loading','Connexion au compte Firebase en cours');return}
- if(!firebaseConfirmed){setMarkState('loading','Synchronisation Firebase non encore confirmée');return}
+ if(!firebaseConfirmed){
+  setMarkState('loading',local?.state==='loading'?local.message:'Synchronisation Firebase non encore confirmée');
+  return;
+ }
+ // Firebase a bien répondu. Un état local "chargement" récent reste affiché
+ // pendant une vraie opération, mais un ancien message ne doit jamais bloquer
+ // la coche indéfiniment après confirmation Firestore.
+ if(local?.state==='loading'){
+  if(!localLoadingSince)localLoadingSince=Date.now();
+  if(Date.now()-localLoadingSince<STALE_LOADING_MS){setMarkState('loading',local.message);return}
+ }
  // Organisation possède déjà son propre état Firebase dans l'iframe.
  // Dès que Firestore est confirmé ET que la rubrique annonce "Synchronisé",
  // ne pas laisser la coche tourner à cause d'un contrôle d'affichage secondaire.
