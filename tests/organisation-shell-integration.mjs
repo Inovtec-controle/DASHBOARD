@@ -70,15 +70,11 @@ try{
   const buildText=(await page.locator('#orgaBoardBuild').textContent()||'').trim();
   if(buildText!=='LIVE v16')throw Error('La page visible n’est pas Organisation LIVE v16 : '+buildText);
 
-  // Déplacement réel à la souris dans la page réellement ouverte depuis l'accueil.
-  const source=await page.locator('.task[data-id="shell-move"]').boundingBox();
-  const target=await page.locator('.column[data-status="blocked"]').boundingBox();
-  if(!source||!target)throw Error('Zones de déplacement Organisation LIVE introuvables');
-  await page.mouse.move(source.x+source.width/2,source.y+Math.min(30,source.height/3));
-  await page.mouse.down();
-  await page.mouse.move(target.x+target.width/2,target.y+Math.max(55,target.height-18),{steps:10});
-  await page.mouse.up();
-  await page.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]').waitFor({timeout:5000});
+  // Le véritable glisser-déposer depuis l'accueil doit déposer dans la colonne visée.
+  await page.locator('.task[data-id="shell-move"] .task-title')
+    .dragTo(page.locator('.column[data-status="blocked"]'));
+  await page.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]')
+    .waitFor({timeout:5000});
 
   // Archivage sur cette même page autonome.
   await page.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver'}).click();
