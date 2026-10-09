@@ -50,23 +50,26 @@ try{
   await page.mouse.down();
   await page.mouse.move(targetBox.x+targetBox.width/2,targetBox.y+Math.max(55,targetBox.height-18),{steps:10});
   if(await page.locator('.task-drag-ghost').count()!==1)throw Error('La bulle fantôme de déplacement ne s’affiche pas');
-  // Le nouveau moteur doit enregistrer AVANT le relâchement si la cible reste stable.
-  await page.waitForTimeout(260);
-  await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='blocked');
+  // Sauvegarder uniquement lorsque la bulle est déposée dans sa nouvelle colonne.
   await page.mouse.up();
+  await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='blocked');
   if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)throw Error('La tâche déplacée n’apparaît pas dans Bloqué');
 
   // 2b. Deuxième déplacement réel à la souris pour vérifier que le moteur
   // continue de fonctionner après un premier rendu/ré-enregistrement Firebase.
   const secondSource=await page.locator('.task[data-id="move-1"]').boundingBox();
-  const secondTarget=await page.locator('.column[data-status="done"]').boundingBox();
-  if(!secondSource||!secondTarget)throw Error('Zones du second déplacement introuvables');
+  const boardBox=await page.locator('#board').boundingBox();
+  if(!secondSource||!boardBox)throw Error('Zones du second déplacement introuvables');
   await page.mouse.move(secondSource.x+secondSource.width/2,secondSource.y+Math.min(30,secondSource.height/3));
   await page.mouse.down();
-  await page.mouse.move(secondTarget.x+secondTarget.width/2,secondTarget.y+Math.max(55,secondTarget.height-18),{steps:10});
-  await page.waitForTimeout(260);
-  await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='done');
+  // Faire défiler le tableau horizontalement vers une colonne encore masquée.
+  await page.mouse.move(boardBox.x+boardBox.width-8,secondSource.y+25,{steps:10});
+  await page.waitForTimeout(400);
+  const secondTarget=await page.locator('.column[data-status="done"]').boundingBox();
+  if(!secondTarget)throw Error('Colonne Fait introuvable après défilement');
+  await page.mouse.move(Math.min(secondTarget.x+secondTarget.width/2,boardBox.x+boardBox.width-20),secondTarget.y+Math.max(55,secondTarget.height-18),{steps:10});
   await page.mouse.up();
+  await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='done');
   if(await page.locator('.task-list[data-status="done"] .task[data-id="move-1"]').count()!==1)throw Error('Le second déplacement souris ne persiste pas');
 
   // 3. Archiver doit fonctionner même si la carte est draggable.
