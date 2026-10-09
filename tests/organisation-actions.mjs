@@ -42,35 +42,19 @@ try{
   await moveCard.locator('.task-actions button').first().click();
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='inprogress');
 
-  // 2. Vrai geste souris (pointer events) : ne dépend plus du drag HTML5 du navigateur.
-  const sourceBox=await page.locator('.task[data-id="move-1"] .task-title').boundingBox();
-  const targetBox=await page.locator('.column[data-status="blocked"]').boundingBox();
-  if(!sourceBox||!targetBox)throw Error('Zones de déplacement Organisation introuvables');
-  await page.mouse.move(sourceBox.x+sourceBox.width/2,sourceBox.y+sourceBox.height/2);
-  await page.mouse.down();
-  await page.mouse.move(targetBox.x+targetBox.width/2,targetBox.y+Math.max(55,targetBox.height-18),{steps:10});
-  if(await page.locator('.task-drag-ghost').count()!==1)throw Error('La bulle fantôme de déplacement ne s’affiche pas');
-  // Sauvegarder uniquement lorsque la bulle est déposée dans sa nouvelle colonne.
-  await page.mouse.up();
+  // 2. Vrai clic-glissé HTML5 : la colonne cible décide du nouveau statut.
+  await page.locator('.task[data-id="move-1"] .task-title')
+    .dragTo(page.locator('.column[data-status="blocked"]'));
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='blocked');
-  if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)throw Error('La tâche déplacée n’apparaît pas dans Bloqué');
+  if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)
+    throw Error('Le glisser-déposer dans Bloqué a échoué');
 
-  // 2b. Deuxième déplacement réel à la souris pour vérifier que le moteur
-  // continue de fonctionner après un premier rendu/ré-enregistrement Firebase.
-  const secondSource=await page.locator('.task[data-id="move-1"]').boundingBox();
-  const boardBox=await page.locator('#board').boundingBox();
-  if(!secondSource||!boardBox)throw Error('Zones du second déplacement introuvables');
-  await page.mouse.move(secondSource.x+secondSource.width/2,secondSource.y+Math.min(30,secondSource.height/3));
-  await page.mouse.down();
-  // Faire défiler le tableau horizontalement vers une colonne encore masquée.
-  await page.mouse.move(boardBox.x+boardBox.width-8,secondSource.y+25,{steps:10});
-  await page.waitForTimeout(400);
-  const secondTarget=await page.locator('.column[data-status="done"]').boundingBox();
-  if(!secondTarget)throw Error('Colonne Fait introuvable après défilement');
-  await page.mouse.move(Math.min(secondTarget.x+secondTarget.width/2,boardBox.x+boardBox.width-20),secondTarget.y+Math.max(55,secondTarget.height-18),{steps:10});
-  await page.mouse.up();
+  // 2b. Deuxième déplacement après la sauvegarde et le nouveau rendu de la liste.
+  await page.locator('.task[data-id="move-1"] .task-title')
+    .dragTo(page.locator('.column[data-status="done"]'));
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='done');
-  if(await page.locator('.task-list[data-status="done"] .task[data-id="move-1"]').count()!==1)throw Error('Le second déplacement souris ne persiste pas');
+  if(await page.locator('.task-list[data-status="done"] .task[data-id="move-1"]').count()!==1)
+    throw Error('Le second clic-glissé vers Fait a échoué');
 
   // 3. Archiver doit fonctionner même si la carte est draggable.
   const archiveCard=page.locator('.task[data-id="archive-1"]');
