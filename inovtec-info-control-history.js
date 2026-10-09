@@ -9,7 +9,7 @@ const d=document;
 const form=d.getElementById("siteForm");
 if(!form)return;
 
-let metas=[],records=[],unsubMeta=null,unsubRecords=null,unsubSite=null,lastSiteId="",migrationBusy=false,renderTimer=null,authUser=null,retryTimer=null,historyExpanded=false;
+let metas=[],records=[],activityLog=[],reassortState={orders:[],deliveries:[]},unsubMeta=null,unsubRecords=null,unsubSite=null,unsubActivities=null,unsubReassort=null,lastSiteId="",migrationBusy=false,renderTimer=null,authUser=null,retryTimer=null,historyExpanded=false;
 const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 
 function selectedSiteId(){return String(form.dataset.ivChantierId||"").trim()}
@@ -108,6 +108,13 @@ function ensureStyle(){
     #ivControlHistoryCard .iv-history-more-wrap{display:flex;justify-content:center;margin-top:11px}
     #ivControlHistoryCard .iv-history-more{border:1px solid #d9e5df;border-radius:10px;background:#fff;color:#315c49;padding:8px 13px;font-size:10px;font-weight:800;cursor:pointer}
     #ivControlHistoryCard .iv-history-more:hover{background:#f4faf7;border-color:#bdd5c8}
+    #ivControlHistoryCard .iv-history-filters{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:12px}
+    #ivControlHistoryCard .iv-history-filters label{font-size:11px;color:#607169;font-weight:700}
+    #ivControlHistoryCard .iv-history-filters select{max-width:100%;min-height:36px;padding:6px 10px;border:1px solid #d9e5df;border-radius:9px;background:#fff;color:#17392d}
+    #ivControlHistoryCard .iv-history-type.activity{background:#fff5df;color:#825b13}
+    #ivControlHistoryCard .iv-history-type.delivery{background:#e8f7ee;color:#137044}
+    #ivControlHistoryCard .iv-history-type.change{background:#f0f3fc;color:#495c94}
+    #ivControlHistoryCard .iv-history-activity-desc{margin-top:6px;color:#556c60;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
     #ivControlViewer .iv-control-viewer-panel{border:1px solid #dce8e2}
     #ivControlViewer .iv-control-viewer-head{position:sticky;top:0;z-index:2}
     @media(max-width:900px){
@@ -145,10 +152,10 @@ function ensureCard(){
     if(!list){list=d.createElement("div");list.id="ivControlHistoryList";list.className="iv-control-history-list";card.appendChild(list)}
     const head=d.createElement("div");head.className="iv-history-head";
     const titleWrap=d.createElement("div");titleWrap.className="iv-history-title-wrap";
-    const icon=d.createElement("div");icon.className="iv-history-icon";icon.textContent="✓";
+    const icon=d.createElement("div");icon.className="iv-history-icon";icon.textContent="◷";
     const titleCopy=d.createElement("div");titleCopy.className="iv-history-title-copy";
-    const title=d.createElement("h2");title.textContent="Historique des contrôles";
-    const subtitle=d.createElement("div");subtitle.className="iv-history-subtitle";subtitle.textContent="Suivi qualité de la résidence, du plus récent au plus ancien.";
+    const title=d.createElement("h2");title.textContent="Historique des activités";
+    const subtitle=d.createElement("div");subtitle.className="iv-history-subtitle";subtitle.textContent="Contrôles, livraisons, demandes et changements de cette résidence, du plus récent au plus ancien.";
     titleCopy.append(title,subtitle);titleWrap.append(icon,titleCopy);
     let count=d.getElementById("ivControlHistoryCount");
     if(!count){count=d.createElement("span");count.id="ivControlHistoryCount"}
@@ -157,7 +164,13 @@ function ensureCard(){
 
     const stats=d.createElement("div");stats.id="ivControlHistoryStats";stats.className="iv-history-stats";
     const stat=(id,label)=>{const box=d.createElement("div");box.className="iv-history-stat";const small=d.createElement("small");small.textContent=label;const strong=d.createElement("strong");strong.id=id;strong.textContent="—";box.append(small,strong);return box};
-    stats.append(stat("ivHistoryStatTotal","Contrôles"),stat("ivHistoryStatLast","Dernier contrôle"),stat("ivHistoryStatPhotos","Avec photos"),stat("ivHistoryStatPdf","PDF archivés"));
+    stats.append(stat("ivHistoryStatTotal","Activités"),stat("ivHistoryStatLast","Dernière activité"),stat("ivHistoryStatPhotos","Contrôles"),stat("ivHistoryStatPdf","PDF archivés"));
+    const filters=d.createElement("div");filters.className="iv-history-filters";
+    const filterLabel=d.createElement("label");filterLabel.htmlFor="ivHistoryFilter";filterLabel.textContent="Afficher";
+    const filter=d.createElement("select");filter.id="ivHistoryFilter";
+    [["all","Toutes les activités"],["control","Contrôles"],["delivery","Livraisons"],["request","Demandes"],["change","Modifications"]].forEach(([value,label])=>filter.add(new Option(label,value)));
+    filter.addEventListener("change",()=>{historyExpanded=false;scheduleRender(0)});
+    filters.append(filterLabel,filter);
 
     const moreWrap=d.createElement("div");moreWrap.className="iv-history-more-wrap";moreWrap.id="ivControlHistoryMoreWrap";moreWrap.hidden=true;
     const more=d.createElement("button");more.type="button";more.className="iv-history-more";more.id="ivControlHistoryMore";more.addEventListener("click",()=>{historyExpanded=!historyExpanded;scheduleRender(0)});
@@ -165,6 +178,7 @@ function ensureCard(){
 
     card.insertBefore(head,card.firstChild);
     card.insertBefore(stats,list);
+    card.insertBefore(filters,list);
     card.appendChild(moreWrap);
     card.dataset.ivHistoryDashboard="1";
   }
@@ -205,10 +219,10 @@ function historyDateBadge(item){
 }
 function setHistoryStat(id,value){const e=d.getElementById(id);if(e)e.textContent=String(value??"—")}
 function renderHistoryStats(rows){
-  const last=rows[0],photos=rows.filter(x=>x.__kind==="record"&&Number(x.photoCount)>0).length,pdfs=rows.filter(x=>x.__kind==="pdf").length;
+  const last=rows[0],controls=rows.filter(x=>x.__kind==="record").length,pdfs=rows.filter(x=>x.__kind==="pdf").length;
   setHistoryStat("ivHistoryStatTotal",rows.length);
   setHistoryStat("ivHistoryStatLast",last?historyDateParts(last).label:"—");
-  setHistoryStat("ivHistoryStatPhotos",photos);
+  setHistoryStat("ivHistoryStatPhotos",controls);
   setHistoryStat("ivHistoryStatPdf",pdfs);
 }
 function createdMs(meta){
@@ -681,13 +695,50 @@ async function loadIndexedRecords(siteId,siteData){
 function bindSelectedSiteIndex(){
   const siteId=selectedSiteId();
   if(unsubSite){try{unsubSite()}catch{}unsubSite=null}
+  if(unsubActivities){try{unsubActivities()}catch{}unsubActivities=null}
+  activityLog=[];
   if(!siteId||!authUser)return;
+  unsubActivities=db.collection("chantiers").where("chantierId","==",siteId).onSnapshot(snap=>{
+    if(selectedSiteId()!==siteId)return;
+    activityLog=snap.docs.map(x=>({__docId:x.id,...(x.data()||{})})).filter(x=>x._type==="residenceActivity");
+    scheduleRender(0);
+  },error=>console.warn("Lecture journal de résidence indisponible",error));
   unsubSite=db.collection("chantiers").doc(siteId).onSnapshot(async snap=>{
     if(!snap.exists)return;
     const data=snap.data()||{};
     try{await Promise.all([loadIndexedMetas(siteId,data),loadIndexedRecords(siteId,data)])}catch(error){console.warn("Index historique KONTROL",error)}
     scheduleRender(0);
   },error=>console.warn("Lecture index historique KONTROL",error));
+}
+function activityRows(siteId){
+  const name=norm(selectedSiteName());
+  const orders=Array.isArray(reassortState.orders)?reassortState.orders:[];
+  const deliveries=Array.isArray(reassortState.deliveries)?reassortState.deliveries:[];
+  const byId=new Map(orders.map(o=>[String(o.id||""),o]));
+  const matches=(entry,order)=>{
+    const id=String(entry?.chantierId||order?.chantierId||"").trim();
+    if(id)return id===siteId;
+    return !!name&&norm(entry?.site||order?.site||"")===name;
+  };
+  const timeMs=(value)=>{const x=Date.parse(String(value||""));return Number.isFinite(x)?x:0};
+  const requests=orders.filter(o=>o?.workflow==="chantier"&&o.status!=="brouillon"&&matches(o,null)).map(o=>({
+    __kind:"activity",eventType:"request",title:"Demande de matériel",description:String(o.name||"Matériel")+" · "+String(o.quantity||"")+" unité(s)",
+    actor:String(o.requester||""),note:"",timeCreated:o.createdAt||o.updatedAt||"",createdAtMs:timeMs(o.createdAt||o.updatedAt),
+    detail:o.expectedDate?"Date souhaitée : "+formatControlDate(o.expectedDate):""
+  }));
+  const receipts=deliveries.filter(x=>x?.kind==="chantier"&&matches(x,byId.get(String(x.orderId||"")))).map(x=>({
+    __kind:"activity",eventType:"delivery",title:"Livraison de matériel confirmée",description:String(x.name||"Matériel")+" · "+String(x.quantity||"")+" unité(s)",
+    actor:String(x.deliveredBy||""),note:String(x.notes||""),timeCreated:x.createdAt||(x.date?x.date+"T12:00:00":""),
+    createdAtMs:timeMs(x.createdAt||(x.date?x.date+"T12:00:00":"")),
+    detail:(x.date?"Livré le "+formatControlDate(x.date):"")+(x.reference?" · Bon "+String(x.reference):"")
+  }));
+  const changes=activityLog.filter(x=>String(x.chantierId||"")===siteId).map(x=>({
+    __kind:"activity",eventType:String(x.eventType||"change"),title:String(x.summary||"Fiche résidence modifiée"),
+    description:Array.isArray(x.fields)?x.fields.join(", "):"",actor:String(x.createdByEmail||""),
+    timeCreated:String(x.timeCreated||""),createdAtMs:Number(x.createdAtMs)||timeMs(x.timeCreated),
+    note:"",detail:""
+  }));
+  return requests.concat(receipts,changes);
 }
 function matchingRows(siteId){
   const pdfRows=metas.filter(meta=>String(meta?.chantierId||meta?.customMetadata?.chantierId||"").trim()===siteId)
@@ -703,19 +754,26 @@ function render(){
   if(form.classList.contains("hidden")||!siteId){
     count.textContent="0";renderHistoryStats([]);
     if(moreWrap)moreWrap.hidden=true;
-    list.innerHTML='<div class="iv-control-history-empty">Sélectionne une résidence enregistrée pour afficher son historique de contrôles.</div>';
+    list.innerHTML='<div class="iv-control-history-empty">Sélectionne une résidence enregistrée pour afficher son historique des activités.</div>';
     return;
   }
-  const rows=matchingRows(siteId);count.textContent=String(rows.length);renderHistoryStats(rows);list.innerHTML="";
+  const allRows=matchingRows(siteId).concat(activityRows(siteId)).sort((a,b)=>createdMs(b)-createdMs(a));
+  const filter=d.getElementById("ivHistoryFilter")?.value||"all";
+  const rows=allRows.filter(item=>filter==="all"||
+    (filter==="control"&&item.__kind!=="activity")||
+    (filter==="delivery"&&item.eventType==="delivery")||
+    (filter==="request"&&item.eventType==="request")||
+    (filter==="change"&&item.__kind==="activity"&&!["delivery","request"].includes(item.eventType)));
+  count.textContent=String(allRows.length);renderHistoryStats(allRows);list.innerHTML="";
   if(!rows.length){
     if(moreWrap)moreWrap.hidden=true;
-    const empty=d.createElement("div");empty.className="iv-control-history-empty";empty.innerHTML="<strong style='display:block;color:#355648;margin-bottom:4px'>Aucun contrôle pour le moment</strong><span>Les prochains contrôles KONTROL apparaîtront automatiquement ici.</span>";list.appendChild(empty);return;
+    const empty=d.createElement("div");empty.className="iv-control-history-empty";empty.innerHTML="<strong style='display:block;color:#355648;margin-bottom:4px'>Aucune activité pour ce filtre</strong><span>Les actions enregistrées pour cette résidence apparaîtront ici.</span>";list.appendChild(empty);return;
   }
 
   const limit=6,visible=historyExpanded?rows:rows.slice(0,limit);
   if(moreWrap&&more){
     moreWrap.hidden=rows.length<=limit;
-    more.textContent=historyExpanded?"Afficher seulement les plus récents":"Afficher les "+(rows.length-limit)+" contrôle"+((rows.length-limit)>1?"s":"")+" plus ancien"+((rows.length-limit)>1?"s":"");
+    more.textContent=historyExpanded?"Afficher seulement les plus récents":"Afficher les "+(rows.length-limit)+" événement"+((rows.length-limit)>1?"s":"")+" plus ancien"+((rows.length-limit)>1?"s":"");
   }
 
   visible.forEach(item=>{
@@ -756,6 +814,18 @@ function render(){
       const del=d.createElement("button");del.type="button";del.className="iv-control-history-delete";del.textContent="Supprimer";del.title="Supprimer ce contrôle";del.setAttribute("aria-label","Supprimer ce contrôle");
       del.addEventListener("click",()=>deleteControlRecord(item,del));
       actions.append(button,pdfBtn,del);
+    }else if(item.__kind==="activity"){
+      const evt=String(item.eventType||"change");
+      type.textContent=evt==="delivery"?"Livraison":evt==="request"?"Demande":"Modification";
+      type.classList.add(evt==="delivery"?"delivery":evt==="request"?"activity":"change");
+      title.textContent=item.title||"Activité";
+      top.append(type,title);copy.appendChild(top);
+      if(item.description){const desc=d.createElement("div");desc.className="iv-history-activity-desc";desc.textContent=item.description;copy.appendChild(desc)}
+      if(item.actor)chips.appendChild(historyChip((evt==="delivery"?"Livré par · ":evt==="request"?"Demandé par · ":"Enregistré par · ")+item.actor));
+      if(item.detail)chips.appendChild(historyChip(item.detail));
+      if(item.createdAtMs){const date=new Date(item.createdAtMs);chips.appendChild(historyChip("◷ "+date.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})))}
+      if(chips.children.length)copy.appendChild(chips);
+      if(item.note){const note=d.createElement("div");note.className="iv-history-observation";note.textContent=item.note;copy.appendChild(note)}
     }else{
       const custom=item.customMetadata||{};
       title.textContent="Contrôle archivé";
@@ -811,6 +881,30 @@ async function migrateExactLegacyLinks(){
   }catch(error){console.warn("Rattachement ancien contrôle KONTROL",error)}
   finally{migrationBusy=false}
 }
+function subscribeReassort(){
+  if(unsubReassort||!authUser?.uid)return;
+  unsubReassort=db.collection("kanban").doc(authUser.uid).onSnapshot(snap=>{
+    try{
+      const payload=snap.data()?.moduleSyncV1?.reassort?.payload;
+      const parsed=payload?JSON.parse(payload):{};
+      reassortState={orders:Array.isArray(parsed.orders)?parsed.orders:[],deliveries:Array.isArray(parsed.deliveries)?parsed.deliveries:[]};
+      scheduleRender(0);
+    }catch(error){console.warn("Historique des livraisons illisible",error);reassortState={orders:[],deliveries:[]};scheduleRender(0)}
+  },error=>console.warn("Lecture des livraisons de résidence indisponible",error));
+}
+d.addEventListener("iv:chantier-saved",event=>{
+  const evt=event.detail?.activity,id=String(event.detail?.id||"").trim();
+  if(!evt||!id||!auth.currentUser)return;
+  const fields=Array.isArray(evt.fields)?evt.fields.map(x=>String(x).slice(0,80)).slice(0,24):[];
+  if(evt.eventType!=="creation"&&!fields.length)return;
+  const now=new Date();
+  db.collection("chantiers").doc("ivActivity_"+now.getTime().toString(36)+"_"+Math.random().toString(36).slice(2,10)).set({
+    _type:"residenceActivity",chantierId:id,eventType:evt.eventType==="creation"?"creation":"change",
+    summary:evt.eventType==="creation"?"Fiche résidence créée":"Informations de résidence modifiées",
+    fields,timeCreated:now.toISOString(),createdAtMs:now.getTime(),
+    createdByEmail:String(auth.currentUser.email||"")
+  }).catch(error=>console.warn("Journal de résidence : événement non enregistré",error));
+});
 function subscribeMeta(){
   if(unsubMeta||!authUser)return;
   clearTimeout(retryTimer);
@@ -856,6 +950,9 @@ if(auth){
     if(unsubMeta){try{unsubMeta()}catch{}unsubMeta=null}
     if(unsubRecords){try{unsubRecords()}catch{}unsubRecords=null}
     if(unsubSite){try{unsubSite()}catch{}unsubSite=null}
+    if(unsubActivities){try{unsubActivities()}catch{}unsubActivities=null}
+    if(unsubReassort){try{unsubReassort()}catch{}unsubReassort=null}
+    reassortState={orders:[],deliveries:[]};activityLog=[];
     if(!user){
       metas=[];
       records=[];
@@ -864,6 +961,7 @@ if(auth){
     }
     subscribeMeta();
     subscribeRecords();
+    subscribeReassort();
     bindSelectedSiteIndex();
     setTimeout(()=>{
       if(auth.currentUser&&!unsubMeta)subscribeMeta();
@@ -874,6 +972,7 @@ if(auth){
   authUser={uid:"compat"};
   subscribeMeta();
   subscribeRecords();
+  subscribeReassort();
   bindSelectedSiteIndex();
 }
 scheduleRender(0);
