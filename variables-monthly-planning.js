@@ -15,15 +15,61 @@ function isoWeek(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x
 function monday(key){const m=String(key).match(/^(\d{4})-W(\d{2})$/);if(!m)return null;const d=new Date(+m[1],0,4);d.setDate(d.getDate()-(d.getDay()+6)%7+(+m[2]-1)*7);return d}
 function monthWeeks(month){if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))return[];const[y,m]=month.split('-').map(Number),end=new Date(y,m,0),keys=new Set();for(let d=new Date(y,m-1,1);d<=end;d.setDate(d.getDate()+1))keys.add(isoWeek(d));return[...keys]}
 function clock(v){const m=String(v||'').match(/^(\d{1,2}):(\d{2})$/);if(!m)return null;const h=+m[1],min=+m[2];return h<24&&min<60?h*60+min:null}
-function getPlan(){const p=read(localStorage.getItem(PKEY)||'{}',{});return p?.weeks&&Object.keys(p.weeks).length?p:cloudPlan?.weeks?cloudPlan:p}
+function getPlan(){const p=read(localStorage.getItem(PKEY)||'{}',{});return cloudPlan?.weeks?cloudPlan:p}
 function getAgents(){const ready=hubAgents.filter(a=>a&&!a._deleted);const local=read(localStorage.getItem(AKEY)||'[]',[]);return ready.length?ready:Array.isArray(local)?local.filter(a=>a&&!a._deleted):[]}
 function assigned(p,w,id){return(Array.isArray(p.weeks?.[w])?p.weeks[w]:[]).filter(e=>String(e?.agentId)===String(id))}
 function sourceRows(p,w,pa){const direct=assigned(p,w,pa.id);if(direct.length)return direct;const parity=Number(w.slice(-2))%2;const older=Object.keys(p.weeks||{}).filter(k=>/^\d{4}-W\d{2}$/.test(k)&&k<w&&assigned(p,k,pa.id).length&&(pa.parityMode!=='alternating'||Number(k.slice(-2))%2===parity)).sort().reverse();return older.length?assigned(p,older[0],pa.id):[]}
 function openAgent(id){const m=$('monthPick').value,page='VARIABLES-LEGACY.html?month='+encodeURIComponent(m)+'&agent='+encodeURIComponent(id),url='inovtec-page-shell.html?mode=variables&page='+encodeURIComponent(page);try{host.location.assign(url)}catch{location.assign(url)}}
+// Même règle que le PDF : déplacements et interventions comptés une seule fois,
+// pauses retirées même lorsqu'elles chevauchent un créneau de travail.
+function effectiveDayMinutes(items){
+ const merge=rows=>{
+  const out=[];
+  rows.slice().sort((a,b)=>a.start-b.start||a.end-b.end).forEach(row=>{
+   const last=out[out.length-1];
+   if(last&&row.start<=last.end)last.end=Math.max(last.end,row.end);
+   else out.push({start:row.start,end:row.end});
+  });
+  return out;
+ };
+ const work=merge(items.filter(x=>!x.pause)),breaks=merge(items.filter(x=>x.pause));
+ const total=work.reduce((sum,x)=>sum+x.end-x.start,0);
+ const excluded=breaks.reduce((sum,p)=>sum+work.reduce((n,w)=>n+Math.max(0,Math.min(p.end,w.end)-Math.max(p.start,w.start)),0),0);
+ return Math.max(0,total-excluded);
+}
 function calculate(){const month=$('monthPick').value,plan=getPlan(),people=getAgents(),linked=Array.isArray(plan.agents)?plan.agents:[],period=monthWeeks(month),variables=read(localStorage.getItem(VKEY)||'{}',{}),entries=Array.isArray(variables.entries)?variables.entries:[],statuses=variables.monthStatus||{},entered=new Map(),rows=[],notes=new Set();
 for(const e of entries){if(!e||e.deleted||!String(e.date||'').startsWith(month)||!['heures_supplementaires','heures_complementaires'].includes(e.type))continue;const id=String(e.agentRefId||'');if(!id)continue;if(!entered.has(id))entered.set(id,{sup:0,comp:0});entered.get(id)[e.type==='heures_supplementaires'?'sup':'comp']+=Math.max(0,Number(e.minutes)||0)}
 for(const a of people){const id=String(a.id||'');if(!id)continue;const pa=linked.find(x=>String(x.refId||'')===id||String(x.id||'')===id)||linked.find(x=>norm(x.name)===norm(label(a))),hours=Number(String(a.job?.contractHoursWeekly??'').replace(',','.')),contract=Number.isFinite(hours)&&hours>0?Math.round(hours*60):0,saved=entered.get(id)||{sup:0,comp:0};let sup=0,comp=0,uncovered=0,beyond35=0,bad=0;
-if(pa&&contract)for(const w of period){const mondayDate=monday(w),source=sourceRows(plan,w,pa);if(!mondayDate||!source.length){uncovered++;continue}const shifts=[];for(const e of source){const start=clock(e.start),end=clock(e.end),day=Number(e.day);if(start===null||end===null||end<=start||!Number.isInteger(day)||day<0||day>6){bad++;continue}const d=new Date(mondayDate);d.setDate(d.getDate()+day);shifts.push({day,start,d:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),length:end-start})}shifts.sort((a,b)=>a.day-b.day||a.start-b.start);let cumulative=0;for(const shift of shifts){const previous=cumulative;cumulative+=shift.length;if(!shift.d.startsWith(month))continue;const extra=Math.max(0,cumulative-contract)-Math.max(0,previous-contract);if(extra<=0)continue;if(contract<2100){const eligible=Math.max(0,Math.min(cumulative,2100)-Math.max(previous,contract));comp+=Math.min(extra,eligible);beyond35+=extra-Math.min(extra,eligible)}else sup+=extra}}
+if(pa&&contract)for(const w of period){
+ const mondayDate=monday(w),source=sourceRows(plan,w,pa);
+ if(!mondayDate||!source.length){uncovered++;continue}
+ const byDay=new Map();
+ for(const e of source){
+  const start=clock(e.start),end=clock(e.end),day=Number(e.day);
+  if(start===null||end===null||end<=start||!Number.isInteger(day)||day<0||day>6){bad++;continue}
+  if(!byDay.has(day))byDay.set(day,[]);
+  byDay.get(day).push({start,end,pause:norm(e.task||e.type||e.kind)==='pause'});
+ }
+ const shifts=[];
+ for(const [day,items] of byDay){
+  const length=effectiveDayMinutes(items);
+  if(!length)continue;
+  const d=new Date(mondayDate);d.setDate(d.getDate()+day);
+  shifts.push({day,start:Math.min(...items.filter(x=>!x.pause).map(x=>x.start)),d:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),length});
+ }
+ shifts.sort((a,b)=>a.day-b.day||a.start-b.start);
+ let cumulative=0;
+ for(const shift of shifts){
+  const previous=cumulative;cumulative+=shift.length;
+  if(!shift.d.startsWith(month))continue;
+  const extra=Math.max(0,cumulative-contract)-Math.max(0,previous-contract);
+  if(extra<=0)continue;
+  if(contract<2100){
+   const eligible=Math.max(0,Math.min(cumulative,2100)-Math.max(previous,contract));
+   comp+=Math.min(extra,eligible);beyond35+=extra-Math.min(extra,eligible);
+  }else sup+=extra;
+ }
+}
 if(bad)notes.add('Créneaux incomplets ou traversant minuit : contrôle manuel nécessaire.');if(beyond35)notes.add('Temps partiel au-delà de 35 h : qualification à vérifier.');if(uncovered)notes.add('Semaines sans planning ou modèle antérieur non estimées.');if(pa&&!contract)notes.add('Durée hebdomadaire contractuelle manquante.');
 if(pa||saved.sup||saved.comp)rows.push({id,label:label(a),sup,comp,savedSup:saved.sup,savedComp:saved.comp,remaining:pa&&contract?Math.max(0,sup-saved.sup)+Math.max(0,comp-saved.comp):null,uncovered,beyond35,bad,contract,hasPlan:!!pa,status:statuses[month+'|'+id]?.status||'draft'})}
 for(const[id,saved]of entered){if(people.some(a=>String(a.id)===id))continue;rows.push({id,label:'Agent non référencé',sup:0,comp:0,savedSup:saved.sup,savedComp:saved.comp,remaining:null,uncovered:0,beyond35:0,bad:0,contract:0,hasPlan:false,status:statuses[month+'|'+id]?.status||'draft'})}
