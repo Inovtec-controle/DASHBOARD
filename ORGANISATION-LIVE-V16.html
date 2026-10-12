@@ -38,6 +38,12 @@
     .task-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
     .task-actions button{border:1px solid var(--border);background:#fff;border-radius:9px;padding:6px 8px;font-size:11px}
     .task-actions button.danger{color:#b91c1c;background:#fff1f2;border-color:#fecdd3}
+    .task-actions button.move-action{border-color:#059669;background:#ecfdf5;color:#065f46;font-weight:800}
+    .task.move-selected{outline:3px solid #059669;outline-offset:1px}
+    .column.move-destination .column-header{cursor:pointer;border:2px dashed #059669;border-radius:12px;background:#d1fae5}
+    .column.move-destination .column-header:hover{background:#a7f3d0}
+    #moveModeHint{margin:0 0 12px;padding:10px 12px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;font-size:12px;color:#065f46;font-weight:700}
+    #cancelTaskMoveBtn{margin-left:8px;border:1px solid #059669;background:#fff;color:#065f46;padding:5px 9px;border-radius:7px;cursor:pointer}
     .archive-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid var(--border)}
     .archive-item:last-child{border-bottom:0}
     @media(max-width:900px){.board{grid-template-columns:repeat(4,280px)}}
@@ -168,7 +174,8 @@
       </section>
 
       <section class="card">
-        <div class="section-title"><h2>Tableau des tâches <span id="orgaBoardBuild" class="status ok" style="margin-left:8px;vertical-align:middle">LIVE v16</span> <span class="status ok" title="Déplacement unifié et menu de statut du 12 octobre 2026">Déplacement v2</span></h2><span id="overdueStatus" class="status">Aucun retard</span></div>
+        <div class="section-title"><h2>Tableau des tâches <span id="orgaBoardBuild" class="status ok" style="margin-left:8px;vertical-align:middle">LIVE v16</span> <span class="status ok" title="Déplacement unifié et menu de statut du 12 octobre 2026">Déplacement v3</span></h2><span id="overdueStatus" class="status">Aucun retard</span></div>
+        <div id="moveModeHint" class="hidden" role="status">Choisis la colonne de destination en cliquant sur son en-tête. <button id="cancelTaskMoveBtn" type="button">Annuler</button></div>
         <div id="board" class="board"></div>
       </section>
 
@@ -213,6 +220,7 @@
   let editingId = null;
   let syncingFromCloud = false;
   let activeTaskMove = null;
+  let selectedMoveId = null;
   let pendingWrites = 0;
   let saveChain = Promise.resolve();
   let realtimeWatchdog = null;
@@ -471,7 +479,8 @@
   function setTaskStatus(id,status){
     const task = tasks.find(t=>String(t.id) === String(id));
     if(!task || task.archived || !FLOW.includes(status)) return false;
-    if(task.status === status) return true;
+    if(task.status === status){selectedMoveId=null;render();return true;}
+    selectedMoveId=null;
     task.status = status;
     task.updatedAt = new Date().toISOString();
     saveCloud();
@@ -625,6 +634,7 @@
     card.className = "task";
     card.draggable = false;
     card.dataset.id = task.id;
+    if(selectedMoveId===String(task.id))card.classList.add("move-selected");
     const title = document.createElement("div");
     title.className = "task-title";
     title.title = "Glisser vers une colonne ou choisir le statut dans la liste";
@@ -673,6 +683,10 @@
     const actions = document.createElement("div");
     actions.className = "task-actions";
     const index = FLOW.indexOf(task.status);
+    actions.appendChild(makeButton(selectedMoveId===String(task.id)?"Annuler déplacement":"Déplacer",()=>{
+      selectedMoveId=selectedMoveId===String(task.id)?null:String(task.id);
+      render();
+    },"move-action"));
     if(index > 0) actions.appendChild(makeButton("←",()=>moveTask(task.id,"prev")));
     if(index < FLOW.length-1) actions.appendChild(makeButton("→",()=>moveTask(task.id,"next")));
     actions.appendChild(makeButton("Modifier",()=>editTask(task.id)));
@@ -688,6 +702,7 @@
       const column = document.createElement("section");
       column.className = "column";
       column.dataset.status = status;
+      if(selectedMoveId)column.classList.add("move-destination");
       const header = document.createElement("div");
       header.className = "column-header";
       const left = document.createElement("div");
@@ -703,6 +718,14 @@
       const listTasks = sorted(tasks.filter(t=>!t.archived && t.status === status));
       count.textContent = String(listTasks.length);
       header.append(left,count);
+      if(selectedMoveId){
+        header.title="Cliquer pour déplacer la tâche vers "+STATUS[status].label;
+        header.addEventListener("click",()=>{
+          const id=selectedMoveId;
+          selectedMoveId=null;
+          setTaskStatus(id,status);
+        });
+      }
 
       const list = document.createElement("div");
       list.className = "task-list";
@@ -742,6 +765,8 @@
     });
   }
   function render(){
+    const moveHint=$("moveModeHint");
+    moveHint.classList.toggle("hidden",!selectedMoveId);
     renderBoard();
     renderArchive();
     const overdue = tasks.filter(t=>!t.archived && isOverdue(t)).length;
@@ -786,6 +811,7 @@
     saveCloud();
   });
   $("cancelEditBtn").addEventListener("click",resetForm);
+  $("cancelTaskMoveBtn").addEventListener("click",()=>{selectedMoveId=null;render();});
   $("logoutBtn").addEventListener("click",()=>auth.signOut());
   $("loginForm").addEventListener("submit",async e=>{
     e.preventDefault();
