@@ -135,8 +135,189 @@ function openOptimizer(agent,leave){
  renderRows();
 }
 function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function renderRows(){const body=$("ivReplBody"),st=panelState;if(!st||!st.rows.length){body.innerHTML='<div class="iv-repl-empty"><strong>Tout est couvert</strong>Aucune intervention de cet agent ne reste à remplacer sur cette période.</div>';return}body.innerHTML="";st.rows.forEach((r,i)=>{const box=document.createElement("div");box.className="iv-repl-item";const wd=new Intl.DateTimeFormat("fr-FR",{weekday:"short"}).format(r.date).replace(".","");box.innerHTML=`<div class="iv-repl-event"><div class="iv-repl-date"><b>${r.date.getDate()}</b><small>${wd}</small></div><div><strong>${escapeHtml(r.event.task||"Intervention")}</strong><span>${escapeHtml(r.event.site||"Chantier non précisé")}</span></div><span class="iv-repl-time">${escapeHtml(r.event.start||"")} – ${escapeHtml(r.event.end||"")}</span></div><div class="iv-candidate-list"></div>`;const list=box.querySelector(".iv-candidate-list");if(!r.candidates.length){list.innerHTML='<div style="font-size:9px;color:#a13b31;padding:6px">Aucun autre agent disponible.</div>'}r.candidates.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="iv-candidate"+(String(st.choices[i])===String(c.agent.id)?" selected":"")+(c.available?"":" unavailable");const tag=c.away?"En congé":c.conflict?"Conflit horaire":c.fam?`Connaît le chantier · charge ${Math.round(c.load/60)}h`:`Disponible · charge ${Math.round(c.load/60)}h`;const scoreClass=!c.available?"red":c.score<65?"orange":"";b.innerHTML=`<span class="iv-candidate-avatar">${initials(c.agent.name)}</span><span><strong>${escapeHtml(c.agent.name)}</strong><small>${escapeHtml(tag)}</small></span><span class="iv-score ${scoreClass}">${c.available?"Recommandé":"Indispo"}</span>`;if(c.available)b.onclick=()=>{st.choices[i]=c.agent.id;renderRows()};list.appendChild(b)});body.appendChild(box)})}
-function applyChoices(){const st=panelState;if(!st)return;const missing=st.rows.some((r,i)=>!st.choices[i]);if(missing)return alert("Au moins une intervention n’a pas encore de remplaçant disponible.");st.rows.forEach((r,i)=>{const event=st.p.weeks[r.week].find(e=>e.id===r.event.id);if(!event)return;event._replacementFor={leaveId:st.leave.id,originalAgentId:st.agent.id,originalAgentName:st.agent.name,replacedAt:new Date().toISOString()};event.agentId=st.choices[i]});savePlan(st.p);closeOptimizer();setTimeout(()=>location.reload(),80)}
+
+function groupByChantier(rows){
+  const groups=new Map();
+  rows.forEach(r=>{
+    const e=r.event,site=String(e.site||e.task||"Chantier non précisé").trim();
+    const key=e.chantierId?"id:"+String(e.chantierId):"site:"+norm(site);
+    if(!groups.has(key))groups.set(key,{key,label:site,rows:[],splitOpen:false,detailsOpen:false,from:"",to:""});
+    groups.get(key).rows.push(r);
+  });
+  return [...groups.values()].map(g=>{
+    g.rows.sort((a,b)=>a.iso.localeCompare(b.iso)||timeMin(a.event.start)-timeMin(b.event.start));
+    g.from=g.rows[0].iso;g.to=g.rows[g.rows.length-1].iso;
+    return g;
+  }).sort((a,b)=>a.rows[0].iso.localeCompare(b.rows[0].iso)||a.label.localeCompare(b.label));
+}
+function periodCandidates(group){
+  const st=panelState;
+  const p=st?.p||plan(),agent=st?.agent;
+  const rows=group.rows;
+  return (p.agents||[]).filter(a=>String(a.id)!==String(agent?.id)).map(a=>{
+    const perRow=rows.map(row=>row.candidates?.find(c=>String(c.agent.id)===String(a.id)));
+    const covered=perRow.filter(c=>c?.available).length;
+    const selfConflict=rows.some((r,i)=>rows.slice(i+1).some(other=>r.iso===other.iso&&overlap(r.event,other.event)));
+    const score=Math.round(perRow.reduce((n,c)=>n+(c?.score||0),0)/Math.max(1,rows.length));
+    return {agent:a,covered,total:rows.length,score,available:covered===rows.length&&!selfConflict};
+  }).sort((a,b)=>Number(b.available)-Number(a.available)||b.covered-a.covered||b.score-a.score||a.agent.name.localeCompare(b.agent.name));
+}
+function validCandidate(row,id){
+  return row.candidates.some(c=>String(c.agent.id)===String(id)&&c.available);
+}
+function renderRows(){
+  const body=$("ivReplBody"),st=panelState;
+  if(!st||!st.rows.length){
+    body.innerHTML='<div class="iv-repl-empty"><strong>Tout est couvert</strong>Aucune intervention de cet agent ne reste à remplacer sur cette période.</div>';
+    $("ivApplyReplacements").disabled=true;
+    return;
+  }
+  body.replaceChildren();
+  let covered=0;
+  st.groups.forEach((g,index)=>{
+    const assigned=g.rows.filter(r=>st.choices[r.index]).length;
+    covered+=assigned;
+    const first=g.rows[0].iso,last=g.rows[g.rows.length-1].iso;
+    const totalMinutes=g.rows.reduce((n,r)=>n+minutes(r.event),0);
+    const tasks=[...new Set(g.rows.map(r=>String(r.event.task||"Intervention")))].slice(0,4);
+    const ids=g.rows.map(r=>String(st.choices[r.index]||""));
+    const uniform=ids.every(id=>id===ids[0])?ids[0]:"";
+    const candidates=periodCandidates(g);
+    const card=document.createElement("section");
+    card.className="iv-period-card";
+    card.dataset.groupIndex=String(index);
+    const head=document.createElement("div");
+    head.className="iv-period-head";
+    head.innerHTML='<div><strong>'+escapeHtml(g.label)+'</strong><small>'+formatDate(first)+' → '+formatDate(last)+' · '+g.rows.length+' intervention'+(g.rows.length>1?'s':'')+' · '+(Math.round(totalMinutes/6)/10)+' h</small><small>'+escapeHtml(tasks.join(" · "))+'</small></div><span class="iv-period-progress'+(assigned===g.rows.length?" complete":"")+'">'+assigned+'/'+g.rows.length+' couvertes</span>';
+    card.appendChild(head);
+    const label=document.createElement("label");
+    label.className="iv-period-control-label";
+    label.textContent="Agent pour toute cette période";
+    const select=document.createElement("select");
+    select.className="iv-period-agent";
+    select.setAttribute("aria-label","Remplaçant pour toute la période : "+g.label);
+    select.appendChild(new Option("Choisir un agent pour toute la période",""));
+    candidates.forEach(c=>{
+      const o=new Option(c.agent.name+(c.available?" · disponible toute la période":" · "+c.covered+"/"+c.total+" interventions possibles"),String(c.agent.id));
+      o.disabled=!c.available;
+      select.appendChild(o);
+    });
+    select.value=uniform;
+    select.onchange=()=>{
+      const chosen=select.value;
+      if(chosen&&!periodCandidates(g).some(c=>c.available&&String(c.agent.id)===chosen))return renderRows();
+      g.rows.forEach(r=>st.choices[r.index]=chosen);
+      renderRows();
+    };
+    label.appendChild(select);
+    card.appendChild(label);
+    if(!candidates.some(c=>c.available)){
+      const msg=document.createElement("p");
+      msg.className="iv-period-warning";
+      msg.textContent="Aucun agent libre sur toute cette période. Répartissez les dates ou ajustez les interventions exceptionnelles.";
+      card.appendChild(msg);
+    }
+    const controls=document.createElement("div");
+    controls.className="iv-period-actions";
+    const split=document.createElement("button");
+    split.type="button";split.className="iv-period-action";split.textContent=g.splitOpen?"Masquer la répartition":"Répartir la période";
+    split.onclick=()=>{g.splitOpen=!g.splitOpen;renderRows()};
+    const details=document.createElement("button");
+    details.type="button";details.className="iv-period-action";details.textContent=g.detailsOpen?"Masquer les exceptions":"Modifier certains jours";
+    details.onclick=()=>{g.detailsOpen=!g.detailsOpen;renderRows()};
+    controls.append(split,details);
+    card.appendChild(controls);
+    if(g.splitOpen)renderRangeEditor(card,g,st);
+    if(g.detailsOpen)renderDayExceptions(card,g,st);
+    body.appendChild(card);
+  });
+  const complete=covered===st.rows.length;
+  const pending=document.createElement("div");
+  pending.className="iv-period-footer-count"+(complete?" ready":"");
+  pending.textContent=complete?st.groups.length+" chantier(s) · "+covered+" intervention(s) prêtes à être attribuées":(st.rows.length-covered)+" intervention(s) restent sans remplaçant. Aucune modification ne sera enregistrée avant validation.";
+  body.appendChild(pending);
+  $("ivApplyReplacements").disabled=!complete;
+}
+function renderRangeEditor(card,g,st){
+  const box=document.createElement("div");
+  box.className="iv-period-range";
+  const title=document.createElement("strong");title.textContent="Attribuer seulement une partie de la période";
+  const dates=document.createElement("div");dates.className="iv-period-dates";
+  const start=document.createElement("input"),end=document.createElement("input");
+  [start,end].forEach(input=>{input.type="date";input.min=g.rows[0].iso;input.max=g.rows[g.rows.length-1].iso});
+  start.value=g.from;end.value=g.to;
+  dates.append(start,end);
+  const select=document.createElement("select");
+  select.setAttribute("aria-label","Agent pour la plage de dates : "+g.label);
+  const message=document.createElement("small");message.className="iv-period-help";
+  const apply=document.createElement("button");apply.className="iv-period-apply";apply.type="button";apply.textContent="Attribuer cette plage";
+  function refresh(){
+    const subset=g.rows.filter(r=>r.iso>=g.from&&r.iso<=g.to);
+    const current=select.value;
+    select.replaceChildren(new Option("Choisir un agent…",""));
+    const available=subset.length?periodCandidates({rows:subset}).filter(c=>c.available):[];
+    available.forEach(c=>select.add(new Option(c.agent.name,String(c.agent.id))));
+    select.value=available.some(c=>String(c.agent.id)===current)?current:"";
+    apply.disabled=!select.value;
+    message.textContent=subset.length?subset.length+" intervention(s) comprises dans cette plage · "+available.length+" agent(s) disponible(s)":"Aucune intervention dans les dates choisies.";
+  }
+  start.onchange=()=>{g.from=start.value;refresh()};
+  end.onchange=()=>{g.to=end.value;refresh()};
+  select.onchange=()=>{apply.disabled=!select.value};
+  apply.onclick=()=>{
+    const id=select.value,subset=g.rows.filter(r=>r.iso>=g.from&&r.iso<=g.to);
+    if(!id||!subset.length||!periodCandidates({rows:subset}).some(c=>c.available&&String(c.agent.id)===id))return;
+    subset.forEach(r=>st.choices[r.index]=id);
+    renderRows();
+  };
+  refresh();
+  box.append(title,dates,select,message,apply);
+  card.appendChild(box);
+}
+function renderDayExceptions(card,g,st){
+  const box=document.createElement("div");
+  box.className="iv-period-exceptions";
+  g.rows.forEach(r=>{
+    const line=document.createElement("div");line.className="iv-period-exception";
+    const meta=document.createElement("span");
+    meta.textContent=formatDate(r.iso)+" · "+(r.event.start||"")+"–"+(r.event.end||"")+" · "+(r.event.task||"Intervention");
+    const select=document.createElement("select");
+    select.setAttribute("aria-label","Exception du "+r.iso+" pour "+g.label);
+    select.add(new Option("Sans remplaçant",""));
+    r.candidates.filter(c=>c.available).forEach(c=>select.add(new Option(c.agent.name,String(c.agent.id))));
+    select.value=String(st.choices[r.index]||"");
+    select.onchange=()=>{st.choices[r.index]=select.value;renderRows()};
+    line.append(meta,select);box.appendChild(line);
+  });
+  card.appendChild(box);
+}
+function applyChoices(){
+  const st=panelState;
+  if(!st||!st.rows.length||st.rows.some(r=>!st.choices[r.index]))return;
+  const leave=absences.find(l=>String(l.id)===String(st.leave.id)&&l.status==="approved"&&!l.deleted&&sameAgent(l,st.agent));
+  if(!leave){alert("Le congé a changé. Rouvre les suggestions après synchronisation.");return}
+  const live=plan();
+  // Préparation sur une copie : aucune mutation partielle en cas de conflit.
+  const next=JSON.parse(JSON.stringify(live));
+  for(const r of st.rows){
+    const agentId=String(st.choices[r.index]),candidate=(next.agents||[]).find(a=>String(a.id)===agentId);
+    const event=(next.weeks?.[r.week]||[]).find(e=>String(e.id)===String(r.event.id)&&
+      String(e.agentId)===String(st.agent.id)&&Number(e.day)===Number(r.event.day)&&e.start===r.event.start&&e.end===r.event.end);
+    if(!candidate||!event||!validCandidate(r,agentId)){
+      alert("Une intervention ou un agent a changé. Actualise les suggestions avant d'appliquer.");return;
+    }
+    if(absentCandidate(candidate,r.iso,next)||(next.weeks[r.week]||[]).some(e=>e!==event&&
+      String(e.agentId)===agentId&&Number(e.day)===Number(event.day)&&overlap(e,event))){
+      alert("Conflit de planning détecté pour "+candidate.name+" le "+formatDate(r.iso)+". Le planning n'a pas été modifié.");return;
+    }
+    event._replacementFor={leaveId:st.leave.id,originalAgentId:st.agent.id,originalAgentName:st.agent.name,replacedAt:new Date().toISOString()};
+    event.agentId=agentId;
+  }
+  try{savePlan(next);closeOptimizer()}catch(e){
+    console.error("Enregistrement des remplacements",e);
+    alert("Enregistrement impossible. Aucune nouvelle attribution confirmée.");
+  }
+}
 function closeOptimizer(){activeOptimizerId="";const b=$("ivReplacementBackdrop");b?.classList.remove("open")}
 function init(){loadAbs();bindCloud();const menu=$("contextMenu"),viewport=$("calendarViewport"),agentList=$("agentList");if(menu){const o=new MutationObserver(()=>injectMenu());o.observe(menu,{childList:true,attributes:true,attributeFilter:["class"]});observers.push(o)}if(viewport){const o=new MutationObserver(()=>setTimeout(decorate,0));o.observe(viewport,{childList:true,subtree:true});observers.push(o)}if(agentList){const o=new MutationObserver(()=>setTimeout(decorate,0));o.observe(agentList,{subtree:true,attributes:true,attributeFilter:["class"]});observers.push(o)}setTimeout(decorate,150);setTimeout(decorate,650);setTimeout(()=>{injectMenu();decorate()},1400);const requested=new URLSearchParams(pwin.location.search||"").get("replacementAgent");if(requested){setTimeout(()=>{const p=plan(),a=(p.agents||[]).find(x=>String(x.refId||x.id)===String(requested));if(a){p.selected=a.id;savePlan(p);const l=leaveForAgent(a,p);openOptimizer(a,l)}},700)}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
