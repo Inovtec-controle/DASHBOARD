@@ -35,6 +35,8 @@
     .task-actions button.danger{color:#b91c1c;background:#fff1f2;border-color:#fecdd3}
     .task-targets{margin-top:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
     .task-targets-title{font-size:11px;font-weight:800;margin-top:10px;color:#065f46}
+    /* Garder les marqueurs techniques et la confirmation Firebase pour les tests et les lecteurs d’écran, sans afficher les bulles vertes. */
+    #orgaBoardBuild,#moveFeedback{display:none!important}
     .task-targets button{font:inherit;font-size:11px;font-weight:700;border:1px solid #a7f3d0;background:#ecfdf5;color:#065f46;border-radius:8px;padding:8px 4px;cursor:pointer;white-space:normal;min-height:34px;touch-action:manipulation}
     .task-targets button:hover:not(:disabled){background:#bbf7d0}
     .task-targets button:disabled{color:#334155;background:#e2e8f0;border-color:#e2e8f0;cursor:default;opacity:.85}
@@ -165,7 +167,7 @@
       </section>
 
       <section class="card">
-        <div class="section-title"><h2>Tableau des tâches <span id="orgaBoardBuild" class="status ok" style="margin-left:8px;vertical-align:middle">LIVE v17</span> <span class="status ok">Déplacement en un clic</span></h2><span id="overdueStatus" class="status">Aucun retard</span></div>
+        <div class="section-title"><h2>Tableau des tâches <span id="orgaBoardBuild" hidden>LIVE v17</span></h2><span id="overdueStatus" class="status">Aucun retard</span></div>
         <p class="muted" style="margin:0 0 10px">Pour déplacer une tâche, utilise directement les quatre boutons de statut sur sa fiche. Aucun glisser-déposer.</p>
         <div id="moveFeedback" class="status" role="status" aria-live="polite" style="margin-bottom:10px">Prêt — données Firebase</div>
         <div id="board" class="board"></div>
