@@ -69,6 +69,17 @@ try{
   await page.waitForTimeout(150);
   if(!(await page.locator('#ivReplSummary').innerText()).includes('Interventions'))
     throw Error('Les congés Firebase ont été perdus après le rendu planning');
+  // Si la demande est annulée sur Firebase, la fenêtre doit cesser de proposer un remplaçant.
+  await page.evaluate(()=>{
+    const state=window.__leaveReplacementTest;
+    state.row.status='cancelled';
+    state.doc.moduleSyncV1.conges.payload=JSON.stringify([state.row]);
+    state.emit();
+  });
+  await page.waitForFunction(()=>document.getElementById('ivReplBody')?.textContent.includes('Aucune période correspondante'));
+  if(await page.locator('#ivApplyReplacements').isEnabled())
+    throw Error('Une absence annulée permet encore de déclencher le remplacement');
+
   if(errors.length)throw Error(errors.join('; '));
   console.log('OK : Da Silva / Dasilva, demande visible à valider, validation Firebase et remplacement sans ressaisie');
 }finally{
