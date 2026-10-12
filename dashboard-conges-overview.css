@@ -1,0 +1,36 @@
+/* Tableau de bord : suivi global des congés, sans modifier les autres modules. */
+.c3-leaves-overview{margin-top:12px;min-width:0}
+.c3-leaves-panel{min-width:0}
+.c3-leaves-panel .c3-panel-head h2{display:flex;align-items:center;gap:9px}
+.c3-leaves-panel .c3-panel-head h2 span{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#e9f7ef;color:#087a3e;font-size:17px}
+.c3-leaves-content{padding:14px 16px 16px;min-width:0}
+.c3-leaves-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.c3-leaves-count{display:flex;flex-direction:column;gap:6px;border:1px solid #e2ede6;border-radius:12px;padding:12px 14px;background:#f8fbf9}
+.c3-leaves-count small{font-size:11px;color:#637a6b;font-weight:750}
+.c3-leaves-count strong{font-size:27px;line-height:1.15;color:#194c32;font-weight:850;font-variant-numeric:tabular-nums}
+.c3-leaves-count.c3-leaves-pending{background:#fff9ed;border-color:#f3dfb7}
+.c3-leaves-count.c3-leaves-pending strong{color:#a46817}
+.c3-leaves-count.c3-leaves-approved{background:#eef9f3;border-color:#c9ecd8}
+.c3-leaves-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 0 10px;flex-wrap:wrap}
+.c3-leaves-filters{display:flex;gap:6px;flex-wrap:wrap}
+.c3-leaves-filters button{padding:8px 12px;border:1px solid #e2eae5;background:#fff;border-radius:9px;font:inherit;font-size:11px;font-weight:800;color:#4f685a;cursor:pointer;transition:background .13s,border-color .13s}
+.c3-leaves-filters button:hover{border-color:#b4ddc5;background:#f6fbf8}
+.c3-leaves-filters button[aria-pressed="true"]{background:#0b7843;border-color:#0b7843;color:white}
+.c3-leaves-filters button:focus-visible{outline:2px solid #0b7843;outline-offset:2px}
+.c3-leaves-sync{font-size:10px;color:#6b8173;font-weight:700}
+.c3-leaves-sync[data-state="error"]{color:#b45309}
+.c3-leaves-rows{display:grid;gap:8px;max-height:400px;overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 3px 1px}
+.c3-leaves-rows:focus-visible{outline:2px solid #0b7843;border-radius:9px}
+.c3-leaves-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr) auto;align-items:center;gap:12px;padding:12px 13px;border:1px solid #e5ece7;border-radius:11px;background:#fff}
+.c3-leaves-agent{min-width:0;display:grid;gap:4px}
+.c3-leaves-agent strong{font-size:12px;color:#253f32;overflow-wrap:anywhere}
+.c3-leaves-agent small{font-size:10px;color:#77857c;overflow-wrap:anywhere}
+.c3-leaves-dates{min-width:0;display:grid;gap:4px}
+.c3-leaves-dates strong{font-size:11px;color:#365443;overflow-wrap:anywhere}
+.c3-leaves-dates small{font-size:10px;color:#7b897f}
+.c3-leaves-status{justify-self:end;display:inline-flex;align-items:center;border-radius:999px;padding:6px 9px;font-size:10px;font-weight:850;white-space:nowrap}
+.c3-leaves-status.pending{background:#fff1d6;color:#965a12}
+.c3-leaves-status.approved{background:#e5f6ed;color:#0b7544}
+.c3-leaves-empty{padding:20px 12px;text-align:center;color:#718176;font-size:12px;border:1px dashed #dce8df;border-radius:10px;background:#fafcfb}
+@media(max-width:700px){.c3-leaves-count{padding:10px}.c3-leaves-count small{font-size:10px}.c3-leaves-count strong{font-size:23px}.c3-leaves-row{grid-template-columns:minmax(0,1fr) auto;gap:7px}.c3-leaves-dates{grid-column:1/-1;grid-row:2}.c3-leaves-status{grid-column:2;grid-row:1}.c3-leaves-content{padding:11px}.c3-leaves-rows{max-height:460px}}
+@media(max-width:400px){.c3-leaves-counts{gap:5px}.c3-leaves-count{padding:9px 7px}.c3-leaves-panel .c3-panel-head{gap:8px}.c3-leaves-panel .c3-panel-head h2{font-size:13px}}
