@@ -91,6 +91,17 @@ function agentData(state,week,agent){
       containerText:labels.length?"Conteneurs : "+labels.join(" · "):""
     });
   });
+  // Une durée affichée dans une carte doit être une durée comptée :
+  // les pauses sont déduites, et les créneaux superposés ne s'ajoutent pas deux fois.
+  groups.forEach(items=>{
+    const pauses=items.filter(isPause),alreadyCounted=[];
+    items.forEach(item=>{
+      if(isPause(item)){item.countedMinutes=0;return}
+      const before=workedDayMinutes(alreadyCounted.concat(pauses));
+      alreadyCounted.push(item);
+      item.countedMinutes=Math.max(0,workedDayMinutes(alreadyCounted.concat(pauses))-before);
+    });
+  });
   const dayTotals=groups.map(workedDayMinutes);
   const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
   const nightTotal=groups.reduce((total,g)=>total+nightDayMinutes(g),0);
@@ -114,7 +125,7 @@ function drawHeader(doc,data){
 function wrap(doc,text,width,size,style="normal"){doc.setFont("helvetica",style);doc.setFontSize(size);const value=clean(text);return value?doc.splitTextToSize(value,Math.max(4,width)):[]}
 function measureEvent(doc,item,w,size){
   const padX=size<=4?1.05:1.35,textW=Math.max(5,w-padX*2-1),timeSize=Math.max(3.3,size*.82),taskSize=Math.max(3.5,size*1.03),briefSize=Math.max(3.25,size),containerSize=Math.max(3.25,size*.9);
-  const timeLines=wrap(doc,`${displayTime(item.start)} - ${displayTime(item.end)} ${durationLabel(durationMin(item))}`,textW,timeSize,"bold");
+  const timeLines=wrap(doc,`${displayTime(item.start)} - ${displayTime(item.end)} ${durationLabel(isPause(item)?durationMin(item):(Number.isFinite(item.countedMinutes)?item.countedMinutes:durationMin(item)))}`,textW,timeSize,"bold");
   const taskLines=wrap(doc,item.task||"Intervention",textW,taskSize,"bold"),containerLines=wrap(doc,item.containerText||"",textW,containerSize,"bold"),briefLines=wrap(doc,item.brief||"",textW,briefSize,"normal");
   const timeLH=Math.max(2.15,timeSize*.39),taskLH=Math.max(2.3,taskSize*.4),containerLH=Math.max(2.15,containerSize*.39),briefLH=Math.max(2.15,briefSize*.39),topPad=size<=4?1:1.25,bottomPad=size<=4?.85:1.05;
   let h=topPad+Math.max(1,timeLines.length)*timeLH+.45+Math.max(1,taskLines.length)*taskLH;
