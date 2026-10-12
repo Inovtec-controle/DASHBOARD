@@ -131,7 +131,9 @@ function daySummary(rows,date){
   const dayRows=rows.filter(r=>r.key===key);
   const workRows=dayRows.filter(r=>!r.pause);
   const workUnion=mergeIntervals(workRows.map(r=>({start:r.startMin,end:r.endMin})));
-  const effective=workUnion.reduce((sum,x)=>sum+x.end-x.start,0);
+  const pauseUnion=mergeIntervals(dayRows.filter(r=>r.pause).map(r=>({start:r.startMin,end:r.endMin})));
+  const totalWork=workUnion.reduce((sum,x)=>sum+x.end-x.start,0);
+  const effective=Math.max(0,totalWork-pauseUnion.reduce((sum,p)=>sum+overlapMinutes(p,workUnion),0));
   const first=workUnion.length?workUnion[0].start:null;
   const last=workUnion.length?workUnion[workUnion.length-1].end:null;
   const pauses=dayRows.filter(r=>r.pause).map(r=>{
@@ -140,12 +142,12 @@ function daySummary(rows,date){
     const overlap=overlapMinutes(interval,workUnion);
     return{
       start:interval.start,end:interval.end,
-      duration:Math.max(0,interval.end-interval.start-overlap),
+      duration:interval.end-interval.start,
       rawDuration:interval.end-interval.start,
       inside,overlap
     };
   });
-  const validPauses=pauses.filter(p=>p.inside&&p.overlap===0);
+  const validPauses=pauses.filter(p=>p.inside);
   return{
     date,key,dayRows,workRows,workUnion,effective,first,last,
     amplitude:first!=null&&last!=null?last-first:0,
@@ -221,7 +223,7 @@ function warningsFor(candidate){
   if(targetDay.pauses.some(p=>p.overlap>0)){
     out.push(warning(
       "warning","pauseOverlap","Pause superposée à du travail",
-      "Une plage « Pause » chevauche une intervention ou un déplacement. Elle n’est pas comptée comme pause valide dans le contrôle.",
+      "Une plage « Pause » chevauche une intervention ou un déplacement. Sa durée est déduite du travail effectif ; vérifie néanmoins les horaires superposés.",
       "Contrôle de cohérence du planning"
     ));
   }
