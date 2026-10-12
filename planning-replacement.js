@@ -165,6 +165,41 @@ function periodCandidates(group){
 function validCandidate(row,id){
   return row.candidates.some(c=>String(c.agent.id)===String(id)&&c.available);
 }
+function createAvailableAgents(candidates,selectedId,onSelect,ariaLabel){
+  const list=document.createElement("div");
+  list.className="iv-available-agents";
+  list.setAttribute("role","group");
+  list.setAttribute("aria-label",ariaLabel);
+  if(!candidates.length){
+    const empty=document.createElement("p");
+    empty.className="iv-period-no-agent";
+    empty.textContent="Aucun agent disponible sur ces dates.";
+    list.appendChild(empty);
+    return list;
+  }
+  candidates.forEach(candidate=>{
+    const id=String(candidate.agent.id),active=String(selectedId||"")===id;
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="iv-period-candidate"+(active?" selected":"");
+    button.dataset.agentId=id;
+    button.setAttribute("aria-pressed",String(active));
+    button.setAttribute("aria-label",candidate.agent.name+" — disponible"+(active?" — sélectionné":""));
+    const avatar=document.createElement("span");
+    avatar.className="iv-period-candidate-avatar";
+    avatar.textContent=initials(candidate.agent.name);
+    const name=document.createElement("span");
+    name.className="iv-period-candidate-name";
+    name.textContent=candidate.agent.name;
+    const status=document.createElement("span");
+    status.className="iv-period-candidate-state";
+    status.textContent=active?"Sélectionné":"Disponible";
+    button.append(avatar,name,status);
+    button.onclick=()=>onSelect(id);
+    list.appendChild(button);
+  });
+  return list;
+}
 function renderRows(){
   const body=$("ivReplBody"),st=panelState;
   if(!st||!st.rows.length){
@@ -190,27 +225,23 @@ function renderRows(){
     head.className="iv-period-head";
     head.innerHTML='<div><strong>'+escapeHtml(g.label)+'</strong><small>'+formatDate(first)+' → '+formatDate(last)+' · '+g.rows.length+' intervention'+(g.rows.length>1?'s':'')+' · '+(Math.round(totalMinutes/6)/10)+' h</small><small>'+escapeHtml(tasks.join(" · "))+'</small></div><span class="iv-period-progress'+(assigned===g.rows.length?" complete":"")+'">'+assigned+'/'+g.rows.length+' couvertes</span>';
     card.appendChild(head);
-    const label=document.createElement("label");
-    label.className="iv-period-control-label";
-    label.textContent="Agent pour toute cette période";
-    const select=document.createElement("select");
-    select.className="iv-period-agent";
-    select.setAttribute("aria-label","Remplaçant pour toute la période : "+g.label);
-    select.appendChild(new Option("Choisir un agent pour toute la période",""));
-    candidates.forEach(c=>{
-      const o=new Option(c.agent.name+(c.available?" · disponible toute la période":" · "+c.covered+"/"+c.total+" interventions possibles"),String(c.agent.id));
-      o.disabled=!c.available;
-      select.appendChild(o);
-    });
-    select.value=uniform;
-    select.onchange=()=>{
-      const chosen=select.value;
-      if(chosen&&!periodCandidates(g).some(c=>c.available&&String(c.agent.id)===chosen))return renderRows();
-      g.rows.forEach(r=>st.choices[r.index]=chosen);
+    const title=document.createElement("div");
+    title.className="iv-period-control-label";
+    title.textContent="Agents disponibles pour toute cette période";
+    card.appendChild(title);
+    const available=candidates.filter(c=>c.available);
+    const availableList=createAvailableAgents(available,uniform,id=>{
+      g.rows.forEach(r=>st.choices[r.index]=id);
       renderRows();
-    };
-    label.appendChild(select);
-    card.appendChild(label);
+    },"Choisir le remplaçant pour tout le chantier "+g.label);
+    availableList.classList.add("iv-period-agents");
+    card.appendChild(availableList);
+    if(!uniform&&assigned){
+      const mixed=document.createElement("small");
+      mixed.className="iv-period-help";
+      mixed.textContent="La période est répartie entre plusieurs agents. Consulte « Répartir la période » ou « Modifier certains jours ».";
+      card.appendChild(mixed);
+    }
     if(!candidates.some(c=>c.available)){
       const msg=document.createElement("p");
       msg.className="iv-period-warning";
@@ -241,53 +272,69 @@ function renderRows(){
 function renderRangeEditor(card,g,st){
   const box=document.createElement("div");
   box.className="iv-period-range";
-  const title=document.createElement("strong");title.textContent="Attribuer seulement une partie de la période";
-  const dates=document.createElement("div");dates.className="iv-period-dates";
+  const title=document.createElement("strong");
+  title.textContent="Attribuer seulement une partie de la période";
+  const dates=document.createElement("div");
+  dates.className="iv-period-dates";
   const start=document.createElement("input"),end=document.createElement("input");
   [start,end].forEach(input=>{input.type="date";input.min=g.rows[0].iso;input.max=g.rows[g.rows.length-1].iso});
-  start.value=g.from;end.value=g.to;
+  start.value=g.from;
+  end.value=g.to;
   dates.append(start,end);
-  const select=document.createElement("select");
-  select.setAttribute("aria-label","Agent pour la plage de dates : "+g.label);
-  const message=document.createElement("small");message.className="iv-period-help";
-  const apply=document.createElement("button");apply.className="iv-period-apply";apply.type="button";apply.textContent="Attribuer cette plage";
+  const help=document.createElement("small");
+  help.className="iv-period-help";
+  const listSlot=document.createElement("div");
+  listSlot.className="iv-period-range-agent-list";
+  const apply=document.createElement("button");
+  apply.className="iv-period-apply";
+  apply.type="button";
+  apply.textContent="Attribuer cette plage";
   function refresh(){
     const subset=g.rows.filter(r=>r.iso>=g.from&&r.iso<=g.to);
-    const current=select.value;
-    select.replaceChildren(new Option("Choisir un agent…",""));
-    const available=subset.length?periodCandidates({rows:subset}).filter(c=>c.available):[];
-    available.forEach(c=>select.add(new Option(c.agent.name,String(c.agent.id))));
-    select.value=available.some(c=>String(c.agent.id)===current)?current:"";
-    apply.disabled=!select.value;
-    message.textContent=subset.length?subset.length+" intervention(s) comprises dans cette plage · "+available.length+" agent(s) disponible(s)":"Aucune intervention dans les dates choisies.";
+    const available=subset.length&&g.from<=g.to?periodCandidates({rows:subset}).filter(c=>c.available):[];
+    if(!available.some(c=>String(c.agent.id)===String(g.rangeAgentId||"")))g.rangeAgentId="";
+    listSlot.replaceChildren(createAvailableAgents(available,g.rangeAgentId,id=>{
+      g.rangeAgentId=id;
+      refresh();
+    },"Agents disponibles sur la plage du "+g.from+" au "+g.to+" — "+g.label));
+    apply.disabled=!g.rangeAgentId||!subset.length||g.from>g.to;
+    help.textContent=subset.length&&g.from<=g.to
+      ?subset.length+" intervention(s) sur cette plage · "+available.length+" agent(s) disponible(s)"
+      :"Choisis une plage contenant au moins une intervention.";
   }
   start.onchange=()=>{g.from=start.value;refresh()};
   end.onchange=()=>{g.to=end.value;refresh()};
-  select.onchange=()=>{apply.disabled=!select.value};
   apply.onclick=()=>{
-    const id=select.value,subset=g.rows.filter(r=>r.iso>=g.from&&r.iso<=g.to);
-    if(!id||!subset.length||!periodCandidates({rows:subset}).some(c=>c.available&&String(c.agent.id)===id))return;
+    const id=g.rangeAgentId,subset=g.rows.filter(r=>r.iso>=g.from&&r.iso<=g.to);
+    if(!id||!subset.length||!periodCandidates({rows:subset}).some(c=>c.available&&String(c.agent.id)===String(id)))return;
     subset.forEach(r=>st.choices[r.index]=id);
     renderRows();
   };
   refresh();
-  box.append(title,dates,select,message,apply);
+  box.append(title,dates,help,listSlot,apply);
   card.appendChild(box);
 }
 function renderDayExceptions(card,g,st){
   const box=document.createElement("div");
   box.className="iv-period-exceptions";
   g.rows.forEach(r=>{
-    const line=document.createElement("div");line.className="iv-period-exception";
+    const line=document.createElement("div");
+    line.className="iv-period-exception";
     const meta=document.createElement("span");
     meta.textContent=formatDate(r.iso)+" · "+(r.event.start||"")+"–"+(r.event.end||"")+" · "+(r.event.site||r.event.task||"Intervention");
-    const select=document.createElement("select");
-    select.setAttribute("aria-label","Exception du "+r.iso+" pour "+g.label);
-    select.add(new Option("Sans remplaçant",""));
-    r.candidates.filter(c=>c.available).forEach(c=>select.add(new Option(c.agent.name,String(c.agent.id))));
-    select.value=String(st.choices[r.index]||"");
-    select.onchange=()=>{st.choices[r.index]=select.value;renderRows()};
-    line.append(meta,select);box.appendChild(line);
+    const options=r.candidates.filter(c=>c.available);
+    const list=createAvailableAgents(options,st.choices[r.index],id=>{
+      st.choices[r.index]=id;
+      renderRows();
+    },"Remplaçants disponibles le "+r.iso+" — "+g.label);
+    const clear=document.createElement("button");
+    clear.type="button";
+    clear.className="iv-period-clear";
+    clear.textContent="Sans remplaçant";
+    clear.disabled=!st.choices[r.index];
+    clear.onclick=()=>{st.choices[r.index]="";renderRows()};
+    line.append(meta,list,clear);
+    box.appendChild(line);
   });
   card.appendChild(box);
 }
