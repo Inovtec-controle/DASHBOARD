@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16a34a">
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <title>Inovtec — Organisation (déplacement direct)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="inovtec-common.css?v=20260817-orga-final">
+  <link rel="stylesheet" href="inovtec-shell.css?v=20261009-organisation-presentation1">
+  <style>
+    .board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:12px;overflow-x:auto;padding-bottom:5px}
+    .column{background:#f8fafc;border:1px solid var(--border);border-radius:16px;min-height:260px;display:flex;flex-direction:column}
+    .column-header{padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px}
+    .column-title{font-weight:800;font-size:13px}
+    .column-help{font-size:10px;color:var(--muted);margin-top:2px}
+    .count{font-size:11px;font-weight:800;background:#e2e8f0;border-radius:999px;padding:4px 8px;height:max-content}
+    .task-list{padding:8px;flex:1}
+    .task{background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:8px;box-shadow:0 4px 12px rgba(15,23,42,.06);cursor:default;touch-action:auto;user-select:text}
+    .task-title{font-weight:800;font-size:13px;word-break:break-word}
+    .task-actions,.task-actions *{touch-action:auto}
+    .task-desc{font-size:12px;color:#475569;white-space:pre-wrap;margin-top:5px}
+    .task-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+    .tag{font-size:10px;border-radius:999px;padding:4px 7px;border:1px solid var(--border);background:#f8fafc}
+    .tag.high{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+    .tag.normal{background:#dcfce7;color:#166534;border-color:#86efac}
+    .tag.low{background:#e2e8f0;color:#475569}
+    .tag.overdue{background:#fee2e2;color:#991b1b;border-color:#fecaca;font-weight:800}
+    .task-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+    .task-actions button{border:1px solid var(--border);background:#fff;border-radius:9px;padding:6px 8px;font-size:11px}
+    .task-actions button.danger{color:#b91c1c;background:#fff1f2;border-color:#fecdd3}
+    .task-targets{margin-top:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+    .task-targets-title{font-size:11px;font-weight:800;margin-top:10px;color:#065f46}
+    .task-targets button{font:inherit;font-size:11px;font-weight:700;border:1px solid #a7f3d0;background:#ecfdf5;color:#065f46;border-radius:8px;padding:8px 4px;cursor:pointer;white-space:normal;min-height:34px;touch-action:manipulation}
+    .task-targets button:hover:not(:disabled){background:#bbf7d0}
+    .task-targets button:disabled{color:#334155;background:#e2e8f0;border-color:#e2e8f0;cursor:default;opacity:.85}
+    .archive-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid var(--border)}
+    .archive-item:last-child{border-bottom:0}
+    @media(max-width:900px){.board{grid-template-columns:repeat(4,280px)}}
+    /* Restore the dashboard page presentation without the former iframe/legacy business scripts. */
+    body.iv-organisation-restored{overflow-y:auto;overflow-x:hidden;background:#f5f9f7}
+    .iv-organisation-restored #app.iv-shell{height:auto;min-height:100dvh;align-items:start}
+    .iv-organisation-restored .iv-sidebar{position:sticky;top:0;align-self:start;height:100dvh}
+    .iv-organisation-restored .iv-main{display:block;min-width:0;height:auto;min-height:100dvh;overflow:visible}
+    .iv-organisation-restored .iv-topbar{position:sticky;top:0;z-index:50}
+    .iv-organisation-restored .iv-top-actions{flex-wrap:wrap;justify-content:flex-end}
+    .iv-organisation-restored .iv-topbar #syncStatus{font-size:11px}
+    .iv-organisation-restored .iv-hero{min-height:145px}
+    .iv-organisation-restored .iv-toolbar{margin-top:0;margin-bottom:0}
+    .iv-organisation-restored .page{display:grid;grid-template-columns:minmax(275px,330px) minmax(0,1fr);align-items:start;gap:12px;width:100%;max-width:none;margin:0;padding:14px 18px 28px}
+    .iv-organisation-restored .page>section.card{min-width:0;margin:0}
+    .iv-organisation-restored .page>section.card:first-child{grid-column:1;position:relative;top:auto;z-index:2}
+    .iv-organisation-restored .page>section.card:nth-child(2){grid-column:2}
+    .iv-organisation-restored .page>section.card:nth-child(3){grid-column:1/-1}
+    .iv-organisation-restored .board{grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible;align-items:start;gap:10px}
+    .iv-organisation-restored .task{touch-action:auto;user-select:text}
+    .iv-organisation-restored .iv-nav a.active{background:linear-gradient(135deg,#059669,#16a34a)}
+    .iv-organisation-restored .iv-mobile-nav a.active{background:#0d8a5c}
+    @media(max-width:1050px){
+      .iv-organisation-restored .iv-shell{grid-template-columns:82px minmax(0,1fr)}
+    }
+    @media(max-width:1360px){
+      .iv-organisation-restored .board{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media(max-width:680px){
+      .iv-organisation-restored .board{grid-template-columns:minmax(0,1fr)}
+    }
+    @media(max-width:940px){
+      .iv-organisation-restored .page{grid-template-columns:minmax(0,1fr)}
+      .iv-organisation-restored .page>section.card:nth-child(1),.iv-organisation-restored .page>section.card:nth-child(2),.iv-organisation-restored .page>section.card:nth-child(3){grid-column:1}
+    }
+    @media(max-width:760px){
+      .iv-organisation-restored #app.iv-shell{display:block}
+      .iv-organisation-restored .iv-sidebar{display:none}
+      .iv-organisation-restored .iv-main{height:auto;min-height:100dvh;padding-bottom:72px}
+      .iv-organisation-restored .iv-topbar{min-height:52px;height:auto;padding:8px 11px}
+      .iv-organisation-restored .iv-hero{min-height:140px;padding:18px}
+      .iv-organisation-restored .iv-hero-copy{padding-bottom:32px}
+      .iv-organisation-restored .iv-hero h1{font-size:25px}
+      .iv-organisation-restored .iv-date{min-width:auto}
+      .iv-organisation-restored .page{padding:10px 8px 20px;display:grid;grid-template-columns:minmax(0,1fr)}
+      .iv-organisation-restored .page>section.card:first-child{top:auto}
+      .iv-organisation-restored .iv-mobile-nav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr))}
+      .iv-organisation-restored .iv-mobile-nav a{min-width:0}
+      .iv-organisation-restored .iv-mobile-nav a span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js?v=20261012-orgmove3"></script>
+</head>
+<body class="iv-organisation-restored">
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card">
+      <h1>Connexion Inovtec</h1>
+      <p>Connecte-toi pour accéder aux tâches synchronisées.</p>
+      <div class="field"><label for="loginEmail">Adresse email</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+      <div class="field" style="margin-top:10px"><label for="loginPassword">Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px" type="submit">Se connecter</button>
+      <div id="loginError" class="muted" role="alert" style="margin-top:10px;color:#b91c1c"></div>
+    </form>
+  </div>
+
+  <div id="app" class="iv-shell hidden">
+    <aside class="iv-sidebar" aria-label="Navigation du dashboard">
+      <a class="iv-brand" href="index.html" aria-label="Accueil Inovtec Dashboard"><span class="iv-brand-mark" aria-hidden="true"></span><span class="iv-brand-copy"><strong>INOVTEC</strong><span>DASHBOARD</span></span></a>
+      <nav class="iv-nav" aria-label="Navigation principale">
+        <a href="index.html"><span class="iv-ico">⌂</span><span>Accueil</span></a>
+        <a href="PLANNINGS.html"><span class="iv-ico">▦</span><span>Planning</span></a>
+        <a href="KONTROL-CLOUD.html"><span class="iv-ico">✓</span><span>KONTROL</span></a>
+        <a href="INFOCHANTIERS-V2.html"><span class="iv-ico">ⓘ</span><span>Infos chantier</span></a>
+        <a href="AGENTS.html"><span class="iv-ico">♙</span><span>Classeur agents</span></a>
+        <a href="MATERIEL.html"><span class="iv-ico">▣</span><span>Matériel</span></a>
+        <a href="REASSORT.html"><span class="iv-ico">↻</span><span>Réassort</span></a>
+        <a href="CONGES.html"><span class="iv-ico">☂</span><span>Congés &amp; absences</span></a>
+        <a href="VARIABLES.html"><span class="iv-ico">◷</span><span>Variables agents</span></a>
+        <a href="ORGANISATION-V17.html" class="active" aria-current="page"><span class="iv-ico">◎</span><span>Organisation</span></a>
+        <a href="TEMPS.html"><span class="iv-ico">⇄</span><span>Conversion temps</span></a>
+        <a href="SALAIRE.html"><span class="iv-ico">€</span><span>Salaire</span></a>
+        <a href="ESSENCE.html"><span class="iv-ico">⛽</span><span>Dépense carburant</span></a>
+      </nav>
+      <div class="iv-sidebar-note"><strong>Inovtec Construction</strong><br>Interface unifiée du dashboard.</div>
+    </aside>
+    <div class="iv-main">
+    <header class="iv-topbar">
+      <div class="iv-top-left"><span class="iv-status-dot" aria-hidden="true"></span><strong>Organisation</strong><span>Dashboard Inovtec</span></div>
+      <div class="iv-top-actions">
+        <span id="syncStatus" class="status">Connexion…</span>
+        <span id="orgaBuildBadge" class="status ok" title="Version réellement chargée">Organisation v17 · sans glisser-déposer</span>
+        <button id="logoutBtn" class="iv-small-btn" type="button">Déconnexion</button>
+      </div>
+    </header>
+    <section class="iv-hero" aria-label="Présentation Organisation">
+      <div class="iv-hero-copy"><div class="iv-eyebrow">ORGANISATION</div><h1>Organisation</h1><p>Planifiez, suivez et pilotez vos tâches, priorités et échéances.</p></div>
+      <div class="iv-geometry" aria-hidden="true"><span class="iv-dots"></span><span class="iv-circle a"></span><span class="iv-circle b"></span><span class="iv-rect a"></span><span class="iv-rect b"></span><span class="iv-diag one"></span><span class="iv-diag two"></span><span class="iv-diag three"></span></div>
+    </section>
+    <div class="iv-toolbar" aria-label="Raccourcis Organisation">
+      <a class="iv-tool primary" href="#taskForm"><span>＋</span><span>Nouvelle tâche</span></a>
+      <a class="iv-tool" href="#board"><span>▦</span><span>Tableau des tâches</span></a>
+    </div>
+
+    <main class="page">
+      <section class="card">
+        <div class="section-title">
+          <h2 id="formTitle">Nouvelle tâche</h2>
+          <button id="cancelEditBtn" class="btn btn-secondary hidden" type="button">Annuler la modification</button>
+        </div>
+        <form id="taskForm">
+          <div class="field"><label for="title">Titre *</label><input id="title" maxlength="140" required placeholder="Ex. Relancer le syndic"></div>
+          <div class="field" style="margin-top:10px"><label for="status">Statut</label>
+            <select id="status"><option value="todo">À faire</option><option value="inprogress">En cours</option><option value="blocked">Bloqué</option><option value="done">Fait</option></select>
+          </div>
+          <div class="field" style="margin-top:10px"><label for="priority">Priorité</label>
+            <select id="priority"><option value="normal">Normale</option><option value="high">Haute</option><option value="low">Basse</option></select>
+          </div>
+          <div class="field" style="margin-top:10px"><label for="dueDate">Date limite</label><input id="dueDate" type="date"></div>
+          <div class="field" style="margin-top:10px"><label for="description">Description</label><textarea id="description" maxlength="1000" placeholder="Informations utiles, personne à contacter…"></textarea></div>
+          <button class="btn btn-primary" type="submit" style="margin-top:12px"><span id="submitLabel">Ajouter la tâche</span></button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-title"><h2>Tableau des tâches <span id="orgaBoardBuild" class="status ok" style="margin-left:8px;vertical-align:middle">LIVE v17</span> <span class="status ok">Déplacement en un clic</span></h2><span id="overdueStatus" class="status">Aucun retard</span></div>
+        <p class="muted" style="margin:0 0 10px">Pour déplacer une tâche, utilise directement les quatre boutons de statut sur sa fiche. Aucun glisser-déposer.</p>
+        <div id="moveFeedback" class="status" role="status" aria-live="polite" style="margin-bottom:10px">Prêt — données Firebase</div>
+        <div id="board" class="board"></div>
+      </section>
+
+      <section id="archiveCard" class="card hidden">
+        <div class="section-title"><h2>Archives</h2><span id="archiveCount" class="status">0</span></div>
+        <div id="archiveList" class="table-wrap"></div>
+      </section>
+    </main>
+    </div>
+    <nav class="iv-mobile-nav" aria-label="Navigation mobile">
+      <a href="index.html"><span>⌂</span><span>Accueil</span></a>
+      <a href="PLANNINGS.html"><span>▦</span><span>Planning</span></a>
+      <a href="KONTROL-CLOUD.html"><span>✓</span><span>KONTROL</span></a>
+      <a href="INFOCHANTIERS-V2.html"><span>ⓘ</span><span>Chantiers</span></a>
+      <a href="AGENTS.html"><span>♙</span><span>Agents</span></a>
+      <a href="ORGANISATION-V17.html" class="active" aria-current="page"><span>◎</span><span>Organisation</span></a>
+    </nav>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+  if (!window.INOVTEC_FIREBASE_CONFIG) {
+    document.getElementById("loginError").textContent = "Configuration Firebase introuvable.";
+    return;
+  }
+  if (!firebase.apps.length) firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const FLOW = ["todo","inprogress","blocked","done"];
+  const STATUS = {
+    todo:{label:"À faire",help:"À planifier ou lancer"},
+    inprogress:{label:"En cours",help:"Traitement en cours"},
+    blocked:{label:"Bloqué",help:"En attente d’une information"},
+    done:{label:"Fait",help:"Terminé, prêt à archiver"}
+  };
+  const LOCAL_KEY = "orga_task_board_v2";
+  let tasks = [];
+  let currentUser = null;
+  let unsubscribe = null;
+  let editingId = null;
+  let syncingFromCloud = false;
+  let pendingWrites = 0;
+  let saveChain = Promise.resolve();
+  let realtimeWatchdog = null;
+  let mutationRevision = 0;
+
+  const $ = id => document.getElementById(id);
+  const loginScreen = $("loginScreen");
+  const app = $("app");
+  const syncStatus = $("syncStatus");
+
+  function setSync(text, type=""){
+    syncStatus.textContent = text;
+    syncStatus.className = "status" + (type ? " " + type : "");
+  }
+  function safeDate(value){
+    if (!value) return "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+  }
+  function shortDate(value){
+    const valid = safeDate(value);
+    if(!valid) return "";
+    const [y,m,d] = valid.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  function isOverdue(task){
+    if(!task.dueDate || task.status === "done" || task.archived) return false;
+    const end = new Date(task.dueDate + "T23:59:59");
+    return Number.isFinite(end.getTime()) && end.getTime() < Date.now();
+  }
+  function priorityWeight(p){ return p === "high" ? 0 : p === "normal" ? 1 : 2; }
+  function sorted(items){
+    return [...items].sort((a,b)=>{
+      const overdue = Number(isOverdue(b)) - Number(isOverdue(a));
+      if(overdue) return overdue;
+      const ad = a.dueDate || "9999-12-31";
+      const bd = b.dueDate || "9999-12-31";
+      if(ad !== bd) return ad.localeCompare(bd);
+      const p = priorityWeight(a.priority) - priorityWeight(b.priority);
+      if(p) return p;
+      return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+    });
+  }
+  function stableLegacyId(task,index){
+    const seed=[task?.title||"",task?.createdAt||"",task?.dueDate||"",index].join("|");
+    let h=2166136261;
+    for(let i=0;i<seed.length;i++){ h^=seed.charCodeAt(i); h=Math.imul(h,16777619); }
+    return "legacy_"+(h>>>0).toString(36);
+  }
+  function normalizeTasks(list){
+    return (Array.isArray(list)?list:[]).filter(t=>t&&typeof t==="object").map((raw,index)=>{
+      const task={...raw};
+      task.id=String(task.id||stableLegacyId(task,index));
+      task.status=FLOW.includes(task.status)?task.status:"todo";
+      task.priority=["high","normal","low"].includes(task.priority)?task.priority:"normal";
+      task.archived=task.archived===true||task.archived==="true";
+      task.archivedAt=task.archivedAt||"";
+      task.title=String(task.title||"");
+      task.description=String(task.description||"");
+      task.dueDate=safeDate(task.dueDate);
+      return task;
+    });
+  }
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(LOCAL_KEY);
+      tasks = normalizeTasks(raw ? JSON.parse(raw) : []);
+    }catch{ tasks = []; }
+  }
+  function saveLocal(){
+    // Firebase seul : une sauvegarde ne doit jamais dépendre de localStorage.
+  }
+  function saveCloud(){
+    saveLocal();
+    render();
+    if(!currentUser){
+      setSync("Connexion Firebase requise","warning");
+      return Promise.resolve(false);
+    }
+    const owner = currentUser.uid;
+    const ref = db.collection("kanban").doc(owner);
+    const sharedRef = db.collection("chantiers").doc("__inovtec_shared_workspace_v1__");
+    tasks = normalizeTasks(tasks);
+    const payload = JSON.parse(JSON.stringify(tasks));
+    const revision = ++mutationRevision;
+    pendingWrites += 1;
+    setSync("Enregistrement…");
+
+    const write = async () => {
+      try{
+        // Une action Organisation doit atteindre immédiatement les deux sources
+        // Firebase utilisées par l'application. Cela évite qu'une ancienne copie
+        // partagée ne remette une tâche dans son état précédent juste après un
+        // déplacement, un archivage ou une restauration.
+        const [personalWrite,sharedWrite] = await Promise.allSettled([
+          ref.set({
+            tasks:payload,
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+          },{merge:true}),
+          sharedRef.set({
+            _hidden:true,
+            _type:"inovtecSharedWorkspace",
+            sharedVersion:1,
+            tasks:payload,
+            tasksUpdatedAtMs:Date.now()
+          },{merge:true})
+        ]);
+        if(personalWrite.status !== "fulfilled") throw personalWrite.reason;
+        if(sharedWrite.status !== "fulfilled"){
+          console.warn("Organisation Firebase shared save",sharedWrite.reason);
+        }
+
+        // Ne jamais dépendre uniquement de onSnapshot pour valider une action.
+        // Après la dernière modification locale, relire explicitement le serveur.
+        if(currentUser?.uid === owner && revision === mutationRevision){
+          const check = await ref.get({source:"server"});
+          if(!check.exists || !Array.isArray(check.data()?.tasks)){
+            throw new Error("Firebase n’a pas confirmé la liste Organisation");
+          }
+          if(revision === mutationRevision){
+            tasks = normalizeTasks(check.data().tasks);
+            saveLocal();
+            render();
+            setSync("Synchronisé","ok");
+          }
+        }
+        return true;
+      }catch(error){
+        console.error("Organisation Firebase save",error);
+        if(currentUser?.uid === owner && revision === mutationRevision){
+          setSync("Enregistrement Firebase impossible","warning");
+        }
+        return false;
+      }finally{
+        pendingWrites = Math.max(0,pendingWrites-1);
+      }
+    };
+    saveChain = saveChain.then(write,write);
+    return saveChain;
+  }
+
+  async function recoverRemoteTasks(owner, ref){
+    try{
+      // Si la liste personnelle n'existe pas, Firebase partagé passe avant
+      // toute ancienne copie navigateur.
+      const sharedRef = db.collection("chantiers").doc("__inovtec_shared_workspace_v1__");
+      const shared = await sharedRef.get({source:"server"});
+      if(!currentUser || currentUser.uid !== owner) return;
+
+      if(shared.exists && Array.isArray(shared.data()?.tasks)){
+        tasks = normalizeTasks(shared.data().tasks);
+        saveLocal();
+        render();
+
+        // Matérialiser la liste partagée dans le document personnel afin que
+        // toutes les actions suivantes aient une seule cible Firebase stable.
+        await ref.set({
+          tasks:JSON.parse(JSON.stringify(tasks)),
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+        if(currentUser?.uid === owner) setSync("Synchronisé","ok");
+        return;
+      }
+
+      loadLocal();
+      render();
+      if(tasks.length){
+        // Dernier secours de migration historique : une seule écriture vers
+        // Firebase, puis Firebase redevient immédiatement la source de vérité.
+        await ref.set({
+          tasks:JSON.parse(JSON.stringify(tasks)),
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+        if(currentUser?.uid === owner) setSync("Synchronisé","ok");
+      }else if(currentUser?.uid === owner){
+        setSync("Aucune tâche enregistrée","ok");
+      }
+    }catch(error){
+      console.error("Organisation Firebase recovery",error);
+      if(currentUser?.uid === owner) setSync("Firebase inaccessible","warning");
+    }
+  }
+
+  function startRealtime(){
+    if(unsubscribe){ unsubscribe(); unsubscribe = null; }
+    if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
+    const owner = currentUser.uid;
+    const ref = db.collection("kanban").doc(owner);
+    let firstRemoteState = false;
+    let recoveryStarted = false;
+    setSync("Synchronisation…");
+
+    realtimeWatchdog = setTimeout(async ()=>{
+      if(firstRemoteState || !currentUser || currentUser.uid !== owner) return;
+      try{
+        const snap = await ref.get({source:"server"});
+        if(!currentUser || currentUser.uid !== owner) return;
+        firstRemoteState = true;
+        if(snap.exists && Array.isArray(snap.data()?.tasks)){
+          tasks = normalizeTasks(snap.data().tasks);
+          saveLocal();
+          render();
+          setSync("Synchronisé","ok");
+        }else if(!recoveryStarted){
+          recoveryStarted = true;
+          await recoverRemoteTasks(owner,ref);
+        }
+      }catch(error){
+        console.error("Organisation Firebase timeout",error);
+        if(currentUser?.uid === owner) setSync("Firebase inaccessible","warning");
+      }
+    },7000);
+
+    unsubscribe = ref.onSnapshot(snap=>{
+      firstRemoteState = true;
+      if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
+
+      // Les écritures locales sont déjà rendues à l'écran. Un instantané reçu
+      // pendant l'écriture ne doit jamais remettre l'ancienne version par-dessus.
+      if(pendingWrites > 0){
+        render();
+        return;
+      }
+
+      syncingFromCloud = true;
+      if(snap.exists && Array.isArray(snap.data()?.tasks)){
+        tasks = normalizeTasks(snap.data().tasks);
+        saveLocal();
+        render();
+        setSync("Synchronisé","ok");
+      }else if(!recoveryStarted){
+        recoveryStarted = true;
+        void recoverRemoteTasks(owner,ref);
+      }else{
+        render();
+      }
+      setTimeout(()=>{ syncingFromCloud = false; },0);
+    }, error=>{
+      firstRemoteState = true;
+      if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
+      console.error("Organisation Firebase realtime",error);
+      render();
+      setSync("Firebase inaccessible","warning");
+    });
+  }
+  function makeButton(label, handler, className=""){
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.draggable = false;
+    if(className) button.className = className;
+    button.addEventListener("pointerdown",e=>e.stopPropagation());
+    button.addEventListener("dragstart",e=>e.preventDefault());
+    button.addEventListener("click",e=>{e.stopPropagation();handler(e);});
+    return button;
+  }
+  function setTaskStatus(id,status){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || task.archived || !FLOW.includes(status)) return false;
+    if(task.status === status)return true;
+    task.status = status;
+    task.updatedAt = new Date().toISOString();
+    const revision=mutationRevision+1;
+    const feedback=$("moveFeedback");
+    if(feedback){feedback.textContent="Enregistrement du déplacement vers "+STATUS[status].label+"…";feedback.className="status";}
+    void saveCloud().then(ok=>{
+      if(revision!==mutationRevision||!currentUser)return;
+      const confirmed=ok&&tasks.some(t=>String(t.id)===String(id)&&t.status===status);
+      if(feedback){
+        feedback.textContent=confirmed?"Déplacement vers "+STATUS[status].label+" enregistré dans Firebase":"Déplacement non confirmé dans Firebase. Vérifie la connexion.";
+        feedback.className="status "+(confirmed?"ok":"warning");
+      }
+      if(!confirmed)setSync("Déplacement Firebase non confirmé","warning");
+    });
+    return true;
+  }
+  function moveTask(id, direction){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || task.archived) return;
+    const i = FLOW.indexOf(task.status);
+    const next = direction === "next" ? i + 1 : i - 1;
+    if(next < 0 || next >= FLOW.length) return;
+    setTaskStatus(task.id,FLOW[next]);
+  }
+  function archiveTask(id){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || task.archived) return;
+    task.previousStatus = FLOW.includes(task.status) ? task.status : "todo";
+    task.archived = true;
+    task.archivedAt = new Date().toISOString();
+    task.updatedAt = task.archivedAt;
+    saveCloud();
+  }
+  function restoreTask(id){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task) return;
+    task.archived = false;
+    task.archivedAt = "";
+    task.status = FLOW.includes(task.previousStatus) ? task.previousStatus : "todo";
+    task.updatedAt = new Date().toISOString();
+    saveCloud();
+  }
+  function deleteTask(id){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task || !confirm(`Supprimer définitivement « ${task.title} » ?`)) return;
+    tasks = tasks.filter(t=>t.id !== id);
+    if(editingId === id) resetForm();
+    saveCloud();
+  }
+  function editTask(id){
+    const task = tasks.find(t=>String(t.id) === String(id));
+    if(!task) return;
+    editingId = id;
+    $("title").value = task.title || "";
+    $("description").value = task.description || "";
+    $("status").value = FLOW.includes(task.status) ? task.status : "todo";
+    $("priority").value = ["high","normal","low"].includes(task.priority) ? task.priority : "normal";
+    $("dueDate").value = safeDate(task.dueDate);
+    $("formTitle").textContent = "Modifier la tâche";
+    $("submitLabel").textContent = "Enregistrer les modifications";
+    $("cancelEditBtn").classList.remove("hidden");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  function resetForm(){
+    editingId = null;
+    $("taskForm").reset();
+    $("status").value = "todo";
+    $("priority").value = "normal";
+    $("formTitle").textContent = "Nouvelle tâche";
+    $("submitLabel").textContent = "Ajouter la tâche";
+    $("cancelEditBtn").classList.add("hidden");
+  }
+  function createTaskCard(task){
+    const card = document.createElement("article");
+    card.className = "task";
+    card.draggable = false;
+    card.dataset.id = task.id;
+    const title = document.createElement("div");
+    title.className = "task-title";
+    title.textContent = task.title || "(Sans titre)";
+    card.appendChild(title);
+
+    if(task.description){
+      const desc = document.createElement("div");
+      desc.className = "task-desc";
+      desc.textContent = task.description;
+      card.appendChild(desc);
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "task-meta";
+    const priority = document.createElement("span");
+    priority.className = "tag " + (task.priority || "normal");
+    priority.textContent = task.priority === "high" ? "Priorité haute" : task.priority === "low" ? "Priorité basse" : "Priorité normale";
+    meta.appendChild(priority);
+    if(task.dueDate){
+      const due = document.createElement("span");
+      due.className = "tag" + (isOverdue(task) ? " overdue" : "");
+      due.textContent = "Échéance " + shortDate(task.dueDate);
+      meta.appendChild(due);
+    }
+    card.appendChild(meta);
+
+    // Quatre cibles visibles : un clic suffit, sans geste glissé ni sélection cachée.
+    const targetsTitle=document.createElement("div");
+    targetsTitle.className="task-targets-title";
+    targetsTitle.textContent="Changer de colonne";
+    card.appendChild(targetsTitle);
+    const targets=document.createElement("div");
+    targets.className="task-targets";
+    FLOW.forEach(status=>{
+      const button=makeButton(STATUS[status].label,()=>setTaskStatus(task.id,status));
+      button.dataset.targetStatus=status;
+      button.setAttribute("aria-label","Mettre « "+(task.title||"Sans titre")+" » dans "+STATUS[status].label);
+      if(task.status===status){button.disabled=true;button.title="Statut actuel";}
+      targets.appendChild(button);
+    });
+    card.appendChild(targets);
+
+    const actions = document.createElement("div");
+    actions.className = "task-actions";
+    const index = FLOW.indexOf(task.status);
+    if(index > 0) actions.appendChild(makeButton("←",()=>moveTask(task.id,"prev")));
+    if(index < FLOW.length-1) actions.appendChild(makeButton("→",()=>moveTask(task.id,"next")));
+    actions.appendChild(makeButton("Modifier",()=>editTask(task.id)));
+    actions.appendChild(makeButton("Archiver",()=>archiveTask(task.id)));
+    actions.appendChild(makeButton("Supprimer",()=>deleteTask(task.id),"danger"));
+    card.appendChild(actions);
+    return card;
+  }
+  function renderBoard(){
+    const board = $("board");
+    board.innerHTML = "";
+    FLOW.forEach(status=>{
+      const column = document.createElement("section");
+      column.className = "column";
+      column.dataset.status = status;
+      const header = document.createElement("div");
+      header.className = "column-header";
+      const left = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "column-title";
+      title.textContent = STATUS[status].label;
+      const help = document.createElement("div");
+      help.className = "column-help";
+      help.textContent = STATUS[status].help;
+      left.append(title,help);
+      const count = document.createElement("span");
+      count.className = "count";
+      const listTasks = sorted(tasks.filter(t=>!t.archived && t.status === status));
+      count.textContent = String(listTasks.length);
+      header.append(left,count);
+      const list = document.createElement("div");
+      list.className = "task-list";
+      list.dataset.status = status;
+      if(!listTasks.length){
+        const empty = document.createElement("div");
+        empty.className = "muted";
+        empty.style.padding = "8px";
+        empty.textContent = "Aucune tâche";
+        list.appendChild(empty);
+      }else listTasks.forEach(t=>list.appendChild(createTaskCard(t)));
+      column.append(header,list);
+      board.appendChild(column);
+    });
+  }
+  function renderArchive(){
+    const archived = [...tasks].filter(t=>t.archived).sort((a,b)=>String(b.archivedAt||"").localeCompare(String(a.archivedAt||"")));
+    $("archiveCount").textContent = String(archived.length);
+    $("archiveCard").classList.toggle("hidden", archived.length === 0);
+    const list = $("archiveList");
+    list.innerHTML = "";
+    archived.forEach(task=>{
+      const row = document.createElement("div");
+      row.className = "archive-item";
+      const info = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = task.title || "(Sans titre)";
+      const date = document.createElement("div");
+      date.className = "muted";
+      date.textContent = task.archivedAt ? "Archivée le " + new Date(task.archivedAt).toLocaleString("fr-FR") : "Archivée";
+      info.append(title,date);
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      actions.append(makeButton("Restaurer",()=>restoreTask(task.id)),makeButton("Supprimer",()=>deleteTask(task.id),"danger"));
+      row.append(info,actions);
+      list.appendChild(row);
+    });
+  }
+  function render(){
+    renderBoard();
+    renderArchive();
+    const overdue = tasks.filter(t=>!t.archived && isOverdue(t)).length;
+    $("overdueStatus").textContent = overdue ? `${overdue} tâche${overdue>1?"s":""} en retard` : "Aucun retard";
+    $("overdueStatus").className = "status " + (overdue ? "error" : "ok");
+  }
+
+  $("taskForm").addEventListener("submit", e=>{
+    e.preventDefault();
+    const title = $("title").value.trim();
+    if(!title) return;
+    const dueDate = safeDate($("dueDate").value);
+    if($("dueDate").value && !dueDate){
+      alert("La date limite est invalide.");
+      return;
+    }
+    if(editingId){
+      const task = tasks.find(t=>t.id === editingId);
+      if(task){
+        task.title = title;
+        task.description = $("description").value.trim();
+        task.status = FLOW.includes($("status").value) ? $("status").value : "todo";
+        task.priority = ["high","normal","low"].includes($("priority").value) ? $("priority").value : "normal";
+        task.dueDate = dueDate;
+        task.updatedAt = new Date().toISOString();
+      }
+    }else{
+      tasks.push({
+        id:"t_"+Date.now()+"_"+Math.random().toString(16).slice(2),
+        title,
+        description:$("description").value.trim(),
+        status:FLOW.includes($("status").value) ? $("status").value : "todo",
+        priority:["high","normal","low"].includes($("priority").value) ? $("priority").value : "normal",
+        dueDate,
+        createdAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString(),
+        archived:false,
+        archivedAt:""
+      });
+    }
+    resetForm();
+    saveCloud();
+  });
+  $("cancelEditBtn").addEventListener("click",resetForm);
+  $("logoutBtn").addEventListener("click",()=>auth.signOut());
+  $("loginForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    $("loginError").textContent = "";
+    try{
+      await auth.signInWithEmailAndPassword($("loginEmail").value.trim(),$("loginPassword").value);
+    }catch(error){
+      $("loginError").textContent = "Connexion impossible : " + (error.message || "vérifie les identifiants.");
+    }
+  });
+
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      currentUser = user;
+      loginScreen.classList.add("hidden");
+      app.classList.remove("hidden");
+      loadLocal();
+      render();
+      startRealtime();
+    }else{
+      currentUser = null;
+      if(unsubscribe){unsubscribe();unsubscribe=null;}
+      if(realtimeWatchdog){clearTimeout(realtimeWatchdog);realtimeWatchdog=null;}
+      app.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+      setSync("Déconnecté");
+    }
+  });
+})();
+</script>
+</body>
+</html>
