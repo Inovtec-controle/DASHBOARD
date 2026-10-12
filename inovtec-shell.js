@@ -27,21 +27,22 @@ if(mode==="organisation") window.location.replace("ORGANISATION-V17.html?v=20261
 const navDefinitions=[
  ['Accueil','⌂','index.html','home'],
  ['Planning','▦','PLANNINGS.html?v=20261012-pause-trajet-v3','planning'],
- ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20261009-agentpicker-fix1'],
- ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos','INFOCHANTIERS-V2-LEGACY.html?v=20261009-performance1'],
- ['Classeur agents','♙','AGENTS.html?v=20260927-agentsflow19','agents','AGENTS-LEGACY.html?v=20260927-agentsflow19'],
+ ['KONTROL','✓','KONTROL-CLOUD.html','kontrol'],
+ ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos'],
+ ['Classeur agents','♙','AGENTS.html?v=20260927-agentsflow19','agents'],
  ['Matériel','▣','MATERIEL.html','materiel'],
  ['Réassort','↻','REASSORT.html','reassort'],
- ['Congés & absences','☂','CONGES.html?v=20261001-congesmonth1','conges','CONGES-LEGACY.html?v=20261001-congesmonth1'],
- ['Variables agents','◷','VARIABLES.html','variables','VARIABLES-DASHBOARD.html?v=20260927-savecontrols1'],
- ['Organisation','◎','ORGANISATION-V17.html?v=20261012-v17-direct','organisation','ORGANISATION-V17.html?v=20261012-v17-direct'],
- ['Conversion temps','⇄','TEMPS.html','temps','TEMPS-LEGACY.html?v=20260829-operational1'],
- ['Salaire','€','SALAIRE.html','salaire','SALAIRE-LEGACY.html?v=20260829-operational1'],
- ['Dépense carburant','⛽','ESSENCE.html','essence','ESSENCE-LEGACY.html?v=20260829-operational1']
+ ['Congés & absences','☂','CONGES.html?v=20261001-congesmonth1','conges'],
+ ['Variables agents','◷','VARIABLES.html','variables'],
+ ['Organisation','◎','ORGANISATION-V17.html?v=20261012-v17-direct','organisation'],
+ ['Conversion temps','⇄','TEMPS.html','temps'],
+ ['Salaire','€','SALAIRE.html','salaire'],
+ ['Dépense carburant','⛽','ESSENCE.html','essence']
 ];
-const navRoute=item=>item[3]==='planning'?'PLANNINGS.html?v=20261012-pause-trajet-v3':(item[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:item[3],page:item[4],build:'20261009-performance1'}).toString():item[2]);
+// Toutes les rubriques passent par leur page d'entrée officielle, jamais un ancien iframe en cache.
+const navRoute=item=>item[2];
 function makeNav(target,mobile=false){
- const items=mobile?navDefinitions.filter(item=>['home','planning','infos','agents','variables'].includes(item[3])):navDefinitions;
+ const items=mobile?navDefinitions.filter(item=>['home','planning','infos','agents'].includes(item[3])):navDefinitions;
  const fragment=document.createDocumentFragment();
  items.forEach(item=>{const a=document.createElement('a');a.href=navRoute(item);a.dataset.ivMenuKey=item[3];if(item[3]===mode)a.classList.add('active');if(mobile){const label={home:'Accueil',planning:'Planning',infos:'Chantiers',agents:'Agents',variables:'Variables'}[item[3]]||item[0];a.innerHTML='<span>'+item[1]+'</span><span>'+label+'</span>'}else a.innerHTML='<span class="iv-ico">'+item[1]+'</span><span>'+item[0]+'</span>';fragment.appendChild(a)});
  if(mobile){const more=document.createElement('button');more.type='button';more.className='iv-more-menu';more.setAttribute('aria-haspopup','dialog');more.setAttribute('aria-expanded','false');more.innerHTML='<span>☰</span><span>Menu</span>';more.addEventListener('click',()=>{
@@ -59,31 +60,13 @@ makeNav($("mobileNav"),true);
 $("eyebrow").textContent=cfg.eyebrow;$("pageTitle").innerHTML=cfg.title;$("pageSubtitle").textContent=cfg.subtitle;$("topTitle").textContent=cfg.label;document.title=`${cfg.label} — Inovtec Dashboard`;
 const df=new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}),tf=new Intl.DateTimeFormat("fr-FR",{hour:"2-digit",minute:"2-digit"});
 function tick(){const d=new Date();$("dateLabel").textContent=df.format(d).replace(/^./,c=>c.toUpperCase());$("timeLabel").textContent=tf.format(d)}tick();setInterval(tick,30000);
-const frame=$("legacyFrame"),loading=$("loading"),tools=$("quickTools");
+const frame=$("legacyFrame"),loading=$("loading");
 frame.src=legacyPage;
 $("refreshPage").onclick=()=>{loading.classList.remove("hidden");try{frame.contentWindow.location.reload()}catch{frame.src=legacyPage}};
 $("openOriginal").onclick=()=>window.open(legacyPage,"_blank");
 function targetDoc(){try{return frame.contentDocument||null}catch{return null}}
 function nestedKontrolDoc(){try{return frame.contentDocument?.getElementById("kontrolFrame")?.contentDocument||null}catch{return null}}
 function addTheme(doc,modeName){if(!doc||!doc.head||!doc.body)return;doc.body.classList.add("iv-embedded",`iv-mode-${modeName}`);if(!doc.querySelector('link[data-inovtec-modern="1"]')){const link=doc.createElement("link");link.rel="stylesheet";link.href="inovtec-embedded.css?v=20260820-infos-mobile1";link.dataset.inovtecModern="1";doc.head.appendChild(link)}}
-function textButton(doc,labels){const buttons=[...doc.querySelectorAll("button,a.btn,label.btn")];return buttons.find(el=>labels.some(label=>(el.textContent||"").trim().toLowerCase().includes(label)))}
-function clickTarget(selector,labels=[],deep=false){const doc=deep?nestedKontrolDoc():targetDoc();if(!doc)return false;let el=selector?doc.querySelector(selector):null;if(!el&&labels.length)el=textButton(doc,labels);if(el){el.click();return true}return false}
-function focusTarget(selector){const doc=targetDoc();const el=doc?.querySelector(selector);if(el){el.focus();el.scrollIntoView({behavior:"smooth",block:"center"});return true}return false}
-function addTool(label,icon,handler,primary=false){const b=document.createElement("button");b.type="button";b.className="iv-tool"+(primary?" primary":"");b.innerHTML=`<span>${icon}</span><span>${label}</span>`;b.onclick=handler;tools.appendChild(b)}
-function buildTools(){tools.innerHTML="";
- addTool("Rechercher","⌕",()=>focusTarget('input[type="search"],#search,input[placeholder*="Recher"]'));
- if(mode==="planning"){addTool("Ajouter un agent","＋",()=>clickTarget("#addAgent",["ajouter"]),true);addTool("Exporter","⇩",()=>clickTarget("#exportBtn",["exporter"]));addTool("Imprimer","▤",()=>clickTarget("#printBtn",["imprimer"]));}
- if(mode==="kontrol"){addTool("Archives PDF","☁",()=>clickTarget("#archiveBtn",["archives pdf"]));addTool("Enregistrer + PDF","▤",()=>clickTarget("#pdfBtn",["enregistrer + pdf","enregistrer le contrôle"],true));}
- if(mode==="discipline"){addTool("Nouveau dossier","＋",()=>{const d=targetDoc();d?.getElementById("recordForm")?.scrollIntoView({behavior:"smooth",block:"start"});d?.getElementById("agent")?.focus()},true);addTool("Exporter JSON","⇩",()=>clickTarget("#exportBtn",["exporter json"]));addTool("Actualiser données","↻",()=>clickTarget("#syncBtn",["actualiser"]));}
- if(mode==="infos"){addTool("Nouveau chantier","＋",()=>clickTarget("#newBtn",["nouveau"]),true);addTool("Fiche PDF","▤",()=>clickTarget("#pdfBtn",["pdf"]));addTool("Ma position","⌖",()=>clickTarget("#gpsBtn",["position"]));}
- if(mode==="agents"){addTool("Rechercher un agent","⌕",()=>focusTarget('input[type="search"],input[placeholder*="Recher"]'),true);addTool("Exporter","⇩",()=>clickTarget(null,["exporter"]));}
- if(mode==="organisation"){addTool("Nouvelle tâche","＋",()=>{const d=targetDoc();d?.getElementById("taskForm")?.scrollIntoView({behavior:"smooth",block:"start"});d?.getElementById("title")?.focus()},true);addTool("Archives","▤",()=>clickTarget(null,["archive"]));}
- if(mode==="variables"){addTool("Ajouter une variable","＋",()=>clickTarget("#newVariable",["ajouter une variable"]),true);addTool("Détecter planning","◷",()=>clickTarget("#detectPlanning",["détecter planning"]));addTool("Exporter CSV","⇩",()=>clickTarget("#exportCsv",["export csv"]));}
- if(mode==="temps"){addTool("Convertir","⇄",()=>clickTarget(null,["convertir"]),true);addTool("Réinitialiser","↻",()=>clickTarget(null,["réinitialiser"]));}
- if(mode==="salaire"){addTool("Calculer","=",()=>clickTarget(null,["calculer"]),true);addTool("Réinitialiser","↻",()=>clickTarget(null,["réinitialiser"]));}
- if(mode==="essence"){addTool("Calculer","=",()=>clickTarget("#calculateBtn",["calculer"]),true);addTool("Réinitialiser","↻",()=>clickTarget("#resetBtn",["réinitialiser"]));}
- const spacer=document.createElement("span");spacer.className="iv-spacer";tools.appendChild(spacer);const live=document.createElement("span");live.className="iv-live";live.id="liveMirror";live.textContent="Fonctions d’origine conservées";tools.appendChild(live)
-}
 let agentsResizeObserver=null,agentsMutationObserver=null,agentsResizeRaf=0;
 function fitAgentsFullPage(doc){
   if(mode!=="agents"||!doc?.body)return;
@@ -130,9 +113,17 @@ function fitAgentsFullPage(doc){
   setTimeout(scheduleResize,500);
   setTimeout(scheduleResize,1200);
 }
-function mirrorStatus(){const doc=targetDoc();if(!doc)return;const src=doc.querySelector("#syncStatus,.status.ok,.status.warning");if(src&&src.textContent.trim()){const value=src.textContent.trim().slice(0,70);if($("syncMirror").textContent!==value)$("syncMirror").textContent=value}const live=$("liveMirror");if(!live)return;let count="";if(mode==="planning")count=doc.querySelector("#count")?.textContent||"";else if(mode==="infos")count=(doc.querySelector("#count")?.textContent||"")+" chantier(s)";else if(mode==="discipline")count=doc.querySelector("#count")?.textContent||"";else if(mode==="organisation")count=`${doc.querySelectorAll(".task").length} tâche(s)`;else if(mode==="variables")count=(doc.querySelector("#kpiEntries")?.textContent||"0")+" variable(s) ce mois";else if(mode==="essence")count=doc.querySelector("#totalCost")?.textContent||"";const value=count||"Fonctions d’origine conservées";if(live.textContent!==value)live.textContent=value}
+function mirrorStatus(){
+  const doc=targetDoc();
+  if(!doc)return;
+  const src=doc.querySelector("#syncStatus,.status.ok,.status.warning");
+  if(!src||!src.textContent.trim())return;
+  const value=src.textContent.trim().slice(0,70);
+  const mirror=$("syncMirror");
+  if(mirror&&mirror.textContent!==value)mirror.textContent=value;
+}
 let statusInterval=null;
-function prepareFrame(){const doc=targetDoc();if(!doc)return;addTheme(doc,mode==="kontrol"?"kontrol-cloud":mode);if(mode==="agents")fitAgentsFullPage(doc);if(mode==="kontrol"){const nested=doc.getElementById("kontrolFrame");if(nested){const inject=()=>addTheme(nestedKontrolDoc(),"kontrol");nested.addEventListener("load",()=>setTimeout(inject,60));setTimeout(inject,300);setTimeout(inject,1100)}}buildTools();mirrorStatus();if(statusInterval===null)statusInterval=setInterval(()=>{if(!document.hidden)mirrorStatus()},8000);loading.classList.add("hidden")}
+function prepareFrame(){const doc=targetDoc();if(!doc)return;addTheme(doc,mode==="kontrol"?"kontrol-cloud":mode);if(mode==="agents")fitAgentsFullPage(doc);if(mode==="kontrol"){const nested=doc.getElementById("kontrolFrame");if(nested){const inject=()=>addTheme(nestedKontrolDoc(),"kontrol");nested.addEventListener("load",()=>setTimeout(inject,60));setTimeout(inject,300);setTimeout(inject,1100)}}mirrorStatus();if(statusInterval===null)statusInterval=setInterval(()=>{if(!document.hidden)mirrorStatus()},8000);loading.classList.add("hidden")}
 frame.addEventListener("load",()=>setTimeout(prepareFrame,80));
 window.addEventListener("inovtec:datahub",()=>setTimeout(mirrorStatus,30));
 window.addEventListener("inovtec:firebase-status",()=>setTimeout(mirrorStatus,30));
