@@ -71,6 +71,12 @@ try{
   if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)
     throw Error('Le déplacement par sélection de colonne a échoué');
 
+  // Annuler ne change pas le statut du serveur.
+  await page.locator('.task[data-id="move-1"] .task-actions button.move-action').click();
+  await page.locator('#cancelTaskMoveBtn').click();
+  const afterCancel=await page.evaluate(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status);
+  if(afterCancel!=='blocked')throw Error('Annuler un déplacement a changé la tâche');
+
   // 2b. Méthode de secours directe : le menu change de colonne et se sauvegarde.
   await page.locator('.task[data-id="move-1"] .task-status-switch select').selectOption('todo');
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='todo');
