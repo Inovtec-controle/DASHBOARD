@@ -54,7 +54,28 @@ function familiarity(p,candidate,e){let n=0;Object.values(p.weeks||{}).forEach(r
 function weekLoad(p,candidate,week){return(p.weeks?.[week]||[]).filter(e=>String(e.agentId)===String(candidate.id)).reduce((n,e)=>n+minutes(e),0)}
 function isBreak(e){return norm(e?.task)==="pause"}
 function weeklyPlannedMinutes(p,candidate,week){
-  return (p.weeks?.[week]||[]).filter(e=>String(e.agentId)===String(candidate.id)&&!isBreak(e)).reduce((total,e)=>total+minutes(e),0);
+  const rows=(p.weeks?.[week]||[]).filter(e=>String(e.agentId)===String(candidate.id));
+  const union=spans=>{
+    const ordered=spans.filter(e=>e.end>e.start).sort((a,b)=>a.start-b.start||a.end-b.end);
+    const result=[];
+    for(const next of ordered){
+      const last=result[result.length-1];
+      if(last&&next.start<=last.end)last.end=Math.max(last.end,next.end);
+      else result.push({...next});
+    }
+    return result;
+  };
+  let total=0;
+  for(let day=0;day<7;day++){
+    const dayRows=rows.filter(e=>Number(e.day)===day);
+    const work=union(dayRows.filter(e=>!isBreak(e)).map(e=>({start:timeMin(e.start),end:timeMin(e.end)})));
+    const pauses=union(dayRows.filter(isBreak).map(e=>({start:timeMin(e.start),end:timeMin(e.end)})));
+    total+=work.reduce((sum,w)=>sum+w.end-w.start,0);
+    for(const pause of pauses)for(const w of work){
+      total-=Math.max(0,Math.min(w.end,pause.end)-Math.max(w.start,pause.start));
+    }
+  }
+  return total;
 }
 function masterAgent(candidate){
   let hub=null;
