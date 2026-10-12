@@ -25,6 +25,11 @@ try {
   if(state.stable!=='1')throw Error('Le menu initial n’est pas reconnu comme définitif');
   if(state.versions.length!==1)throw Error('Menu reconstruit '+state.versions.length+' fois : '+JSON.stringify(state.versions));
   if(state.versions[0].split('|').length!==13)throw Error('Le premier menu était incomplet');
-  if(!state.links.find(a=>a.key==='variables')?.href.includes('mode=variables'))throw Error('Destination Variables incorrecte');
+  const variablesLink=state.links.find(a=>a.key==='variables')?.href||'';
+  if(!variablesLink.startsWith('VARIABLES.html'))throw Error('Destination Variables incorrecte : '+variablesLink);
+  await page.locator('#desktopNav a[data-iv-menu-key="variables"]').click();
+  await page.waitForURL(/mode=variables/, {timeout:15000});
+  const currentPage=await page.evaluate(()=>new URLSearchParams(location.search).get('page'));
+  if(!currentPage?.startsWith('VARIABLES-DASHBOARD.html'))throw Error('La rubrique Variables ouverte est incorrecte : '+currentPage);
   console.log('OK : menu de gauche complet dès sa première construction, aucune reconstruction, même sans Firebase.');
 }finally{await browser.close()}
