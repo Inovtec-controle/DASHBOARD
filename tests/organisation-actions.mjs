@@ -40,7 +40,7 @@ try{
   // 1. Le bouton de déplacement reste cliquable dans une carte non draggable.
   const moveCard=page.locator('.task[data-id="move-1"]');
   console.log('TEST A : bouton de déplacement');
-  await moveCard.locator('.task-actions button').first().click();
+  await moveCard.locator('.task-actions').getByRole('button',{name:'→'}).click();
   console.log('TEST A : état après clic',await page.evaluate(()=>JSON.stringify(window.__orgaActionsTest.personal.tasks)));
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='inprogress');
 
