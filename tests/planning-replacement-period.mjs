@@ -10,11 +10,11 @@ try{
  await page.evaluate(()=>{
    const events={
      '2026-W42':[
-       {id:'site-a-mon',agentId:'original',chantierId:'site-a',site:'Résidence A',task:'Entretien escaliers',day:0,start:'09:00',end:'11:00'},
-       {id:'site-a-tue',agentId:'original',chantierId:'site-a',site:'Résidence A',task:'Entretien escaliers',day:1,start:'09:00',end:'11:00'},
-       {id:'site-a-wed',agentId:'original',chantierId:'site-a',site:'Résidence A',task:'Entretien escaliers',day:2,start:'09:00',end:'11:00'},
-       {id:'site-b-mon',agentId:'original',chantierId:'site-b',site:'Résidence B',task:'Nettoyage',day:0,start:'14:00',end:'15:00'},
-       {id:'busy-alpha',agentId:'alpha',chantierId:'other',site:'Autre chantier',task:'Mission existante',day:2,start:'09:30',end:'10:30'}
+       {id:'site-a-mon',agentId:'original',chantierId:'site-a',task:'Résidence A',site:'Entretien escaliers',day:0,start:'09:00',end:'11:00'},
+       {id:'site-a-tue',agentId:'original',chantierId:'site-a',task:'Résidence A',site:'Entretien escaliers',day:1,start:'09:00',end:'11:00'},
+       {id:'site-a-wed',agentId:'original',chantierId:'site-a',task:'Résidence A',site:'Entretien escaliers',day:2,start:'09:00',end:'11:00'},
+       {id:'site-b-mon',agentId:'original',chantierId:'site-b',task:'Résidence B',site:'Nettoyage',day:0,start:'14:00',end:'15:00'},
+       {id:'busy-alpha',agentId:'alpha',chantierId:'other',task:'Autre chantier',site:'Mission existante',day:2,start:'09:30',end:'10:30'}
      ]
    };
    const state={p:{
