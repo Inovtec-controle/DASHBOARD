@@ -38,6 +38,9 @@ try{
   if(version!=='LIVE v17')throw Error('Organisation v17 non chargée : '+version);
   if(await page.locator('#board .task[draggable="true"]').count())throw Error('Ancien glisser-déposer encore actif');
 
+  // Un stockage local indisponible ne doit jamais bloquer les déplacements Firebase.
+  await page.evaluate(()=>{Storage.prototype.setItem=function(){throw new Error('stockage local indisponible')};});
+
   // Chaque statut possède un bouton direct et fonctionne sans souris glissée.
   for(const status of ['inprogress','blocked','done','todo']){
     await page.locator('.task[data-id="move-1"] .task-targets button[data-target-status="'+status+'"]').click();
