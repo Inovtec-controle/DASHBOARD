@@ -52,6 +52,7 @@ jobs:
           node tests/materiel-transaction-sync.mjs
           node tests/materiel-redesign.mjs
           node tests/planning-hours-consistency.mjs
+          node tests/planning-editor-worked-time.mjs
           node tests/planning-clean-core.mjs
           node tests/planning-recurrence-direct.mjs
           node tests/planning-replacement-leaves.mjs
