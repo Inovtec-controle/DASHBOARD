@@ -21,14 +21,40 @@ function timeToMin(t){const m=String(t||"").match(/(\d{1,2}):(\d{2})/);return m?
 function displayTime(t){const m=String(t||"").match(/(\d{1,2}):(\d{2})/);if(!m)return String(t||"");return`${Number(m[1])}h${m[2]}`}
 function durationMin(item){let s=timeToMin(item.start),e=timeToMin(item.end);if(e<s)e+=1440;return Math.max(0,e-s)}
 function isPause(item){return norm(item?.task)==="pause"}
-function workedDurationMin(item){return isPause(item)?0:durationMin(item)}
 function overlapMin(start,end,windowStart,windowEnd){return Math.max(0,Math.min(end,windowEnd)-Math.max(start,windowStart))}
-function nightDurationMin(item){
-  if(isPause(item)||!item?.start||!item?.end)return 0;
-  const start=timeToMin(item.start);let end=timeToMin(item.end);
-  if(end<start)end+=1440;
-  return overlapMin(start,end,0,NIGHT_END)+overlapMin(start,end,NIGHT_START,1440+NIGHT_END);
+function countedIntervals(items){
+  // Les déplacements et interventions comptent ; les pauses ne comptent jamais.
+  // On retire aussi la pause lorsqu'elle est incluse dans une intervention.
+  const all=(items||[]).map(item=>{
+    if(!item?.start||!item?.end)return null;
+    const start=timeToMin(item.start),rawEnd=timeToMin(item.end),end=rawEnd<start?rawEnd+1440:rawEnd;
+    return end>start?{start,end,pause:isPause(item)}:null;
+  }).filter(Boolean);
+  const merge=slots=>{
+    const out=[];
+    slots.sort((a,b)=>a.start-b.start||a.end-b.end).forEach(slot=>{
+      const previous=out[out.length-1];
+      if(previous&&slot.start<=previous.end)previous.end=Math.max(previous.end,slot.end);
+      else out.push({start:slot.start,end:slot.end});
+    });
+    return out;
+  };
+  const work=merge(all.filter(x=>!x.pause)),pauses=merge(all.filter(x=>x.pause)),counted=[];
+  work.forEach(slot=>{
+    let from=slot.start;
+    for(const pause of pauses){
+      if(pause.end<=from)continue;
+      if(pause.start>=slot.end)break;
+      if(pause.start>from)counted.push({start:from,end:Math.min(slot.end,pause.start)});
+      from=Math.max(from,Math.min(slot.end,pause.end));
+      if(from>=slot.end)break;
+    }
+    if(from<slot.end)counted.push({start:from,end:slot.end});
+  });
+  return counted;
 }
+function workedDayMinutes(items){return countedIntervals(items).reduce((sum,x)=>sum+x.end-x.start,0)}
+function nightDayMinutes(items){return countedIntervals(items).reduce((sum,x)=>sum+overlapMin(x.start,x.end,0,NIGHT_END)+overlapMin(x.start,x.end,NIGHT_START,1440+NIGHT_END),0)}
 function durationLabel(mins){const h=Math.floor(mins/60),m=mins%60;return h?`${h}h${pad(m)}`:`${m} min`}
 function totalLabel(mins){const h=Math.floor(mins/60),m=mins%60;return`${h}h${pad(m)}`}
 function loadState(){try{const s=window.InovtecPlanningAPI?.getState?.()||{};return s&&Array.isArray(s.agents)&&s.weeks?s:{agents:[],weeks:{},selected:null}}catch{return{agents:[],weeks:{},selected:null}}}
@@ -65,9 +91,9 @@ function agentData(state,week,agent){
       containerText:labels.length?"Conteneurs : "+labels.join(" · "):""
     });
   });
-  const dayTotals=groups.map(g=>g.reduce((n,item)=>n+workedDurationMin(item),0));
+  const dayTotals=groups.map(workedDayMinutes);
   const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
-  const nightTotal=groups.reduce((total,g)=>total+g.reduce((n,item)=>n+nightDurationMin(item),0),0);
+  const nightTotal=groups.reduce((total,g)=>total+nightDayMinutes(g),0);
   const sundayTotal=dayTotals[6]||0;
   return{agent:agent.name||"Agent",start,end,groups,dayTotals,weekTotal,nightTotal,sundayTotal};
 }
