@@ -7,20 +7,21 @@ const mode=(new URLSearchParams(location.search).get('mode')||'').toLowerCase();
 const pathname=location.pathname.split('/').pop().toUpperCase();
 const definitions=[
  ['Accueil','⌂','index.html','home'],
- ['Planning','▦','PLANNINGS.html','planning','PLANNINGS-LEGACY.html?v=20260917-planning-preservation1'],
- ['KONTROL','✓','KONTROL-CLOUD.html','kontrol','KONTROL-CLOUD-LEGACY.html?v=20261009-agentpicker-fix1'],
- ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos','INFOCHANTIERS-V2-LEGACY.html?v=20261009-performance1'],
- ['Classeur agents','♙','AGENTS.html','agents','AGENTS-LEGACY.html?v=20260914-incidentpdf1'],
+ ['Planning','▦','PLANNINGS.html','planning'],
+ ['KONTROL','✓','KONTROL-CLOUD.html','kontrol'],
+ ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos'],
+ ['Classeur agents','♙','AGENTS.html','agents'],
  ['Matériel','▣','MATERIEL.html','materiel'],
  ['Réassort','↻','REASSORT.html','reassort'],
- ['Congés & absences','☂','CONGES.html','conges','CONGES-LEGACY.html?v=20260829-operational1'],
- ['Variables agents','◷','VARIABLES.html','variables','VARIABLES-DASHBOARD.html?v=20260916-1'],
- ['Organisation','◎','ORGANISATION-V17.html?v=20261012-v17-direct','organisation',null],
- ['Conversion temps','⇄','TEMPS.html','temps','TEMPS-LEGACY.html?v=20260829-operational1'],
- ['Salaire','€','SALAIRE.html','salaire','SALAIRE-LEGACY.html?v=20260829-operational1'],
- ['Dépense carburant','⛽','ESSENCE.html','essence','ESSENCE-LEGACY.html?v=20260829-operational1']
+ ['Congés & absences','☂','CONGES.html','conges'],
+ ['Variables agents','◷','VARIABLES.html','variables'],
+ ['Organisation','◎','ORGANISATION-V17.html?v=20261012-v17-direct','organisation'],
+ ['Conversion temps','⇄','TEMPS.html','temps'],
+ ['Salaire','€','SALAIRE.html','salaire'],
+ ['Dépense carburant','⛽','ESSENCE.html','essence']
 ];
-const route=d=>d[3]==='organisation'?d[2]:(d[3]==='planning'?'PLANNINGS.html?v=20261009-performance1':(d[4]?'inovtec-page-shell.html?'+new URLSearchParams({mode:d[3],page:d[4],build:'20261009-performance1'}).toString():d[2]));
+// Rediriger via les points d'entrée canoniques : ils choisissent eux-mêmes la version à afficher.
+const route=d=>d[2];
 const active=mode||({'INDEX.HTML':'home','MATERIEL.HTML':'materiel','REASSORT.HTML':'reassort'}[pathname]||'');
 function desktopLink(doc,d,kind){const a=doc.createElement('a');a.href=route(d);a.dataset.ivMenuKey=d[3];if(d[3]===active)a.classList.add('active');
  if(kind==='shell')a.innerHTML='<span class="iv-ico">'+d[1]+'</span><span>'+d[0]+'</span>';
@@ -29,7 +30,7 @@ function desktopLink(doc,d,kind){const a=doc.createElement('a');a.href=route(d);
  return a;}
 function renderDesktop(nav){if(!nav||nav.dataset.ivStableMenu==='1')return;const kind=nav.matches('#desktopNav,.iv-sidebar .iv-nav')?'shell':nav.matches('.side nav')?'reassort':'home';
  const fragment=document.createDocumentFragment();definitions.forEach(d=>fragment.appendChild(desktopLink(document,d,kind)));nav.replaceChildren(fragment);nav.dataset.ivStableMenu='1';}
-function renderMobile(nav){if(!nav||nav.dataset.ivStableMenu==='1')return;const items=definitions.filter(d=>['home','planning','infos','agents','variables'].includes(d[3]));const f=document.createDocumentFragment();
+function renderMobile(nav){if(!nav||nav.dataset.ivStableMenu==='1')return;const items=definitions.filter(d=>['home','planning','infos','agents'].includes(d[3]));const f=document.createDocumentFragment();
  items.forEach(d=>{const a=document.createElement('a');a.href=route(d);a.dataset.ivMenuKey=d[3];if(d[3]===active)a.classList.add('active');a.innerHTML='<span>'+d[1]+'</span><span>'+({'home':'Accueil','planning':'Planning','infos':'Chantiers','agents':'Agents','variables':'Variables'}[d[3]]||d[0])+'</span>';f.appendChild(a)});
  const more=document.createElement('button');more.type='button';more.className='iv-more-menu';more.setAttribute('aria-haspopup','dialog');more.setAttribute('aria-expanded','false');more.innerHTML='<span>☰</span><span>Menu</span>';more.addEventListener('click',()=>openDrawer(more));f.appendChild(more);nav.replaceChildren(f);nav.dataset.ivStableMenu='1';}
 let drawer=null,drawerSource=null;
@@ -40,7 +41,7 @@ function ensureStyle(){if(document.getElementById('ivUnifiedUiStyle'))return;con
 function decorate(){ensureStyle();document.querySelectorAll('#desktopNav,.c3-nav,.iv-sidebar .iv-nav,.side nav,.m1-sidebar .m1-nav,.sidebar .nav').forEach(renderDesktop);document.querySelectorAll('#mobileNav,.iv-mobile-nav,.mobile-nav').forEach(renderMobile);}
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&drawer)closeDrawer()});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate,{once:true});else decorate();
-const authRequired=!!document.querySelector('.iv-shell,.c3-app,.shell')&&mode!=='planning'&&(!mode||!['temps','salaire','essence'].includes(mode));
+const authRequired=!!document.querySelector('.iv-shell,.c3-app,.shell')&&mode!=='planning'&&(!mode||!['temps','salaire'].includes(mode));
 if(!authRequired)return;
 document.body.classList.add('iv-unified-session');if(mode==='planning')document.body.classList.add('iv-planning-session-nonblocking');
 let overlay=null,auth=null,authBound=false,firebaseSdk=null;
