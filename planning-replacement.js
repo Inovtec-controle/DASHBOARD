@@ -125,11 +125,11 @@ function openOptimizer(agent,leave){
  const groups=groupByChantier(rows);
  const choices={};
  rows.forEach((row,i)=>{row.index=i;row.candidates=candidatesFor(row,p,agent);});
+ panelState={agent,leave,rows,groups,choices,p};
  groups.forEach(group=>{
-   const top=periodCandidates(group,rows).find(c=>c.available);
+   const top=periodCandidates(group).find(c=>c.available);
    group.rows.forEach(r=>{choices[r.index]=top?.agent.id||"";});
  });
- panelState={agent,leave,rows,groups,choices,p};
  $("ivReplSubtitle").textContent=`Remplacement de ${agent.name} par chantier, pour toute la période du congé. Ajustement ponctuel possible.`;
  $("ivReplSummary").innerHTML=`<div><small>Période</small><b>${formatDate(leave.startDate)} → ${formatDate(leave.endDate)}</b></div><div><small>Chantiers</small><b>${groups.length}</b></div><div><small>Interventions</small><b>${rows.length}</b></div>`;
  renderRows();
