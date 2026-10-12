@@ -108,6 +108,14 @@ jobs:
           # Organisation utilise désormais une page autonome avec un nom de fichier neuf.
           # On vérifie le fichier réellement utilisé par l'accueil, sans dépendre de l'ancien shell.
           grep -q 'ORGANISATION-LIVE-V16.html' /tmp/index.html || { echo "::error::L'accueil public pointe encore vers l'ancienne Organisation"; exit 1; }
+          curl -fsSL --retry 3 --retry-delay 2 "$base/ORGANISATION-LIVE-V16.html?verify=$GITHUB_SHA" -o /tmp/orga-new.html
+          curl -fsSL --retry 3 --retry-delay 2 "$base/inovtec-ui-stability.js?verify=$GITHUB_SHA" -o /tmp/ui-new.js
+          echo "Version en production $(grep -o 'Déplacement v[0-9]' /tmp/orga-new.html | head -1 || true)"
+          grep -q 'Déplacement v3' /tmp/orga-new.html || { echo "::error::Page Organisation publique sans déplacement v3";exit 1; }
+          grep -q 'moveModeHint' /tmp/orga-new.html || { echo "::error::Page Organisation sans le déplacement par deux clics";exit 1; }
+          grep -q '20261012-orgmove3' /tmp/ui-new.js || { echo "::error::Menu Organisation public encore ancien";exit 1; }
+          grep -q '20261012-orgmove3' /tmp/index.html || { echo "::error::Accueil public utilise un ancien lien Organisation";exit 1; }
+          echo 'La page publique contient effectivement le nouveau mécanisme Organisation.'
           grep -q 'LIVE v16' /tmp/ORGANISATION-LIVE-V16.html || { echo "::error::La page Organisation autonome publique n'est pas la v16"; exit 1; }
           grep -q 'Promise.allSettled' /tmp/ORGANISATION-LIVE-V16.html || { echo "::error::La page Organisation autonome n'a pas le moteur Firebase attendu"; exit 1; }
           grep -q 'ORGANISATION-LIVE-V16.html' /tmp/ORGA.html || { echo "::error::L'ancien ORGA.html ne redirige pas vers la nouvelle page"; exit 1; }
