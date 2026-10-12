@@ -39,7 +39,7 @@ try{
 
   // 1. Le bouton de déplacement reste cliquable dans une carte non draggable.
   const moveCard=page.locator('.task[data-id="move-1"]');
-  await moveCard.locator('.task-actions button').first().click();
+  await moveCard.locator('.task-actions').getByRole('button',{name:'→'}).click();
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='inprogress');
 
   // 2. Le nouveau mécanisme Pointer Events n'utilise pas le drag/drop HTML5.
