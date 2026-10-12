@@ -77,7 +77,7 @@ try{
   await page.waitForFunction(()=>document.getElementById('moveFeedback')?.textContent.includes('enregistré dans Firebase'));
 
   // Archivage sur cette même page autonome.
-  await page.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver'}).click();
+  await page.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver',exact:true}).click();
   await page.locator('#board .task[data-id="shell-archive"]').waitFor({state:'detached',timeout:5000});
   await page.locator('#archiveList').getByText('Archiver depuis le shell').waitFor({state:'visible',timeout:5000});
 
