@@ -13,6 +13,13 @@ try{
     window.__agentHoursTest={agents:[agent],saves:0};
     window.InovtecAgentsCloud={
       load:async()=>structuredClone(window.__agentHoursTest.agents),
+      saveAgent:async row=>{
+        window.__agentHoursTest.saves++;
+        const next=window.__agentHoursTest.agents.filter(a=>a.id!==row.id);
+        next.push(structuredClone(row));
+        window.__agentHoursTest.agents=next;
+        return structuredClone(next);
+      },
       saveAll:async rows=>{
         window.__agentHoursTest.saves++;
         window.__agentHoursTest.agents=structuredClone(rows);
