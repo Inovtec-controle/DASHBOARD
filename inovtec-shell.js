@@ -3,10 +3,10 @@
 const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 const mode=(params.get("mode")||"planning").toLowerCase();
-let legacyPage=mode==="planning"?"PLANNINGS-APP.html?v=20261012-period-replacements1":(params.get("page")||"PLANNINGS-APP.html?v=20261012-period-replacements1");
+let legacyPage=mode==="planning"?"PLANNINGS-APP.html?v=20261012-visibleagents1":(params.get("page")||"PLANNINGS-APP.html?v=20261012-visibleagents1");
 const fuelIcon='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto"><path d="M5 21V4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v17"/><path d="M7 6h5v5H7z"/><path d="M14 8h2l2 2v7a2 2 0 1 0 4 0v-6l-2-2"/><path d="M3 21h13"/></svg>';
 const configs={
- planning:{label:"Planning",eyebrow:"PLANNING",title:'Planning des <em>équipes</em>',subtitle:"Organisez et suivez les interventions de vos agents sur l’ensemble de vos chantiers.",route:"PLANNINGS.html?v=20261012-period-replacements1",icon:"▦"},
+ planning:{label:"Planning",eyebrow:"PLANNING",title:'Planning des <em>équipes</em>',subtitle:"Organisez et suivez les interventions de vos agents sur l’ensemble de vos chantiers.",route:"PLANNINGS.html?v=20261012-visibleagents1",icon:"▦"},
  kontrol:{label:"KONTROL",eyebrow:"CONTRÔLES QUALITÉ",title:"KONTROL",subtitle:"Réalisez vos contrôles qualité sans modifier les critères, réponses, calculs ni archives déjà en place.",route:"KONTROL-CLOUD.html?v=20261001-checklist1",icon:"✓"},
  discipline:{label:"Discipline",eyebrow:"DISCIPLINE",title:"Gestion des dossiers <em>disciplinaires</em>",subtitle:"Consultez, enregistrez et suivez vos dossiers, photos et PDF avec la même logique de sauvegarde.",route:"DISCIPLINE-V9.html",icon:"⚑"},
  infos:{label:"Infos chantier",eyebrow:"INFOS CHANTIER",title:"Informations <em>chantiers</em>",subtitle:"Retrouvez les accès, contacts, plannings et consignes de chaque résidence dans une présentation plus lisible.",route:"INFOCHANTIERS-V2.html?v=20260927-savecontrols1",icon:"ⓘ"},
@@ -26,7 +26,7 @@ if(mode==="organisation") window.location.replace("ORGANISATION-V17.html?v=20261
 // Ces destinations et leur ordre correspondent au référentiel de inovtec-ui-stability.js.
 const navDefinitions=[
  ['Accueil','⌂','index.html','home'],
- ['Planning','▦','PLANNINGS.html?v=20261012-period-replacements1','planning'],
+ ['Planning','▦','PLANNINGS.html?v=20261012-visibleagents1','planning'],
  ['KONTROL','✓','KONTROL-CLOUD.html','kontrol'],
  ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos'],
  ['Classeur agents','♙','AGENTS.html?v=20260927-agentsflow19','agents'],
