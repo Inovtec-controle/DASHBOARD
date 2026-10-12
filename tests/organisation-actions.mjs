@@ -39,7 +39,9 @@ try{
 
   // 1. Le bouton de déplacement reste cliquable dans une carte non draggable.
   const moveCard=page.locator('.task[data-id="move-1"]');
+  console.log('TEST A : bouton de déplacement');
   await moveCard.locator('.task-actions button').first().click();
+  console.log('TEST A : état après clic',await page.evaluate(()=>JSON.stringify(window.__orgaActionsTest.personal.tasks)));
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='inprogress');
 
   // 2. Le nouveau mécanisme Pointer Events n'utilise pas le drag/drop HTML5.
@@ -60,9 +62,12 @@ try{
     if(await page.locator('.task-list[data-status="'+status+'"] .task[data-id="move-1"]').count()!==1)
       throw Error('Le dépôt dans '+status+' a échoué');
   }
+  console.log('TEST B : déplacement souris vers Bloqué');
   await dragCardTo('blocked');
+  console.log('TEST C : déplacement souris vers Fait');
   await dragCardTo('done');
 
+  console.log('TEST D : deux clics');
   // 2b. Cliquer sur Déplacer, puis sur la colonne, sans glisser ni menu.
   await page.locator('.task[data-id="move-1"] .task-actions button.move-action').click();
   if(!await page.locator('#moveModeHint').isVisible())throw Error('Le mode déplacement par clic ne s’ouvre pas');
@@ -71,18 +76,21 @@ try{
   if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)
     throw Error('Le déplacement par sélection de colonne a échoué');
 
+  console.log('TEST E : annulation');
   // Annuler ne change pas le statut du serveur.
   await page.locator('.task[data-id="move-1"] .task-actions button.move-action').click();
   await page.locator('#cancelTaskMoveBtn').click();
   const afterCancel=await page.evaluate(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status);
   if(afterCancel!=='blocked')throw Error('Annuler un déplacement a changé la tâche');
 
+  console.log('TEST F : menu déroulant');
   // 2b. Méthode de secours directe : le menu change de colonne et se sauvegarde.
   await page.locator('.task[data-id="move-1"] .task-status-switch select').selectOption('todo');
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='todo');
   if(await page.locator('.task-list[data-status="todo"] .task[data-id="move-1"]').count()!==1)
     throw Error('Le menu Déplacer vers a échoué');
 
+  console.log('TEST G : archiver');
   // 3. Archiver doit fonctionner même si la carte est draggable.
   const archiveCard=page.locator('.task[data-id="archive-1"]');
   await archiveCard.getByRole('button',{name:'Archiver'}).click();
@@ -90,6 +98,7 @@ try{
   if(await page.locator('#board .task[data-id="archive-1"]').count()!==0)throw Error('La tâche archivée reste dans le tableau');
   if(await page.locator('#archiveList').getByText('Tâche à archiver').count()!==1)throw Error('La tâche archivée n’apparaît pas dans les archives');
 
+  console.log('TEST H : restaurer');
   // 4. Restaurer remet la tâche dans son statut précédent.
   await page.locator('#archiveList').getByRole('button',{name:'Restaurer'}).click();
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='archive-1')?.archived===false);
