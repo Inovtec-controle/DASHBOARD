@@ -15,7 +15,7 @@ const definitions=[
  ['Réassort','↻','REASSORT.html','reassort'],
  ['Congés & absences','☂','CONGES.html','conges','CONGES-LEGACY.html?v=20260829-operational1'],
  ['Variables agents','◷','VARIABLES.html','variables','VARIABLES-DASHBOARD.html?v=20260916-1'],
- ['Organisation','◎','ORGANISATION-LIVE-V16.html?v=16','organisation',null],
+ ['Organisation','◎','ORGANISATION-LIVE-V16.html?v=20261012-orgmove3','organisation',null],
  ['Conversion temps','⇄','TEMPS.html','temps','TEMPS-LEGACY.html?v=20260829-operational1'],
  ['Salaire','€','SALAIRE.html','salaire','SALAIRE-LEGACY.html?v=20260829-operational1'],
  ['Dépense carburant','⛽','ESSENCE.html','essence','ESSENCE-LEGACY.html?v=20260829-operational1']
