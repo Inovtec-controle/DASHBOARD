@@ -68,6 +68,15 @@ try{
  await a.locator('.iv-period-dates input').nth(1).dispatchEvent('change');
  const shortList=a.locator('.iv-period-range .iv-period-candidate');
  if(await shortList.count()!==2)throw Error('Les agents disponibles sur la plage partielle ne sont pas tous visibles');
+ // Une modification des dates recalcule immédiatement la liste visible.
+ await a.locator('.iv-period-dates input').nth(1).fill('2026-10-14');
+ await a.locator('.iv-period-dates input').nth(1).dispatchEvent('change');
+ if(await a.locator('.iv-period-range .iv-period-candidate[data-agent-id="alpha"]').count())
+   throw Error('Alpha reste visible alors qu’il est en conflit sur le 14 octobre');
+ await a.locator('.iv-period-dates input').nth(1).fill('2026-10-13');
+ await a.locator('.iv-period-dates input').nth(1).dispatchEvent('change');
+ if(await a.locator('.iv-period-range .iv-period-candidate[data-agent-id="alpha"]').count()!==1)
+   throw Error('La plage raccourcie ne rétablit pas Alpha parmi les agents disponibles');
  await a.locator('.iv-period-range .iv-period-candidate[data-agent-id="alpha"]').click();
  if(await a.locator('.iv-period-range .iv-period-candidate[data-agent-id="alpha"][aria-pressed="true"]').count()!==1)
    throw Error('La sélection dans la plage n’est pas indiquée');
