@@ -49,7 +49,7 @@ try{
 
   // 3. Archiver doit fonctionner indépendamment des boutons de statut.
   const archiveCard=page.locator('.task[data-id="archive-1"]');
-  await archiveCard.getByRole('button',{name:'Archiver'}).click();
+  await archiveCard.getByRole('button',{name:'Archiver',exact:true}).click();
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='archive-1')?.archived===true);
   if(await page.locator('#board .task[data-id="archive-1"]').count()!==0)throw Error('La tâche archivée reste dans le tableau');
   if(await page.locator('#archiveList').getByText('Tâche à archiver').count()!==1)throw Error('La tâche archivée n’apparaît pas dans les archives');
