@@ -3,9 +3,29 @@
 if(window.__INOVTEC_PLANNING_REPLACEMENT_V2__)return;
 window.__INOVTEC_PLANNING_REPLACEMENT_V2__=true;
 const ABS_KEY="inovtec_absences_v1",PLAN_KEY="inovtec_plannings_v2";const $=id=>document.getElementById(id);const pad=n=>String(n).padStart(2,"0");
-let absences=[],cloudBound=false,observers=[],panelState=null;
+let absences=[],cloudBound=false,cloudReady=false,cloudError=false,activeOptimizerId="",observers=[],panelState=null;
 const pwin=(()=>{try{return parent&&parent!==window?parent:window}catch{return window}})();
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+const compactName=s=>norm(s).replace(/\s+/g,"");
+function sameAgent(l,a){
+  if(!l||!a)return false;
+  const ref=String(l.agentRefId||"").trim();
+  if(ref&&[a.refId,a.id].filter(Boolean).map(String).includes(ref))return true;
+  const n=compactName(l.agentName);
+  return !!(n&&[a.name,a.displayName,[a.identity?.prenom,a.identity?.nom].filter(Boolean).join(" ")].some(x=>compactName(x)===n));
+}
+function leaveCandidates(a,status){
+  return absences.filter(l=>l&&!l.deleted&&l.status===status&&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(l.startDate||""))&&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(l.endDate||""))&&sameAgent(l,a));
+}
+function chooseLeave(list,agent,p){
+  if(!list.length)return null;
+  const covered=list.map(l=>({l,n:affectedRows(l,agent,p).length})).filter(x=>x.n>0);
+  if(covered.length)return covered.sort((a,b)=>a.l.startDate.localeCompare(b.l.startDate))[0].l;
+  const today=parseISO(dateISO(new Date())).getTime();
+  return [...list].sort((a,b)=>Math.abs(parseISO(a.startDate).getTime()-today)-Math.abs(parseISO(b.startDate).getTime()-today))[0];
+}
 function parse(s,f){try{return JSON.parse(s)||f}catch{return f}}
 function plan(){const p=window.InovtecPlanningAPI?.getState?.()||{};return p&&p.weeks?p:{agents:[],weeks:{}}}
 function savePlan(p){
@@ -22,20 +42,48 @@ function dateFromWeek(key,day){const m=String(key).match(/^(\d{4})-W(\d{2})$/);i
 function covers(l,date){return l?.status==="approved"&&date>=l.startDate&&date<=l.endDate}
 function agentForPlanning(a,p){if(!a)return null;return(p.agents||[]).find(x=>String(x.refId||x.id)===String(a.agentRefId))||(p.agents||[]).find(x=>norm(x.name)===norm(a.agentName))||null}
 function selectedAgent(p=plan()){return(p.agents||[]).find(a=>String(a.id)===String(p.selected))||null}
-function leaveForAgent(agent,p=plan()){if(!agent)return null;const ref=agent.refId||agent.id,name=norm(agent.name),list=absences.filter(l=>l.status==="approved"&&(String(l.agentRefId)===String(ref)||norm(l.agentName)===name));if(!list.length)return null;const withRows=list.map(l=>({l,count:affectedRows(l,agent,p).length})).filter(x=>x.count>0);if(withRows.length)return withRows.sort((a,b)=>a.l.startDate.localeCompare(b.l.startDate))[0].l;const today=dateISO(new Date());return list.sort((a,b)=>Math.abs((parseISO(a.startDate)||0)-(parseISO(today)||0))-Math.abs((parseISO(b.startDate)||0)-(parseISO(today)||0)))[0]}
+function leaveForAgent(a,p=plan()){return a?chooseLeave(leaveCandidates(a,"approved"),a,p):null}
+function pendingLeaveForAgent(a,p=plan()){return a?chooseLeave(leaveCandidates(a,"pending"),a,p):null}
 function affectedRows(l,agent,p=plan()){const out=[];Object.entries(p.weeks||{}).forEach(([week,rows])=>(rows||[]).forEach(e=>{if(String(e.agentId)!==String(agent.id))return;const d=dateFromWeek(week,e.day),iso=d&&dateISO(d);if(iso&&covers(l,iso))out.push({week,event:e,date:d,iso})}));return out.sort((a,b)=>a.iso.localeCompare(b.iso)||String(a.event.start).localeCompare(String(b.event.start)))}
 function timeMin(t){const m=String(t||"").match(/^(\d{1,2}):(\d{2})$/);return m?+m[1]*60+ +m[2]:0}
 function minutes(e){return Math.max(0,timeMin(e.end)-timeMin(e.start))}
 function overlap(a,b){return timeMin(a.start)<timeMin(b.end)&&timeMin(b.start)<timeMin(a.end)}
 function entriesOn(p,agentId,week,day){return(p.weeks?.[week]||[]).filter(e=>String(e.agentId)===String(agentId)&&Number(e.day)===Number(day))}
-function absentCandidate(candidate,date,p){const ref=candidate.refId||candidate.id,n=norm(candidate.name);return absences.some(l=>l.status==="approved"&&covers(l,date)&&(String(l.agentRefId)===String(ref)||norm(l.agentName)===n))}
+function absentCandidate(candidate,date,p){return absences.some(l=>l&&!l.deleted&&l.status==="approved"&&covers(l,date)&&sameAgent(l,candidate))}
 function familiarity(p,candidate,e){let n=0;Object.values(p.weeks||{}).forEach(rows=>(rows||[]).forEach(x=>{if(String(x.agentId)!==String(candidate.id))return;if(e.chantierId&&x.chantierId===e.chantierId)n+=2;else if(e.site&&norm(x.site)===norm(e.site))n++}));return Math.min(n,8)}
 function weekLoad(p,candidate,week){return(p.weeks?.[week]||[]).filter(e=>String(e.agentId)===String(candidate.id)).reduce((n,e)=>n+minutes(e),0)}
 function candidatesFor(row,p,original){return(p.agents||[]).filter(a=>String(a.id)!==String(original.id)).map(a=>{const dayRows=entriesOn(p,a.id,row.week,row.event.day),conflict=dayRows.some(e=>overlap(e,row.event)),away=absentCandidate(a,row.iso,p),load=weekLoad(p,a,row.week),fam=familiarity(p,a,row.event),score=Math.round(100+fam*7-load/90-(conflict?180:0)-(away?250:0));return{agent:a,conflict,away,load,fam,score,available:!conflict&&!away}}).sort((a,b)=>(b.available-a.available)||b.score-a.score).slice(0,3)}
 function initials(name){return String(name||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()).join("")}
-function bindCloud(){if(cloudBound)return;let f=null;try{f=pwin.firebase}catch{}if(!f?.auth||!f?.firestore)return;cloudBound=true;f.auth().onAuthStateChanged(u=>{if(!u)return;f.firestore().collection("kanban").doc(u.uid).onSnapshot(s=>{const entry=s.exists?s.data()?.moduleSyncV1?.conges:null;if(!entry)return;const remote=parse(entry.payload||"[]",[]);if(Array.isArray(remote)){absences=remote;localStorage.setItem(ABS_KEY,JSON.stringify(remote));decorate()}})})}
+function refreshOptimizerFromCloud(){
+  if(!activeOptimizerId||!$("ivReplacementBackdrop")?.classList.contains("open"))return;
+  const p=plan(),a=(p.agents||[]).find(x=>String(x.id)===activeOptimizerId);
+  if(a)openOptimizer(a,leaveForAgent(a,p));
+}
+function bindCloud(){
+  if(cloudBound)return;
+  let f=null;
+  try{f=pwin.firebase?.auth&&pwin.firebase?.firestore?pwin.firebase:window.firebase}catch{}
+  if(!f?.auth||!f?.firestore){setTimeout(bindCloud,500);return}
+  cloudBound=true;
+  f.auth().onAuthStateChanged(u=>{
+    if(!u){cloudReady=false;cloudError=true;refreshOptimizerFromCloud();return}
+    f.firestore().collection("kanban").doc(u.uid).onSnapshot(snap=>{
+      const entry=snap.exists?snap.data()?.moduleSyncV1?.conges:null;
+      if(entry){
+        const remote=parse(entry.payload||"[]",null);
+        if(!Array.isArray(remote)){cloudError=true;console.warn("Format des congés Firebase invalide");refreshOptimizerFromCloud();return}
+        absences=remote;
+      }
+      cloudReady=true;cloudError=false;
+      decorate();refreshOptimizerFromCloud();
+    },e=>{
+      cloudError=true;console.warn("Lecture des congés Firebase impossible",e);
+      refreshOptimizerFromCloud();
+    })
+  })
+}
 function ensureBanner(){let b=$("ivLeaveBanner");if(!b){b=document.createElement("div");b.id="ivLeaveBanner";b.className="iv-leave-banner";const toolbar=document.querySelector(".calendar-toolbar");toolbar?.insertAdjacentElement("afterend",b)}return b}
-function decorate(){loadAbs();const p=plan(),a=selectedAgent(p),l=leaveForAgent(a,p),banner=ensureBanner();if(!a||!l){document.querySelectorAll(".day-column.iv-on-leave").forEach(c=>c.classList.remove("iv-on-leave"));if(banner)banner.style.display="none";return}const affected=affectedRows(l,a,p),replaced=Object.values(p.weeks||{}).flat().filter(e=>e?._replacementFor?.leaveId===l.id).length;banner.style.display="flex";banner.innerHTML=`<strong>Congé validé · ${a.name}</strong><span>${formatDate(l.startDate)} → ${formatDate(l.endDate)} · ${affected.length} intervention${affected.length>1?"s":""} à couvrir${replaced?` · ${replaced} déjà remplacée${replaced>1?"s":""}`:""}</span><button type="button">✨ Suggestion optimale</button>`;banner.querySelector("button").onclick=()=>openOptimizer(a,l);document.querySelectorAll(".day-column[data-date]").forEach(c=>c.classList.toggle("iv-on-leave",covers(l,c.dataset.date)))}
+function decorate(){const p=plan(),a=selectedAgent(p),l=leaveForAgent(a,p),banner=ensureBanner();if(!a||!l){document.querySelectorAll(".day-column.iv-on-leave").forEach(c=>c.classList.remove("iv-on-leave"));if(banner)banner.style.display="none";return}const affected=affectedRows(l,a,p),replaced=Object.values(p.weeks||{}).flat().filter(e=>e?._replacementFor?.leaveId===l.id).length;banner.style.display="flex";banner.innerHTML=`<strong>Congé validé · ${a.name}</strong><span>${formatDate(l.startDate)} → ${formatDate(l.endDate)} · ${affected.length} intervention${affected.length>1?"s":""} à couvrir${replaced?` · ${replaced} déjà remplacée${replaced>1?"s":""}`:""}</span><button type="button">✨ Suggestion optimale</button>`;banner.querySelector("button").onclick=()=>openOptimizer(a,l);document.querySelectorAll(".day-column[data-date]").forEach(c=>c.classList.toggle("iv-on-leave",covers(l,c.dataset.date)))}
 function formatDate(s){const d=parseISO(s);return d?new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"short"}).format(d):s}
 function injectMenu(){const menu=$("contextMenu");if(!menu?.classList.contains("open")||!menu.classList.contains("agent-context"))return;if(menu.querySelector(".iv-optimal-replacement"))return;const p=plan(),contextId=String(menu.dataset.agentId||p.selected||""),a=(p.agents||[]).find(x=>String(x.id)===contextId)||selectedAgent(p);if(!a)return;const sep=document.createElement("div");sep.className="context-sep";const b=document.createElement("button");b.type="button";b.className="context-item iv-optimal-replacement";b.textContent="✨ Suggestion de remplacement optimal";b.onclick=e=>{e.stopPropagation();menu.classList.remove("open");const l=leaveForAgent(a,p);openOptimizer(a,l)};const danger=menu.querySelector(".context-item.danger");if(danger){menu.insertBefore(sep,danger);menu.insertBefore(b,danger)}else{menu.append(sep,b)};requestAnimationFrame(()=>{const r=menu.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(parseFloat(menu.style.left)||8,innerWidth-r.width-8))+"px";menu.style.top=Math.max(8,Math.min(parseFloat(menu.style.top)||8,innerHeight-r.height-8))+"px"})}
 function ensurePanel(){let back=$("ivReplacementBackdrop");if(back)return back;back=document.createElement("div");back.id="ivReplacementBackdrop";back.className="iv-replacement-backdrop";back.innerHTML='<aside class="iv-replacement-panel"><div class="iv-repl-head"><div class="iv-repl-spark">✦</div><div class="iv-repl-head-copy"><span class="eyebrow">OPTIMISATION</span><h2>Suggestion de remplacement optimal</h2><p id="ivReplSubtitle"></p></div><button class="iv-repl-close" type="button">×</button></div><div class="iv-repl-summary" id="ivReplSummary"></div><div class="iv-repl-body" id="ivReplBody"></div><div class="iv-repl-foot"><small>Vous gardez la main : chaque intervention peut être attribuée à une personne différente.</small><button class="iv-repl-btn" id="ivLeavesPage" type="button">Congés & absences</button><button class="iv-repl-btn primary" id="ivApplyReplacements" type="button">Appliquer</button></div></aside>';document.body.appendChild(back);back.querySelector(".iv-repl-close").onclick=closeOptimizer;back.addEventListener("mousedown",e=>{if(e.target===back)closeOptimizer()});$("ivLeavesPage").onclick=()=>{try{pwin.location.href="CONGES.html"}catch{location.href="CONGES.html"}};$("ivApplyReplacements").onclick=applyChoices;return back}
