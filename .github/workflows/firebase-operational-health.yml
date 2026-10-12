@@ -74,7 +74,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          checks={'CONGES.html':'mode=conges','VARIABLES.html':'mode=variables','PLANNINGS.html':'mode=planning','ORGA.html':'ORGANISATION-LIVE-V16.html','ORGANISATION-LIVE-V16.html':'LIVE v16','AGENTS.html':'mode=agents','INFOCHANTIERS-V2.html':'mode=infos','KONTROL-CLOUD.html':'mode=kontrol'}
+          checks={'CONGES.html':'mode=conges','VARIABLES.html':'mode=variables','PLANNINGS.html':'mode=planning','ORGA.html':'ORGANISATION-V17.html','ORGANISATION-LIVE-V16.html':'LIVE v16','AGENTS.html':'mode=agents','INFOCHANTIERS-V2.html':'mode=infos','KONTROL-CLOUD.html':'mode=kontrol'}
           errors=[]
           for page,token in checks.items():
             if token not in Path(page).read_text(encoding='utf-8'):
