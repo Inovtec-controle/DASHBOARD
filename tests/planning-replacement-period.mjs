@@ -10,11 +10,11 @@ try{
  await page.evaluate(()=>{
    const events={
      '2026-W42':[
-       {id:'site-a-mon',agentId:'original',chantierId:'site-a',site:'Résidence A',task:'Entretien escaliers',day:0,start:'09:00',end:'11:00'},
-       {id:'site-a-tue',agentId:'original',chantierId:'site-a',site:'Résidence A',task:'Entretien escaliers',day:1,start:'09:00',end:'11:00'},
-       {id:'site-a-wed',agentId:'original',chantierId:'site-a',site:'Résidence A',task:'Entretien escaliers',day:2,start:'09:00',end:'11:00'},
-       {id:'site-b-mon',agentId:'original',chantierId:'site-b',site:'Résidence B',task:'Nettoyage',day:0,start:'14:00',end:'15:00'},
-       {id:'busy-alpha',agentId:'alpha',chantierId:'other',site:'Autre chantier',task:'Mission existante',day:2,start:'09:30',end:'10:30'}
+       {id:'site-a-mon',agentId:'original',chantierId:'site-a',task:'Résidence A',site:'Entretien escaliers',day:0,start:'09:00',end:'11:00'},
+       {id:'site-a-tue',agentId:'original',chantierId:'site-a',task:'Résidence A',site:'Entretien escaliers',day:1,start:'09:00',end:'11:00'},
+       {id:'site-a-wed',agentId:'original',chantierId:'site-a',task:'Résidence A',site:'Entretien escaliers',day:2,start:'09:00',end:'11:00'},
+       {id:'site-b-mon',agentId:'original',chantierId:'site-b',task:'Résidence B',site:'Nettoyage',day:0,start:'14:00',end:'15:00'},
+       {id:'busy-alpha',agentId:'alpha',chantierId:'other',task:'Autre chantier',site:'Mission existante',day:2,start:'09:30',end:'10:30'}
      ]
    };
    const state={p:{
@@ -49,7 +49,7 @@ try{
  if(await page.locator('.iv-period-exception').count()!==0)throw Error('Affichage jour par jour encore visible par défaut');
  const a=groups.filter({hasText:'Résidence A'}),b=groups.filter({hasText:'Résidence B'});
  if(await a.count()!==1||await b.count()!==1)throw Error('Le regroupement par chantier est erroné');
- if(!await a.getByText('3 interventions').isVisible())throw Error('Le nombre et la période du chantier A manquent');
+ if(!(await a.locator('.iv-period-head small').first().innerText()).includes('3 interventions'))throw Error('Le nombre et la période du chantier A manquent');
  const alphaFull=a.locator('.iv-period-agent option[value="alpha"]');
  if(!await alphaFull.isDisabled())throw Error('Un agent en conflit est proposé pour la période entière');
  if(await a.locator('.iv-period-agent').inputValue()!=='beta')
