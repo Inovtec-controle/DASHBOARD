@@ -51,7 +51,7 @@ try{
  if(await a.count()!==1||await b.count()!==1)throw Error('Le regroupement par chantier est erroné');
  if(!(await a.locator('.iv-period-head small').first().innerText()).includes('3 interventions'))throw Error('Le nombre et la période du chantier A manquent');
  const alphaFull=a.locator('.iv-period-agent option[value="alpha"]');
- if(!await alphaFull.isDisabled())throw Error('Un agent en conflit est proposé pour la période entière');
+ if(!await alphaFull.evaluate(option=>option.disabled))throw Error('Un agent en conflit est proposé pour la période entière');
  if(await a.locator('.iv-period-agent').inputValue()!=='beta')
    throw Error('La meilleure proposition de remplacement complet devrait être Bêta');
  if(await page.evaluate(()=>window.__periodTest.writes)!==0)
