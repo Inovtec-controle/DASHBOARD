@@ -70,9 +70,15 @@ try{
   const buildText=(await page.locator('#orgaBoardBuild').textContent()||'').trim();
   if(buildText!=='LIVE v16')throw Error('La page visible n’est pas Organisation LIVE v16 : '+buildText);
 
-  // Le véritable glisser-déposer depuis l'accueil doit déposer dans la colonne visée.
-  await page.locator('.task[data-id="shell-move"] .task-title')
-    .dragTo(page.locator('.column[data-status="blocked"]'));
+  // Le nouvel événement Pointer Events permet le déplacement depuis l'accueil.
+  const source=page.locator('.task[data-id="shell-move"] .task-title');
+  const destination=page.locator('.column[data-status="blocked"] .column-header');
+  const a=await source.boundingBox(),b=await destination.boundingBox();
+  if(!a||!b)throw Error('La source ou la colonne cible est invisible');
+  await page.mouse.move(a.x+a.width/2,a.y+a.height/2);
+  await page.mouse.down();
+  await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:16});
+  await page.mouse.up();
   await page.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]')
     .waitFor({timeout:5000});
 
