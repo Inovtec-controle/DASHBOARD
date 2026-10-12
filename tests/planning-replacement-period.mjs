@@ -49,7 +49,7 @@ try{
  if(await page.locator('.iv-period-exception').count()!==0)throw Error('Affichage jour par jour encore visible par défaut');
  const a=groups.filter({hasText:'Résidence A'}),b=groups.filter({hasText:'Résidence B'});
  if(await a.count()!==1||await b.count()!==1)throw Error('Le regroupement par chantier est erroné');
- if(!await a.getByText('3 interventions').isVisible())throw Error('Le nombre et la période du chantier A manquent');
+ if(!(await a.locator('.iv-period-head small').first().innerText()).includes('3 interventions'))throw Error('Le nombre et la période du chantier A manquent');
  const alphaFull=a.locator('.iv-period-agent option[value="alpha"]');
  if(!await alphaFull.isDisabled())throw Error('Un agent en conflit est proposé pour la période entière');
  if(await a.locator('.iv-period-agent').inputValue()!=='beta')
