@@ -41,6 +41,7 @@ jobs:
           node tests/agents-firebase-direct.mjs
           node tests/save-controls-health.mjs
           node tests/home-day-detail.mjs
+          node tests/dashboard-conges-overview.mjs
           node tests/home-search-layout.mjs
           node tests/ui-session-navigation.mjs
           node tests/menu-single-render.mjs
