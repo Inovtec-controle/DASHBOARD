@@ -139,7 +139,7 @@ function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;",
 function groupByChantier(rows){
   const groups=new Map();
   rows.forEach(r=>{
-    const e=r.event,site=String(e.site||e.task||"Chantier non précisé").trim();
+    const e=r.event,site=String(e.task||e.site||"Chantier non précisé").trim();
     const key=e.chantierId?"id:"+String(e.chantierId):"site:"+norm(site);
     if(!groups.has(key))groups.set(key,{key,label:site,rows:[],splitOpen:false,detailsOpen:false,from:"",to:""});
     groups.get(key).rows.push(r);
@@ -179,7 +179,7 @@ function renderRows(){
     covered+=assigned;
     const first=g.rows[0].iso,last=g.rows[g.rows.length-1].iso;
     const totalMinutes=g.rows.reduce((n,r)=>n+minutes(r.event),0);
-    const tasks=[...new Set(g.rows.map(r=>String(r.event.task||"Intervention")))].slice(0,4);
+    const tasks=[...new Set(g.rows.map(r=>String(r.event.site||r.event.task||"Intervention")))].slice(0,4);
     const ids=g.rows.map(r=>String(st.choices[r.index]||""));
     const uniform=ids.every(id=>id===ids[0])?ids[0]:"";
     const candidates=periodCandidates(g);
@@ -280,7 +280,7 @@ function renderDayExceptions(card,g,st){
   g.rows.forEach(r=>{
     const line=document.createElement("div");line.className="iv-period-exception";
     const meta=document.createElement("span");
-    meta.textContent=formatDate(r.iso)+" · "+(r.event.start||"")+"–"+(r.event.end||"")+" · "+(r.event.task||"Intervention");
+    meta.textContent=formatDate(r.iso)+" · "+(r.event.start||"")+"–"+(r.event.end||"")+" · "+(r.event.site||r.event.task||"Intervention");
     const select=document.createElement("select");
     select.setAttribute("aria-label","Exception du "+r.iso+" pour "+g.label);
     select.add(new Option("Sans remplaçant",""));
