@@ -4,7 +4,7 @@ const browser = await chromium.launch({headless:true,args:['--no-sandbox']});
 let failures=0;
 
 try{
-  const context=await browser.newContext({serviceWorkers:'block'});
+  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1800,height:1100}});
   await context.addInitScript(()=>{
     const personal={tasks:[
       {id:'move-1',title:'Tâche à déplacer',description:'',status:'todo',priority:'normal',dueDate:'',archived:false,archivedAt:'',createdAt:'2026-09-28T08:00:00.000Z',updatedAt:'2026-09-28T08:00:00.000Z'},
@@ -37,24 +37,37 @@ try{
   const liveBuild=(await page.locator('#orgaBoardBuild').textContent()||'').trim();
   if(liveBuild!=='LIVE v16')throw Error('La page autonome Organisation v16 n’est pas chargée : '+liveBuild);
 
-  // 1. Le bouton de déplacement reste cliquable dans une carte draggable.
+  // 1. Le bouton de déplacement reste cliquable dans une carte non draggable.
   const moveCard=page.locator('.task[data-id="move-1"]');
   await moveCard.locator('.task-actions button').first().click();
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='inprogress');
 
-  // 2. Vrai clic-glissé HTML5 : la colonne cible décide du nouveau statut.
-  await page.locator('.task[data-id="move-1"] .task-title')
-    .dragTo(page.locator('.column[data-status="blocked"]'));
-  await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='blocked');
-  if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)
-    throw Error('Le glisser-déposer dans Bloqué a échoué');
+  // 2. Le nouveau mécanisme Pointer Events n'utilise pas le drag/drop HTML5.
+  async function dragCardTo(status){
+    const source=page.locator('.task[data-id="move-1"] .task-title');
+    const destination=page.locator('.column[data-status="'+status+'"] .column-header');
+    await source.scrollIntoViewIfNeeded();
+    const a=await source.boundingBox(),b=await destination.boundingBox();
+    if(!a||!b)throw Error('La source ou la colonne cible est invisible');
+    await page.mouse.move(a.x+a.width/2,a.y+a.height/2);
+    await page.mouse.down();
+    await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:16});
+    // La colonne ne change pas avant le relâchement de la souris.
+    const beforeDrop=await page.evaluate(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status);
+    if(beforeDrop===status)throw Error('La tâche a changé avant son dépôt');
+    await page.mouse.up();
+    await page.waitForFunction(s=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status===s,status);
+    if(await page.locator('.task-list[data-status="'+status+'"] .task[data-id="move-1"]').count()!==1)
+      throw Error('Le dépôt dans '+status+' a échoué');
+  }
+  await dragCardTo('blocked');
+  await dragCardTo('done');
 
-  // 2b. Deuxième déplacement après la sauvegarde et le nouveau rendu de la liste.
-  await page.locator('.task[data-id="move-1"] .task-title')
-    .dragTo(page.locator('.column[data-status="done"]'));
-  await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='done');
-  if(await page.locator('.task-list[data-status="done"] .task[data-id="move-1"]').count()!==1)
-    throw Error('Le second clic-glissé vers Fait a échoué');
+  // 2b. Méthode de secours directe : le menu change de colonne et se sauvegarde.
+  await page.locator('.task[data-id="move-1"] .task-status-switch select').selectOption('todo');
+  await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='todo');
+  if(await page.locator('.task-list[data-status="todo"] .task[data-id="move-1"]').count()!==1)
+    throw Error('Le menu Déplacer vers a échoué');
 
   // 3. Archiver doit fonctionner même si la carte est draggable.
   const archiveCard=page.locator('.task[data-id="archive-1"]');
@@ -73,7 +86,7 @@ try{
   if(result.writes<10)throw Error('Toutes les actions n’ont pas été persistées dans les deux copies Firebase');
   if(JSON.stringify(result.personal)!==JSON.stringify(result.shared))throw Error('La copie Firebase partagée ne suit pas les actions Organisation');
   if(errors.length)throw Error('JavaScript : '+errors.join('; '));
-  console.log('OK : déplacements souris répétés, archivage et restauration Organisation');
+  console.log('OK : déplacements Pointer Events, menu de statut, archivage et restauration Organisation');
   console.log('Écritures Firebase simulées : '+result.writes+' · '+result.status);
   await context.close();
 }catch(error){
