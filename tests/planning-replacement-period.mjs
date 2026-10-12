@@ -54,6 +54,8 @@ try{
  if(!await alphaFull.isDisabled())throw Error('Un agent en conflit est proposé pour la période entière');
  if(await a.locator('.iv-period-agent').inputValue()!=='beta')
    throw Error('La meilleure proposition de remplacement complet devrait être Bêta');
+ if(await page.evaluate(()=>window.__periodTest.writes)!==0)
+   throw Error('La suggestion a modifié le planning avant confirmation');
 
  // Répartir uniquement les 12 et 13 octobre à Alpha, puis garder Bêta le 14.
  await a.getByRole('button',{name:'Répartir la période'}).click();
