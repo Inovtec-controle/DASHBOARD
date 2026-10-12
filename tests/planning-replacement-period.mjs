@@ -50,10 +50,13 @@ try{
  const a=groups.filter({hasText:'Résidence A'}),b=groups.filter({hasText:'Résidence B'});
  if(await a.count()!==1||await b.count()!==1)throw Error('Le regroupement par chantier est erroné');
  if(!(await a.locator('.iv-period-head small').first().innerText()).includes('3 interventions'))throw Error('Le nombre et la période du chantier A manquent');
- const alphaFull=a.locator('.iv-period-agent option[value="alpha"]');
- if(!await alphaFull.evaluate(option=>option.disabled))throw Error('Un agent en conflit est proposé pour la période entière');
- if(await a.locator('.iv-period-agent').inputValue()!=='beta')
-   throw Error('La meilleure proposition de remplacement complet devrait être Bêta');
+ const wholeList=a.locator('.iv-period-agents .iv-period-candidate');
+ if(await wholeList.count()!==1)throw Error('Seuls les agents disponibles sur toute la période doivent apparaître');
+ if(await a.locator('.iv-period-agents .iv-period-candidate[data-agent-id="alpha"]').count())
+   throw Error('Un agent en conflit est visible dans la liste de toute la période');
+ if(await a.locator('.iv-period-agents .iv-period-candidate[data-agent-id="beta"][aria-pressed="true"]').count()!==1)
+   throw Error('La meilleure proposition doit être Bêta et directement sélectionnée');
+ if(await a.locator('select').count()!==0)throw Error('Un menu déroulant est encore visible pour le chantier');
  if(await page.evaluate(()=>window.__periodTest.writes)!==0)
    throw Error('La suggestion a modifié le planning avant confirmation');
 
@@ -63,15 +66,21 @@ try{
  await a.locator('.iv-period-dates input').nth(0).dispatchEvent('change');
  await a.locator('.iv-period-dates input').nth(1).fill('2026-10-13');
  await a.locator('.iv-period-dates input').nth(1).dispatchEvent('change');
- await a.locator('.iv-period-range select').selectOption('alpha');
+ const shortList=a.locator('.iv-period-range .iv-period-candidate');
+ if(await shortList.count()!==2)throw Error('Les agents disponibles sur la plage partielle ne sont pas tous visibles');
+ await a.locator('.iv-period-range .iv-period-candidate[data-agent-id="alpha"]').click();
+ if(await a.locator('.iv-period-range .iv-period-candidate[data-agent-id="alpha"][aria-pressed="true"]').count()!==1)
+   throw Error('La sélection dans la plage n’est pas indiquée');
  await a.getByRole('button',{name:'Attribuer cette plage'}).click();
- if(await a.locator('.iv-period-agent').inputValue()!=='')
-   throw Error('Une période répartie entre plusieurs agents est faussement présentée comme uniforme');
+ if(await a.locator('.iv-period-agents .iv-period-candidate[aria-pressed="true"]').count()!==0)
+   throw Error('Une période répartie entre plusieurs agents est présentée comme uniforme');
 
  // Ajustement exceptionnel d'un seul jour, sans modifier les autres dates.
  await a.getByRole('button',{name:'Modifier certains jours'}).click();
  if(await a.locator('.iv-period-exception').count()!==3)throw Error('Les exceptions ne sont pas affichées');
- await a.locator('.iv-period-exception select').nth(1).selectOption('beta');
+ const secondDay=a.locator('.iv-period-exception').nth(1);
+ if(await secondDay.locator('select').count()!==0)throw Error('Les exceptions utilisent encore une liste déroulante');
+ await secondDay.locator('.iv-period-candidate[data-agent-id="beta"]').click();
  const ready=await page.locator('#ivApplyReplacements').isEnabled();
  if(!ready)throw Error('La période complète correctement couverte doit être applicable');
 
