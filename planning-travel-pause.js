@@ -77,6 +77,7 @@ function setKind(kind){
   const item=SPECIAL[kind];
   if(!item)return;
   currentKind=kind;
+  pop.dataset.ivSpecialKind=item.label;
   const o=ensureLegacyOption();
   o.textContent="Choisir un chantier…";
   title.dataset.legacyTitle=item.label;
@@ -86,8 +87,9 @@ function setKind(kind){
 }
 function detectFromEditor(){
   const label=title.dataset.legacyTitle||((title.value==="__legacy__"&&legacyOption())?legacyOption().textContent:"");
-  currentKind=kindFromLabel(label);
+  currentKind=kindFromLabel(label)||kindFromLabel(pop.dataset.ivSpecialKind);
   if(currentKind){
+    pop.dataset.ivSpecialKind=SPECIAL[currentKind].label;
     const o=ensureLegacyOption();
     o.textContent="Choisir un chantier…";
     title.dataset.legacyTitle=SPECIAL[currentKind].label;
@@ -100,8 +102,9 @@ function clearSpecialIfChantier(){
     detectFromEditor();
     return;
   }
-  if(currentKind||kindFromLabel(title.dataset.legacyTitle)){
+  if(currentKind||kindFromLabel(title.dataset.legacyTitle)||pop.dataset.ivSpecialKind){
     currentKind="";
+    pop.dataset.ivSpecialKind="";
     title.dataset.legacyTitle="";
     const o=legacyOption();
     if(o&&title.value!=="__legacy__")o.remove();
@@ -114,7 +117,7 @@ title.addEventListener("change",clearSpecialIfChantier);
 const popObserver=new MutationObserver(()=>{
   ensureChoices();
   if(pop.classList.contains("open"))requestAnimationFrame(detectFromEditor);
-  else{currentKind="";syncButtons()}
+  else{currentKind="";pop.dataset.ivSpecialKind="";syncButtons()}
 });
 popObserver.observe(pop,{attributes:true,attributeFilter:["class"]});
 

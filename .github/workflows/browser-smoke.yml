@@ -39,6 +39,7 @@ jobs:
           done
           node tests/browser-smoke.mjs
           node tests/agents-firebase-direct.mjs
+          node tests/agent-replacement-hours-field.mjs
           node tests/save-controls-health.mjs
           node tests/home-day-detail.mjs
           node tests/dashboard-conges-overview.mjs
@@ -58,6 +59,8 @@ jobs:
           node tests/planning-recurrence-direct.mjs
           node tests/planning-replacement-leaves.mjs
           node tests/planning-replacement-period.mjs
+          node tests/planning-replacement-extra-hours.mjs
+          node tests/planning-special-no-chantier.mjs
           node tests/firebase-org-migration.mjs
           node tests/organisation-actions.mjs
           node tests/organisation-shell-integration.mjs

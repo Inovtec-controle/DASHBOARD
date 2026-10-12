@@ -970,6 +970,22 @@ async function saveAgentForm(){
     }else j.contractHoursWeekly = "";
   }
 
+  // Les heures disponibles sont un volume hebdomadaire supplémentaire pour les remplacements.
+  // La saisie est facultative : les agents historiques restent inchangés.
+  var availableHoursInput = $("#f_heuresDisponibles");
+  if(availableHoursInput){
+    var rawAvailable = safeText(availableHoursInput.value).replace(",",".");
+    if(rawAvailable){
+      var availableHours = Number(rawAvailable);
+      if(!isFinite(availableHours) || availableHours<0 || availableHours>60){
+        alert("Indique entre 0 et 60 heures disponibles supplémentaires par semaine.");
+        availableHoursInput.focus();
+        return false;
+      }
+      j.replacementHoursAvailableWeekly = Math.round(availableHours*100)/100;
+    }else j.replacementHoursAvailableWeekly = "";
+  }
+
   var titulaireInput = $("#f_estTitulaire");
   var remplacementInput = $("#f_titulaireRemplace");
   if(titulaireInput && remplacementInput){

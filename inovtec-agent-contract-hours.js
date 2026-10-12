@@ -16,13 +16,34 @@ function install(){
     installedFor=d;
 
     let input=d.getElementById("f_heuresContrat");
-    if(!input){
+    let available=d.getElementById("f_heuresDisponibles");
+    if(!input||!available){
       const contrat=d.getElementById("f_contrat");
-      const field=d.createElement("div");
-      field.className="field";
-      field.innerHTML='<label>Heures contractuelles / semaine</label><input class="input" type="number" min="1" max="60" step="0.25" id="f_heuresContrat" inputmode="decimal" placeholder="Ex. 12, 24, 35"><div class="muted" style="margin-top:4px">Utilisé par le Planning pour contrôler l’amplitude et le repos quotidien.</div>';
-      contrat.closest(".field")?.insertAdjacentElement("afterend",field);
+      let row=d.getElementById("ivAgentHoursRow");
+      if(!row){
+        row=d.createElement("div");
+        row.id="ivAgentHoursRow";
+        row.style.cssText="grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start";
+        const css=d.createElement("style");
+        css.textContent="@media(max-width:560px){#ivAgentHoursRow{grid-template-columns:1fr!important}}";
+        d.head.appendChild(css);
+        contrat.closest(".field")?.insertAdjacentElement("afterend",row);
+      }
+      if(input&&input.closest(".field"))row.appendChild(input.closest(".field"));
+      if(!input){
+        const field=d.createElement("div");
+        field.className="field";
+        field.innerHTML='<label for="f_heuresContrat">Heures contractuelles / semaine</label><input class="input" type="number" min="1" max="60" step="0.25" id="f_heuresContrat" inputmode="decimal" placeholder="Ex. 12, 24, 35"><div class="muted" style="margin-top:4px">Volume horaire prévu au contrat.</div>';
+        row.appendChild(field);
+      }
+      if(!available){
+        const field=d.createElement("div");
+        field.className="field";
+        field.innerHTML='<label for="f_heuresDisponibles">Heures disponibles / semaine (remplacements)</label><input class="input" type="number" min="0" max="60" step="0.25" id="f_heuresDisponibles" inputmode="decimal" placeholder="Ex. 5"><div class="muted" style="margin-top:4px">Volume supplémentaire mobilisable pour les remplacements, au-delà des heures contractuelles. Laisser vide si non défini.</div>';
+        row.appendChild(field);
+      }
       input=d.getElementById("f_heuresContrat");
+      available=d.getElementById("f_heuresDisponibles");
     }
 
     const fill=()=>{
@@ -31,6 +52,8 @@ function install(){
         if(!input)return;
         const raw=a?.job?.contractHoursWeekly;
         input.value=(raw===null||raw===undefined||raw==="")?"":String(raw);
+        const extra=a?.job?.replacementHoursAvailableWeekly;
+        if(available)available.value=(extra===null||extra===undefined||extra==="")?"":String(extra);
       }catch{}
     };
 

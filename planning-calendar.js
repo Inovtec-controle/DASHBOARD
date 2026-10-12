@@ -488,15 +488,15 @@ function previewFromEditor(){
   const start=validTime($("edStart").value,draftEvent.start||"09:00");
   let end=validTime($("edEnd").value,draftEvent.end||"10:00");
   if(timeToMin(end)<=timeToMin(start))end=minToTime(Math.min(1439,timeToMin(start)+15));
-  const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__";
+  const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__",special=editorSpecialLabel();
   return{
     ...draftEvent,
     agentId:$("edAgent").value||draftEvent.agentId,
     day:mondayIndex(d),
     start,end,
     chantierId:chosen?.id||"",
-    task:chosen?(chosen.nom||chosen.adresse||"Chantier"):(legacy?($("edTitle").dataset.legacyTitle||draftEvent.task):"Nouvelle intervention"),
-    site:$("edSite").value.trim(),
+    task:special|| (chosen?(chosen.nom||chosen.adresse||"Chantier"):(legacy?($("edTitle").dataset.legacyTitle||draftEvent.task):"Nouvelle intervention")),
+    site:special?"":$("edSite").value.trim(),
     note:$("edNote").value.trim(),
     containerTasks:editorContainerTasks(),
     containerTask:editorContainerTasks()[0]||null,
@@ -540,6 +540,14 @@ function fillAgentSelect(){const s=$("edAgent");s.innerHTML=state.agents.map(a=>
 function matchChantier(e){const sites=hubSites();if(e?.chantierId){const c=sites.find(x=>String(x.id)===String(e.chantierId));if(c)return c}const nt=norm(e?.task),ns=norm(e?.site);return sites.find(c=>nt&&norm(c.nom)===nt)||sites.find(c=>ns&&(norm(c.adresse)===ns||norm(c.nom)===ns))||null}
 function fillChantierSelect(e){const s=$("edTitle"),sites=hubSites(),match=matchChantier(e);s.innerHTML='<option value="">Choisir un chantier…</option>';sites.forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.nom||c.adresse||"Chantier sans nom";if(c.adresse)o.textContent+=" — "+c.adresse;s.appendChild(o)});s.dataset.legacyTitle="";if(match)s.value=match.id;else if(e?.task&&e.task!=="Nouvelle intervention"){const o=document.createElement("option");o.value="__legacy__";o.textContent=e.task+" — ancien planning";s.appendChild(o);s.value="__legacy__";s.dataset.legacyTitle=e.task}else s.value="";if(!sites.length&&dataHub()?.readyChantiers){const o=document.createElement("option");o.disabled=true;o.textContent="Aucun chantier dans Infos chantier";s.appendChild(o)}}
 function selectedChantier(){const id=$("edTitle").value;if(!id||id==="__legacy__")return null;return hubSites().find(c=>String(c.id)===String(id))||null}
+function specialLabel(value){
+  const n=norm(value);
+  return n==="pause"?"Pause":n==="deplacement"?"Déplacement":"";
+}
+function editorSpecialLabel(){
+  const pop=$("editorPopover");
+  return specialLabel(pop?.dataset?.ivSpecialKind)||specialLabel($("edTitle")?.dataset?.legacyTitle);
+}
 function isSameLocation(value,site){const v=norm(value);if(!v||!site)return false;return [site.adresse,site.gps].filter(Boolean).some(x=>norm(x)===v)}
 function editorContainerTasks(){
   const raw=$("editorPopover")?.dataset?.containerTasks||"";
@@ -675,6 +683,7 @@ function openEditor(week,e,x,y,isDraft=false){
   pop.dataset.week=week;
   pop.dataset.id=e.id;
   pop.dataset.draft=isDraft?"1":"0";
+  pop.dataset.ivSpecialKind=specialLabel(e.task);
   setEditorContainerTasks(normalizeContainerTasks(e.containerTasks,e.containerTask),{render:false});
   pop.classList.add("open");
   renderContainerReminder();
@@ -697,6 +706,7 @@ function closeEditor(){
   const pop=$("editorPopover");
   pop.classList.remove("open");
   pop.dataset.draft="0";
+  delete pop.dataset.ivSpecialKind;
   delete pop.dataset.containerTasks;
   const reminder=$("ivPlanningContainerInfo");if(reminder){reminder.hidden=true;reminder.innerHTML=""}
   document.querySelectorAll(".event-card.selected").forEach(x=>x.classList.remove("selected"));
@@ -713,8 +723,8 @@ function saveEditor(){
   if(!d){release();return}
   const start=$("edStart").value,end=$("edEnd").value;
   if(timeToMin(end)<=timeToMin(start)){release();alert("L’heure de fin doit être après le début.");return}
-  const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__";
-  if(!chosen&&!legacy){release();alert("Choisis un chantier dans la liste.");$("edTitle").focus();return}
+  const chosen=selectedChantier(),legacy=$("edTitle").value==="__legacy__",special=editorSpecialLabel();
+  if(!chosen&&!legacy&&!special){release();alert("Choisis un chantier dans la liste.");$("edTitle").focus();return}
   const oldAgentId=e.agentId,newWeek=isoWeekKey(d);
   const next={...e,agentId:$("edAgent").value,day:mondayIndex(d),start,end,note:$("edNote").value.trim()};
   const containerTasks=editorContainerTasks().map(task=>({...task,selectedAgentId:next.agentId,schemaVersion:3}));
@@ -725,7 +735,11 @@ function saveEditor(){
     delete next.containerTasks;
     delete next.containerTask;
   }
-  if(chosen){
+  if(special){
+    next.chantierId="";
+    next.task=special;
+    next.site="";
+  }else if(chosen){
     next.chantierId=chosen.id;
     next.task=chosen.nom||chosen.adresse||"Chantier";
     next.site=$("edSite").value.trim();

@@ -52,7 +52,73 @@ function entriesOn(p,agentId,week,day){return(p.weeks?.[week]||[]).filter(e=>Str
 function absentCandidate(candidate,date,p){return absences.some(l=>l&&!l.deleted&&l.status==="approved"&&covers(l,date)&&sameAgent(l,candidate))}
 function familiarity(p,candidate,e){let n=0;Object.values(p.weeks||{}).forEach(rows=>(rows||[]).forEach(x=>{if(String(x.agentId)!==String(candidate.id))return;if(e.chantierId&&x.chantierId===e.chantierId)n+=2;else if(e.site&&norm(x.site)===norm(e.site))n++}));return Math.min(n,8)}
 function weekLoad(p,candidate,week){return(p.weeks?.[week]||[]).filter(e=>String(e.agentId)===String(candidate.id)).reduce((n,e)=>n+minutes(e),0)}
-function candidatesFor(row,p,original){return(p.agents||[]).filter(a=>String(a.id)!==String(original.id)).map(a=>{const dayRows=entriesOn(p,a.id,row.week,row.event.day),conflict=dayRows.some(e=>overlap(e,row.event)),away=absentCandidate(a,row.iso,p),load=weekLoad(p,a,row.week),fam=familiarity(p,a,row.event),score=Math.round(100+fam*7-load/90-(conflict?180:0)-(away?250:0));return{agent:a,conflict,away,load,fam,score,available:!conflict&&!away}}).sort((a,b)=>(b.available-a.available)||b.score-a.score).slice(0,3)}
+function isBreak(e){return norm(e?.task)==="pause"}
+function weeklyPlannedMinutes(p,candidate,week){
+  const rows=(p.weeks?.[week]||[]).filter(e=>String(e.agentId)===String(candidate.id));
+  const union=spans=>{
+    const ordered=spans.filter(e=>e.end>e.start).sort((a,b)=>a.start-b.start||a.end-b.end);
+    const result=[];
+    for(const next of ordered){
+      const last=result[result.length-1];
+      if(last&&next.start<=last.end)last.end=Math.max(last.end,next.end);
+      else result.push({...next});
+    }
+    return result;
+  };
+  let total=0;
+  for(let day=0;day<7;day++){
+    const dayRows=rows.filter(e=>Number(e.day)===day);
+    const work=union(dayRows.filter(e=>!isBreak(e)).map(e=>({start:timeMin(e.start),end:timeMin(e.end)})));
+    const pauses=union(dayRows.filter(isBreak).map(e=>({start:timeMin(e.start),end:timeMin(e.end)})));
+    total+=work.reduce((sum,w)=>sum+w.end-w.start,0);
+    for(const pause of pauses)for(const w of work){
+      total-=Math.max(0,Math.min(w.end,pause.end)-Math.max(w.start,pause.start));
+    }
+  }
+  return total;
+}
+function masterAgent(candidate){
+  let hub=null;
+  try{hub=pwin.InovtecDataHub||window.InovtecDataHub}catch{}
+  if(!hub?.readyAgents||!Array.isArray(hub.agents))return candidate;
+  return hub.agents.find(a=>[a.id].filter(Boolean).map(String).includes(String(candidate.refId||candidate.id))||
+    compactName(a.name||a.displayName||[a.identity?.prenom,a.identity?.nom].filter(Boolean).join(" "))===compactName(candidate.name))||candidate;
+}
+function availabilityBudget(candidate){
+  const job=masterAgent(candidate)?.job||candidate.job||{};
+  const raw=job.replacementHoursAvailableWeekly;
+  if(raw===""||raw==null)return null;
+  const extra=Number(String(raw).replace(",","."));
+  if(!Number.isFinite(extra)||extra<0)return null;
+  const contract=Number(String(job.contractHoursWeekly??job.heuresContractuellesHebdo??"").replace(",","."));
+  return {extraMinutes:Math.round(extra*60),contractMinutes:Number.isFinite(contract)&&contract>0?Math.round(contract*60):null};
+}
+function weeklyAvailability(p,candidate,week,additionalMinutes){
+  const budget=availabilityBudget(candidate);
+  if(!budget)return {ok:true,remainingMinutes:null};
+  const planned=weeklyPlannedMinutes(p,candidate,week);
+  if(budget.contractMinutes===null){
+    // Sans heures contractuelles connues, la limite s'applique seulement aux
+    // remplacements supplémentaires, sans interpréter les interventions existantes.
+    return {ok:additionalMinutes<=budget.extraMinutes,
+      remainingMinutes:budget.extraMinutes-additionalMinutes};
+  }
+  const maximum=Math.min(48*60,budget.contractMinutes+budget.extraMinutes);
+  const remaining=maximum-planned-additionalMinutes;
+  return {ok:remaining>=0,remainingMinutes:remaining};
+}
+function candidatesFor(row,p,original){
+  return (p.agents||[]).filter(a=>String(a.id)!==String(original.id)).map(a=>{
+    const dayRows=entriesOn(p,a.id,row.week,row.event.day);
+    const conflict=dayRows.some(e=>overlap(e,row.event));
+    const away=absentCandidate(a,row.iso,p);
+    const load=weekLoad(p,a,row.week),fam=familiarity(p,a,row.event);
+    const hours=weeklyAvailability(p,a,row.week,isBreak(row.event)?0:minutes(row.event));
+    const score=Math.round(100+fam*7-load/90-(conflict?180:0)-(away?250:0)-(hours.ok?0:250));
+    return {agent:a,conflict,away,load,fam,score,hours,
+      available:!conflict&&!away&&hours.ok};
+  }).sort((a,b)=>Number(b.available)-Number(a.available)||b.score-a.score);
+}
 function initials(name){return String(name||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()).join("")}
 function refreshOptimizerFromCloud(){
   if(!activeOptimizerId||!$("ivReplacementBackdrop")?.classList.contains("open"))return;
@@ -152,14 +218,31 @@ function groupByChantier(rows){
 }
 function periodCandidates(group){
   const st=panelState;
-  const p=st?.p||plan(),agent=st?.agent;
-  const rows=group.rows;
+  const p=st?.p||plan(),agent=st?.agent,rows=group.rows;
   return (p.agents||[]).filter(a=>String(a.id)!==String(agent?.id)).map(a=>{
     const perRow=rows.map(row=>row.candidates?.find(c=>String(c.agent.id)===String(a.id)));
     const covered=perRow.filter(c=>c?.available).length;
     const selfConflict=rows.some((r,i)=>rows.slice(i+1).some(other=>r.iso===other.iso&&overlap(r.event,other.event)));
+    const byWeek=new Map();
+    const excluded=new Set(rows.map(r=>String(r.week)+"|"+String(r.event.id)));
+    for(const r of rows){
+      byWeek.set(r.week,(byWeek.get(r.week)||0)+(isBreak(r.event)?0:minutes(r.event)));
+    }
+    // Tenir compte des autres chantiers déjà attribués dans cette suggestion.
+    for(const r of st?.rows||[]){
+      if(excluded.has(String(r.week)+"|"+String(r.event.id)))continue;
+      if(String(st.choices[r.index]||"")!==String(a.id))continue;
+      byWeek.set(r.week,(byWeek.get(r.week)||0)+(isBreak(r.event)?0:minutes(r.event)));
+    }
+    let hoursOk=true,remainingMinutes=null;
+    for(const [week,mins]of byWeek){
+      const info=weeklyAvailability(p,a,week,mins);
+      if(!info.ok)hoursOk=false;
+      if(info.remainingMinutes!==null)remainingMinutes=remainingMinutes===null?info.remainingMinutes:Math.min(remainingMinutes,info.remainingMinutes);
+    }
     const score=Math.round(perRow.reduce((n,c)=>n+(c?.score||0),0)/Math.max(1,rows.length));
-    return {agent:a,covered,total:rows.length,score,available:covered===rows.length&&!selfConflict};
+    return {agent:a,covered,total:rows.length,score,remainingMinutes,
+      available:covered===rows.length&&!selfConflict&&hoursOk};
   }).sort((a,b)=>Number(b.available)-Number(a.available)||b.covered-a.covered||b.score-a.score||a.agent.name.localeCompare(b.agent.name));
 }
 function validCandidate(row,id){
@@ -193,7 +276,8 @@ function createAvailableAgents(candidates,selectedId,onSelect,ariaLabel){
     name.textContent=candidate.agent.name;
     const status=document.createElement("span");
     status.className="iv-period-candidate-state";
-    status.textContent=active?"Sélectionné":"Disponible";
+    status.textContent=active?"Sélectionné":candidate.remainingMinutes!==null&&candidate.remainingMinutes!==undefined
+      ?(Math.max(0,Math.round(candidate.remainingMinutes/6)/10)+" h restantes"):"Disponible";
     button.append(avatar,name,status);
     button.onclick=()=>onSelect(id);
     list.appendChild(button);
@@ -359,6 +443,21 @@ function applyChoices(){
     }
     event._replacementFor={leaveId:st.leave.id,originalAgentId:st.agent.id,originalAgentName:st.agent.name,replacedAt:new Date().toISOString()};
     event.agentId=agentId;
+  }
+  // Dernière vérification : les affectations de tous les chantiers sont cumulées
+  // par agent/semaine avant toute sauvegarde.
+  const additions=new Map();
+  for(const r of st.rows){
+    const id=String(st.choices[r.index]),key=id+"|"+r.week;
+    additions.set(key,(additions.get(key)||0)+(isBreak(r.event)?0:minutes(r.event)));
+  }
+  for(const [key,mins] of additions){
+    const split=key.lastIndexOf("|"),id=key.slice(0,split),week=key.slice(split+1);
+    const candidate=(live.agents||[]).find(a=>String(a.id)===id);
+    if(candidate&&!weeklyAvailability(live,candidate,week,mins).ok){
+      alert("Le volume d'heures disponibles de "+candidate.name+" est dépassé sur la semaine "+week+". Le planning n'a pas été modifié.");
+      return;
+    }
   }
   try{savePlan(next);closeOptimizer()}catch(e){
     console.error("Enregistrement des remplacements",e);
