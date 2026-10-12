@@ -87,6 +87,17 @@ function agentData(state,week,agent){
       containerText
     });
   });
+  // Une durée affichée dans une carte doit être une durée comptée :
+  // les pauses sont déduites, et les créneaux superposés ne s'ajoutent pas deux fois.
+  groups.forEach(items=>{
+    const pauses=items.filter(isPause),alreadyCounted=[];
+    items.forEach(item=>{
+      if(isPause(item)){item.countedMinutes=0;return}
+      const before=workedDayMinutes(alreadyCounted.concat(pauses));
+      alreadyCounted.push(item);
+      item.countedMinutes=Math.max(0,workedDayMinutes(alreadyCounted.concat(pauses))-before);
+    });
+  });
   const dayTotals=groups.map(workedDayMinutes);
   const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
   const nightTotal=groups.reduce((total,g)=>total+nightDayMinutes(g),0);
@@ -161,7 +172,7 @@ function drawEvent(doc,item,x,y,w,h,compact=false){
   doc.roundedRect(x,y,w,h,radius,radius,"FD");
   if(pause)doc.setFillColor(230,145,56);else doc.setFillColor(6,120,84);
   doc.rect(x,y,pause?(dense?.8:1.2):(dense?.65:.9),h,"F");
-  const mins=durationMin(item),cx=x+w/2;
+  const mins=isPause(item)?durationMin(item):(Number.isFinite(item.countedMinutes)?item.countedMinutes:durationMin(item)),cx=x+w/2;
   const timeSize=tiny?4.6:small?5.2:dense?5.8:6.9;
   const taskSize=tiny?5.5:small?6.3:dense?7.2:9.6;
   const briefSize=small?5.1:dense?6.0:8.4;
