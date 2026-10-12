@@ -16,7 +16,7 @@ await context.addInitScript(()=>{
   }));
   const collection=name=>({
     doc:id=>({
-      onSnapshot(cb){state.listeners[name]?.push(cb);queueMicrotask(()=>cb(snap(name==='kanban'?state.personal:state.shared)));return()=>{};},
+      onSnapshot(options,callback){const cb=typeof options==='function'?options:callback;state.listeners[name]?.push(cb);queueMicrotask(()=>cb(snap(name==='kanban'?state.personal:state.shared)));return()=>{state.listeners[name]=state.listeners[name].filter(x=>x!==cb)};},
       get(){return Promise.resolve(snap(name==='kanban'?state.personal:state.shared));},
       set(data){
         state.writes++;
