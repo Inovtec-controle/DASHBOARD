@@ -63,6 +63,14 @@ try{
   await dragCardTo('blocked');
   await dragCardTo('done');
 
+  // 2b. Cliquer sur Déplacer, puis sur la colonne, sans glisser ni menu.
+  await page.locator('.task[data-id="move-1"] .task-actions button.move-action').click();
+  if(!await page.locator('#moveModeHint').isVisible())throw Error('Le mode déplacement par clic ne s’ouvre pas');
+  await page.locator('.column[data-status="blocked"] .column-header').click();
+  await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='blocked');
+  if(await page.locator('.task-list[data-status="blocked"] .task[data-id="move-1"]').count()!==1)
+    throw Error('Le déplacement par sélection de colonne a échoué');
+
   // 2b. Méthode de secours directe : le menu change de colonne et se sauvegarde.
   await page.locator('.task[data-id="move-1"] .task-status-switch select').selectOption('todo');
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='move-1')?.status==='todo');
