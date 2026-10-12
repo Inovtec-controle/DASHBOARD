@@ -53,6 +53,7 @@ jobs:
           node tests/materiel-redesign.mjs
           node tests/planning-clean-core.mjs
           node tests/planning-recurrence-direct.mjs
+          node tests/planning-replacement-leaves.mjs
           node tests/firebase-org-migration.mjs
           node tests/organisation-actions.mjs
           node tests/organisation-shell-integration.mjs
