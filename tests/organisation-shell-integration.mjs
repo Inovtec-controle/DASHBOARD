@@ -59,28 +59,22 @@ try{
   const organisation=page.locator('a[data-iv-menu-key="organisation"]').first();
   await organisation.waitFor({timeout:10000});
   const href=await organisation.getAttribute('href');
-  if(!href?.includes('ORGANISATION-LIVE-V16.html'))throw Error('Le menu réellement visible ne pointe pas vers Organisation LIVE v16 : '+href);
+  if(!href?.includes('ORGANISATION-V17.html'))throw Error('Le menu réellement visible ne pointe pas vers Organisation LIVE v17 : '+href);
   if(href?.includes('inovtec-page-shell.html')||href?.includes('ORGA-LEGACY'))throw Error('Le menu visible repasse encore par l’ancien shell : '+href);
 
   await organisation.click();
-  await page.waitForURL(/ORGANISATION-LIVE-V16\.html/i,{timeout:10000});
+  await page.waitForURL(/ORGANISATION-V17\.html/i,{timeout:10000});
   await page.locator('#app:not(.hidden)').waitFor({timeout:10000});
   await page.locator('.task[data-id="shell-move"]').waitFor({timeout:10000});
 
   const buildText=(await page.locator('#orgaBoardBuild').textContent()||'').trim();
-  if(buildText!=='LIVE v16')throw Error('La page visible n’est pas Organisation LIVE v16 : '+buildText);
+  if(buildText!=='LIVE v17')throw Error('La page visible n’est pas Organisation LIVE v17 : '+buildText);
 
-  // Le nouvel événement Pointer Events permet le déplacement depuis l'accueil.
-  const source=page.locator('.task[data-id="shell-move"] .task-title');
-  const destination=page.locator('.column[data-status="blocked"] .column-header');
-  const a=await source.boundingBox(),b=await destination.boundingBox();
-  if(!a||!b)throw Error('La source ou la colonne cible est invisible');
-  await page.mouse.move(a.x+a.width/2,a.y+a.height/2);
-  await page.mouse.down();
-  await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:16});
-  await page.mouse.up();
+  // Déplacement direct depuis la page réellement ouverte via le menu.
+  await page.locator('.task[data-id="shell-move"] .task-targets button[data-target-status="blocked"]').click();
   await page.locator('.task-list[data-status="blocked"] .task[data-id="shell-move"]')
     .waitFor({timeout:5000});
+  await page.waitForFunction(()=>document.getElementById('moveFeedback')?.textContent.includes('enregistré dans Firebase'));
 
   // Archivage sur cette même page autonome.
   await page.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver'}).click();
@@ -94,13 +88,13 @@ try{
   const legacy=await context.newPage();
   await legacy.route('https://www.gstatic.com/firebasejs/**',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
   await legacy.goto('http://127.0.0.1:8765/ORGA.html',{waitUntil:'domcontentloaded',timeout:30000});
-  await legacy.waitForURL(/ORGANISATION-LIVE-V16\.html/i,{timeout:10000});
+  await legacy.waitForURL(/ORGANISATION-V17\.html/i,{timeout:10000});
   const legacyBuild=(await legacy.locator('#orgaBoardBuild').textContent()||'').trim();
-  if(legacyBuild!=='LIVE v16')throw Error('ORGA.html ne mène pas à la nouvelle page autonome');
+  if(legacyBuild!=='LIVE v17')throw Error('ORGA.html ne mène pas à la nouvelle page autonome');
   await legacy.close();
 
   if(errors.length)throw Error('JavaScript : '+errors.join('; '));
-  console.log('OK : accueil réel -> menu visible -> Organisation LIVE v16 -> déplacement -> Firebase');
+  console.log('OK : accueil réel -> menu visible -> Organisation LIVE v17 -> déplacement -> Firebase');
 }finally{
   await context.close();
   await browser.close();
