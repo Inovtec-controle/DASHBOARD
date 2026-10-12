@@ -25,7 +25,9 @@
     .task.dragging{opacity:.35;cursor:grabbing}
     .task-title{font-weight:800;font-size:13px;word-break:break-word}
     .task-actions,.task-actions *{touch-action:auto}
-    .task-drag-ghost{position:fixed;z-index:2147483000;pointer-events:none;margin:0;opacity:.94;transform:rotate(.8deg);box-shadow:0 18px 45px rgba(15,23,42,.22);background:#fff;border:1px solid var(--brand);border-radius:14px;padding:10px}
+    .task-drag-ghost{position:fixed;z-index:2147483000;pointer-events:none;margin:0;opacity:.94;box-shadow:0 18px 45px rgba(15,23,42,.22);background:#fff;border:2px solid var(--brand);border-radius:14px;padding:10px;max-height:65vh;overflow:hidden}
+    .task-status-switch{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:11px;font-weight:600;color:#475569;touch-action:auto}
+    .task-status-switch select{min-width:0;max-width:65%;padding:6px 8px;border:1px solid var(--border);border-radius:9px;background:#fff;color:#14532d;font:inherit;cursor:pointer;touch-action:auto}
     .task-desc{font-size:12px;color:#475569;white-space:pre-wrap;margin-top:5px}
     .task-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
     .tag{font-size:10px;border-radius:999px;padding:4px 7px;border:1px solid var(--border);background:#f8fafc}
@@ -210,7 +212,7 @@
   let unsubscribe = null;
   let editingId = null;
   let syncingFromCloud = false;
-  let draggedId = null;
+  let activeTaskMove = null;
   let pendingWrites = 0;
   let saveChain = Promise.resolve();
   let realtimeWatchdog = null;
@@ -531,114 +533,101 @@
     $("submitLabel").textContent = "Ajouter la tâche";
     $("cancelEditBtn").classList.add("hidden");
   }
+  // Un seul mécanisme Pointer Events, utilisable à la souris et au tactile.
+  // Le statut change uniquement lors d'un dépôt dans une colonne.
   function clearDragOver(){
     document.querySelectorAll(".task-list.drag-over,.column.drag-over").forEach(el=>el.classList.remove("drag-over"));
   }
-  // Déplacement souris : drag-and-drop natif du navigateur, sans décalage
-  // de coordonnées, aimantation, temporisation, ni défilement automatique.
-  // Seul le dépôt explicite dans une colonne peut changer le statut.
+  function columnAtPoint(x,y){
+    const board=$("board");
+    const hit=document.elementFromPoint(x,y);
+    const direct=hit?.closest?.(".column[data-status]");
+    if(direct&&board.contains(direct))return direct;
+    const rect=board.getBoundingClientRect();
+    if(x<rect.left-8||x>rect.right+8||y<rect.top-8||y>rect.bottom+8)return null;
+    let nearest=null,distance=Infinity;
+    board.querySelectorAll(".column[data-status]").forEach(column=>{
+      const r=column.getBoundingClientRect();
+      const dx=Math.max(r.left-x,0,x-r.right),dy=Math.max(r.top-y,0,y-r.bottom);
+      const d=Math.hypot(dx,dy);
+      if(d<distance){distance=d;nearest=column;}
+    });
+    return distance<=18?nearest:null;
+  }
+  function resetTaskMove(){
+    const move=activeTaskMove;
+    activeTaskMove=null;
+    if(!move)return;
+    try{document.documentElement.releasePointerCapture(move.pointerId)}catch{}
+    move.source.classList.remove("dragging");
+    move.ghost?.remove();
+    document.body.classList.remove("iv-orga-dragging");
+    clearDragOver();
+  }
+  function trackTaskMove(event){
+    const move=activeTaskMove;
+    if(!move||move.pointerId!==event.pointerId)return;
+    if(!move.moving&&Math.hypot(event.clientX-move.startX,event.clientY-move.startY)<7)return;
+    if(!move.moving){
+      move.moving=true;
+      move.ghost=move.source.cloneNode(true);
+      move.ghost.draggable=false;
+      move.ghost.classList.remove("dragging");
+      move.ghost.classList.add("task-drag-ghost");
+      move.ghost.querySelector(".task-actions")?.remove();
+      move.ghost.querySelector(".task-status-switch")?.remove();
+      move.ghost.style.width=Math.min(390,Math.max(150,move.source.getBoundingClientRect().width))+"px";
+      document.body.appendChild(move.ghost);
+      move.source.classList.add("dragging");
+      document.body.classList.add("iv-orga-dragging");
+    }
+    move.ghost.style.left=Math.max(6,Math.min(event.clientX+12,window.innerWidth-move.ghost.offsetWidth-6))+"px";
+    move.ghost.style.top=Math.max(6,Math.min(event.clientY+12,window.innerHeight-move.ghost.offsetHeight-6))+"px";
+    clearDragOver();
+    const column=columnAtPoint(event.clientX,event.clientY);
+    if(column){
+      column.classList.add("drag-over");
+      column.querySelector(".task-list")?.classList.add("drag-over");
+    }
+    if(event.cancelable)event.preventDefault();
+  }
+  function finishTaskMove(event,cancelled){
+    const move=activeTaskMove;
+    if(!move||move.pointerId!==event.pointerId)return;
+    const wasMoving=move.moving;
+    const column=!cancelled&&wasMoving?columnAtPoint(event.clientX,event.clientY):null;
+    const taskId=move.taskId;
+    resetTaskMove();
+    if(column&&FLOW.includes(column.dataset.status))setTaskStatus(taskId,column.dataset.status);
+    if(wasMoving&&event.cancelable)event.preventDefault();
+  }
+  document.addEventListener("pointermove",trackTaskMove,{capture:true,passive:false});
+  document.addEventListener("pointerup",event=>finishTaskMove(event,false),true);
+  document.addEventListener("pointercancel",event=>finishTaskMove(event,true),true);
+  document.addEventListener("keydown",event=>{if(event.key==="Escape")resetTaskMove();},true);
+  window.addEventListener("blur",resetTaskMove);
   function bindPointerDrag(card,task){
-    card.draggable=true;
-    card.addEventListener("dragstart",event=>{
-      if(task.archived||event.target?.closest?.("button,input,textarea,select,a")){
-        event.preventDefault();return;
-      }
-      draggedId=String(task.id);
-      event.dataTransfer.effectAllowed="move";
-      event.dataTransfer.setData("text/plain",draggedId);
-      card.classList.add("dragging");
-    });
-    card.addEventListener("dragend",()=>{
-      draggedId=null;
-      card.classList.remove("dragging");
-      clearDragOver();
-    });
-
-    // Sur mobile/stylet, HTML5 drag-and-drop n'est pas systématiquement
-    // disponible. Un suivi tactile simple prend le relais, sans auto-scroll.
-    let activePointer=null,startX=0,startY=0,moving=false,ghost=null;
-    const cleanup=()=>{
-      document.removeEventListener("pointermove",onMove,true);
-      document.removeEventListener("pointerup",onUp,true);
-      document.removeEventListener("pointercancel",onCancel,true);
-      window.removeEventListener("blur",onCancel);
-      document.removeEventListener("keydown",onKey,true);
-      if(activePointer!==null){
-        try{card.releasePointerCapture(activePointer)}catch{}
-      }
-      activePointer=null;moving=false;
-      card.classList.remove("dragging");
-      document.body.classList.remove("iv-orga-dragging");
-      clearDragOver();
-      if(ghost){ghost.remove();ghost=null;}
-    };
-    const touchedColumn=(x,y)=>{
-      const target=document.elementFromPoint(x,y)?.closest?.(".column[data-status]");
-      return target&&$("board").contains(target)?target:null;
-    };
-    const highlight=(x,y)=>{
-      clearDragOver();
-      const col=touchedColumn(x,y);
-      if(col){
-        col.classList.add("drag-over");
-        col.querySelector(".task-list")?.classList.add("drag-over");
-      }
-      return col;
-    };
-    const onMove=event=>{
-      if(event.pointerId!==activePointer)return;
-      if(!moving&&Math.hypot(event.clientX-startX,event.clientY-startY)<7)return;
-      if(!moving){
-        moving=true;
-        ghost=card.cloneNode(true);
-        ghost.draggable=false;
-        ghost.classList.remove("dragging");
-        ghost.classList.add("task-drag-ghost");
-        ghost.querySelectorAll("button").forEach(button=>button.remove());
-        ghost.style.width=Math.max(150,card.getBoundingClientRect().width)+"px";
-        document.body.appendChild(ghost);
-        card.classList.add("dragging");
-        document.body.classList.add("iv-orga-dragging");
-      }
-      ghost.style.left=(event.clientX+12)+"px";
-      ghost.style.top=(event.clientY+12)+"px";
-      highlight(event.clientX,event.clientY);
-      if(event.cancelable)event.preventDefault();
-    };
-    const onUp=event=>{
-      if(event.pointerId!==activePointer)return;
-      const wasDragging=moving;
-      const target=wasDragging?touchedColumn(event.clientX,event.clientY):null;
-      cleanup();
-      if(target&&FLOW.includes(target.dataset.status)){
-        setTaskStatus(task.id,target.dataset.status);
-      }
-      if(wasDragging&&event.cancelable)event.preventDefault();
-    };
-    const onCancel=()=>cleanup();
-    const onKey=event=>{if(event.key==="Escape")cleanup();};
+    card.draggable=false;
+    card.addEventListener("dragstart",event=>event.preventDefault());
     card.addEventListener("pointerdown",event=>{
-      if(event.pointerType==="mouse"||!event.isPrimary||task.archived||
-         event.target?.closest?.("button,input,textarea,select,a"))return;
-      if(activePointer!==null)return;
-      activePointer=event.pointerId;
-      startX=event.clientX;startY=event.clientY;
-      document.addEventListener("pointermove",onMove,{capture:true,passive:false});
-      document.addEventListener("pointerup",onUp,true);
-      document.addEventListener("pointercancel",onCancel,true);
-      window.addEventListener("blur",onCancel);
-      document.addEventListener("keydown",onKey,true);
-      try{card.setPointerCapture(activePointer)}catch{}
+      if(activeTaskMove||task.archived||!event.isPrimary||
+         (event.pointerType==="mouse"&&event.button!==0)||
+         event.target?.closest?.("button,select,input,textarea,a,label,.task-actions,.task-status-switch"))return;
+      activeTaskMove={
+        taskId:String(task.id),source:card,pointerId:event.pointerId,
+        startX:event.clientX,startY:event.clientY,moving:false,ghost:null
+      };
+      try{document.documentElement.setPointerCapture(event.pointerId)}catch{}
     });
   }
   function createTaskCard(task){
     const card = document.createElement("article");
     card.className = "task";
-    card.draggable = true;
+    card.draggable = false;
     card.dataset.id = task.id;
     const title = document.createElement("div");
     title.className = "task-title";
-    title.title = "Faire glisser pour déplacer la tâche";
+    title.title = "Glisser vers une colonne ou choisir le statut dans la liste";
     title.textContent = task.title || "(Sans titre)";
     card.appendChild(title);
     bindPointerDrag(card,task);
@@ -664,6 +653,23 @@
     }
     card.appendChild(meta);
 
+    // Changement direct de colonne disponible sans glisser-déposer.
+    const statusRow=document.createElement("label");
+    statusRow.className="task-status-switch";
+    statusRow.appendChild(document.createTextNode("Déplacer vers"));
+    const statusSelect=document.createElement("select");
+    statusSelect.setAttribute("aria-label","Déplacer « "+(task.title||"Sans titre")+" » vers");
+    FLOW.forEach(status=>{
+      const option=document.createElement("option");
+      option.value=status;
+      option.textContent=STATUS[status].label;
+      option.selected=task.status===status;
+      statusSelect.appendChild(option);
+    });
+    statusSelect.addEventListener("change",()=>setTaskStatus(task.id,statusSelect.value));
+    statusRow.appendChild(statusSelect);
+    card.appendChild(statusRow);
+
     const actions = document.createElement("div");
     actions.className = "task-actions";
     const index = FLOW.indexOf(task.status);
@@ -682,24 +688,6 @@
       const column = document.createElement("section");
       column.className = "column";
       column.dataset.status = status;
-      // Un dépôt ne compte que dans la colonne réellement visée.
-      column.addEventListener("dragover",event=>{
-        if(!draggedId)return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect="move";
-        clearDragOver();
-        column.classList.add("drag-over");
-        column.querySelector(".task-list")?.classList.add("drag-over");
-      });
-      column.addEventListener("drop",event=>{
-        if(!draggedId)return;
-        event.preventDefault();
-        event.stopPropagation();
-        const taskId=draggedId;
-        draggedId=null;
-        clearDragOver();
-        setTaskStatus(taskId,status);
-      });
       const header = document.createElement("div");
       header.className = "column-header";
       const left = document.createElement("div");
