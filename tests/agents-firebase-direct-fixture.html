@@ -3,26 +3,45 @@
 <script>
 (()=>{
  const clone=v=>JSON.parse(JSON.stringify(v));
- const state={doc:{moduleSyncV1:{agents:{payload:"[]"}}},listeners:[],transactions:0,refGets:0,files:new Map()};
+ const state={doc:{moduleSyncV1:{agents:{payload:"[]"}}},incidentDoc:{},transactions:0,refGets:0,files:new Map(),mainWrites:0,incidentWrites:0};
  window.__agentsFirebaseTest=state;
- const snap=()=>({exists:true,data:()=>clone(state.doc),metadata:{fromCache:false,hasPendingWrites:false}});
- const ref={
-   async get(){state.refGets++;return snap()},
-   async set(patch){state.doc={...state.doc,moduleSyncV1:{...(state.doc.moduleSyncV1||{}),...(patch.moduleSyncV1||{})}};state.listeners.forEach(fn=>fn(snap()))},
-   onSnapshot(opts,cb){const fn=typeof opts==="function"?opts:cb;state.listeners.push(fn);queueMicrotask(()=>fn(snap()));return()=>{state.listeners=state.listeners.filter(x=>x!==fn)}}
+ const listeners={kanban:[],discipline:[]};
+ const getDoc=name=>name==="discipline"?state.incidentDoc:state.doc;
+ const snap=name=>({exists:true,data:()=>clone(getDoc(name)),metadata:{fromCache:false,hasPendingWrites:false}});
+ function notify(name){listeners[name].forEach(fn=>queueMicrotask(()=>fn(snap(name))));}
+ state.notifyMain=()=>notify("kanban");
+ const refs={
+   kanban:{
+     name:"kanban",
+     async get(){state.refGets++;return snap("kanban")},
+     onSnapshot(opts,fn){if(typeof opts==="function")fn=opts;listeners.kanban.push(fn);queueMicrotask(()=>fn(snap("kanban")));return()=>{}}
+   },
+   discipline:{
+     name:"discipline",
+     async get(){state.refGets++;return snap("discipline")},
+     onSnapshot(opts,fn){if(typeof opts==="function")fn=opts;listeners.discipline.push(fn);queueMicrotask(()=>fn(snap("discipline")));return()=>{}}
+   }
  };
  const firestore=()=>({
-   collection(){return{doc(){return ref}}},
+   collection(name){return{doc(){return name==="discipline"?refs.discipline:refs.kanban}}},
    async runTransaction(fn){
      state.transactions++;
-     let patch=null;
-     const tx={get:async()=>snap(),set(_r,data){patch=data}};
+     let updates=[];
+     const tx={
+       get:async ref=>snap(ref.name),
+       set(ref,data,options={}){
+         const old=getDoc(ref.name);
+         const merged=options.merge?{...old,...clone(data)}:clone(data);
+         if(options.merge&&data.moduleSyncV1)merged.moduleSyncV1={...(old.moduleSyncV1||{}),...clone(data.moduleSyncV1)};
+         if(new Blob([JSON.stringify(merged)]).size>1048576)throw Error('Firestore: document too large (>1MiB)');
+         updates.push([ref.name,merged]);
+       }
+     };
      const result=await fn(tx);
-     if(patch){
-       const next={...state.doc,moduleSyncV1:{...(state.doc.moduleSyncV1||{}),...(patch.moduleSyncV1||{})}};
-       if(new Blob([JSON.stringify(next)]).size>1048576)throw Error('Firestore: document too large (>1MiB)');
-       state.doc=next;
-       state.listeners.forEach(next=>queueMicrotask(()=>next(snap())));
+     for(const [name,doc] of updates){
+       if(name==="discipline"){state.incidentDoc=doc;state.incidentWrites++}
+       else{state.doc=doc;state.mainWrites++}
+       notify(name);
      }
      return result;
    }
