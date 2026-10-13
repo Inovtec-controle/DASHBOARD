@@ -229,7 +229,7 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
     // En-tête D59 en tracé vectoriel natif du PDF (aucune image ni bloc de couleur).
     // Deux embouts géométriques, un trait horizontal et trois barres obliques centrales.
     function drawD59Divider(){
-      const cy=13,cx=pageW/2,green=[6,78,59];
+      const cy=44,cx=pageW/2,green=[6,78,59];
       pdf.setDrawColor(...green);
       pdf.setFillColor(...green);
       pdf.setLineWidth(0.65);
@@ -240,18 +240,18 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
       pdf.setLineWidth(1.05);
       for(const dx of [-4,0,4])pdf.line(cx+dx-1.8,cy+3,cx+dx+1.8,cy-3);
     }
-    drawD59Divider();
     pdf.setTextColor(95,108,117);
     pdf.setFont("helvetica","normal");
     pdf.setFontSize(9);
-    pdf.text("INOVTEC  |  DOCUMENT INTERNE",margin,25);
+    pdf.text("INOVTEC  |  DOCUMENT INTERNE",margin,14);
     pdf.setTextColor(6,78,59);
     pdf.setFont("helvetica","bold");
     pdf.setFontSize(17);
     // Le nom de l'agent reste le titre principal ; adapter la taille aux noms longs.
     const titleWidth=pdf.getTextWidth(name);
     if(titleWidth>contentW)pdf.setFontSize(Math.max(10,17*contentW/titleWidth));
-    pdf.text(name,margin,38);
+    pdf.text(name,margin,29);
+    drawD59Divider();
     y=56;
     section("Identification");
     field("Agent concerné",name);
