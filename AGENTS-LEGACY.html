@@ -1362,6 +1362,21 @@ function hydrateAgentMedia(agentId){
     }
   })();
 }
+async function waitForIncidentFirebase(promise,hasPhotos){
+  var timer;
+  var deadline=hasPhotos?60000:25000;
+  try{
+    return await Promise.race([
+      promise,
+      new Promise(function(_resolve,reject){
+        timer=setTimeout(function(){
+          reject(new Error("Firebase ne répond pas après "+Math.round(deadline/1000)+" secondes. La saisie est conservée, réessaie ou actualise pour vérifier l’enregistrement."));
+        },deadline);
+      })
+    ]);
+  }finally{clearTimeout(timer);}
+}
+
 /* ===== Incidents ===== */
 function renderIncidents(agent){
   var wrap = $("#incidentList");
@@ -1578,7 +1593,8 @@ async function saveEditedIncident(event){
     });
     var cloud = await getAgentsCloud();
     if(typeof cloud.saveIncident!=="function") throw new Error("Sauvegarde Firebase des incidents indisponible.");
-    var confirmedIncident=await cloud.saveIncident(context.agentId,update,"update");
+    incidentEditMessage(addedPhotos.length?"Envoi des nouvelles photos et sauvegarde Firebase…":"Enregistrement de l’incident dans Firebase…");
+    var confirmedIncident=await waitForIncidentFirebase(cloud.saveIncident(context.agentId,update,"update"),addedPhotos.length>0);
     // Garder les références Firebase Storage confirmées, même si des photos
     // sont encore disponibles en mémoire dans le formulaire.
     var confirmedForView=Object.assign({},confirmedIncident,{
@@ -1661,7 +1677,8 @@ async function addIncidentFromForm(){
     };
     var cloud=await getAgentsCloud();
     if(typeof cloud.saveIncident!=="function")throw new Error("Service Firebase de sauvegarde des incidents indisponible.");
-    var confirmedIncident=await cloud.saveIncident(agentId,incident,"add");
+    feedback.textContent=photos.length?"Envoi des photos vers Firebase…":"Sauvegarde rapide de l’incident…";
+    var confirmedIncident=await waitForIncidentFirebase(cloud.saveIncident(agentId,incident,"add"),photos.length>0);
     incidentCreationRetryId="";
     // La fiche locale n'est mise à jour qu'après l'accusé de réception du serveur.
     var current=state.agents.find(function(a){return a && String(a.id)===agentId;});
