@@ -156,7 +156,17 @@ async function readServer(){
   const rows=parse(baseRaw,null);
   if(!Array.isArray(rows))throw Error('Liste Agents Firebase illisible');
   lastBaseRaw=baseRaw;
-  if(!overlayLoaded)await loadIncidentRows();
+  if(!overlayLoaded){
+    try{await loadIncidentRows()}
+    catch(error){
+      // Une indisponibilité du dossier privé ne doit pas masquer toutes
+      // les fiches agents : elles restent consultables, sans annoncer
+      // que les incidents sont synchronisés.
+      console.warn('Lecture des incidents Firebase impossible',error);
+      status('Firebase — incidents temporairement indisponibles');
+      return clone(rows);
+    }
+  }
   status('Firebase — synchronisé',true);
   return mergeIncidentRows(rows);
 }
