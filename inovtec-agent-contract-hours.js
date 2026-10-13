@@ -185,6 +185,11 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
       const lines=pdf.splitTextToSize(txt,contentW);
       for(const part of lines){
         ensure(lineHeight+2);
+        // ensure() peut passer à la page suivante et modifier la police
+        // pour l'en-tête : rétablir la typo du corps après chaque saut.
+        pdf.setFont("helvetica","normal");
+        pdf.setFontSize(10);
+        pdf.setTextColor(25,39,52);
         pdf.text(part,margin,y);
         y+=lineHeight;
       }
@@ -208,6 +213,18 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
         y+=7;
       }
       y+=4;
+    }
+    function followUpArea(){
+      section("Suivi");
+      ensure(23);
+      pdf.setFont("helvetica","normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(83,98,107);
+      pdf.text("Date : _____________________",margin,y);
+      pdf.text("Responsable : _____________________________",margin+67,y);
+      y+=12;
+      pdf.text("Signature / visa : __________________________________________",margin,y);
+      y+=9;
     }
     pdf.setFillColor(6,78,59);
     pdf.rect(0,0,pageW,45,"F");
@@ -242,6 +259,11 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
         const caption=pdf.splitTextToSize("Photo "+(i+1)+" - "+(clean(photo.name)||"Sans nom"),contentW);
         for(const row of caption){
           ensure(6);
+          // Le changement de page rétablit un en-tête vert/gras :
+          // la légende des photos doit garder son style d'origine.
+          pdf.setFont("helvetica","bold");
+          pdf.setFontSize(9);
+          pdf.setTextColor(53,68,79);
           pdf.text(row,margin,y);
           y+=5;
         }
@@ -264,7 +286,11 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
         }
       }
     }
+    // Les deux zones manuscrites de la fiche d'origine vont ensemble
+    // en fin de document : éviter une coupure entre Observations et Suivi.
+    ensure(80);
     blankArea("Observations complémentaires (à compléter)");
+    followUpArea();
     const pages=pdf.getNumberOfPages();
     for(let p=1;p<=pages;p++){
       pdf.setPage(p);
