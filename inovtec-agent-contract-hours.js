@@ -226,17 +226,32 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
       pdf.text("Signature / visa : __________________________________________",margin,y);
       y+=9;
     }
-    pdf.setFillColor(6,78,59);
-    pdf.rect(0,0,pageW,45,"F");
-    pdf.setTextColor(255,255,255);
+    // En-tête D59 en tracé vectoriel natif du PDF (aucune image ni bloc de couleur).
+    // Deux embouts géométriques, un trait horizontal et trois barres obliques centrales.
+    function drawD59Divider(){
+      const cy=13,cx=pageW/2,green=[6,78,59];
+      pdf.setDrawColor(...green);
+      pdf.setFillColor(...green);
+      pdf.setLineWidth(0.65);
+      pdf.lines([[7,0],[-2.6,3],[-7,0],[2.6,-3]],margin+2.6,cy-1.5,[1,1],"F",true);
+      pdf.lines([[7,0],[-2.6,3],[-7,0],[2.6,-3]],pageW-margin-7,cy-1.5,[1,1],"F",true);
+      pdf.line(margin+13,cy,cx-11,cy);
+      pdf.line(cx+11,cy,pageW-margin-13,cy);
+      pdf.setLineWidth(1.05);
+      for(const dx of [-4,0,4])pdf.line(cx+dx-1.8,cy+3,cx+dx+1.8,cy-3);
+    }
+    drawD59Divider();
+    pdf.setTextColor(95,108,117);
+    pdf.setFont("helvetica","normal");
+    pdf.setFontSize(9);
+    pdf.text("INOVTEC  |  DOCUMENT INTERNE",margin,25);
+    pdf.setTextColor(6,78,59);
     pdf.setFont("helvetica","bold");
-    pdf.setFontSize(10);
-    pdf.text("INOVTEC  |  DOCUMENT INTERNE",margin,14);
     pdf.setFontSize(17);
-    // Le nom de l'agent est le titre de la fiche ; adapter la taille aux noms longs.
+    // Le nom de l'agent reste le titre principal ; adapter la taille aux noms longs.
     const titleWidth=pdf.getTextWidth(name);
     if(titleWidth>contentW)pdf.setFontSize(Math.max(10,17*contentW/titleWidth));
-    pdf.text(name,margin,27);
+    pdf.text(name,margin,38);
     y=56;
     section("Identification");
     field("Agent concerné",name);
