@@ -61,6 +61,32 @@ function incidentIsOpen(incident){
 function openIncidentCount(agents){
   return (Array.isArray(agents)?agents:[]).reduce((total,agent)=>total+(Array.isArray(agent?.incidents)?agent.incidents.filter(incidentIsOpen).length:0),0);
 }
+function mergeAgentIncidentsFromDiscipline(agents,privateDoc){
+  const rows=privateDoc?.agentIncidentRecordsV1;
+  if(!Array.isArray(rows)||!rows.length)return agents;
+  const byAgent=new Map();
+  rows.forEach(row=>{
+    if(!row?.agentId||!row?.incidentId)return;
+    const key=String(row.agentId);
+    if(!byAgent.has(key))byAgent.set(key,[]);
+    byAgent.get(key).push(row);
+  });
+  return agents.map(agent=>{
+    const assigned=byAgent.get(String(agent.id))||[];
+    if(!assigned.length)return agent;
+    const overrides=new Map(assigned.map(row=>[String(row.incidentId),row]));
+    const incidents=[];
+    (Array.isArray(agent.incidents)?agent.incidents:[]).forEach(legacy=>{
+      const row=overrides.get(String(legacy.id));
+      if(row){
+        overrides.delete(String(legacy.id));
+        if(!row.deleted&&row.incident)incidents.push(row.incident);
+      }else incidents.push(legacy);
+    });
+    for(const row of overrides.values())if(!row.deleted&&row.incident)incidents.push(row.incident);
+    return {...agent,incidents};
+  });
+}
 function disciplineFrom(data){
   if(Array.isArray(data?.recordsV9))return data.recordsV9;
   if(Array.isArray(data?.recordsV8))return data.recordsV8;
@@ -159,7 +185,8 @@ async function refresh(user){
   }
 
   if(agents.length||sharedR.status==="fulfilled"||personalR.status==="fulfilled"){
-    const openIncidents=openIncidentCount(agents);
+    const allAgents=mergeAgentIncidentsFromDiscipline(agents,dataOf(discPersonalR));
+    const openIncidents=openIncidentCount(allAgents);
     set("kpiIncidents",openIncidents);
     set("kpiIncidentsSub",openIncidents?(openIncidents+" à suivre"):"Aucun incident ouvert");
   }else{
