@@ -28,13 +28,52 @@ try{
     };
   },agent);
   if(result.transactions!==1)throw Error('La sauvegarde agent ne fait pas exactement une transaction Firebase : '+JSON.stringify(result));
-  if(result.refGets!==0)throw Error('Une relecture serveur supplémentaire est encore imposée après la transaction : '+JSON.stringify(result));
+  if(result.refGets<2)throw Error('L’écriture doit être précédée et suivie d’une lecture Firebase confirmée : '+JSON.stringify(result));
   const saved=result.payload.find(x=>x.id==='agent_firebase_test');
   if(!saved||saved.identity?.prenom!=='Dupont'||saved.job?.poste!=='Agent')throw Error('Le profil complet n’est pas écrit dans Firebase : '+JSON.stringify(result));
   if(result.local!==null)throw Error('Le module Agents écrit encore dans localStorage');
   if(!/synchronisé/i.test(result.status))throw Error('Le statut Firebase ne confirme pas la transaction : '+JSON.stringify(result));
   if(errors.length)throw Error('Erreur navigateur : '+errors.join(' ; '));
-  console.log('OK : Agents -> Firebase direct, sans stockage local, sans fausse relecture');
+
+  const incidentResult=await page.evaluate(async()=>{
+    const cloud=window.InovtecAgentsCloud;
+    const state=window.__agentsFirebaseTest;
+    const old={
+      id:'old-inc',date:'2026-10-12',titre:'Incident ancien',description:'Pièce existante',
+      photos:[{id:'old-photo',name:'ancien.png',type:'image/png',dataUrl:'data:image/png;base64,'+'A'.repeat(460000)}]
+    };
+    const agents=JSON.parse(state.doc.moduleSyncV1.agents.payload);
+    agents[0].incidents=[old];
+    agents.push({id:'agent-preserve',identity:{prenom:'Autre',nom:'Agent'},job:{poste:'Test'},docs:[],incidents:[]});
+    state.doc.moduleSyncV1.agents.payload=JSON.stringify(agents);
+    state.doc.moduleSyncV1.planning={payload:'X'.repeat(330000)};
+    const latest={
+      id:'new-inc',date:'2026-10-13',titre:'Incident Paulino',description:'Doit survivre au rechargement',
+      photos:[{id:'new-photo',name:'nouveau.png',type:'image/png',dataUrl:'data:image/png;base64,'+'A'.repeat(470000)}]
+    };
+    // Sans externalisation, cette opération dépasse la limite Firebase de 1 MiB.
+    await cloud.saveIncident('agent_firebase_test',latest,'add');
+    const remote=await cloud.load();
+    const full=JSON.stringify(state.doc);
+    const saved=remote.find(a=>a.id==='agent_firebase_test');
+    const oldSaved=saved?.incidents?.find(i=>i.id==='old-inc');
+    const latestSaved=saved?.incidents?.find(i=>i.id==='new-inc');
+    const loadedData=await cloud.readMedia(latestSaved.photos[0]);
+    return{
+      size:new Blob([full]).size,
+      agentCount:remote.length,
+      oldStored:!!oldSaved?.photos?.[0]?.ivStorageV1?.path&&!oldSaved.photos[0].dataUrl,
+      newStored:!!latestSaved?.photos?.[0]?.ivStorageV1?.path&&!latestSaved.photos[0].dataUrl,
+      photoRecovered:loadedData.startsWith('data:image/png;base64,'),
+      files:state.files.size,
+      names:remote.map(a=>a.id)
+    };
+  });
+  if(incidentResult.size>1048576||!incidentResult.oldStored||!incidentResult.newStored||!incidentResult.photoRecovered||incidentResult.files<2||!incidentResult.names.includes('agent-preserve')){
+    throw Error('Incident non durable ou perte de pièce jointe après migration Firebase : '+JSON.stringify(incidentResult));
+  }
+  console.log('OK : incidents volumineux conservés après rechargement, photos externalisées, autres agents préservés');
+  console.log('OK : Agents -> Firebase direct, sans stockage local, avec relecture serveur confirmée');
 }finally{
   await browser.close();
 }
