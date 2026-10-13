@@ -405,6 +405,47 @@ body{
   display:block;
 }
 
+/* Édition des incidents : une seule fenêtre intégrée, sans prompts navigateur. */
+.incidentEditOverlay{
+  position:fixed;inset:0;z-index:240;display:none;align-items:center;justify-content:center;
+  padding:16px;background:rgba(15,23,42,.68);
+}
+.incidentEditOverlay.open{display:flex;}
+.incidentEditPanel{
+  width:min(760px,100%);max-height:calc(100vh - 32px);
+  display:flex;flex-direction:column;overflow:hidden;
+  border:1px solid var(--border);border-radius:20px;background:#fff;
+  box-shadow:0 24px 70px rgba(15,23,42,.3);
+}
+.incidentEditHeader{
+  padding:18px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  border-bottom:1px solid var(--border);
+}
+.incidentEditHeader h3{font-size:17px;margin:0;font-weight:900;}
+.incidentEditHeader p{font-size:12px;color:var(--muted);margin:5px 0 0;}
+.incidentEditPanel form{display:flex;flex-direction:column;min-height:0;flex:1;}
+.incidentEditBody{padding:4px 20px 22px;overflow-y:auto;min-height:0;overscroll-behavior:contain;}
+.incidentEditFooter{
+  display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;
+  padding:14px 20px;border-top:1px solid var(--border);background:#f8fafc;
+}
+.incidentEditFooter .incidentEditFeedback{flex:1;min-width:150px;font-size:12px;color:#b91c1c;font-weight:700;}
+.incidentEditPhotos{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+.incidentEditPhoto{
+  width:118px;display:flex;flex-direction:column;gap:5px;padding:7px;
+  border:1px solid var(--border);border-radius:12px;background:#f8fafc;
+  font-size:11px;overflow-wrap:anywhere;cursor:pointer;
+}
+.incidentEditPhoto img{width:100%;height:83px;object-fit:cover;border-radius:8px;background:#e2e8f0;}
+.incidentEditPhoto span{display:flex;align-items:flex-start;gap:5px;}
+.incidentEditPhoto input{margin:1px 0 0;}
+@media(max-width:560px){
+  .incidentEditOverlay{padding:8px;}
+  .incidentEditPanel{max-height:calc(100dvh - 16px);}
+  .incidentEditHeader,.incidentEditFooter{padding:12px;}
+  .incidentEditBody{padding:4px 12px 16px;}
+}
+
 .footNote{
   padding:0 14px 16px;
   font-size:12px;
@@ -683,6 +724,43 @@ body{
     <div class="modalImgWrap">
       <img id="modalImg" alt="Aperçu">
     </div>
+  </div>
+</div>
+
+
+<!-- Fenêtre d'édition complète d'un incident, sans quitter la fiche agent -->
+<div class="incidentEditOverlay" id="incidentEditModal" aria-hidden="true">
+  <div class="incidentEditPanel" role="dialog" aria-modal="true" aria-labelledby="incidentEditTitle">
+    <div class="incidentEditHeader">
+      <div><h3 id="incidentEditTitle">Modifier l’incident</h3><p id="incidentEditAgent"></p></div>
+      <button class="tiny" type="button" id="btnCancelEditIncidentTop" aria-label="Fermer sans enregistrer">✕</button>
+    </div>
+    <form id="incidentEditForm">
+      <div class="incidentEditBody">
+        <div class="grid2">
+          <div class="field"><label for="edit_inc_date">Date</label><input class="input" type="date" id="edit_inc_date" required></div>
+          <div class="field"><label for="edit_inc_cat">Catégorie</label><input class="input" id="edit_inc_cat" placeholder="Retard, absence, tenue…"></div>
+          <div class="field"><label for="edit_inc_sev">Gravité</label><select class="input" id="edit_inc_sev"><option>Faible</option><option>Modérée</option><option>Élevée</option></select></div>
+          <div class="field"><label for="edit_inc_stat">Statut</label><select class="input" id="edit_inc_stat"><option>Ouvert</option><option>En cours</option><option>Clos</option></select></div>
+          <div class="field" style="grid-column:1/-1"><label for="edit_inc_title">Titre</label><input class="input" id="edit_inc_title" placeholder="Titre court"></div>
+          <div class="field" style="grid-column:1/-1"><label for="edit_inc_desc">Description</label><textarea class="input textarea" id="edit_inc_desc" placeholder="Détails de l’incident, suite donnée…"></textarea></div>
+          <div class="field" style="grid-column:1/-1">
+            <label>Photos de l’incident</label>
+            <div class="incidentEditPhotos" id="edit_inc_existingPhotos"></div>
+            <div class="muted">Coche « Retirer » pour supprimer une photo de cet incident.</div>
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label for="edit_inc_photos">Ajouter des photos (option)</label>
+            <input class="input" type="file" id="edit_inc_photos" accept="image/*" multiple>
+          </div>
+        </div>
+      </div>
+      <div class="incidentEditFooter">
+        <span class="incidentEditFeedback" id="incidentEditFeedback" role="status" aria-live="polite"></span>
+        <button class="tiny" type="button" id="btnCancelEditIncident">Annuler</button>
+        <button class="miniBtn" type="submit" id="btnSaveEditedIncident">Enregistrer les modifications</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1300,26 +1378,7 @@ function renderIncidents(agent){
 
   $all("[data-inc-edit]").forEach(function(btn){
     btn.onclick = function(){
-      var id = btn.getAttribute("data-inc-edit");
-      var inc = agent.incidents.find(function(x){return x.id===id;});
-      if(!inc) return;
-      var s = prompt("Statut (Ouvert / En cours / Clos) :", inc.statut || "Ouvert");
-      if(s === null) return;
-      var g = prompt("Gravité (Faible / Modérée / Élevée) :", inc.gravite || "Modérée");
-      if(g === null) return;
-      var t = prompt("Titre :", inc.titre || "Incident");
-      if(t === null) return;
-      var d = prompt("Description :", inc.description || "");
-      if(d === null) return;
-
-      inc.statut = safeText(s) || inc.statut;
-      inc.gravite = safeText(g) || inc.gravite;
-      inc.titre = safeText(t) || inc.titre;
-      inc.description = safeText(d);
-
-      touchAgent(agent);
-      save();
-      renderAll();
+      openIncidentEditModal(agent.id, btn.getAttribute("data-inc-edit"));
     };
   });
 
@@ -1330,6 +1389,145 @@ function renderIncidents(agent){
       openPhotoModal(url, name);
     };
   });
+}
+
+
+/* Édition en place : conserver l'identifiant et les documents de l'incident. */
+var incidentEditContext = null;
+var incidentEditSaving = false;
+
+function incidentEditMessage(message){
+  $("#incidentEditFeedback").textContent = message || "";
+}
+
+function openIncidentEditModal(agentId, incidentId){
+  if(incidentEditSaving) return;
+  var agent = state.agents.find(function(a){return a && String(a.id)===String(agentId);});
+  var incident = agent && (agent.incidents||[]).find(function(i){return String(i.id)===String(incidentId);});
+  if(!incident){alert("Cet incident n’est plus disponible.");return;}
+  incidentEditContext = {agentId:String(agent.id),incidentId:String(incident.id)};
+  $("#incidentEditAgent").textContent = "Agent : "+(safeText(agent.identity?.prenom)+" "+safeText(agent.identity?.nom)).trim();
+  $("#edit_inc_date").value = incident.date || todayISO();
+  $("#edit_inc_cat").value = incident.categorie || "";
+  $("#edit_inc_sev").value = incident.gravite || "Modérée";
+  $("#edit_inc_stat").value = incident.statut || "Ouvert";
+  $("#edit_inc_title").value = incident.titre || "";
+  $("#edit_inc_desc").value = incident.description || "";
+  $("#edit_inc_photos").value = "";
+  incidentEditMessage("");
+  var wrap = $("#edit_inc_existingPhotos");
+  wrap.innerHTML = "";
+  var photos = Array.isArray(incident.photos) ? incident.photos : [];
+  if(!photos.length){
+    wrap.innerHTML = '<div class="muted">Aucune photo associée.</div>';
+  }else{
+    photos.forEach(function(photo,index){
+      var label = document.createElement("label");
+      label.className = "incidentEditPhoto";
+      if(photo && photo.dataUrl){
+        var img = document.createElement("img");
+        img.src = photo.dataUrl;
+        img.alt = safeText(photo.name) || "Photo de l’incident";
+        label.appendChild(img);
+      }
+      var name = document.createElement("strong");
+      name.textContent = safeText(photo && photo.name) || "Photo "+(index+1);
+      label.appendChild(name);
+      var line = document.createElement("span");
+      var checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.setAttribute("data-edit-photo-index",String(index));
+      line.appendChild(checkbox);
+      line.appendChild(document.createTextNode(" Retirer"));
+      label.appendChild(line);
+      wrap.appendChild(label);
+    });
+  }
+  $("#incidentEditModal").classList.add("open");
+  $("#incidentEditModal").setAttribute("aria-hidden","false");
+  $("#edit_inc_date").focus();
+}
+
+function closeIncidentEditModal(){
+  if(incidentEditSaving) return;
+  $("#incidentEditModal").classList.remove("open");
+  $("#incidentEditModal").setAttribute("aria-hidden","true");
+  $("#edit_inc_photos").value = "";
+  incidentEditContext = null;
+  incidentEditMessage("");
+}
+
+async function saveEditedIncident(event){
+  if(event) event.preventDefault();
+  if(!incidentEditContext || incidentEditSaving) return;
+  var context = incidentEditContext;
+  var titre = safeText($("#edit_inc_title").value);
+  var description = safeText($("#edit_inc_desc").value);
+  if(!titre && !description){
+    incidentEditMessage("Renseigne au moins un titre ou une description.");
+    $("#edit_inc_title").focus();
+    return;
+  }
+  var files = Array.prototype.slice.call($("#edit_inc_photos").files||[]);
+  var large = files.find(function(file){return file.size>10*1024*1024;});
+  if(large){
+    incidentEditMessage("La photo « "+large.name+" » dépasse 10 Mo.");
+    return;
+  }
+  var button = $("#btnSaveEditedIncident");
+  incidentEditSaving = true;
+  button.disabled = true;
+  $("#btnCancelEditIncident").disabled = true;
+  $("#btnCancelEditIncidentTop").disabled = true;
+  button.textContent = "Enregistrement Firebase…";
+  incidentEditMessage("");
+  try{
+    var addedPhotos = await Promise.all(files.map(async function(file){
+      return {
+        id:uid("ph"),name:file.name,type:file.type||"image/*",size:file.size,
+        dataUrl:await fileToDataURL(file)
+      };
+    }));
+    // Retrouver l'agent actuel : une synchronisation Firebase peut avoir eu lieu depuis l'ouverture.
+    var agent = state.agents.find(function(a){return a && String(a.id)===context.agentId;});
+    var incident = agent && (agent.incidents||[]).find(function(i){return String(i.id)===context.incidentId;});
+    if(!incident) throw new Error("Cet incident a été supprimé ou n’est plus disponible.");
+    var removed = new Set($all("#edit_inc_existingPhotos [data-edit-photo-index]:checked").map(function(c){
+      return Number(c.getAttribute("data-edit-photo-index"));
+    }));
+    var existingPhotos = Array.isArray(incident.photos) ? incident.photos : [];
+    var update = Object.assign({},incident,{
+      date:$("#edit_inc_date").value || todayISO(),
+      categorie:safeText($("#edit_inc_cat").value),
+      gravite:$("#edit_inc_sev").value || "Modérée",
+      statut:$("#edit_inc_stat").value || "Ouvert",
+      titre:titre || "Incident",
+      description:description,
+      photos:existingPhotos.filter(function(photo,index){return !removed.has(index);}).concat(addedPhotos),
+      updatedAt:new Date().toISOString()
+    });
+    var updatedAgent = Object.assign({},agent,{
+      incidents:agent.incidents.map(function(row){return String(row.id)===context.incidentId ? update : row;}),
+      updatedAt:new Date().toISOString()
+    });
+    var cloud = await getAgentsCloud();
+    if(typeof cloud.saveAgent!=="function") throw new Error("Sauvegarde Firebase indisponible.");
+    await cloud.saveAgent(updatedAgent);
+    var pos = state.agents.findIndex(function(a){return a && String(a.id)===context.agentId;});
+    if(pos>=0) state.agents[pos] = updatedAgent;
+    incidentEditSaving = false;
+    closeIncidentEditModal();
+    renderAll();
+  }catch(error){
+    console.error("Modification de l’incident",error);
+    incidentEditMessage(error && error.message ? error.message : "Impossible d’enregistrer dans Firebase. Réessaie.");
+  }finally{
+    incidentEditSaving = false;
+    button.disabled = false;
+    $("#btnCancelEditIncident").disabled = false;
+    $("#btnCancelEditIncidentTop").disabled = false;
+    button.textContent = "Enregistrer les modifications";
+  }
 }
 
 function addIncidentFromForm(){
@@ -1697,6 +1895,9 @@ document.addEventListener("DOMContentLoaded", function(){
 
   // incidents
   $("#btnAddIncident").onclick = addIncidentFromForm;
+  $("#incidentEditForm").addEventListener("submit",saveEditedIncident);
+  $("#btnCancelEditIncident").onclick = closeIncidentEditModal;
+  $("#btnCancelEditIncidentTop").onclick = closeIncidentEditModal;
 
   // modal
   $("#modalClose").onclick = closePhotoModal;
@@ -1704,6 +1905,11 @@ document.addEventListener("DOMContentLoaded", function(){
     if(e.target.id === "modal") closePhotoModal();
   };
   document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && $("#incidentEditModal").classList.contains("open")){
+      e.preventDefault();
+      closeIncidentEditModal();
+      return;
+    }
     if(e.key === "Escape") closePhotoModal();
   });
 
