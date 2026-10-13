@@ -175,6 +175,60 @@ async function saveAgent(agent){
     throw e;
   }
 }
+// Sauvegarde atomique d'un SEUL incident sur la fiche existante.
+// Ne remplace jamais les autres incidents ni les autres champs de l'agent.
+async function saveIncident(agentId,incident,action='add'){
+  const id=String(agentId||''),incidentId=String(incident?.id||'');
+  if(!id||!incidentId||!['add','update'].includes(action))throw Error('Incident invalide');
+  await waitReady();
+  status('Firebase — enregistrement de l’incident…');
+  try{
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
+      const agents=parse(raw,null);
+      if(!Array.isArray(agents))throw Error('Liste Agents Firebase illisible');
+      const agentIndex=agents.findIndex(a=>a&&String(a.id)===id&&!a._deleted);
+      if(agentIndex<0)throw Error('Fiche agent introuvable dans Firebase : enregistre d’abord la fiche agent.');
+      const agent=agents[agentIndex];
+      const incidents=Array.isArray(agent.incidents)?agent.incidents:[];
+      const index=incidents.findIndex(item=>String(item?.id||'')===incidentId);
+      let nextIncidents;
+      if(action==='add'){
+        if(index>=0){
+          if(JSON.stringify(incidents[index])!==JSON.stringify(incident))throw Error('Identifiant d’incident déjà utilisé.');
+          nextIncidents=incidents;
+        }else nextIncidents=incidents.concat([clone(incident)]);
+      }else{
+        if(index<0)throw Error('Incident d’origine introuvable dans Firebase.');
+        nextIncidents=incidents.map((item,i)=>i===index?clone(incident):item);
+      }
+      const next=agents.slice();
+      next[agentIndex]={...agent,incidents:nextIncidents,updatedAt:new Date().toISOString()};
+      tx.set(ref,{moduleSyncV1:{agents:{payload:payloadOf(next),updatedAtMs:Date.now(),reason:'incident-'+action,version:7}}},{merge:true});
+    });
+
+    // Seule une relecture du SERVEUR autorise l'affichage « enregistré ».
+    const checked=await ref.get({source:'server'});
+    const raw=checked.exists?checked.data()?.moduleSyncV1?.agents?.payload:'[]';
+    const rows=parse(raw,null);
+    if(!Array.isArray(rows))throw Error('Réponse de vérification Firebase illisible');
+    const savedAgent=rows.find(a=>a&&String(a.id)===id&&!a._deleted);
+    const saved=savedAgent?.incidents?.find(item=>String(item?.id||'')===incidentId);
+    if(!saved||JSON.stringify(saved)!==JSON.stringify(incident)){
+      throw Error('L’incident n’a pas pu être confirmé sur le serveur Firebase.');
+    }
+    status('Firebase — incident enregistré ✓',true);
+    lastRealtimePayload=raw;
+    emit('inovtec:agent-cloud-saved',{id,payload:raw});
+    emit('inovtec:agents-cloud-updated',{payload:raw,confirmed:true});
+    return clone(saved);
+  }catch(error){
+    console.error('Firebase : incident non confirmé',error);
+    status('Firebase — incident non enregistré : '+(error.code||error.message||'erreur'));
+    throw error;
+  }
+}
 async function replaceAll(rows,reason='agents-replace-all'){
   await waitReady();
   const raw=payloadOf(rows);
@@ -194,6 +248,7 @@ async function replaceAll(rows,reason='agents-replace-all'){
 window.InovtecAgentsCloud=Object.freeze({
   load:readServer,
   saveAgent,
+  saveIncident,
   saveAll:writeRows,
   replaceAll,
   ready:waitReady
