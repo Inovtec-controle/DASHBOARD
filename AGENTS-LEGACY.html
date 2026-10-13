@@ -1425,13 +1425,23 @@ function renderIncidents(agent){
 
   // events
   $all("[data-inc-del]").forEach(function(btn){
-    btn.onclick = function(){
+    btn.onclick = async function(){
       var id = btn.getAttribute("data-inc-del");
-      if(confirm("Supprimer cet incident ?")){
-        agent.incidents = agent.incidents.filter(function(x){return x.id!==id;});
-        touchAgent(agent);
-        save();
+      if(!confirm("Supprimer cet incident ?"))return;
+      btn.disabled=true;
+      btn.textContent="Suppression…";
+      try{
+        var cloud=await getAgentsCloud();
+        if(typeof cloud.deleteIncident!=="function")throw new Error("Suppression Firebase indisponible");
+        await cloud.deleteIncident(agent.id,id);
+        var current=state.agents.find(function(a){return a&&String(a.id)===String(agent.id)});
+        if(current)current.incidents=(current.incidents||[]).filter(function(x){return String(x.id)!==String(id)});
         renderAll();
+      }catch(error){
+        console.error("Suppression d'incident",error);
+        alert("Impossible de supprimer cet incident sur Firebase : "+(error.message||"erreur"));
+        btn.disabled=false;
+        btn.textContent="Supprimer";
       }
     };
   });
@@ -1599,6 +1609,7 @@ async function saveEditedIncident(event){
 }
 
 var incidentCreationBusy = false;
+var incidentCreationRetryId = "";
 async function addIncidentFromForm(){
   if(incidentCreationBusy) return;
   var agent=getSelectedAgent();
@@ -1644,19 +1655,26 @@ async function addIncidentFromForm(){
       };
     }));
     var incident={
-      id:uid("inc"),date:date,categorie:cat,gravite:sev,
+      id:incidentCreationRetryId||(incidentCreationRetryId=uid("inc")),date:date,categorie:cat,gravite:sev,
       statut:stat,titre:titre||"Incident",description:desc,
       createdAt:new Date().toISOString(),photos:photos
     };
     var cloud=await getAgentsCloud();
     if(typeof cloud.saveIncident!=="function")throw new Error("Service Firebase de sauvegarde des incidents indisponible.");
-    await cloud.saveIncident(agentId,incident,"add");
-
+    var confirmedIncident=await cloud.saveIncident(agentId,incident,"add");
+    incidentCreationRetryId="";
     // La fiche locale n'est mise à jour qu'après l'accusé de réception du serveur.
     var current=state.agents.find(function(a){return a && String(a.id)===agentId;});
     if(current){
       if(!Array.isArray(current.incidents))current.incidents=[];
-      if(!current.incidents.some(function(item){return String(item.id)===String(incident.id);}))current.incidents.push(incident);
+      if(!current.incidents.some(function(item){return String(item.id)===String(incident.id);})){
+        current.incidents.push(Object.assign({},confirmedIncident,{
+          photos:(confirmedIncident.photos||[]).map(function(p){
+            var original=photos.find(function(q){return String(q.id)===String(p.id);});
+            return original?.dataUrl?Object.assign({},p,{dataUrl:original.dataUrl}):p;
+          })
+        }));
+      }
       renderAll();
     }
     if(String(state.selectedId)===agentId){
