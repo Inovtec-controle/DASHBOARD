@@ -87,6 +87,24 @@ function mergeAgentIncidentsFromDiscipline(agents,privateDoc,directRows=[]){
     return {...agent,incidents};
   });
 }
+async function readEncryptedIncidentCounterRows(personal,querySnapshot){
+  const docs=querySnapshot?.docs||[];
+  const entries=docs.map(doc=>doc.data()||{}).filter(row=>row._type==='inovtecPrivateEncryptedIncidentV1');
+  if(!entries.length)return [];
+  const encoded=personal?._ivIncidentEncryptionKeyV1;
+  if(!encoded||!crypto?.subtle)throw Error("Clé personnelle des incidents introuvable");
+  const bytes=Uint8Array.from(atob(String(encoded)),char=>char.charCodeAt(0));
+  const key=await crypto.subtle.importKey('raw',bytes,{name:'AES-GCM'},false,['decrypt']);
+  return Promise.all(entries.map(async doc=>{
+    const iv=Uint8Array.from(atob(String(doc.iv||'')),char=>char.charCodeAt(0));
+    const ciphertext=Uint8Array.from(atob(String(doc.encryptedPayload||'')),char=>char.charCodeAt(0));
+    const plaintext=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ciphertext);
+    const record=JSON.parse(new TextDecoder().decode(plaintext));
+    if(!record?.agentId||!record?.incidentId)throw Error("Enregistrement incident illisible");
+    return record;
+  }));
+}
+
 function disciplineFrom(data){
   if(Array.isArray(data?.recordsV9))return data.recordsV9;
   if(Array.isArray(data?.recordsV8))return data.recordsV8;
@@ -162,9 +180,10 @@ async function refresh(user){
     db.collection("chantiers").doc(DISC_ID).get(),
     db.collection("chantiers").doc("__discipline_data__"+user.uid).get(),
     db.collection("discipline").doc(user.uid).get(),
-    db.collection("kanban").doc(user.uid).collection("agentIncidents").get()
+    db.collection("kanban").doc(user.uid).collection("agentIncidents").get(),
+    db.collection("chantiers").where("ownerUid","==",user.uid).get()
   ];
-  const [sitesR,sharedR,personalR,discSharedR,discHiddenR,discPersonalR,incidentDirectR]=await Promise.allSettled(requests);
+  const [sitesR,sharedR,personalR,discSharedR,discHiddenR,discPersonalR,incidentDirectR,encryptedIncidentR]=await Promise.allSettled(requests);
   if(seq!==refreshSeq)return;
 
   if(sitesR.status==="fulfilled"){
@@ -187,7 +206,17 @@ async function refresh(user){
 
   if(agents.length||sharedR.status==="fulfilled"||personalR.status==="fulfilled"){
     const directIncidents=incidentDirectR.status==="fulfilled"?incidentDirectR.value.docs.map(doc=>doc.data()||{}):[];
-    const allAgents=mergeAgentIncidentsFromDiscipline(agents,dataOf(discPersonalR),directIncidents);
+    let encryptedIncidents=[];
+    try{
+      if(encryptedIncidentR.status==="fulfilled"){
+        encryptedIncidents=await readEncryptedIncidentCounterRows(personal,encryptedIncidentR.value);
+      }
+    }catch(error){
+      console.warn("Compteur d'incidents chiffrés",error);
+      set("kpiIncidentsSub","Incidents en cours de synchronisation");
+    }
+    if(seq!==refreshSeq)return;
+    const allAgents=mergeAgentIncidentsFromDiscipline(agents,dataOf(discPersonalR),directIncidents.concat(encryptedIncidents));
     const openIncidents=openIncidentCount(allAgents);
     set("kpiIncidents",openIncidents);
     set("kpiIncidentsSub",openIncidents?(openIncidents+" à suivre"):"Aucun incident ouvert");
