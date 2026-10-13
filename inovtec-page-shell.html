@@ -49,13 +49,18 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()==="agents"){
+  document.write('<scr'+'ipt src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></scr'+'ipt>');
+}
+</script>
 <script src="firebase-config.js?v=20261012-canonical-routes1"></script>
 <script src="inovtec-data-hub.js?v=20261009-performance1"></script>
 <script>
 {
   const shellMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(shellMode==="agents"){
-    document.write('<script src="inovtec-agents-firebase-direct.js?v=20261013-incident-firebase-verified2"><\/script>');
+    document.write('<script src="inovtec-agents-firebase-direct.js?v=20261013-agents-media-store1"><\/script>');
   }else if(shellMode!=="kontrol"&&shellMode!=="planning"){
     document.write('<script src="inovtec-cloud-sync.js?v=20260927-authfix1"><\/script>');
   }
