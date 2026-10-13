@@ -226,7 +226,6 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
     field("Date des faits",date);
     field("Catégorie",incident?.categorie);
     field("Gravité",incident?.gravite||"Modérée");
-    field("Statut du suivi",incident?.statut||"Ouvert");
     section("Faits consignés");
     field("Objet",incident?.titre||"Incident");
     field("Description / suite consignée",incident?.description);
@@ -265,16 +264,6 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
       }
     }
     blankArea("Observations complémentaires (à compléter)");
-    section("Suivi");
-    ensure(23);
-    pdf.setTextColor(83,98,107);
-    pdf.setFont("helvetica","normal");
-    pdf.setFontSize(9);
-    pdf.text("Date : _____________________",margin,y);
-    pdf.text("Responsable : _____________________________",margin+67,y);
-    y+=12;
-    pdf.text("Signature / visa : __________________________________________",margin,y);
-    y+=9;
     const pages=pdf.getNumberOfPages();
     for(let p=1;p<=pages;p++){
       pdf.setPage(p);
