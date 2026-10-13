@@ -119,117 +119,183 @@ async function readServer(){
   status('Firebase — synchronisé',true);
   return clone(rows);
 }
-async function writeRows(rows,reason='agents-direct-save'){
-  await waitReady();
-  const incoming=activeRows(rows);
-  status('Firebase — enregistrement des agents…');
-  let written='[]';
+
+/* Médias Agents : les photos et PDF volumineux vivent dans Firebase Storage,
+   et non plus dans le document kanban/{uid} limité à 1 Mio.
+   On réutilise UNIQUEMENT les chemins Storage déjà autorisés par les règles du projet,
+   pour ne jamais déposer de pièces confidentielles dans la collection chantiers partagée. */
+const MEDIA_TARGET_BYTES=680000;
+const mediaCache=new Map();
+const byteSize=str=>new Blob([String(str)]).size;
+const safePath=value=>String(value||'media').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,90)||'media';
+function mediaType(item){
+  const match=String(item?.dataUrl||'').match(/^data:([^;,]+)[;,]/i);
+  return (match?.[1]||String(item?.type||'application/octet-stream')).toLowerCase();
+}
+function mediaStoragePath(item,agent,kind,incident){
+  const mime=mediaType(item),uid=safePath(user?.uid);
+  const agentId=safePath(agent?.id),itemId=safePath(item?.id||item?.name||'file');
+  if(/^image\//.test(mime)){
+    const group=kind==='photo'?'agentIncident_'+agentId+'_'+safePath(incident?.id):'agentDocument_'+agentId;
+    return 'discipline/'+uid+'/'+group+'/'+itemId;
+  }
+  if(kind==='document'&&mime==='application/pdf')
+    return 'kontrol/'+uid+'/pdfs/agentDocument_'+agentId+'_'+itemId+'.pdf';
+  return null;
+}
+function toDataBlob(dataUrl){
+  const raw=String(dataUrl||''),comma=raw.indexOf(',');
+  if(!raw.startsWith('data:')||comma<0)throw Error('Pièce jointe illisible');
+  const header=raw.slice(0,comma),mime=header.match(/^data:([^;,]+)/i)?.[1]||'application/octet-stream';
+  const encoded=raw.slice(comma+1);
+  if(!header.includes(';base64'))return new Blob([decodeURIComponent(encoded)],{type:mime});
+  const binary=atob(encoded),out=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)out[i]=binary.charCodeAt(i);
+  return new Blob([out],{type:mime});
+}
+async function uploadAgentMedia(item,agent,kind,incident){
+  if(!item?.dataUrl||item?.ivStorageV1?.path)return item;
+  const path=mediaStoragePath(item,agent,kind,incident);
+  if(!path)return item;
+  if(!firebase.storage)throw Error('Le service Firebase Storage n’est pas chargé. Actualise la page.');
+  const blob=toDataBlob(item.dataUrl);
+  if(blob.size>12*1024*1024)throw Error('Fichier trop lourd (maximum 12 Mo).');
   try{
-  await db.runTransaction(async tx=>{
-    const snap=await tx.get(ref);
-    const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
-    const remote=parse(raw,[]);
-    if(!Array.isArray(remote))throw Error('Liste Agents Firebase illisible');
-    const map=new Map(remote.filter(x=>x&&x.id).map(x=>[String(x.id),x]));
+    await firebase.storage().ref().child(path).put(blob,{contentType:blob.type});
+  }catch(error){
+    throw Error('Impossible de stocker la pièce jointe dans Firebase Storage : '+(error?.code||error?.message||'accès refusé'));
+  }
+  mediaCache.set(path,item.dataUrl);
+  const result={...item,ivStorageV1:{version:1,path,type:blob.type,size:blob.size}};
+  delete result.dataUrl;
+  return result;
+}
+async function compactAgentMedia(rows,forceUpload=false){
+  const result=clone(rows),candidates=[];
+  for(const agent of result){
+    if(!agent||typeof agent!=='object')continue;
+    const append=(item,kind,incident,index,array)=>{
+      if(!item||typeof item!=='object')return;
+      if(item.ivStorageV1?.path){
+        if(item.dataUrl){mediaCache.set(item.ivStorageV1.path,item.dataUrl);delete item.dataUrl}
+        return;
+      }
+      if(item.dataUrl){
+        const path=mediaStoragePath(item,agent,kind,incident);
+        if(path)candidates.push({item,agent,kind,incident,index,array,bytes:byteSize(item.dataUrl)});
+      }
+    };
+    (agent.docs||[]).forEach((item,index,array)=>append(item,'document',null,index,array));
+    (agent.incidents||[]).forEach(incident=>(incident.photos||[]).forEach((item,index,array)=>append(item,'photo',incident,index,array)));
+  }
+  let bytes=byteSize(JSON.stringify(result));
+  // Toujours sortir les nouvelles photos d'incident si demandé, même avant le seuil.
+  candidates.sort((a,b)=>b.bytes-a.bytes);
+  for(const c of candidates){
+    if(!forceUpload&&bytes<=MEDIA_TARGET_BYTES)break;
+    const before=c.array[c.index];
+    c.array[c.index]=await uploadAgentMedia(before,c.agent,c.kind,c.incident);
+    bytes=byteSize(JSON.stringify(result));
+  }
+  if(bytes>900000)throw Error('Fiches agents encore trop volumineuses pour Firebase ('+Math.ceil(bytes/1024)+' Ko). Vérifier les pièces jointes non-images.');
+  return result;
+}
+async function mutateAgentRows(reason,makeNext,{forceUpload=false,verify}={}){
+  await waitReady();
+  status('Firebase — enregistrement…');
+  for(let attempt=0;attempt<3;attempt++){
+    const server=await ref.get({source:'server'});
+    const currentRaw=server.exists?server.data()?.moduleSyncV1?.agents?.payload:'[]';
+    const current=parse(currentRaw,null);
+    if(!Array.isArray(current))throw Error('Liste Agents Firebase illisible');
+    const proposed=makeNext(clone(current));
+    const compact=await compactAgentMedia(proposed,forceUpload);
+    const written=payloadOf(compact);
+    try{
+      await db.runTransaction(async tx=>{
+        const snap=await tx.get(ref);
+        const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
+        if(raw!==currentRaw)throw Error('AGENTS_SNAPSHOT_CHANGED');
+        tx.set(ref,{moduleSyncV1:{agents:{payload:written,updatedAtMs:Date.now(),reason,version:8}}},{merge:true});
+      });
+    }catch(error){
+      if(error?.message==='AGENTS_SNAPSHOT_CHANGED'&&attempt<2)continue;
+      status('Firebase — enregistrement impossible : '+(error?.code||error?.message||'erreur'));
+      throw error;
+    }
+    const verifiedSnap=await ref.get({source:'server'});
+    const actual=verifiedSnap.exists?verifiedSnap.data()?.moduleSyncV1?.agents?.payload:'[]';
+    const rows=parse(actual,null);
+    if(!Array.isArray(rows)||verify&&!verify(rows))throw Error('Firebase n’a pas confirmé les données enregistrées.');
+    status('Firebase — synchronisé',true);
+    lastRealtimePayload=actual;
+    emit('inovtec:agents-cloud-updated',{payload:actual,confirmed:true});
+    return rows;
+  }
+  throw Error('Modifications simultanées : réessaye l’enregistrement.');
+}
+async function readMedia(item){
+  if(item?.dataUrl)return item.dataUrl;
+  const path=item?.ivStorageV1?.path;
+  if(!path)return '';
+  if(mediaCache.has(path))return mediaCache.get(path);
+  if(!firebase.storage)throw Error('Firebase Storage indisponible');
+  const url=await firebase.storage().ref().child(path).getDownloadURL();
+  const response=await fetch(url);
+  if(!response.ok)throw Error('Lecture Firebase Storage impossible ('+response.status+')');
+  const blob=await response.blob();
+  const dataUrl=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(reader.error||Error('Fichier illisible'));
+    reader.readAsDataURL(blob);
+  });
+  mediaCache.set(path,dataUrl);
+  return dataUrl;
+}
+async function writeRows(rows,reason='agents-direct-save'){
+  const incoming=activeRows(rows);
+  const results=await mutateAgentRows(reason,remote=>{
+    const map=new Map(remote.filter(x=>x?.id).map(x=>[String(x.id),x]));
     for(const row of incoming){
       const key=String(row.id),previous=map.get(key);
       const previousAt=Date.parse(previous?.updatedAt||previous?.deletedAt||previous?.createdAt||0)||0;
       const incomingAt=Date.parse(row?.updatedAt||row?.deletedAt||row?.createdAt||0)||0;
       if(!previous||incomingAt>=previousAt)map.set(key,row);
     }
-    written=payloadOf(Array.from(map.values()));
-    tx.set(ref,{moduleSyncV1:{agents:{payload:written,updatedAtMs:Date.now(),reason,version:7}}},{merge:true});
+    return Array.from(map.values());
   });
-  status('Firebase — synchronisé',true);
-  emit('inovtec:agents-cloud-updated',{payload:written});
-  return clone(parse(written,[]));
-  }catch(e){
-    console.error('Firebase Agents',e);
-    status('Firebase — erreur : '+(e.code||e.message||'écriture impossible'));
-    throw e;
-  }
+  return clone(results);
 }
 async function saveAgent(agent){
-  if(!agent||!agent.id)throw Error('Fiche agent invalide');
-  await waitReady();
-  status('Firebase — enregistrement de l’agent…');
-  let written='[]';
-  try{
-  await db.runTransaction(async tx=>{
-    const snap=await tx.get(ref);
-    const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
-    const rows=parse(raw,[]);
-    if(!Array.isArray(rows))throw Error('Liste Agents Firebase illisible');
-    const next=rows.slice();
-    const idx=next.findIndex(x=>String(x?.id||'')===String(agent.id));
-    const clean=clone(agent);
-    if(idx>=0)next[idx]=clean;else next.push(clean);
-    written=payloadOf(next);
-    tx.set(ref,{moduleSyncV1:{agents:{payload:written,updatedAtMs:Date.now(),reason:'agent-direct-save',version:7}}},{merge:true});
-  });
-  status('Firebase — synchronisé',true);
-  emit('inovtec:agent-cloud-saved',{id:String(agent.id),payload:written});
-  emit('inovtec:agents-cloud-updated',{payload:written});
-  return clone(agent);
-  }catch(e){
-    console.error('Firebase Agent',e);
-    status('Firebase — erreur : '+(e.code||e.message||'écriture impossible'));
-    throw e;
-  }
+  if(!agent?.id)throw Error('Fiche agent invalide');
+  const id=String(agent.id);
+  const results=await mutateAgentRows('agent-direct-save',remote=>{
+    const idx=remote.findIndex(x=>String(x?.id||'')===id);
+    if(idx>=0)remote[idx]=clone(agent);else remote.push(clone(agent));
+    return remote;
+  },{verify:rows=>rows.some(a=>String(a?.id||'')===id)});
+  emit('inovtec:agent-cloud-saved',{id});
+  return clone(results.find(a=>String(a?.id||'')===id));
 }
-// Sauvegarde atomique d'un SEUL incident sur la fiche existante.
-// Ne remplace jamais les autres incidents ni les autres champs de l'agent.
 async function saveIncident(agentId,incident,action='add'){
   const id=String(agentId||''),incidentId=String(incident?.id||'');
   if(!id||!incidentId||!['add','update'].includes(action))throw Error('Incident invalide');
-  await waitReady();
-  status('Firebase — enregistrement de l’incident…');
-  try{
-    await db.runTransaction(async tx=>{
-      const snap=await tx.get(ref);
-      const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
-      const agents=parse(raw,null);
-      if(!Array.isArray(agents))throw Error('Liste Agents Firebase illisible');
-      const agentIndex=agents.findIndex(a=>a&&String(a.id)===id&&!a._deleted);
-      if(agentIndex<0)throw Error('Fiche agent introuvable dans Firebase : enregistre d’abord la fiche agent.');
-      const agent=agents[agentIndex];
-      const incidents=Array.isArray(agent.incidents)?agent.incidents:[];
-      const index=incidents.findIndex(item=>String(item?.id||'')===incidentId);
-      let nextIncidents;
-      if(action==='add'){
-        if(index>=0){
-          if(JSON.stringify(incidents[index])!==JSON.stringify(incident))throw Error('Identifiant d’incident déjà utilisé.');
-          nextIncidents=incidents;
-        }else nextIncidents=incidents.concat([clone(incident)]);
-      }else{
-        if(index<0)throw Error('Incident d’origine introuvable dans Firebase.');
-        nextIncidents=incidents.map((item,i)=>i===index?clone(incident):item);
-      }
-      const next=agents.slice();
-      next[agentIndex]={...agent,incidents:nextIncidents,updatedAt:new Date().toISOString()};
-      tx.set(ref,{moduleSyncV1:{agents:{payload:payloadOf(next),updatedAtMs:Date.now(),reason:'incident-'+action,version:7}}},{merge:true});
-    });
-
-    // Seule une relecture du SERVEUR autorise l'affichage « enregistré ».
-    const checked=await ref.get({source:'server'});
-    const raw=checked.exists?checked.data()?.moduleSyncV1?.agents?.payload:'[]';
-    const rows=parse(raw,null);
-    if(!Array.isArray(rows))throw Error('Réponse de vérification Firebase illisible');
-    const savedAgent=rows.find(a=>a&&String(a.id)===id&&!a._deleted);
-    const saved=savedAgent?.incidents?.find(item=>String(item?.id||'')===incidentId);
-    if(!saved||JSON.stringify(saved)!==JSON.stringify(incident)){
-      throw Error('L’incident n’a pas pu être confirmé sur le serveur Firebase.');
-    }
-    status('Firebase — incident enregistré ✓',true);
-    lastRealtimePayload=raw;
-    emit('inovtec:agent-cloud-saved',{id,payload:raw});
-    emit('inovtec:agents-cloud-updated',{payload:raw,confirmed:true});
-    return clone(saved);
-  }catch(error){
-    console.error('Firebase : incident non confirmé',error);
-    status('Firebase — incident non enregistré : '+(error.code||error.message||'erreur'));
-    throw error;
-  }
+  const results=await mutateAgentRows('incident-'+action,remote=>{
+    const ai=remote.findIndex(a=>a&&String(a.id)===id&&!a._deleted);
+    if(ai<0)throw Error('Fiche agent introuvable dans Firebase : enregistre d’abord la fiche agent.');
+    const agent=remote[ai],incidents=Array.isArray(agent.incidents)?agent.incidents:[];
+    const ii=incidents.findIndex(x=>String(x?.id||'')===incidentId);
+    if(action==='update'&&ii<0)throw Error('Incident d’origine introuvable dans Firebase.');
+    if(action==='add'&&ii>=0)throw Error('Cet incident existe déjà dans Firebase.');
+    const updated=action==='add'?incidents.concat([clone(incident)]):incidents.map((x,i)=>i===ii?clone(incident):x);
+    remote[ai]={...agent,incidents:updated,updatedAt:new Date().toISOString()};
+    return remote;
+  },{forceUpload:true,verify:rows=>rows.some(a=>String(a?.id||'')===id&&a.incidents?.some(i=>String(i.id)===incidentId))});
+  const saved=results.find(a=>String(a?.id||'')===id)?.incidents?.find(i=>String(i?.id||'')===incidentId);
+  if(!saved)throw Error('Incident non retrouvé après sauvegarde Firebase.');
+  emit('inovtec:agent-cloud-saved',{id});
+  return clone(saved);
 }
 async function replaceAll(rows,reason='agents-replace-all'){
   await waitReady();
@@ -251,6 +317,7 @@ window.InovtecAgentsCloud=Object.freeze({
   load:readServer,
   saveAgent,
   saveIncident,
+  readMedia,
   saveAll:writeRows,
   replaceAll,
   ready:waitReady
