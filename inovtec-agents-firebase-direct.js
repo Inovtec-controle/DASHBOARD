@@ -8,7 +8,9 @@ const parse=(s,f)=>{try{const v=JSON.parse(String(s||''));return v??f}catch{retu
 const clone=v=>JSON.parse(JSON.stringify(v));
 let user=null,db=null,ref=null,unsubscribe=null,hubUnsubscribe=null,hubActive=false,lastRealtimePayload=null,readyResolve,readyReject;
 let readyPromise=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject});
-let incidentRef=null,unsubIncidents=null,overlayLoaded=false,overlayRows=[],lastBaseRaw=null,authEpoch=0,incidentSaveInFlight=new Map();
+let incidentRef=null,incidentCollectionRef=null,unsubIncidents=null,overlayLoaded=false,overlayRows=[],lastBaseRaw=null,authEpoch=0,incidentSaveInFlight=new Map();
+let legacyIncidentRows=[];
+const incidentDocKey=(agentId,incidentId)=>encodeURIComponent(String(agentId))+"__"+encodeURIComponent(String(incidentId));
 const INCIDENT_FIELD='agentIncidentRecordsV1';
 const INCIDENT_MAX_BYTES=850000;
 const agentRefKey=(agentId,incidentId)=>String(agentId)+'\u0000'+String(incidentId);
@@ -51,9 +53,23 @@ function publishMerged(){
   }
 }
 async function loadIncidentRows(){
-  if(!incidentRef)throw Error('Connexion incidents Firebase indisponible');
-  const snap=await incidentRef.get({source:'server'});
-  overlayRows=recordRowsFromDoc(snap.exists?snap.data():{});
+  if(!incidentCollectionRef)throw Error('Connexion incidents Firebase indisponible');
+  // Ne jamais faire dépendre le dossier actuel d'un accès à Discipline
+  // qui peut être bloqué par des règles Firebase anciennes.
+  const snap=await incidentCollectionRef.get({source:'server'});
+  const freshRows=snap.docs.map(doc=>doc.data()||{}).filter(row=>row.agentId&&row.incidentId);
+  const records=new Map();
+  try{
+    if(incidentRef){
+      const previous=await incidentRef.get({source:'server'});
+      legacyIncidentRows=recordRowsFromDoc(previous.exists?previous.data():{});
+    }
+  }catch(error){
+    if(error?.code!=='permission-denied')console.warn('Ancien stockage incident inaccessible',error);
+  }
+  legacyIncidentRows.forEach(row=>records.set(agentRefKey(row.agentId,row.incidentId),row));
+  freshRows.forEach(row=>records.set(agentRefKey(row.agentId,row.incidentId),row));
+  overlayRows=[...records.values()];
   overlayLoaded=true;
   publishMerged();
   return overlayRows;
@@ -357,10 +373,9 @@ async function saveIncident(agentId,incident,action='add'){
   const flightKey=agentRefKey(agentKey,incidentId);
   if(incidentSaveInFlight.has(flightKey))return incidentSaveInFlight.get(flightKey);
   const operation=(async()=>{
-    status('Firebase — sauvegarde de l’incident…');
+    status('Firebase — enregistrement de l’incident…');
     try{
-      if(!incidentRef)throw Error('Dossier Firebase des incidents inaccessible');
-      // Aucune migration des anciennes photos ni écriture du gros document kanban.
+      if(!incidentCollectionRef)throw Error('Dossier Firebase incidents indisponible');
       const photos=Array.isArray(incident.photos)?incident.photos:[];
       const prepared=clone(incident);
       prepared.photos=await Promise.all(photos.map(photo=>
@@ -368,36 +383,26 @@ async function saveIncident(agentId,incident,action='add'){
           ?uploadAgentMedia(photo,{id:agentKey},'photo',incident)
           :Promise.resolve((()=>{const x=clone(photo);if(x.ivStorageV1?.path)delete x.dataUrl;return x})())
       ));
-      let saved=null;
-      await db.runTransaction(async tx=>{
-        const snap=await tx.get(incidentRef);
-        const doc=snap.exists?snap.data()||{}:{};
-        const rows=recordRowsFromDoc(doc).slice();
-        const index=rows.findIndex(row=>String(row?.agentId)===agentKey&&String(row?.incidentId)===incidentId);
-        if(action==='update'&&index<0){
-          // Modification d'un incident historique : il reste dans kanban et
-          // sa nouvelle version devient prioritaire dans le document privé.
-          const historical=parse(lastBaseRaw,null)?.find(a=>String(a?.id)===agentKey)?.incidents?.some(i=>String(i?.id)===incidentId);
-          if(!historical)throw Error('Incident à modifier introuvable.');
-        }
-        // Un deuxième clic / une reprise réseau sur un ajout déjà enregistré
-        // ne crée jamais de doublon (même identifiant).
-        const record={agentId:agentKey,incidentId,incident:prepared,updatedAt:new Date().toISOString()};
-        if(index>=0)rows[index]=record;else rows.push(record);
-        if(incidentRowsSize(doc,rows)>INCIDENT_MAX_BYTES)throw Error('Le dossier des incidents est plein : contactez le support pour étendre le stockage.');
-        tx.set(incidentRef,{[INCIDENT_FIELD]:rows},{merge:true});
-        saved=prepared;
-      });
-      if(!saved)throw Error('Firebase n’a pas confirmé l’incident.');
-      // L'achèvement de la transaction est un accusé de réception serveur.
-      const pos=overlayRows.findIndex(row=>String(row?.agentId)===agentKey&&String(row?.incidentId)===incidentId);
-      const record={agentId:agentKey,incidentId,incident:prepared,updatedAt:new Date().toISOString()};
-      if(pos>=0)overlayRows[pos]=record;else overlayRows.push(record);
+      const record={
+        agentId:agentKey,incidentId,incident:prepared,
+        updatedAt:new Date().toISOString(),version:2
+      };
+      if(new Blob([JSON.stringify(record)]).size>850000)
+        throw Error('Incident trop volumineux, réduis la taille des pièces jointes.');
+      // Un document Firestore PAR incident, id stable : pas de doublon ni
+      // d'écriture du document kanban de 1 Mio.
+      await incidentCollectionRef.doc(incidentDocKey(agentKey,incidentId)).set(record);
+      const index=overlayRows.findIndex(row=>agentRefKey(row?.agentId,row?.incidentId)===flightKey);
+      if(index>=0)overlayRows[index]=record;else overlayRows.push(record);
       overlayLoaded=true;
       publishMerged();
       status('Firebase — incident enregistré ✓',true);
-      return clone(saved);
+      return clone(prepared);
     }catch(error){
+      const denied=error?.code==='permission-denied'||/Missing or insufficient permissions/i.test(String(error?.message||''));
+      if(denied){
+        throw new Error('Droits Firebase insuffisants pour enregistrer les incidents. Les règles Firestore du projet doivent être publiées avant de poursuivre.');
+      }
       status('Firebase — incident non enregistré : '+(error?.code||error?.message||'erreur'));
       throw error;
     }
@@ -409,17 +414,11 @@ async function deleteIncident(agentId,incidentId){
   const agentKey=String(agentId||''),id=String(incidentId||'');
   if(!agentKey||!id)throw Error('Incident invalide');
   await waitReady();
-  const tombstone={agentId:agentKey,incidentId:id,deleted:true,updatedAt:new Date().toISOString()};
-  await db.runTransaction(async tx=>{
-    const snap=await tx.get(incidentRef),doc=snap.exists?snap.data()||{}:{};
-    const rows=recordRowsFromDoc(doc).slice();
-    const i=rows.findIndex(x=>String(x?.agentId)===agentKey&&String(x?.incidentId)===id);
-    if(i>=0)rows[i]=tombstone;else rows.push(tombstone);
-    if(incidentRowsSize(doc,rows)>INCIDENT_MAX_BYTES)throw Error('Dossier incidents Firebase trop volumineux.');
-    tx.set(incidentRef,{[INCIDENT_FIELD]:rows},{merge:true});
-  });
-  const i=overlayRows.findIndex(x=>String(x?.agentId)===agentKey&&String(x?.incidentId)===id);
-  if(i>=0)overlayRows[i]=tombstone;else overlayRows.push(tombstone);
+  if(!incidentCollectionRef)throw Error('Dossier Firebase incidents indisponible');
+  const tombstone={agentId:agentKey,incidentId:id,deleted:true,updatedAt:new Date().toISOString(),version:2};
+  await incidentCollectionRef.doc(incidentDocKey(agentKey,id)).set(tombstone);
+  const key=agentRefKey(agentKey,id),index=overlayRows.findIndex(row=>agentRefKey(row?.agentId,row?.incidentId)===key);
+  if(index>=0)overlayRows[index]=tombstone;else overlayRows.push(tombstone);
   overlayLoaded=true;
   publishMerged();
   return true;
@@ -450,7 +449,7 @@ function start(u){
   authEpoch++;lastBaseRaw=null;lastRealtimePayload=null;overlayRows=[];overlayLoaded=false;incidentSaveInFlight.clear();
   user=u||null;
   if(!user){
-    ref=null;incidentRef=null;
+    ref=null;incidentRef=null;incidentCollectionRef=null;
     status('Firebase — connexion requise');
     loginBox().style.display='grid';
     return;
@@ -458,18 +457,27 @@ function start(u){
   const box=document.getElementById('ivAgentsFirebaseLogin');
   if(box)box.style.display='none';
   ref=db.collection('kanban').doc(user.uid);
-  // Les incidents sont désormais conservés dans le document privé Discipline,
-  // déjà autorisé par les règles Firebase de cette application.
+  // Chemin Firestore privé par utilisateur, un document par incident.
+  incidentCollectionRef=ref.collection('agentIncidents');
+  // Compatibilité lecture avec les incidents créés avant la migration.
   incidentRef=db.collection('discipline').doc(user.uid);
   const startEpoch=authEpoch;
-  unsubIncidents=incidentRef.onSnapshot({includeMetadataChanges:true},snap=>{
+  unsubIncidents=incidentCollectionRef.onSnapshot({includeMetadataChanges:true},snap=>{
     if(startEpoch!==authEpoch||snap.metadata?.fromCache||snap.metadata?.hasPendingWrites)return;
-    try{
-      overlayRows=recordRowsFromDoc(snap.exists?snap.data():{});
-      overlayLoaded=true;
-      publishMerged();
-    }catch(error){console.error('Lecture des incidents Firebase',error)}
-  },err=>console.error('Synchronisation des incidents Firebase',err));
+    const merged=new Map(legacyIncidentRows.map(row=>[agentRefKey(row.agentId,row.incidentId),row]));
+    snap.docs.forEach(doc=>{
+      const row=doc.data()||{};
+      if(row.agentId&&row.incidentId)merged.set(agentRefKey(row.agentId,row.incidentId),row);
+    });
+    overlayRows=[...merged.values()];
+    overlayLoaded=true;
+    publishMerged();
+  },err=>{
+    console.error('Accès Firebase incidents',err);
+    if(err?.code==='permission-denied'){
+      status('Firebase — règles de sécurité des incidents non publiées');
+    }
+  });
   const hub=window.InovtecDataHub;
   if(hub?.subscribe&&typeof hub.getPersonalData==='function'){
     hubActive=true;
