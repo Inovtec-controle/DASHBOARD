@@ -8,6 +8,60 @@ const parse=(s,f)=>{try{const v=JSON.parse(String(s||''));return v??f}catch{retu
 const clone=v=>JSON.parse(JSON.stringify(v));
 let user=null,db=null,ref=null,unsubscribe=null,hubUnsubscribe=null,hubActive=false,lastRealtimePayload=null,readyResolve,readyReject;
 let readyPromise=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject});
+let incidentRef=null,unsubIncidents=null,overlayLoaded=false,overlayRows=[],lastBaseRaw=null,authEpoch=0,incidentSaveInFlight=new Map();
+const INCIDENT_FIELD='agentIncidentRecordsV1';
+const INCIDENT_MAX_BYTES=850000;
+const agentRefKey=(agentId,incidentId)=>String(agentId)+'\u0000'+String(incidentId);
+function recordRowsFromDoc(value){
+  const data=value?.[INCIDENT_FIELD];
+  if(data===undefined||data===null)return [];
+  if(!Array.isArray(data))throw Error('Données des incidents Firebase illisibles.');
+  return data;
+}
+function mergeIncidentRows(agentRows,rows=overlayRows){
+  const overrides=new Map();
+  for(const row of Array.isArray(rows)?rows:[]){
+    if(!row?.agentId||!row?.incidentId)continue;
+    overrides.set(agentRefKey(row.agentId,row.incidentId),row);
+  }
+  return (Array.isArray(agentRows)?agentRows:[]).map(agent=>{
+    if(!agent?.id)return agent;
+    const incidents=[];
+    for(const legacy of Array.isArray(agent.incidents)?agent.incidents:[]){
+      const record=overrides.get(agentRefKey(agent.id,legacy?.id));
+      if(record){
+        if(!record.deleted&&record.incident)incidents.push(clone(record.incident));
+        overrides.delete(agentRefKey(agent.id,legacy?.id));
+      }else incidents.push(legacy);
+    }
+    for(const record of overrides.values()){
+      if(String(record.agentId)===String(agent.id)&&!record.deleted&&record.incident)incidents.push(clone(record.incident));
+    }
+    return {...agent,incidents};
+  });
+}
+function publishMerged(){
+  if(lastBaseRaw===null||!overlayLoaded)return;
+  const base=parse(lastBaseRaw,null);
+  if(!Array.isArray(base))return;
+  const payload=JSON.stringify(mergeIncidentRows(base));
+  if(payload!==lastRealtimePayload){
+    lastRealtimePayload=payload;
+    emit('inovtec:agents-cloud-updated',{payload,confirmed:true});
+  }
+}
+async function loadIncidentRows(){
+  if(!incidentRef)throw Error('Connexion incidents Firebase indisponible');
+  const snap=await incidentRef.get({source:'server'});
+  overlayRows=recordRowsFromDoc(snap.exists?snap.data():{});
+  overlayLoaded=true;
+  publishMerged();
+  return overlayRows;
+}
+function incidentRowsSize(doc,rows){
+  const combined={...(doc||{}),[INCIDENT_FIELD]:rows};
+  return new Blob([JSON.stringify(combined)]).size;
+}
 
 function status(text,ok=false){
   for(const id of ['syncMirror','liveMirror']){
@@ -77,47 +131,34 @@ function hubRawAgents(){
   return typeof raw==='string'?raw:'[]';
 }
 function applyRealtimeRaw(raw,meta={}){
-  // Ne pas écraser la fiche affichée avec un instantané cache ou non confirmé.
   if(meta.fromCache||meta.pending||meta.confirmed===false)return false;
   const rows=parse(raw,null);
   if(!Array.isArray(rows))return false;
-  if(raw!==lastRealtimePayload){
-    lastRealtimePayload=raw;
-    emit('inovtec:agents-cloud-updated',{payload:raw,fromCache:!!meta.fromCache,pending:!!meta.pending});
-  }
-  if(!meta.pending&&meta.confirmed!==false)status('Firebase — synchronisé',true);
+  lastBaseRaw=raw;
+  publishMerged();
+  if(!meta.pending)status('Firebase — synchronisé',true);
   return true;
 }
+
 async function readServer(){
   await waitReady();
+  let baseRaw=null;
   const immediate=hubRawAgents();
   if(immediate!==null&&window.InovtecDataHub?.firebasePersonalOk===true){
-    const rows=parse(immediate,'invalid');
-    if(!Array.isArray(rows))throw Error('Liste Agents Firebase illisible');
-    status('Firebase — synchronisé',true);
-    return clone(rows);
-  }
-  if(hubActive){
+    baseRaw=immediate;
+  }else if(lastBaseRaw!==null){
+    baseRaw=lastBaseRaw;
+  }else{
     status('Firebase — lecture des agents…');
-    const started=Date.now();
-    while(Date.now()-started<4000){
-      await new Promise(resolve=>setTimeout(resolve,80));
-      const raw=hubRawAgents();
-      if(raw!==null&&window.InovtecDataHub?.firebasePersonalOk===true){
-        const rows=parse(raw,'invalid');
-        if(!Array.isArray(rows))throw Error('Liste Agents Firebase illisible');
-        status('Firebase — synchronisé',true);
-        return clone(rows);
-      }
-    }
+    const snap=await ref.get({source:'server'});
+    baseRaw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
   }
-  status('Firebase — lecture des agents…');
-  const snap=await ref.get({source:'server'});
-  const raw=snap.exists?snap.data()?.moduleSyncV1?.agents?.payload:'[]';
-  const rows=parse(raw,'invalid');
+  const rows=parse(baseRaw,null);
   if(!Array.isArray(rows))throw Error('Liste Agents Firebase illisible');
+  lastBaseRaw=baseRaw;
+  if(!overlayLoaded)await loadIncidentRows();
   status('Firebase — synchronisé',true);
-  return clone(rows);
+  return mergeIncidentRows(rows);
 }
 
 /* Médias Agents : les photos et PDF volumineux vivent dans Firebase Storage,
@@ -292,24 +333,80 @@ async function saveAgent(agent){
   return clone(results.find(a=>String(a?.id||'')===id));
 }
 async function saveIncident(agentId,incident,action='add'){
-  const id=String(agentId||''),incidentId=String(incident?.id||'');
-  if(!id||!incidentId||!['add','update'].includes(action))throw Error('Incident invalide');
-  const results=await mutateAgentRows('incident-'+action,remote=>{
-    const ai=remote.findIndex(a=>a&&String(a.id)===id&&!a._deleted);
-    if(ai<0)throw Error('Fiche agent introuvable dans Firebase : enregistre d’abord la fiche agent.');
-    const agent=remote[ai],incidents=Array.isArray(agent.incidents)?agent.incidents:[];
-    const ii=incidents.findIndex(x=>String(x?.id||'')===incidentId);
-    if(action==='update'&&ii<0)throw Error('Incident d’origine introuvable dans Firebase.');
-    if(action==='add'&&ii>=0)throw Error('Cet incident existe déjà dans Firebase.');
-    const updated=action==='add'?incidents.concat([clone(incident)]):incidents.map((x,i)=>i===ii?clone(incident):x);
-    remote[ai]={...agent,incidents:updated,updatedAt:new Date().toISOString()};
-    return remote;
-  },{forceUpload:true,forceIncidentId:incidentId,verify:rows=>rows.some(a=>String(a?.id||'')===id&&a.incidents?.some(i=>String(i.id)===incidentId))});
-  const saved=results.find(a=>String(a?.id||'')===id)?.incidents?.find(i=>String(i?.id||'')===incidentId);
-  if(!saved)throw Error('Incident non retrouvé après sauvegarde Firebase.');
-  emit('inovtec:agent-cloud-saved',{id});
-  return clone(saved);
+  const agentKey=String(agentId||''),incidentId=String(incident?.id||'');
+  if(!agentKey||!incidentId||!['add','update'].includes(action))throw Error('Incident invalide');
+  await waitReady();
+  const flightKey=agentRefKey(agentKey,incidentId);
+  if(incidentSaveInFlight.has(flightKey))return incidentSaveInFlight.get(flightKey);
+  const operation=(async()=>{
+    status('Firebase — sauvegarde de l’incident…');
+    try{
+      if(!incidentRef)throw Error('Dossier Firebase des incidents inaccessible');
+      // Aucune migration des anciennes photos ni écriture du gros document kanban.
+      const photos=Array.isArray(incident.photos)?incident.photos:[];
+      const prepared=clone(incident);
+      prepared.photos=await Promise.all(photos.map(photo=>
+        photo?.dataUrl&&!photo?.ivStorageV1?.path
+          ?uploadAgentMedia(photo,{id:agentKey},'photo',incident)
+          :Promise.resolve((()=>{const x=clone(photo);if(x.ivStorageV1?.path)delete x.dataUrl;return x})())
+      ));
+      let saved=null;
+      await db.runTransaction(async tx=>{
+        const snap=await tx.get(incidentRef);
+        const doc=snap.exists?snap.data()||{}:{};
+        const rows=recordRowsFromDoc(doc).slice();
+        const index=rows.findIndex(row=>String(row?.agentId)===agentKey&&String(row?.incidentId)===incidentId);
+        if(action==='update'&&index<0){
+          // Modification d'un incident historique : il reste dans kanban et
+          // sa nouvelle version devient prioritaire dans le document privé.
+          const historical=parse(lastBaseRaw,null)?.find(a=>String(a?.id)===agentKey)?.incidents?.some(i=>String(i?.id)===incidentId);
+          if(!historical)throw Error('Incident à modifier introuvable.');
+        }
+        // Un deuxième clic / une reprise réseau sur un ajout déjà enregistré
+        // ne crée jamais de doublon (même identifiant).
+        const record={agentId:agentKey,incidentId,incident:prepared,updatedAt:new Date().toISOString()};
+        if(index>=0)rows[index]=record;else rows.push(record);
+        if(incidentRowsSize(doc,rows)>INCIDENT_MAX_BYTES)throw Error('Le dossier des incidents est plein : contactez le support pour étendre le stockage.');
+        tx.set(incidentRef,{[INCIDENT_FIELD]:rows},{merge:true});
+        saved=prepared;
+      });
+      if(!saved)throw Error('Firebase n’a pas confirmé l’incident.');
+      // L'achèvement de la transaction est un accusé de réception serveur.
+      const pos=overlayRows.findIndex(row=>String(row?.agentId)===agentKey&&String(row?.incidentId)===incidentId);
+      const record={agentId:agentKey,incidentId,incident:prepared,updatedAt:new Date().toISOString()};
+      if(pos>=0)overlayRows[pos]=record;else overlayRows.push(record);
+      overlayLoaded=true;
+      publishMerged();
+      status('Firebase — incident enregistré ✓',true);
+      return clone(saved);
+    }catch(error){
+      status('Firebase — incident non enregistré : '+(error?.code||error?.message||'erreur'));
+      throw error;
+    }
+  })();
+  incidentSaveInFlight.set(flightKey,operation);
+  try{return await operation}finally{incidentSaveInFlight.delete(flightKey)}
 }
+async function deleteIncident(agentId,incidentId){
+  const agentKey=String(agentId||''),id=String(incidentId||'');
+  if(!agentKey||!id)throw Error('Incident invalide');
+  await waitReady();
+  const tombstone={agentId:agentKey,incidentId:id,deleted:true,updatedAt:new Date().toISOString()};
+  await db.runTransaction(async tx=>{
+    const snap=await tx.get(incidentRef),doc=snap.exists?snap.data()||{}:{};
+    const rows=recordRowsFromDoc(doc).slice();
+    const i=rows.findIndex(x=>String(x?.agentId)===agentKey&&String(x?.incidentId)===id);
+    if(i>=0)rows[i]=tombstone;else rows.push(tombstone);
+    if(incidentRowsSize(doc,rows)>INCIDENT_MAX_BYTES)throw Error('Dossier incidents Firebase trop volumineux.');
+    tx.set(incidentRef,{[INCIDENT_FIELD]:rows},{merge:true});
+  });
+  const i=overlayRows.findIndex(x=>String(x?.agentId)===agentKey&&String(x?.incidentId)===id);
+  if(i>=0)overlayRows[i]=tombstone;else overlayRows.push(tombstone);
+  overlayLoaded=true;
+  publishMerged();
+  return true;
+}
+
 async function replaceAll(rows,reason='agents-replace-all'){
   if(!Array.isArray(rows))throw Error('Liste Agents invalide');
   // Conserver les mêmes protections de taille, d'écriture et de relecture serveur.
@@ -320,6 +417,7 @@ window.InovtecAgentsCloud=Object.freeze({
   load:readServer,
   saveAgent,
   saveIncident,
+  deleteIncident,
   readMedia,
   saveAll:writeRows,
   replaceAll,
@@ -328,11 +426,13 @@ window.InovtecAgentsCloud=Object.freeze({
 
 function start(u){
   if(unsubscribe){try{unsubscribe()}catch(e){}unsubscribe=null}
+  if(unsubIncidents){try{unsubIncidents()}catch(e){}unsubIncidents=null}
   if(hubUnsubscribe){try{hubUnsubscribe()}catch(e){}hubUnsubscribe=null}
   hubActive=false;
+  authEpoch++;lastBaseRaw=null;lastRealtimePayload=null;overlayRows=[];overlayLoaded=false;incidentSaveInFlight.clear();
   user=u||null;
   if(!user){
-    ref=null;
+    ref=null;incidentRef=null;
     status('Firebase — connexion requise');
     loginBox().style.display='grid';
     return;
@@ -340,6 +440,18 @@ function start(u){
   const box=document.getElementById('ivAgentsFirebaseLogin');
   if(box)box.style.display='none';
   ref=db.collection('kanban').doc(user.uid);
+  // Les incidents sont désormais conservés dans le document privé Discipline,
+  // déjà autorisé par les règles Firebase de cette application.
+  incidentRef=db.collection('discipline').doc(user.uid);
+  const startEpoch=authEpoch;
+  unsubIncidents=incidentRef.onSnapshot({includeMetadataChanges:true},snap=>{
+    if(startEpoch!==authEpoch||snap.metadata?.fromCache||snap.metadata?.hasPendingWrites)return;
+    try{
+      overlayRows=recordRowsFromDoc(snap.exists?snap.data():{});
+      overlayLoaded=true;
+      publishMerged();
+    }catch(error){console.error('Lecture des incidents Firebase',error)}
+  },err=>console.error('Synchronisation des incidents Firebase',err));
   const hub=window.InovtecDataHub;
   if(hub?.subscribe&&typeof hub.getPersonalData==='function'){
     hubActive=true;
