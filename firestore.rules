@@ -8,6 +8,13 @@ service cloud.firestore {
 
     match /kanban/{userId} {
       allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+
+      // Documents individuels d'incidents : hors du gros document personnel
+      // afin de respecter la limite Firestore de 1 Mio par document.
+      // Aucune lecture possible par un autre compte authentifié.
+      match /agentIncidents/{incidentKey} {
+        allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+      }
     }
 
     match /discipline/{userId} {
