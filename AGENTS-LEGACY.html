@@ -1303,6 +1303,57 @@ function addDocuments(files){
   })(0);
 }
 
+/* Pièces jointes stockées hors du document Firestore : téléchargement uniquement
+   pour la fiche actuellement affichée. Les fichiers ne sont jamais sauvegardés localement. */
+var agentMediaLoading=new Set();
+var agentMediaFailures=new Set();
+function hydrateAgentMedia(agentId){
+  var id=String(agentId||"");
+  if(!id||agentMediaLoading.has(id))return;
+  var agent=state.agents.find(function(a){return a && String(a.id)===id;});
+  if(!agent)return;
+  var requests=[];
+  (agent.docs||[]).forEach(function(item){
+    if(item?.ivStorageV1?.path&&!item.dataUrl&&!agentMediaFailures.has(item.ivStorageV1.path))
+      requests.push({type:"doc",path:item.ivStorageV1.path});
+  });
+  (agent.incidents||[]).forEach(function(incident){
+    (incident.photos||[]).forEach(function(item){
+      if(item?.ivStorageV1?.path&&!item.dataUrl&&!agentMediaFailures.has(item.ivStorageV1.path))
+        requests.push({type:"photo",path:item.ivStorageV1.path});
+    });
+  });
+  if(!requests.length)return;
+  agentMediaLoading.add(id);
+  (async function(){
+    var changed=false;
+    try{
+      var cloud=await getAgentsCloud();
+      if(typeof cloud.readMedia!=="function")throw Error("Service Firebase des pièces jointes indisponible.");
+      // Réduire les requêtes simultanées pour ne pas ralentir l'application.
+      for(var offset=0;offset<requests.length;offset+=3){
+        await Promise.all(requests.slice(offset,offset+3).map(async function(entry){
+          try{
+            var data=await cloud.readMedia({ivStorageV1:{path:entry.path}});
+            var current=state.agents.find(function(a){return a&&String(a.id)===id;});
+            if(!current||!data)return;
+            var files=(current.docs||[]).concat((current.incidents||[]).flatMap(function(inc){return inc.photos||[];}));
+            files.forEach(function(item){
+              if(item?.ivStorageV1?.path===entry.path&&!item.dataUrl){item.dataUrl=data;changed=true;}
+            });
+          }catch(error){
+            agentMediaFailures.add(entry.path);
+            console.warn("Chargement de la pièce agent",error);
+          }
+        }));
+      }
+    }catch(error){console.warn("Chargement des pièces de la fiche agent",error);}
+    finally{
+      agentMediaLoading.delete(id);
+      if(changed&&String(state.selectedId)===id)renderAll();
+    }
+  })();
+}
 /* ===== Incidents ===== */
 function renderIncidents(agent){
   var wrap = $("#incidentList");
@@ -1762,6 +1813,8 @@ function renderDetails(){
 
   renderDocs(agent);
   renderIncidents(agent);
+  // Les photos/PDF externalisés sont rechargés depuis Firebase après le rendu.
+  setTimeout(function(){hydrateAgentMedia(agent.id);},0);
 }
 
 function renderAll(){
