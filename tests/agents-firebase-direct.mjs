@@ -47,12 +47,16 @@ try{
     agents.push({id:'agent-preserve',identity:{prenom:'Autre',nom:'Agent'},job:{poste:'Test'},docs:[],incidents:[]});
     state.doc.moduleSyncV1.agents.payload=JSON.stringify(agents);
     state.doc.moduleSyncV1.planning={payload:'X'.repeat(330000)};
+    state.notifyMain();
     const latest={
       id:'new-inc',date:'2026-10-13',titre:'Incident Paulino',description:'Doit survivre au rechargement',
       photos:[{id:'new-photo',name:'nouveau.png',type:'image/png',dataUrl:'data:image/png;base64,'+'A'.repeat(470000)}]
     };
-    // Sans externalisation, cette opération dépasse la limite Firebase de 1 MiB.
+    // Le document principal est quasiment plein : l'incident s'enregistre à part.
+    const originalMain=state.doc.moduleSyncV1.agents.payload;
+    const originalMainWrites=state.mainWrites;
     await cloud.saveIncident('agent_firebase_test',latest,'add');
+    const mainUnchanged=originalMain===state.doc.moduleSyncV1.agents.payload&&originalMainWrites===state.mainWrites;
     const remote=await cloud.load();
     const full=JSON.stringify(state.doc);
     const saved=remote.find(a=>a.id==='agent_firebase_test');
@@ -62,17 +66,19 @@ try{
     return{
       size:new Blob([full]).size,
       agentCount:remote.length,
-      oldStored:!!oldSaved?.photos?.[0]?.ivStorageV1?.path&&!oldSaved.photos[0].dataUrl,
+      oldPreserved:!!oldSaved?.photos?.[0]?.dataUrl,
       newStored:!!latestSaved?.photos?.[0]?.ivStorageV1?.path&&!latestSaved.photos[0].dataUrl,
       photoRecovered:loadedData.startsWith('data:image/png;base64,'),
+      privateWrites:state.incidentWrites,
+      mainUnchanged,
       files:state.files.size,
       names:remote.map(a=>a.id)
     };
   });
-  if(incidentResult.size>1048576||!incidentResult.oldStored||!incidentResult.newStored||!incidentResult.photoRecovered||incidentResult.files<2||!incidentResult.names.includes('agent-preserve')){
-    throw Error('Incident non durable ou perte de pièce jointe après migration Firebase : '+JSON.stringify(incidentResult));
+  if(incidentResult.size>1048576||!incidentResult.oldPreserved||!incidentResult.newStored||!incidentResult.photoRecovered||incidentResult.files!==1||!incidentResult.mainUnchanged||incidentResult.privateWrites!==1||!incidentResult.names.includes('agent-preserve')){
+    throw Error('Incident non durable ou modification du document Agents lors de la sauvegarde privée : '+JSON.stringify(incidentResult));
   }
-  console.log('OK : incidents volumineux conservés après rechargement, photos externalisées, autres agents préservés');
+  console.log('OK : incident enregistré dans document privé, aucune migration lente, photos et agents préservés');
   console.log('OK : Agents -> Firebase direct, sans stockage local, avec relecture serveur confirmée');
 }finally{
   await browser.close();
