@@ -77,6 +77,8 @@ function hubRawAgents(){
   return typeof raw==='string'?raw:'[]';
 }
 function applyRealtimeRaw(raw,meta={}){
+  // Ne pas écraser la fiche affichée avec un instantané cache ou non confirmé.
+  if(meta.fromCache||meta.pending||meta.confirmed===false)return false;
   const rows=parse(raw,null);
   if(!Array.isArray(rows))return false;
   if(raw!==lastRealtimePayload){
@@ -89,7 +91,7 @@ function applyRealtimeRaw(raw,meta={}){
 async function readServer(){
   await waitReady();
   const immediate=hubRawAgents();
-  if(immediate!==null){
+  if(immediate!==null&&window.InovtecDataHub?.firebasePersonalOk===true){
     const rows=parse(immediate,'invalid');
     if(!Array.isArray(rows))throw Error('Liste Agents Firebase illisible');
     status('Firebase — synchronisé',true);
@@ -101,7 +103,7 @@ async function readServer(){
     while(Date.now()-started<4000){
       await new Promise(resolve=>setTimeout(resolve,80));
       const raw=hubRawAgents();
-      if(raw!==null){
+      if(raw!==null&&window.InovtecDataHub?.firebasePersonalOk===true){
         const rows=parse(raw,'invalid');
         if(!Array.isArray(rows))throw Error('Liste Agents Firebase illisible');
         status('Firebase — synchronisé',true);
