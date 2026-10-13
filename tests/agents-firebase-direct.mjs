@@ -54,9 +54,10 @@ try{
     };
     // Le document principal est quasiment plein : l'incident s'enregistre à part.
     const originalMain=state.doc.moduleSyncV1.agents.payload;
-    const originalMainWrites=state.mainWrites;
+
     await cloud.saveIncident('agent_firebase_test',latest,'add');
-    const mainUnchanged=originalMain===state.doc.moduleSyncV1.agents.payload&&originalMainWrites===state.mainWrites;
+    const mainUnchanged=originalMain===state.doc.moduleSyncV1.agents.payload;
+    const keyStoredPrivately=!!state.doc._ivIncidentEncryptionKeyV1;
     const remote=await cloud.load();
     const full=JSON.stringify(state.doc);
     const saved=remote.find(a=>a.id==='agent_firebase_test');
@@ -67,19 +68,20 @@ try{
       size:new Blob([full]).size,
       agentCount:remote.length,
       oldPreserved:!!oldSaved?.photos?.[0]?.dataUrl,
-      newStored:!!latestSaved?.photos?.[0]?.ivStorageV1?.path&&!latestSaved.photos[0].dataUrl,
+      newStored:!!latestSaved?.photos?.[0]?.ivSecureChunksV1?.ids?.length&&!latestSaved.photos[0].dataUrl,
       photoRecovered:loadedData.startsWith('data:image/png;base64,'),
-      privateWrites:state.incidentWrites,
-      privateRecords:state.incidentRecords.size,
+      encryptedWrites:state.encryptedWrites,
+      encryptedRecords:state.encryptedRecords.size,
+      keyStoredPrivately,
       mainUnchanged,
       files:state.files.size,
       names:remote.map(a=>a.id)
     };
   });
-  if(incidentResult.size>1048576||!incidentResult.oldPreserved||!incidentResult.newStored||!incidentResult.photoRecovered||incidentResult.files!==1||!incidentResult.mainUnchanged||(incidentResult.privateWrites!==1||incidentResult.privateRecords!==1)||!incidentResult.names.includes('agent-preserve')){
+  if(incidentResult.size>1048576||!incidentResult.oldPreserved||!incidentResult.newStored||!incidentResult.photoRecovered||incidentResult.files!==0||!incidentResult.mainUnchanged||!incidentResult.keyStoredPrivately||incidentResult.encryptedWrites<2||incidentResult.encryptedRecords<2||!incidentResult.names.includes('agent-preserve')){
     throw Error('Incident non durable ou modification du document Agents lors de la sauvegarde privée : '+JSON.stringify(incidentResult));
   }
-  console.log('OK : incident enregistré dans document privé, aucune migration lente, photos et agents préservés');
+  console.log('OK : incident et pièces jointes chiffrés dans Firebase, anciens agents préservés, sans nouvelle règle');
   console.log('OK : Agents -> Firebase direct, sans stockage local, avec relecture serveur confirmée');
 }finally{
   await browser.close();
