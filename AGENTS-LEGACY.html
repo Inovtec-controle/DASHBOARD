@@ -1314,13 +1314,15 @@ function hydrateAgentMedia(agentId){
   if(!agent)return;
   var requests=[];
   (agent.docs||[]).forEach(function(item){
-    if(item?.ivStorageV1?.path&&!item.dataUrl&&!agentMediaFailures.has(item.ivStorageV1.path))
-      requests.push({type:"doc",path:item.ivStorageV1.path});
+    var path=item?.ivStorageV1?.path||item?.ivSecureChunksV1?.ids?.[0];
+    if(path&&!item.dataUrl&&!agentMediaFailures.has(path))
+      requests.push({type:"doc",path:item?.ivStorageV1?.path||"",secure:item?.ivSecureChunksV1||null,key:path});
   });
   (agent.incidents||[]).forEach(function(incident){
     (incident.photos||[]).forEach(function(item){
-      if(item?.ivStorageV1?.path&&!item.dataUrl&&!agentMediaFailures.has(item.ivStorageV1.path))
-        requests.push({type:"photo",path:item.ivStorageV1.path});
+      var path=item?.ivStorageV1?.path||item?.ivSecureChunksV1?.ids?.[0];
+      if(path&&!item.dataUrl&&!agentMediaFailures.has(path))
+        requests.push({type:"photo",path:item?.ivStorageV1?.path||"",secure:item?.ivSecureChunksV1||null,key:path});
     });
   });
   if(!requests.length)return;
@@ -1334,15 +1336,16 @@ function hydrateAgentMedia(agentId){
       for(var offset=0;offset<requests.length;offset+=3){
         await Promise.all(requests.slice(offset,offset+3).map(async function(entry){
           try{
-            var data=await cloud.readMedia({ivStorageV1:{path:entry.path}});
+            var data=await cloud.readMedia(entry.secure?{ivSecureChunksV1:entry.secure}:{ivStorageV1:{path:entry.path}});
             var current=state.agents.find(function(a){return a&&String(a.id)===id;});
             if(!current||!data)return;
             var files=(current.docs||[]).concat((current.incidents||[]).flatMap(function(inc){return inc.photos||[];}));
             files.forEach(function(item){
-              if(item?.ivStorageV1?.path===entry.path&&!item.dataUrl){item.dataUrl=data;changed=true;}
+              var key=item?.ivStorageV1?.path||item?.ivSecureChunksV1?.ids?.[0];
+              if(key===entry.key&&!item.dataUrl){item.dataUrl=data;changed=true;}
             });
           }catch(error){
-            agentMediaFailures.add(entry.path);
+            agentMediaFailures.add(entry.key);
             console.warn("Chargement de la pièce agent",error);
           }
         }));
