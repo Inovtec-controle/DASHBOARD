@@ -53,22 +53,33 @@ function publishMerged(){
   }
 }
 async function loadIncidentRows(){
-  if(!incidentCollectionRef)throw Error('Connexion incidents Firebase indisponible');
-  // Ne jamais faire dépendre le dossier actuel d'un accès à Discipline
-  // qui peut être bloqué par des règles Firebase anciennes.
-  const snap=await incidentCollectionRef.get({source:'server'});
-  const freshRows=snap.docs.map(doc=>doc.data()||{}).filter(row=>row.agentId&&row.incidentId);
   const records=new Map();
+  // Lire les anciens emplacements si les règles permettent encore
+  // leur accès ; un refus ne doit jamais bloquer les nouveaux incidents.
   try{
     if(incidentRef){
       const previous=await incidentRef.get({source:'server'});
       legacyIncidentRows=recordRowsFromDoc(previous.exists?previous.data():{});
     }
   }catch(error){
-    if(error?.code!=='permission-denied')console.warn('Ancien stockage incident inaccessible',error);
+    if(error?.code!=='permission-denied')console.warn('Ancien stockage incidents',error);
   }
   legacyIncidentRows.forEach(row=>records.set(agentRefKey(row.agentId,row.incidentId),row));
-  freshRows.forEach(row=>records.set(agentRefKey(row.agentId,row.incidentId),row));
+  try{
+    if(incidentCollectionRef){
+      const snap=await incidentCollectionRef.get({source:'server'});
+      snap.docs.forEach(doc=>{
+        const row=doc.data()||{};
+        if(row.agentId&&row.incidentId)records.set(agentRefKey(row.agentId,row.incidentId),row);
+      });
+    }
+  }catch(error){
+    if(error?.code!=='permission-denied')console.warn('Anciens incidents privés',error);
+  }
+  // Ce chemin fonctionne sans publier de nouvelles règles. Les incidents
+  // sont chiffrés avant de rejoindre l'espace Firebase partagé.
+  const encrypted=await getEncryptedIncidentRows();
+  encrypted.forEach(row=>records.set(agentRefKey(row.agentId,row.incidentId),row));
   overlayRows=[...records.values()];
   overlayLoaded=true;
   publishMerged();
@@ -77,6 +88,97 @@ async function loadIncidentRows(){
 function incidentRowsSize(doc,rows){
   const combined={...(doc||{}),[INCIDENT_FIELD]:rows};
   return new Blob([JSON.stringify(combined)]).size;
+}
+
+
+/* L'espace chantiers existe et fonctionne déjà dans KONTROL. Ses règles sont
+   larges : ne JAMAIS y envoyer un incident en clair. Chiffrer chaque
+   document avec une clé aléatoire privée, conservée uniquement dans
+   kanban/{uid}, qui est le document personnel déjà accessible. */
+const SECURE_INCIDENT_TYPE='inovtecPrivateEncryptedIncidentV1';
+let incidentCrypto=null,incidentCryptoBytes=null,incidentCryptoEpoch=-1,secureIncidentsUnsubscribe=null,secureIncidentReadSeq=0;
+const secureCollection=()=>db.collection('chantiers');
+const b64bytes=bytes=>btoa(Array.from(bytes,byte=>String.fromCharCode(byte)).join(''));
+const unb64=text=>Uint8Array.from(atob(String(text||'')),character=>character.charCodeAt(0));
+function requireCrypto(){
+  if(!window.crypto?.subtle||!window.crypto?.getRandomValues)
+    throw Error('Le chiffrement nécessaire aux incidents est indisponible. Ouvre KONTROL avec HTTPS.');
+}
+async function getIncidentCrypto(create=false){
+  requireCrypto();
+  if(incidentCrypto&&incidentCryptoEpoch===authEpoch)return incidentCrypto;
+  if(!ref||!user)throw Error('Connexion Firebase requise');
+  const snap=await ref.get({source:'server'});
+  let secret=snap.exists?snap.data()?._ivIncidentEncryptionKeyV1:null;
+  if(!secret&&create){
+    // Écriture minuscule et isolée dans le document personnel. Ne pas
+    // remplacer les autres données (planning, fiches, anciennes pièces).
+    await db.runTransaction(async tx=>{
+      const current=await tx.get(ref);
+      secret=current.exists?current.data()?._ivIncidentEncryptionKeyV1:null;
+      if(!secret){
+        secret=b64bytes(crypto.getRandomValues(new Uint8Array(32)));
+        tx.set(ref,{_ivIncidentEncryptionKeyV1:secret},{merge:true});
+      }
+    });
+  }
+  if(!secret)return null;
+  const bytes=unb64(secret);
+  if(bytes.length!==32)throw Error('Clé personnelle des incidents invalide');
+  incidentCrypto=await crypto.subtle.importKey('raw',bytes,{name:'AES-GCM'},false,['encrypt','decrypt']);
+  incidentCryptoBytes=bytes;
+  incidentCryptoEpoch=authEpoch;
+  return incidentCrypto;
+}
+async function secureIncidentDocumentId(agentId,incidentId){
+  if(!incidentCryptoBytes)throw Error('Clé personnelle des incidents indisponible');
+  const enc=new TextEncoder().encode(agentRefKey(agentId,incidentId));
+  const secret=incidentCryptoBytes;
+  const bytes=new Uint8Array(secret.length+enc.length);
+  bytes.set(secret);bytes.set(enc,secret.length);
+  const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
+  return '__iv_agent_inc_'+Array.from(digest.slice(0,20),b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function sealIncidentRecord(record){
+  const key=await getIncidentCrypto(true);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const plain=new TextEncoder().encode(JSON.stringify(record));
+  const ciphertext=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain));
+  return {_hidden:true,_type:SECURE_INCIDENT_TYPE,ownerUid:String(user.uid),
+    encryptedPayload:b64bytes(ciphertext),iv:b64bytes(iv),updatedAtIso:new Date().toISOString(),version:1};
+}
+async function decryptIncidentDoc(data){
+  const key=await getIncidentCrypto(false);
+  if(!key)throw Error('Clé personnelle manquante pour relire les incidents');
+  const ciphertext=unb64(data?.encryptedPayload),iv=unb64(data?.iv);
+  const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ciphertext);
+  const record=JSON.parse(new TextDecoder().decode(plain));
+  if(!record?.agentId||!record?.incidentId)throw Error('Document incident incorrect');
+  return record;
+}
+async function getEncryptedIncidentRows(){
+  const query=await secureCollection().where('ownerUid','==',String(user.uid)).get();
+  const matches=query.docs.map(d=>d.data()||{}).filter(d=>d._type===SECURE_INCIDENT_TYPE);
+  if(!matches.length)return [];
+  return Promise.all(matches.map(decryptIncidentDoc));
+}
+async function persistEncryptedIncident(record){
+  await getIncidentCrypto(true);
+  const docId=await secureIncidentDocumentId(record.agentId,record.incidentId);
+  const ciphertext=await sealIncidentRecord(record);
+  await secureCollection().doc(docId).set(ciphertext);
+  return record;
+}
+async function refreshEncryptedIncidentOverlay(){
+  if(!user)return;
+  const currentEpoch=authEpoch,seq=++secureIncidentReadSeq;
+  const fresh=await getEncryptedIncidentRows();
+  if(currentEpoch!==authEpoch||seq!==secureIncidentReadSeq)return;
+  const merged=new Map(overlayRows.map(row=>[agentRefKey(row.agentId,row.incidentId),row]));
+  fresh.forEach(row=>merged.set(agentRefKey(row.agentId,row.incidentId),row));
+  overlayRows=[...merged.values()];
+  overlayLoaded=true;
+  publishMerged();
 }
 
 function status(text,ok=false){
@@ -373,9 +475,8 @@ async function saveIncident(agentId,incident,action='add'){
   const flightKey=agentRefKey(agentKey,incidentId);
   if(incidentSaveInFlight.has(flightKey))return incidentSaveInFlight.get(flightKey);
   const operation=(async()=>{
-    status('Firebase — enregistrement de l’incident…');
+    status('Firebase — enregistrement sécurisé de l’incident…');
     try{
-      if(!incidentCollectionRef)throw Error('Dossier Firebase incidents indisponible');
       const photos=Array.isArray(incident.photos)?incident.photos:[];
       const prepared=clone(incident);
       prepared.photos=await Promise.all(photos.map(photo=>
@@ -383,15 +484,8 @@ async function saveIncident(agentId,incident,action='add'){
           ?uploadAgentMedia(photo,{id:agentKey},'photo',incident)
           :Promise.resolve((()=>{const x=clone(photo);if(x.ivStorageV1?.path)delete x.dataUrl;return x})())
       ));
-      const record={
-        agentId:agentKey,incidentId,incident:prepared,
-        updatedAt:new Date().toISOString(),version:2
-      };
-      if(new Blob([JSON.stringify(record)]).size>850000)
-        throw Error('Incident trop volumineux, réduis la taille des pièces jointes.');
-      // Un document Firestore PAR incident, id stable : pas de doublon ni
-      // d'écriture du document kanban de 1 Mio.
-      await incidentCollectionRef.doc(incidentDocKey(agentKey,incidentId)).set(record);
+      const record={agentId:agentKey,incidentId,incident:prepared,updatedAt:new Date().toISOString(),version:1};
+      await persistEncryptedIncident(record);
       const index=overlayRows.findIndex(row=>agentRefKey(row?.agentId,row?.incidentId)===flightKey);
       if(index>=0)overlayRows[index]=record;else overlayRows.push(record);
       overlayLoaded=true;
@@ -399,10 +493,7 @@ async function saveIncident(agentId,incident,action='add'){
       status('Firebase — incident enregistré ✓',true);
       return clone(prepared);
     }catch(error){
-      const denied=error?.code==='permission-denied'||/Missing or insufficient permissions/i.test(String(error?.message||''));
-      if(denied){
-        throw new Error('Droits Firebase insuffisants pour enregistrer les incidents. Les règles Firestore du projet doivent être publiées avant de poursuivre.');
-      }
+      console.error('Sauvegarde sécurisée incident',error);
       status('Firebase — incident non enregistré : '+(error?.code||error?.message||'erreur'));
       throw error;
     }
@@ -414,9 +505,8 @@ async function deleteIncident(agentId,incidentId){
   const agentKey=String(agentId||''),id=String(incidentId||'');
   if(!agentKey||!id)throw Error('Incident invalide');
   await waitReady();
-  if(!incidentCollectionRef)throw Error('Dossier Firebase incidents indisponible');
-  const tombstone={agentId:agentKey,incidentId:id,deleted:true,updatedAt:new Date().toISOString(),version:2};
-  await incidentCollectionRef.doc(incidentDocKey(agentKey,id)).set(tombstone);
+  const tombstone={agentId:agentKey,incidentId:id,deleted:true,updatedAt:new Date().toISOString(),version:1};
+  await persistEncryptedIncident(tombstone);
   const key=agentRefKey(agentKey,id),index=overlayRows.findIndex(row=>agentRefKey(row?.agentId,row?.incidentId)===key);
   if(index>=0)overlayRows[index]=tombstone;else overlayRows.push(tombstone);
   overlayLoaded=true;
@@ -444,9 +534,11 @@ window.InovtecAgentsCloud=Object.freeze({
 function start(u){
   if(unsubscribe){try{unsubscribe()}catch(e){}unsubscribe=null}
   if(unsubIncidents){try{unsubIncidents()}catch(e){}unsubIncidents=null}
+  if(secureIncidentsUnsubscribe){try{secureIncidentsUnsubscribe()}catch(e){}secureIncidentsUnsubscribe=null}
   if(hubUnsubscribe){try{hubUnsubscribe()}catch(e){}hubUnsubscribe=null}
   hubActive=false;
   authEpoch++;lastBaseRaw=null;lastRealtimePayload=null;overlayRows=[];overlayLoaded=false;incidentSaveInFlight.clear();
+  incidentCrypto=null;incidentCryptoBytes=null;incidentCryptoEpoch=-1;secureIncidentReadSeq++;
   user=u||null;
   if(!user){
     ref=null;incidentRef=null;incidentCollectionRef=null;
@@ -478,6 +570,15 @@ function start(u){
       status('Firebase — règles de sécurité des incidents non publiées');
     }
   });
+  // Seules les données chiffrées sont chargées depuis chantiers ;
+  // toute décryption se fait dans le navigateur du compte propriétaire.
+  try{
+    secureIncidentsUnsubscribe=secureCollection().where('ownerUid','==',String(user.uid))
+      .onSnapshot({includeMetadataChanges:true},snapshot=>{
+        if(startEpoch!==authEpoch||snapshot.metadata?.fromCache||snapshot.metadata?.hasPendingWrites)return;
+        void refreshEncryptedIncidentOverlay().catch(error=>console.warn('Synchronisation incidents chiffrés',error));
+      },error=>console.warn('Accès incidents chiffrés',error));
+  }catch(error){console.warn('Écoute Firebase des incidents',error)}
   const hub=window.InovtecDataHub;
   if(hub?.subscribe&&typeof hub.getPersonalData==='function'){
     hubActive=true;
