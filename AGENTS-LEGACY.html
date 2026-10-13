@@ -700,7 +700,8 @@ body{
           </div>
 
           <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-            <button class="miniBtn" id="btnAddIncident">+ Ajouter l’incident</button>
+            <button class="miniBtn" id="btnAddIncident" type="button">+ Ajouter l’incident</button>
+            <span id="incSaveFeedback" role="status" aria-live="polite" class="muted" style="margin-top:0"></span>
           </div>
 
           <div id="incidentList"></div>
@@ -1506,15 +1507,15 @@ async function saveEditedIncident(event){
       photos:existingPhotos.filter(function(photo,index){return !removed.has(index);}).concat(addedPhotos),
       updatedAt:new Date().toISOString()
     });
-    var updatedAgent = Object.assign({},agent,{
-      incidents:agent.incidents.map(function(row){return String(row.id)===context.incidentId ? update : row;}),
-      updatedAt:new Date().toISOString()
-    });
     var cloud = await getAgentsCloud();
-    if(typeof cloud.saveAgent!=="function") throw new Error("Sauvegarde Firebase indisponible.");
-    await cloud.saveAgent(updatedAgent);
-    var pos = state.agents.findIndex(function(a){return a && String(a.id)===context.agentId;});
-    if(pos>=0) state.agents[pos] = updatedAgent;
+    if(typeof cloud.saveIncident!=="function") throw new Error("Sauvegarde Firebase des incidents indisponible.");
+    await cloud.saveIncident(context.agentId,update,"update");
+    var currentAgent=state.agents.find(function(a){return a && String(a.id)===context.agentId;});
+    if(currentAgent && Array.isArray(currentAgent.incidents)){
+      currentAgent.incidents=currentAgent.incidents.map(function(row){
+        return String(row.id)===context.incidentId ? update : row;
+      });
+    }
     incidentEditSaving = false;
     closeIncidentEditModal();
     renderAll();
@@ -1530,69 +1531,86 @@ async function saveEditedIncident(event){
   }
 }
 
-function addIncidentFromForm(){
-  var agent = getSelectedAgent();
-  if(!agent) return;
-  if(!agent.incidents) agent.incidents = [];
-
-  var date = $("#inc_date").value || todayISO();
-  var cat = safeText($("#inc_cat").value);
-  var sev = $("#inc_sev").value;
-  var stat = $("#inc_stat").value;
-  var titre = safeText($("#inc_title").value);
-  var desc = safeText($("#inc_desc").value);
-  var photoFiles = Array.prototype.slice.call($("#inc_photos").files || []);
-
+var incidentCreationBusy = false;
+async function addIncidentFromForm(){
+  if(incidentCreationBusy) return;
+  var agent=getSelectedAgent();
+  if(!agent || !agent.id){
+    alert("Sélectionne et enregistre une fiche agent avant d’ajouter un incident.");
+    return;
+  }
+  var agentId=String(agent.id);
+  var date=$("#inc_date").value || todayISO();
+  var cat=safeText($("#inc_cat").value);
+  var sev=$("#inc_sev").value;
+  var stat=$("#inc_stat").value;
+  var titre=safeText($("#inc_title").value);
+  var desc=safeText($("#inc_desc").value);
+  var photoFiles=Array.prototype.slice.call($("#inc_photos").files||[]);
+  var feedback=$("#incSaveFeedback");
+  var button=$("#btnAddIncident");
   if(!titre && !desc){
-    alert("Ajoute au minimum un titre ou une description.");
+    feedback.textContent="Ajoute au minimum un titre ou une description.";
+    $("#inc_title").focus();
+    return;
+  }
+  var oversized=photoFiles.find(function(file){return file.size>10*1024*1024;});
+  if(oversized){
+    feedback.textContent='Photo trop lourde : "'+oversized.name+'" ('+formatBytes(oversized.size)+').';
     return;
   }
 
-  var photos = [];
+  // Ne jamais annoncer ni afficher un nouvel incident comme enregistré
+  // tant que Firebase ne l'a pas écrit ET confirmé côté serveur.
+  incidentCreationBusy=true;
+  button.disabled=true;
+  button.textContent="Enregistrement Firebase…";
+  feedback.textContent="Enregistrement de l’incident en cours…";
+  try{
+    var photos=await Promise.all(photoFiles.map(async function(file){
+      return {
+        id:uid("ph"),
+        name:file.name,
+        type:file.type||"image/*",
+        size:file.size,
+        dataUrl:await fileToDataURL(file)
+      };
+    }));
+    var incident={
+      id:uid("inc"),date:date,categorie:cat,gravite:sev,
+      statut:stat,titre:titre||"Incident",description:desc,
+      createdAt:new Date().toISOString(),photos:photos
+    };
+    var cloud=await getAgentsCloud();
+    if(typeof cloud.saveIncident!=="function")throw new Error("Service Firebase de sauvegarde des incidents indisponible.");
+    await cloud.saveIncident(agentId,incident,"add");
 
-  (function loop(idx){
-    if(idx >= photoFiles.length){
-      agent.incidents.push({
-        id: uid("inc"),
-        date: date,
-        categorie: cat,
-        gravite: sev,
-        statut: stat,
-        titre: titre || "Incident",
-        description: desc,
-        createdAt: new Date().toISOString(),
-        photos: photos
-      });
-      touchAgent(agent);
-      save();
+    // La fiche locale n'est mise à jour qu'après l'accusé de réception du serveur.
+    var current=state.agents.find(function(a){return a && String(a.id)===agentId;});
+    if(current){
+      if(!Array.isArray(current.incidents))current.incidents=[];
+      if(!current.incidents.some(function(item){return String(item.id)===String(incident.id);}))current.incidents.push(incident);
       renderAll();
-      $("#inc_cat").value = "";
-      $("#inc_title").value = "";
-      $("#inc_desc").value = "";
-      $("#inc_photos").value = "";
-      $("#inc_sev").value = "Modérée";
-      $("#inc_stat").value = "Ouvert";
-      $("#inc_date").value = todayISO();
-      return;
     }
-    var f = photoFiles[idx];
-    if(f.size > 10*1024*1024){
-      alert('Photo trop lourde : "'+f.name+'" ('+formatBytes(f.size)+').');
-      return loop(idx+1);
+    if(String(state.selectedId)===agentId){
+      $("#inc_cat").value="";
+      $("#inc_title").value="";
+      $("#inc_desc").value="";
+      $("#inc_photos").value="";
+      $("#inc_sev").value="Modérée";
+      $("#inc_stat").value="Ouvert";
+      $("#inc_date").value=todayISO();
+      feedback.textContent="✓ Incident enregistré et vérifié dans Firebase.";
     }
-    fileToDataURL(f).then(function(dataUrl){
-      photos.push({
-        id: uid("ph"),
-        name: f.name,
-        type: f.type || "image/*",
-        size: f.size,
-        dataUrl: dataUrl
-      });
-      loop(idx+1);
-    }).catch(function(){
-      loop(idx+1);
-    });
-  })(0);
+  }catch(error){
+    console.error("Enregistrement de l’incident",error);
+    feedback.textContent="Non enregistré dans Firebase : "+(error?.message||"vérifie la connexion puis réessaie.");
+    // Conserver toutes les saisies, les photos et la fiche ouverte pour pouvoir réessayer.
+  }finally{
+    incidentCreationBusy=false;
+    button.disabled=false;
+    button.textContent="+ Ajouter l’incident";
+  }
 }
 
 /* ===== List & Details ===== */
