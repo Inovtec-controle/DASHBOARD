@@ -1350,7 +1350,15 @@ function hydrateAgentMedia(agentId){
     }catch(error){console.warn("Chargement des pièces de la fiche agent",error);}
     finally{
       agentMediaLoading.delete(id);
-      if(changed&&String(state.selectedId)===id)renderAll();
+      if(changed&&String(state.selectedId)===id){
+        // Ne pas réinitialiser le formulaire agent pendant une saisie en cours.
+        var selected=getSelectedAgent();
+        if(selected){
+          renderDocs(selected);
+          renderIncidents(selected);
+          window.dispatchEvent(new CustomEvent("inovtec:agent-media-hydrated",{detail:{agentId:id}}));
+        }
+      }
     }
   })();
 }
