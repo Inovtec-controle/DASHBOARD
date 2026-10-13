@@ -322,16 +322,71 @@ function toDataBlob(dataUrl){
   for(let i=0;i<binary.length;i++)out[i]=binary.charCodeAt(i);
   return new Blob([out],{type:mime});
 }
+
+async function encryptedMediaChunks(item,agent,incident){
+  await getIncidentCrypto(true);
+  const raw=String(item?.dataUrl||'');
+  if(!raw.startsWith('data:'))throw Error('Photo illisible');
+  const baseId=await secureIncidentDocumentId(agent.id,String(incident?.id||'doc')+'|'+String(item.id||item.name||'photo'));
+  const chunks=[];
+  const chunkSize=140000;
+  for(let i=0;i<raw.length;i+=chunkSize)chunks.push(raw.slice(i,i+chunkSize));
+  if(chunks.length>120)throw Error('Photo trop volumineuse, maximum 12 Mo.');
+  const ids=chunks.map((_,i)=>'__iv_agent_photo_'+baseId.slice(15)+'_'+String(i).padStart(3,'0'));
+  for(let offset=0;offset<chunks.length;offset+=4){
+    await Promise.all(chunks.slice(offset,offset+4).map(async (part,i)=>{
+      const index=offset+i,iv=crypto.getRandomValues(new Uint8Array(12));
+      const encoded=new TextEncoder().encode(part);
+      const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},incidentCrypto,encoded));
+      await secureCollection().doc(ids[index]).set({
+        _hidden:true,_type:'inovtecPrivateEncryptedIncidentPhotoV1',
+        ownerUid:String(user.uid),iv:b64bytes(iv),encryptedPayload:b64bytes(encrypted),version:1
+      });
+    }));
+  }
+  mediaCache.set(ids[0],raw);
+  const result={...item,ivSecureChunksV1:{version:1,ids,size:Number(item.size)||0,type:item.type||'image/jpeg'}};
+  delete result.dataUrl;
+  return result;
+}
+async function readEncryptedMedia(item){
+  const ids=item?.ivSecureChunksV1?.ids;
+  if(!Array.isArray(ids)||!ids.length)return '';
+  if(mediaCache.has(ids[0]))return mediaCache.get(ids[0]);
+  const key=await getIncidentCrypto(false);
+  if(!key)throw Error('Clé privée des photos indisponible');
+  const parts=[];
+  for(let start=0;start<ids.length;start+=4){
+    const current=await Promise.all(ids.slice(start,start+4).map(id=>secureCollection().doc(id).get()));
+    for(const snap of current){
+      if(!snap.exists)throw Error('Une partie de la photo est introuvable dans Firebase');
+      const chunk=snap.data()||{};
+      const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(chunk.iv)},key,unb64(chunk.encryptedPayload));
+      parts.push(new TextDecoder().decode(plain));
+    }
+  }
+  const dataUrl=parts.join('');
+  if(!dataUrl.startsWith('data:'))throw Error('La photo récupérée est invalide');
+  mediaCache.set(ids[0],dataUrl);
+  return dataUrl;
+}
+
 async function uploadAgentMedia(item,agent,kind,incident){
   if(!item?.dataUrl||item?.ivStorageV1?.path)return item;
   const path=mediaStoragePath(item,agent,kind,incident);
   if(!path)return item;
-  if(!firebase.storage)throw Error('Le service Firebase Storage n’est pas chargé. Actualise la page.');
+  if(!firebase.storage){
+    if(kind==='photo')return encryptedMediaChunks(item,agent,incident);
+    throw Error('Stockage Firebase indisponible');
+  }
   const blob=toDataBlob(item.dataUrl);
   if(blob.size>12*1024*1024)throw Error('Fichier trop lourd (maximum 12 Mo).');
   try{
     await firebase.storage().ref().child(path).put(blob,{contentType:blob.type});
   }catch(error){
+    // Certaines installations n'ont pas publié les règles Storage :
+    // chiffrer et répartir les photos dans la collection déjà utilisée.
+    if(kind==='photo')return encryptedMediaChunks(item,agent,incident);
     throw Error('Impossible de stocker la pièce jointe dans Firebase Storage : '+(error?.code||error?.message||'accès refusé'));
   }
   mediaCache.set(path,item.dataUrl);
@@ -418,6 +473,7 @@ async function mutateAgentRows(reason,makeNext,{forceUpload=false,forceIncidentI
 }
 async function readMedia(item){
   if(item?.dataUrl)return item.dataUrl;
+  if(item?.ivSecureChunksV1?.ids?.length)return readEncryptedMedia(item);
   const path=item?.ivStorageV1?.path;
   if(!path)return '';
   if(mediaCache.has(path))return mediaCache.get(path);
@@ -538,7 +594,7 @@ function start(u){
   if(hubUnsubscribe){try{hubUnsubscribe()}catch(e){}hubUnsubscribe=null}
   hubActive=false;
   authEpoch++;lastBaseRaw=null;lastRealtimePayload=null;overlayRows=[];overlayLoaded=false;incidentSaveInFlight.clear();
-  incidentCrypto=null;incidentCryptoBytes=null;incidentCryptoEpoch=-1;secureIncidentReadSeq++;
+  incidentCrypto=null;incidentCryptoBytes=null;incidentCryptoEpoch=-1;secureIncidentReadSeq++;mediaCache.clear();
   user=u||null;
   if(!user){
     ref=null;incidentRef=null;incidentCollectionRef=null;
@@ -554,22 +610,8 @@ function start(u){
   // Compatibilité lecture avec les incidents créés avant la migration.
   incidentRef=db.collection('discipline').doc(user.uid);
   const startEpoch=authEpoch;
-  unsubIncidents=incidentCollectionRef.onSnapshot({includeMetadataChanges:true},snap=>{
-    if(startEpoch!==authEpoch||snap.metadata?.fromCache||snap.metadata?.hasPendingWrites)return;
-    const merged=new Map(legacyIncidentRows.map(row=>[agentRefKey(row.agentId,row.incidentId),row]));
-    snap.docs.forEach(doc=>{
-      const row=doc.data()||{};
-      if(row.agentId&&row.incidentId)merged.set(agentRefKey(row.agentId,row.incidentId),row);
-    });
-    overlayRows=[...merged.values()];
-    overlayLoaded=true;
-    publishMerged();
-  },err=>{
-    console.error('Accès Firebase incidents',err);
-    if(err?.code==='permission-denied'){
-      status('Firebase — règles de sécurité des incidents non publiées');
-    }
-  });
+  // Ne pas écouter en boucle la sous-collection refusée par les règles en production.
+  // Une lecture ponctuelle dans loadIncidentRows() suffit pour la compatibilité.
   // Seules les données chiffrées sont chargées depuis chantiers ;
   // toute décryption se fait dans le navigateur du compte propriétaire.
   try{
