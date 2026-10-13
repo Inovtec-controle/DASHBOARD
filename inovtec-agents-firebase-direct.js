@@ -170,7 +170,7 @@ async function uploadAgentMedia(item,agent,kind,incident){
   delete result.dataUrl;
   return result;
 }
-async function compactAgentMedia(rows,forceUpload=false){
+async function compactAgentMedia(rows,forceUpload=false,maxAgentBytes=MEDIA_TARGET_BYTES){
   const result=clone(rows),candidates=[];
   for(const agent of result){
     if(!agent||typeof agent!=='object')continue;
@@ -192,12 +192,13 @@ async function compactAgentMedia(rows,forceUpload=false){
   // Toujours sortir les nouvelles photos d'incident si demandé, même avant le seuil.
   candidates.sort((a,b)=>b.bytes-a.bytes);
   for(const c of candidates){
-    if(!forceUpload&&bytes<=MEDIA_TARGET_BYTES)break;
+    if(!forceUpload&&bytes<=maxAgentBytes)break;
     const before=c.array[c.index];
     c.array[c.index]=await uploadAgentMedia(before,c.agent,c.kind,c.incident);
     bytes=byteSize(JSON.stringify(result));
   }
-  if(bytes>900000)throw Error('Fiches agents encore trop volumineuses pour Firebase ('+Math.ceil(bytes/1024)+' Ko). Vérifier les pièces jointes non-images.');
+  if(bytes>maxAgentBytes)throw Error('Le document Firebase reste trop volumineux ('+Math.ceil(bytes/1024)+' Ko de données agents). Les photos/PDF compatibles ont été séparés ; vérifie les autres documents volumineux.');
+
   return result;
 }
 async function mutateAgentRows(reason,makeNext,{forceUpload=false,verify}={}){
@@ -209,7 +210,14 @@ async function mutateAgentRows(reason,makeNext,{forceUpload=false,verify}={}){
     const current=parse(currentRaw,null);
     if(!Array.isArray(current))throw Error('Liste Agents Firebase illisible');
     const proposed=makeNext(clone(current));
-    const compact=await compactAgentMedia(proposed,forceUpload);
+    const entireDoc=server.exists?server.data()||{}:{};
+    const outsideAgents={...entireDoc,moduleSyncV1:{...(entireDoc.moduleSyncV1||{})}};
+    delete outsideAgents.moduleSyncV1.agents;
+    // Réserver de la place pour les autres modules de ce même document kanban.
+    // Une cible calculée sur les seuls agents ne suffit pas si Planning/Organisation est déjà volumineux.
+    const fixedBytes=byteSize(JSON.stringify(outsideAgents));
+    const maxAgentBytes=Math.min(MEDIA_TARGET_BYTES,Math.max(15000,930000-fixedBytes-35000));
+    const compact=await compactAgentMedia(proposed,forceUpload,maxAgentBytes);
     const written=payloadOf(compact);
     try{
       await db.runTransaction(async tx=>{
