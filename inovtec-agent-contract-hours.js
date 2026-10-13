@@ -216,10 +216,10 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
     pdf.setFontSize(10);
     pdf.text("INOVTEC  |  DOCUMENT INTERNE",margin,14);
     pdf.setFontSize(17);
-    pdf.text("FICHE DE CONSTAT D'INCIDENT",margin,27);
-    pdf.setFont("helvetica","normal");
-    pdf.setFontSize(9);
-    pdf.text("Support pour l'examen d'un eventuel avertissement",margin,36);
+    // Le nom de l'agent est le titre de la fiche ; adapter la taille aux noms longs.
+    const titleWidth=pdf.getTextWidth(name);
+    if(titleWidth>contentW)pdf.setFontSize(Math.max(10,17*contentW/titleWidth));
+    pdf.text(name,margin,27);
     y=56;
     section("Identification");
     field("Agent concerné",name);
