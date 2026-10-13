@@ -1071,7 +1071,7 @@
     try {
       const root = storage.ref().child(`kontrol/${user.uid}/pdfs`);
       const result = await root.listAll();
-      const entries = await Promise.all(result.items.map(async item => {
+      const entries = await Promise.all(result.items.filter(item => !item.name.startsWith('agentDocument_')).map(async item => {
         try { return { item, meta: await item.getMetadata() }; }
         catch (error) { return { item, meta: {} }; }
       }));
