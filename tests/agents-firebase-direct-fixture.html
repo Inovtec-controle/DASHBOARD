@@ -3,44 +3,64 @@
 <script>
 (()=>{
  const clone=v=>JSON.parse(JSON.stringify(v));
- const state={doc:{moduleSyncV1:{agents:{payload:"[]"}}},incidentDoc:{},transactions:0,refGets:0,files:new Map(),mainWrites:0,incidentWrites:0};
+ const state={
+   doc:{moduleSyncV1:{agents:{payload:"[]"}}},
+   incidentDoc:{},incidentRecords:new Map(),
+   transactions:0,refGets:0,files:new Map(),mainWrites:0,incidentWrites:0
+ };
  window.__agentsFirebaseTest=state;
- const listeners={kanban:[],discipline:[]};
- const getDoc=name=>name==="discipline"?state.incidentDoc:state.doc;
- const snap=name=>({exists:true,data:()=>clone(getDoc(name)),metadata:{fromCache:false,hasPendingWrites:false}});
- function notify(name){listeners[name].forEach(fn=>queueMicrotask(()=>fn(snap(name))));}
+ const listeners={kanban:[],discipline:[],incidents:[]};
+ const snap=name=>({
+   exists:true,
+   data:()=>clone(name==="kanban"?state.doc:state.incidentDoc),
+   metadata:{fromCache:false,hasPendingWrites:false}
+ });
+ const incidentSnap=()=>({
+   docs:[...state.incidentRecords.entries()].map(([id,record])=>({id,data:()=>clone(record)})),
+   metadata:{fromCache:false,hasPendingWrites:false}
+ });
+ function notify(name){
+   const result=name==="incidents"?incidentSnap():snap(name);
+   listeners[name].forEach(cb=>queueMicrotask(()=>cb(result)));
+ }
  state.notifyMain=()=>notify("kanban");
+ const collection={
+   get:async()=>incidentSnap(),
+   onSnapshot(options,cb){const fn=typeof options==="function"?options:cb;listeners.incidents.push(fn);queueMicrotask(()=>fn(incidentSnap()));return()=>{}},
+   doc(id){return{async set(record){state.incidentRecords.set(id,clone(record));state.incidentWrites++;notify("incidents")}}}
+ };
  const refs={
    kanban:{
      name:"kanban",
+     collection(name){if(name!=="agentIncidents")throw Error("Invalid collection");return collection},
      async get(){state.refGets++;return snap("kanban")},
-     onSnapshot(opts,fn){if(typeof opts==="function")fn=opts;listeners.kanban.push(fn);queueMicrotask(()=>fn(snap("kanban")));return()=>{}}
+     onSnapshot(opts,cb){const fn=typeof opts==="function"?opts:cb;listeners.kanban.push(fn);queueMicrotask(()=>fn(snap("kanban")));return()=>{}}
    },
    discipline:{
      name:"discipline",
      async get(){state.refGets++;return snap("discipline")},
-     onSnapshot(opts,fn){if(typeof opts==="function")fn=opts;listeners.discipline.push(fn);queueMicrotask(()=>fn(snap("discipline")));return()=>{}}
+     onSnapshot(opts,cb){const fn=typeof opts==="function"?opts:cb;listeners.discipline.push(fn);queueMicrotask(()=>fn(snap("discipline")));return()=>{}}
    }
  };
  const firestore=()=>({
    collection(name){return{doc(){return name==="discipline"?refs.discipline:refs.kanban}}},
    async runTransaction(fn){
      state.transactions++;
-     let updates=[];
+     const updates=[];
      const tx={
-       get:async ref=>snap(ref.name),
+       get:async ref=>ref.get(),
        set(ref,data,options={}){
-         const old=getDoc(ref.name);
+         const old=ref.name==="kanban"?state.doc:state.incidentDoc;
          const merged=options.merge?{...old,...clone(data)}:clone(data);
          if(options.merge&&data.moduleSyncV1)merged.moduleSyncV1={...(old.moduleSyncV1||{}),...clone(data.moduleSyncV1)};
-         if(new Blob([JSON.stringify(merged)]).size>1048576)throw Error('Firestore: document too large (>1MiB)');
+         if(new Blob([JSON.stringify(merged)]).size>1048576)throw Error('Firestore document too large');
          updates.push([ref.name,merged]);
        }
      };
      const result=await fn(tx);
-     for(const [name,doc] of updates){
-       if(name==="discipline"){state.incidentDoc=doc;state.incidentWrites++}
-       else{state.doc=doc;state.mainWrites++}
+     for(const [name,value] of updates){
+       if(name==="kanban"){state.doc=value;state.mainWrites++}
+       else state.incidentDoc=value;
        notify(name);
      }
      return result;
