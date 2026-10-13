@@ -160,7 +160,15 @@ async function getEncryptedIncidentRows(){
   const query=await secureCollection().where('ownerUid','==',String(user.uid)).get();
   const matches=query.docs.map(d=>d.data()||{}).filter(d=>d._type===SECURE_INCIDENT_TYPE);
   if(!matches.length)return [];
-  return Promise.all(matches.map(decryptIncidentDoc));
+  await getIncidentCrypto(false);
+  const results=await Promise.allSettled(matches.map(decryptIncidentDoc));
+  const valid=results.filter(r=>r.status==='fulfilled').map(r=>r.value);
+  const failures=results.filter(r=>r.status==='rejected');
+  if(failures.length){
+    console.warn('Certains incidents chiffrés sont illisibles',failures.length);
+    if(!valid.length)throw Error('Les incidents chiffrés ne peuvent pas être relus depuis Firebase.');
+  }
+  return valid;
 }
 async function persistEncryptedIncident(record){
   await getIncidentCrypto(true);
