@@ -3,7 +3,7 @@
 <script>
 (()=>{
  const clone=v=>JSON.parse(JSON.stringify(v));
- const state={doc:{moduleSyncV1:{agents:{payload:"[]"}}},listeners:[],transactions:0,refGets:0};
+ const state={doc:{moduleSyncV1:{agents:{payload:"[]"}}},listeners:[],transactions:0,refGets:0,files:new Map()};
  window.__agentsFirebaseTest=state;
  const snap=()=>({exists:true,data:()=>clone(state.doc),metadata:{fromCache:false,hasPendingWrites:false}});
  const ref={
@@ -19,7 +19,9 @@
      const tx={get:async()=>snap(),set(_r,data){patch=data}};
      const result=await fn(tx);
      if(patch){
-       state.doc={...state.doc,moduleSyncV1:{...(state.doc.moduleSyncV1||{}),...(patch.moduleSyncV1||{})}};
+       const next={...state.doc,moduleSyncV1:{...(state.doc.moduleSyncV1||{}),...(patch.moduleSyncV1||{})}};
+       if(new Blob([JSON.stringify(next)]).size>1048576)throw Error('Firestore: document too large (>1MiB)');
+       state.doc=next;
        state.listeners.forEach(next=>queueMicrotask(()=>next(snap())));
      }
      return result;
@@ -27,7 +29,11 @@
  });
  const authObj={onAuthStateChanged(fn){queueMicrotask(()=>fn({uid:"test-user"}));return()=>{}},signInWithEmailAndPassword:async()=>({user:{uid:"test-user"}})};
  const auth=()=>authObj;
- window.firebase={apps:[{}],auth,firestore};
+ const storage=()=>({ref:()=>({child:path=>({
+   put:async(blob,meta)=>{state.files.set(path,{blob,meta});return{}},
+   getDownloadURL:async()=>URL.createObjectURL(state.files.get(path).blob)
+ })})});
+ window.firebase={apps:[{}],auth,firestore,storage};
  window.INOVTEC_FIREBASE_CONFIG={projectId:"fixture"};
 })();
 </script>
