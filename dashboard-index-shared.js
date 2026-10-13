@@ -61,9 +61,9 @@ function incidentIsOpen(incident){
 function openIncidentCount(agents){
   return (Array.isArray(agents)?agents:[]).reduce((total,agent)=>total+(Array.isArray(agent?.incidents)?agent.incidents.filter(incidentIsOpen).length:0),0);
 }
-function mergeAgentIncidentsFromDiscipline(agents,privateDoc){
-  const rows=privateDoc?.agentIncidentRecordsV1;
-  if(!Array.isArray(rows)||!rows.length)return agents;
+function mergeAgentIncidentsFromDiscipline(agents,privateDoc,directRows=[]){
+  const rows=[...(Array.isArray(privateDoc?.agentIncidentRecordsV1)?privateDoc.agentIncidentRecordsV1:[]),...(Array.isArray(directRows)?directRows:[])];
+  if(!rows.length)return agents;
   const byAgent=new Map();
   rows.forEach(row=>{
     if(!row?.agentId||!row?.incidentId)return;
@@ -161,9 +161,10 @@ async function refresh(user){
     db.collection("kanban").doc(user.uid).get(),
     db.collection("chantiers").doc(DISC_ID).get(),
     db.collection("chantiers").doc("__discipline_data__"+user.uid).get(),
-    db.collection("discipline").doc(user.uid).get()
+    db.collection("discipline").doc(user.uid).get(),
+    db.collection("kanban").doc(user.uid).collection("agentIncidents").get()
   ];
-  const [sitesR,sharedR,personalR,discSharedR,discHiddenR,discPersonalR]=await Promise.allSettled(requests);
+  const [sitesR,sharedR,personalR,discSharedR,discHiddenR,discPersonalR,incidentDirectR]=await Promise.allSettled(requests);
   if(seq!==refreshSeq)return;
 
   if(sitesR.status==="fulfilled"){
@@ -185,7 +186,8 @@ async function refresh(user){
   }
 
   if(agents.length||sharedR.status==="fulfilled"||personalR.status==="fulfilled"){
-    const allAgents=mergeAgentIncidentsFromDiscipline(agents,dataOf(discPersonalR));
+    const directIncidents=incidentDirectR.status==="fulfilled"?incidentDirectR.value.docs.map(doc=>doc.data()||{}):[];
+    const allAgents=mergeAgentIncidentsFromDiscipline(agents,dataOf(discPersonalR),directIncidents);
     const openIncidents=openIncidentCount(allAgents);
     set("kpiIncidents",openIncidents);
     set("kpiIncidentsSub",openIncidents?(openIncidents+" à suivre"):"Aucun incident ouvert");
