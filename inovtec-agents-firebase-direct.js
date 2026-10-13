@@ -170,7 +170,7 @@ async function uploadAgentMedia(item,agent,kind,incident){
   delete result.dataUrl;
   return result;
 }
-async function compactAgentMedia(rows,forceUpload=false,maxAgentBytes=MEDIA_TARGET_BYTES){
+async function compactAgentMedia(rows,forceUpload=false,maxAgentBytes=MEDIA_TARGET_BYTES,forceIncidentId=''){
   const result=clone(rows),candidates=[];
   for(const agent of result){
     if(!agent||typeof agent!=='object')continue;
@@ -190,9 +190,14 @@ async function compactAgentMedia(rows,forceUpload=false,maxAgentBytes=MEDIA_TARG
   }
   let bytes=byteSize(JSON.stringify(result));
   // Toujours sortir les nouvelles photos d'incident si demandé, même avant le seuil.
-  candidates.sort((a,b)=>b.bytes-a.bytes);
+  candidates.sort((a,b)=>{
+    const ap=forceUpload&&String(a.incident?.id||'')===String(forceIncidentId);
+    const bp=forceUpload&&String(b.incident?.id||'')===String(forceIncidentId);
+    return Number(bp)-Number(ap)||b.bytes-a.bytes;
+  });
   for(const c of candidates){
-    if(!forceUpload&&bytes<=maxAgentBytes)break;
+    const required=forceUpload&&c.kind==='photo'&&String(c.incident?.id||'')===String(forceIncidentId);
+    if(!required&&bytes<=maxAgentBytes)break;
     const before=c.array[c.index];
     c.array[c.index]=await uploadAgentMedia(before,c.agent,c.kind,c.incident);
     bytes=byteSize(JSON.stringify(result));
@@ -201,7 +206,7 @@ async function compactAgentMedia(rows,forceUpload=false,maxAgentBytes=MEDIA_TARG
 
   return result;
 }
-async function mutateAgentRows(reason,makeNext,{forceUpload=false,verify}={}){
+async function mutateAgentRows(reason,makeNext,{forceUpload=false,forceIncidentId='',verify}={}){
   await waitReady();
   status('Firebase — enregistrement…');
   for(let attempt=0;attempt<3;attempt++){
@@ -217,7 +222,7 @@ async function mutateAgentRows(reason,makeNext,{forceUpload=false,verify}={}){
     // Une cible calculée sur les seuls agents ne suffit pas si Planning/Organisation est déjà volumineux.
     const fixedBytes=byteSize(JSON.stringify(outsideAgents));
     const maxAgentBytes=Math.min(MEDIA_TARGET_BYTES,Math.max(15000,930000-fixedBytes-35000));
-    const compact=await compactAgentMedia(proposed,forceUpload,maxAgentBytes);
+    const compact=await compactAgentMedia(proposed,forceUpload,maxAgentBytes,forceIncidentId);
     const written=payloadOf(compact);
     try{
       await db.runTransaction(async tx=>{
@@ -299,7 +304,7 @@ async function saveIncident(agentId,incident,action='add'){
     const updated=action==='add'?incidents.concat([clone(incident)]):incidents.map((x,i)=>i===ii?clone(incident):x);
     remote[ai]={...agent,incidents:updated,updatedAt:new Date().toISOString()};
     return remote;
-  },{forceUpload:true,verify:rows=>rows.some(a=>String(a?.id||'')===id&&a.incidents?.some(i=>String(i.id)===incidentId))});
+  },{forceUpload:true,forceIncidentId:incidentId,verify:rows=>rows.some(a=>String(a?.id||'')===id&&a.incidents?.some(i=>String(i.id)===incidentId))});
   const saved=results.find(a=>String(a?.id||'')===id)?.incidents?.find(i=>String(i?.id||'')===incidentId);
   if(!saved)throw Error('Incident non retrouvé après sauvegarde Firebase.');
   emit('inovtec:agent-cloud-saved',{id});
