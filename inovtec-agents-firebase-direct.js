@@ -306,19 +306,9 @@ async function saveIncident(agentId,incident,action='add'){
   return clone(saved);
 }
 async function replaceAll(rows,reason='agents-replace-all'){
-  await waitReady();
-  const raw=payloadOf(rows);
-  status('Firebase — enregistrement des agents…');
-  try{
-    await ref.set({moduleSyncV1:{agents:{payload:raw,updatedAtMs:Date.now(),reason,version:7}}},{merge:true});
-    status('Firebase — synchronisé',true);
-    emit('inovtec:agents-cloud-updated',{payload:raw});
-    return clone(parse(raw,[]));
-  }catch(e){
-    console.error('Firebase Agents',e);
-    status('Firebase — erreur : '+(e.code||e.message||'écriture impossible'));
-    throw e;
-  }
+  if(!Array.isArray(rows))throw Error('Liste Agents invalide');
+  // Conserver les mêmes protections de taille, d'écriture et de relecture serveur.
+  return clone(await mutateAgentRows(reason,()=>clone(rows)));
 }
 
 window.InovtecAgentsCloud=Object.freeze({
