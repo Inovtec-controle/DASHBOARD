@@ -145,110 +145,160 @@ function dataUrlToJpeg(w,dataUrl){
   });
 }
 
-async function generateIncidentPdf(w,d,agent,incident){
+async function generateIncidentPdf(w,d,agent,incident,action="download",printWindow=null){
   try{
     const JsPDF=await loadJsPdf(w,d);
-    const doc=new JsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
-    const pageW=210,pageH=297,left=16,right=16,usable=pageW-left-right;
-    let y=16;
-    const ensure=(needed=12)=>{if(y+needed>pageH-18){doc.addPage();y=16}};
-    const line=(label,value)=>{
-      ensure(12);
-      doc.setFont("helvetica","bold");
-      doc.setFontSize(10);
-      doc.setTextColor(71,85,105);
-      doc.text(label,left,y);
-      const labelW=doc.getTextWidth(label)+3;
-      doc.setFont("helvetica","normal");
-      doc.setTextColor(15,23,42);
-      const parts=doc.splitTextToSize(clean(value)||"—",Math.max(45,usable-labelW));
-      doc.text(parts,left+labelW,y);
-      y+=Math.max(7,parts.length*5+2);
-    };
-    const block=(label,value)=>{
-      ensure(16);
-      doc.setFont("helvetica","bold");
-      doc.setFontSize(10);
-      doc.setTextColor(71,85,105);
-      doc.text(label,left,y);
-      y+=6;
-      doc.setFont("helvetica","normal");
-      doc.setFontSize(10.5);
-      doc.setTextColor(15,23,42);
-      const parts=doc.splitTextToSize(clean(value)||"—",usable);
-      parts.forEach(part=>{ensure(7);doc.text(part,left,y);y+=5.4});
+    const pdf=new JsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
+    const pageW=210,pageH=297,margin=17,contentW=176,lowerLimit=273;
+    let y=0;
+    const name=agentName(agent),date=frDate(incident?.date);
+    function nextPage(){
+      pdf.addPage();
+      pdf.setDrawColor(212,225,218);
+      pdf.setFont("helvetica","bold");
+      pdf.setTextColor(6,78,59);
+      pdf.setFontSize(9);
+      pdf.text("INOVTEC  |  SUIVI DES INCIDENTS",margin,17);
+      pdf.line(margin,21,pageW-margin,21);
+      y=31;
+    }
+    function ensure(height){
+      if(y+height>lowerLimit)nextPage();
+    }
+    function section(label){
+      ensure(15);
       y+=3;
-    };
-
-    doc.setFillColor(6,78,59);
-    doc.roundedRect(left,y,usable,22,3,3,"F");
-    doc.setTextColor(255,255,255);
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(17);
-    doc.text("Fiche incident",left+7,y+9);
-    doc.setFont("helvetica","normal");
-    doc.setFontSize(9.5);
-    doc.text(agentName(agent),left+7,y+16);
-    y+=31;
-
-    line("Date :",frDate(incident?.date));
-    line("Catégorie :",incident?.categorie||"—");
-    line("Gravité :",incident?.gravite||"Modérée");
-    line("Statut :",incident?.statut||"Ouvert");
-    y+=2;
-    block("Titre",incident?.titre||"Incident");
-    block("Description / suite donnée",incident?.description||"");
+      pdf.setTextColor(6,78,59);
+      pdf.setFont("helvetica","bold");
+      pdf.setFontSize(10);
+      pdf.text(label.toUpperCase(),margin,y);
+      y+=3;
+      pdf.setDrawColor(206,224,213);
+      pdf.line(margin,y,pageW-margin,y);
+      y+=7;
+    }
+    function paragraph(value,{empty="Non renseigné",lineHeight=5.4}={}){
+      const txt=clean(value)||empty;
+      pdf.setFont("helvetica","normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(25,39,52);
+      const lines=pdf.splitTextToSize(txt,contentW);
+      for(const part of lines){
+        ensure(lineHeight+2);
+        pdf.text(part,margin,y);
+        y+=lineHeight;
+      }
+      y+=4;
+    }
+    function field(label,value){
+      ensure(15);
+      pdf.setFont("helvetica","bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(95,108,117);
+      pdf.text(label,margin,y);
+      y+=6;
+      paragraph(value);
+    }
+    function blankArea(label){
+      section(label);
+      ensure(22);
+      pdf.setDrawColor(214,223,227);
+      for(let j=0;j<3;j++){
+        pdf.line(margin,y+5,pageW-margin,y+5);
+        y+=7;
+      }
+      y+=4;
+    }
+    pdf.setFillColor(6,78,59);
+    pdf.rect(0,0,pageW,45,"F");
+    pdf.setTextColor(255,255,255);
+    pdf.setFont("helvetica","bold");
+    pdf.setFontSize(10);
+    pdf.text("INOVTEC  |  DOCUMENT INTERNE",margin,14);
+    pdf.setFontSize(17);
+    pdf.text("FICHE DE CONSTAT D'INCIDENT",margin,27);
+    pdf.setFont("helvetica","normal");
+    pdf.setFontSize(9);
+    pdf.text("Support pour l'examen d'un eventuel avertissement",margin,36);
+    y=56;
+    section("Identification");
+    field("Agent concerné",name);
+    field("Date des faits",date);
+    field("Catégorie",incident?.categorie);
+    field("Gravité",incident?.gravite||"Modérée");
+    field("Statut du suivi",incident?.statut||"Ouvert");
+    section("Faits consignés");
+    field("Objet",incident?.titre||"Incident");
+    field("Description / suite consignée",incident?.description);
 
     const photos=Array.isArray(incident?.photos)?incident.photos:[];
     if(photos.length){
-      ensure(14);
-      doc.setFont("helvetica","bold");
-      doc.setFontSize(11);
-      doc.setTextColor(15,23,42);
-      doc.text(`Photos (${photos.length})`,left,y);
-      y+=7;
+      section("Pièces photographiques ("+photos.length+")");
       for(let i=0;i<photos.length;i++){
-        try{
-          const img=await dataUrlToJpeg(w,photos[i]?.dataUrl);
-          let iw=usable,ih=iw*(img.height/img.width);
-          const maxH=105;
-          if(ih>maxH){ih=maxH;iw=ih*(img.width/img.height)}
-          ensure(ih+13);
-          doc.setFont("helvetica","normal");
-          doc.setFontSize(8.5);
-          doc.setTextColor(100,116,139);
-          doc.text(clean(photos[i]?.name)||`Photo ${i+1}`,left,y);
+        const photo=photos[i]||{};
+        ensure(15);
+        pdf.setFont("helvetica","bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor(53,68,79);
+        const caption=pdf.splitTextToSize("Photo "+(i+1)+" - "+(clean(photo.name)||"Sans nom"),contentW);
+        for(const row of caption){
+          ensure(6);
+          pdf.text(row,margin,y);
           y+=5;
-          doc.addImage(img.data,"JPEG",left,y,iw,ih,undefined,"FAST");
-          y+=ih+7;
-        }catch(e){
-          ensure(9);
-          doc.setFont("helvetica","italic");
-          doc.setFontSize(8.5);
-          doc.setTextColor(148,163,184);
-          doc.text(`Photo ${i+1} non intégrable`,left,y);
-          y+=7;
+        }
+        y+=2;
+        try{
+          const img=await dataUrlToJpeg(w,photo.dataUrl);
+          let pw=contentW,ph=pw*img.height/img.width;
+          if(ph>170){ph=170;pw=ph*img.width/img.height}
+          ensure(ph+10);
+          pdf.addImage(img.data,"JPEG",margin,y,pw,ph,undefined,"FAST");
+          y+=ph+10;
+        }catch(error){
+          ensure(12);
+          pdf.setFont("helvetica","italic");
+          pdf.setFontSize(9);
+          pdf.setTextColor(130,71,71);
+          pdf.text("Photographie non disponible dans le PDF",margin,y);
+          y+=11;
         }
       }
     }
-
-    const pages=doc.getNumberOfPages();
+    blankArea("Observations complémentaires (à compléter)");
+    section("Suivi");
+    ensure(23);
+    pdf.setTextColor(83,98,107);
+    pdf.setFont("helvetica","normal");
+    pdf.setFontSize(9);
+    pdf.text("Date : _____________________",margin,y);
+    pdf.text("Responsable : _____________________________",margin+67,y);
+    y+=12;
+    pdf.text("Signature / visa : __________________________________________",margin,y);
+    y+=9;
+    const pages=pdf.getNumberOfPages();
     for(let p=1;p<=pages;p++){
-      doc.setPage(p);
-      doc.setDrawColor(226,232,240);
-      doc.line(left,pageH-13,pageW-right,pageH-13);
-      doc.setFont("helvetica","normal");
-      doc.setFontSize(8);
-      doc.setTextColor(100,116,139);
-      doc.text(`Généré le ${new Date().toLocaleString("fr-FR")}`,left,pageH-8);
-      doc.text(`Page ${p}/${pages}`,pageW-right,pageH-8,{align:"right"});
+      pdf.setPage(p);
+      pdf.setDrawColor(208,220,214);
+      pdf.line(margin,284,pageW-margin,284);
+      pdf.setTextColor(91,102,111);
+      pdf.setFont("helvetica","normal");
+      pdf.setFontSize(7.5);
+      pdf.text("Document de suivi - ne constitue pas un avertissement disciplinaire.",margin,289);
+      pdf.text("Page "+p+"/"+pages,pageW-margin,289,{align:"right"});
+      pdf.text("Édité le "+new Date().toLocaleString("fr-FR"),margin,294);
     }
-
-    const filename=`Incident_${safeFile(agentName(agent))}_${safeFile(frDate(incident?.date))}_${safeFile(incident?.titre||"incident")}.pdf`;
-    doc.save(filename);
+    const filename="Incident_"+safeFile(name)+"_"+safeFile(incident?.date)+"_"+safeFile(incident?.titre||"incident")+".pdf";
+    if(action==="print"&&printWindow&&!printWindow.closed){
+      const blob=pdf.output("blob");
+      printWindow.location.replace(w.URL.createObjectURL(blob));
+    }else{
+      pdf.save(filename);
+      if(action==="print")w.alert("L'onglet d'impression a été bloqué. Le PDF a été téléchargé : ouvre-le pour l'imprimer.");
+    }
   }catch(err){
     console.error("PDF incident",err);
-    w.alert("Impossible de générer le PDF de cet incident. Réessaie après avoir actualisé la page.");
+    try{if(printWindow&&!printWindow.closed)printWindow.close()}catch(e){}
+    w.alert("Impossible de générer la fiche PDF. Vérifie la connexion et réessaie.");
   }
 }
 
@@ -259,18 +309,40 @@ function installButtons(w,d){
     const id=edit.getAttribute("data-inc-edit");
     if(!id)return;
     const parent=edit.parentElement;
-    const exists=parent&&Array.from(parent.querySelectorAll("[data-inc-pdf]")).some(b=>String(b.getAttribute("data-inc-pdf"))===String(id));
-    if(exists)return;
-    const incident=agent.incidents.find(x=>String(x?.id)===String(id));
-    if(!incident)return;
-    const btn=d.createElement("button");
-    btn.type="button";
-    btn.className="tiny green ivIncidentPdfBtn";
-    btn.setAttribute("data-inc-pdf",id);
-    btn.textContent="PDF";
-    btn.title="Générer le PDF de cet incident";
-    btn.onclick=e=>{e.preventDefault();e.stopPropagation();generateIncidentPdf(w,d,agent,incident)};
-    edit.insertAdjacentElement("beforebegin",btn);
+    if(!parent)return;
+    const current=agent.incidents.find(item=>String(item?.id)===String(id));
+    if(!current)return;
+    for(const spec of [
+      {action:"download",label:"Télécharger PDF",title:"Télécharger la fiche de cet incident en PDF"},
+      {action:"print",label:"Imprimer",title:"Ouvrir la fiche PDF de cet incident pour l'imprimer"}
+    ]){
+      if(Array.from(parent.querySelectorAll("[data-inc-pdf]")).some(btn=>btn.getAttribute("data-inc-pdf")===id&&btn.getAttribute("data-inc-pdf-action")===spec.action))continue;
+      const btn=d.createElement("button");
+      btn.type="button";
+      btn.className="tiny green ivIncidentPdfBtn";
+      btn.setAttribute("data-inc-pdf",id);
+      btn.setAttribute("data-inc-pdf-action",spec.action);
+      btn.textContent=spec.label;
+      btn.title=spec.title;
+      btn.addEventListener("click",event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        const selected=w.getSelectedAgent?.();
+        const item=selected?.incidents?.find(row=>String(row?.id)===String(id));
+        if(!item){w.alert("Cet incident n'est plus disponible.");return}
+        let printWindow=null;
+        if(spec.action==="print"){
+          // Ouvrir pendant le clic, avant les opérations asynchrones, évite le bloqueur de fenêtres.
+          printWindow=w.open("","_blank");
+          if(printWindow){
+            printWindow.document.title="Préparation de la fiche incident";
+            printWindow.document.body.textContent="Préparation du PDF à imprimer…";
+          }
+        }
+        generateIncidentPdf(w,d,selected,item,spec.action,printWindow);
+      });
+      edit.insertAdjacentElement("beforebegin",btn);
+    }
   });
 }
 
