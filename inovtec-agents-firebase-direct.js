@@ -315,7 +315,11 @@ async function writeRows(rows,reason='agents-direct-save'){
       const key=String(row.id),previous=map.get(key);
       const previousAt=Date.parse(previous?.updatedAt||previous?.deletedAt||previous?.createdAt||0)||0;
       const incomingAt=Date.parse(row?.updatedAt||row?.deletedAt||row?.createdAt||0)||0;
-      if(!previous||incomingAt>=previousAt)map.set(key,row);
+      if(!previous||incomingAt>=previousAt){
+        // Les incidents ajoutés au document privé ne doivent jamais être
+        // dupliqués dans le document principal lors d'une sauvegarde globale.
+        map.set(key,previous?{...row,incidents:Array.isArray(previous.incidents)?previous.incidents:[]}:row);
+      }
     }
     return Array.from(map.values());
   });
@@ -326,7 +330,11 @@ async function saveAgent(agent){
   const id=String(agent.id);
   const results=await mutateAgentRows('agent-direct-save',remote=>{
     const idx=remote.findIndex(x=>String(x?.id||'')===id);
-    if(idx>=0)remote[idx]=clone(agent);else remote.push(clone(agent));
+    if(idx>=0){
+      const updated=clone(agent);
+      updated.incidents=Array.isArray(remote[idx]?.incidents)?remote[idx].incidents:[];
+      remote[idx]=updated;
+    }else remote.push(clone(agent));
     return remote;
   },{verify:rows=>rows.some(a=>String(a?.id||'')===id)});
   emit('inovtec:agent-cloud-saved',{id});
