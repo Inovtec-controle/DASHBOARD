@@ -247,7 +247,8 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
         }
         y+=2;
         try{
-          const img=await dataUrlToJpeg(w,photo.dataUrl);
+          const fullPhoto=photo.dataUrl||(typeof window.InovtecAgentsCloud?.readMedia==="function"?await window.InovtecAgentsCloud.readMedia(photo):"");
+          const img=await dataUrlToJpeg(w,fullPhoto);
           let pw=contentW,ph=pw*img.height/img.width;
           if(ph>170){ph=170;pw=ph*img.width/img.height}
           ensure(ph+10);
