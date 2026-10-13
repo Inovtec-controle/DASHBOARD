@@ -357,6 +357,7 @@ function install(){
       return r;
     };
 
+    w.addEventListener("inovtec:agent-media-hydrated",()=>installButtons(w,d));
     loadJsPdf(w,d).catch(()=>{});
     installButtons(w,d);
   }catch(e){
