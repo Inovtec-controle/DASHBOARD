@@ -116,7 +116,7 @@ async function kontrolCount(user){
   if(storage){
     try{
       const list=await storage.ref().child("kontrol/"+user.uid+"/pdfs").listAll();
-      storageCount=list.items.length;hasSource=true;
+      storageCount=list.items.filter(item=>!item.name.startsWith('agentDocument_')).length;hasSource=true;
     }catch(e){
       console.warn("Compteur KONTROL Storage",e);
     }
