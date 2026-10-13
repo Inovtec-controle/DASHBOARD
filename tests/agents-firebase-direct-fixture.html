@@ -5,8 +5,8 @@
  const clone=v=>JSON.parse(JSON.stringify(v));
  const state={
    doc:{moduleSyncV1:{agents:{payload:"[]"}}},
-   incidentDoc:{},incidentRecords:new Map(),
-   transactions:0,refGets:0,files:new Map(),mainWrites:0,incidentWrites:0
+   incidentDoc:{},incidentRecords:new Map(),encryptedRecords:new Map(),
+   transactions:0,refGets:0,files:new Map(),mainWrites:0,incidentWrites:0,encryptedWrites:0
  };
  window.__agentsFirebaseTest=state;
  const listeners={kanban:[],discipline:[],incidents:[]};
@@ -42,8 +42,18 @@
      onSnapshot(opts,cb){const fn=typeof opts==="function"?opts:cb;listeners.discipline.push(fn);queueMicrotask(()=>fn(snap("discipline")));return()=>{}}
    }
  };
+ const protectedCollection={
+   where(field,op,owner){return{
+     async get(){return{docs:[...state.encryptedRecords.entries()].filter(([,d])=>d.ownerUid===owner).map(([id,d])=>({id,data:()=>clone(d)}))}},
+     onSnapshot(options,callback){return()=>{}}
+   }},
+   doc(id){return{
+     async set(value){state.encryptedRecords.set(id,clone(value));state.encryptedWrites++},
+     async get(){const d=state.encryptedRecords.get(id);return{exists:!!d,data:()=>clone(d)}}
+   }}
+ };
  const firestore=()=>({
-   collection(name){return{doc(){return name==="discipline"?refs.discipline:refs.kanban}}},
+   collection(name){return name==="chantiers"?protectedCollection:{doc(){return name==="discipline"?refs.discipline:refs.kanban}}},
    async runTransaction(fn){
      state.transactions++;
      const updates=[];
@@ -69,7 +79,7 @@
  const authObj={onAuthStateChanged(fn){queueMicrotask(()=>fn({uid:"test-user"}));return()=>{}},signInWithEmailAndPassword:async()=>({user:{uid:"test-user"}})};
  const auth=()=>authObj;
  const storage=()=>({ref:()=>({child:path=>({
-   put:async(blob,meta)=>{state.files.set(path,{blob,meta});return{}},
+   put:async(blob,meta)=>{throw Object.assign(new Error('Missing or insufficient permissions'),{code:'permission-denied'})},
    getDownloadURL:async()=>URL.createObjectURL(state.files.get(path).blob)
  })})});
  window.firebase={apps:[{}],auth,firestore,storage};
