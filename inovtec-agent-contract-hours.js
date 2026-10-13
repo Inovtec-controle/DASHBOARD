@@ -314,9 +314,9 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
       pdf.setTextColor(91,102,111);
       pdf.setFont("helvetica","normal");
       pdf.setFontSize(7.5);
-      pdf.text("Document de suivi - ne constitue pas un avertissement disciplinaire.",margin,289);
+      // La mention de suivi ne figure que sur la dernière page.
+      if(p===pages)pdf.text("Document de suivi - ne constitue pas un avertissement disciplinaire.",margin,289);
       pdf.text("Page "+p+"/"+pages,pageW-margin,289,{align:"right"});
-      pdf.text("Édité le "+new Date().toLocaleString("fr-FR"),margin,294);
     }
     const filename="Incident_"+safeFile(name)+"_"+safeFile(incident?.date)+"_"+safeFile(incident?.titre||"incident")+".pdf";
     if(action==="print"&&printWindow&&!printWindow.closed){
