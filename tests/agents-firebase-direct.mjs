@@ -70,12 +70,13 @@ try{
       newStored:!!latestSaved?.photos?.[0]?.ivStorageV1?.path&&!latestSaved.photos[0].dataUrl,
       photoRecovered:loadedData.startsWith('data:image/png;base64,'),
       privateWrites:state.incidentWrites,
+      privateRecords:state.incidentRecords.size,
       mainUnchanged,
       files:state.files.size,
       names:remote.map(a=>a.id)
     };
   });
-  if(incidentResult.size>1048576||!incidentResult.oldPreserved||!incidentResult.newStored||!incidentResult.photoRecovered||incidentResult.files!==1||!incidentResult.mainUnchanged||incidentResult.privateWrites!==1||!incidentResult.names.includes('agent-preserve')){
+  if(incidentResult.size>1048576||!incidentResult.oldPreserved||!incidentResult.newStored||!incidentResult.photoRecovered||incidentResult.files!==1||!incidentResult.mainUnchanged||(incidentResult.privateWrites!==1||incidentResult.privateRecords!==1)||!incidentResult.names.includes('agent-preserve')){
     throw Error('Incident non durable ou modification du document Agents lors de la sauvegarde privée : '+JSON.stringify(incidentResult));
   }
   console.log('OK : incident enregistré dans document privé, aucune migration lente, photos et agents préservés');
