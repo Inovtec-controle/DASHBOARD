@@ -1560,11 +1560,19 @@ async function saveEditedIncident(event){
     });
     var cloud = await getAgentsCloud();
     if(typeof cloud.saveIncident!=="function") throw new Error("Sauvegarde Firebase des incidents indisponible.");
-    await cloud.saveIncident(context.agentId,update,"update");
+    var confirmedIncident=await cloud.saveIncident(context.agentId,update,"update");
+    // Garder les références Firebase Storage confirmées, même si des photos
+    // sont encore disponibles en mémoire dans le formulaire.
+    var confirmedForView=Object.assign({},confirmedIncident,{
+      photos:(confirmedIncident.photos||[]).map(function(photo){
+        var source=(update.photos||[]).find(function(p){return String(p.id)===String(photo.id);});
+        return source?.dataUrl ? Object.assign({},photo,{dataUrl:source.dataUrl}) : photo;
+      })
+    });
     var currentAgent=state.agents.find(function(a){return a && String(a.id)===context.agentId;});
     if(currentAgent && Array.isArray(currentAgent.incidents)){
       currentAgent.incidents=currentAgent.incidents.map(function(row){
-        return String(row.id)===context.incidentId ? update : row;
+        return String(row.id)===context.incidentId ? confirmedForView : row;
       });
     }
     incidentEditSaving = false;
