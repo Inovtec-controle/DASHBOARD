@@ -228,8 +228,8 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
     }
     // En-tête D59 en tracé vectoriel natif du PDF (aucune image ni bloc de couleur).
     // Deux embouts géométriques, un trait horizontal et trois barres obliques centrales.
-    function drawD59Divider(){
-      const cy=44,cx=pageW/2,green=[6,78,59];
+    function drawD59Divider(cy){
+      const cx=pageW/2,green=[6,78,59];
       pdf.setDrawColor(...green);
       pdf.setFillColor(...green);
       pdf.setLineWidth(0.65);
@@ -250,9 +250,11 @@ async function generateIncidentPdf(w,d,agent,incident,action="download",printWin
     // Le nom de l'agent reste le titre principal ; adapter la taille aux noms longs.
     const titleWidth=pdf.getTextWidth(name);
     if(titleWidth>contentW)pdf.setFontSize(Math.max(10,17*contentW/titleWidth));
-    pdf.text(name,margin,29);
-    drawD59Divider();
-    y=56;
+    // Le séparateur D59 doit être SOUS le nom de l'agent, jamais au-dessus.
+    const agentNameY=31;
+    pdf.text(name,margin,agentNameY);
+    drawD59Divider(agentNameY+14);
+    y=60;
     section("Identification");
     field("Agent concerné",name);
     field("Date des faits",date);
