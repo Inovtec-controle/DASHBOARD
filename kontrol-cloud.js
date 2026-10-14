@@ -1214,14 +1214,63 @@
   archiveModal.addEventListener("click", event => { if (event.target === archiveModal) hideArchive(); });
   document.addEventListener("keydown", event => { if (event.key === "Escape") hideArchive(); });
 
+  // Certains navigateurs (notamment en mode intégré ou avec stockage restreint)
+  // refusent une persistance pourtant acceptée au moment de sa configuration.
+  // Ne pas bloquer la connexion : essayer session, puis mémoire, uniquement
+  // si Firebase renvoie une erreur liée au mode de persistance.
+  function isPersistenceUnsupported(error) {
+    return /auth\\\/(?:unsupported|invalid)-persistence-type|unsupported-persistence-type/i
+      .test(String(error?.code || "") + " " + String(error?.message || ""));
+  }
+
+  async function signInWithAvailablePersistence(email, password) {
+    const P = firebase.auth.Auth.Persistence;
+    let lastPersistenceError = null;
+    for (const mode of [P.LOCAL, P.SESSION, P.NONE]) {
+      if (!mode) continue;
+      try {
+        await auth.setPersistence(mode);
+      } catch (error) {
+        lastPersistenceError = error;
+        continue;
+      }
+      try {
+        return await auth.signInWithEmailAndPassword(email, password);
+      } catch (error) {
+        // Identifiants, réseau et compte bloqué : conserver l'erreur réelle,
+        // sans provoquer de nouvelles tentatives de connexion.
+        if (!isPersistenceUnsupported(error)) throw error;
+        lastPersistenceError = error;
+      }
+    }
+    throw lastPersistenceError || new Error("Aucun mode de connexion Firebase disponible.");
+  }
+
   $("loginForm").addEventListener("submit", async event => {
     event.preventDefault();
-    $("loginError").textContent = "";
+    const errorBox = $("loginError");
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
+    if (submit?.disabled) return;
+    errorBox.textContent = "";
+    if (submit) submit.disabled = true;
     try {
-      try{await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(_e1){try{await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)}catch(_e2){try{await auth.setPersistence(firebase.auth.Auth.Persistence.NONE)}catch(_e3){}}}
-      await auth.signInWithEmailAndPassword($("loginEmail").value.trim(), $("loginPassword").value);
+      await signInWithAvailablePersistence($("loginEmail").value.trim(), $("loginPassword").value);
+      $("loginPassword").value = "";
     } catch (error) {
-      $("loginError").textContent = "Connexion impossible : " + (error.message || "vérifie les identifiants.");
+      if (isPersistenceUnsupported(error)) {
+        errorBox.textContent = "Ce navigateur bloque le stockage de la connexion Firebase. ";
+        const direct = document.createElement("a");
+        direct.href = "KONTROL-CLOUD-LEGACY.html?v=20261014-auth-persistence1";
+        direct.target = "_blank";
+        direct.rel = "noopener";
+        direct.textContent = "Ouvrir KONTROL directement dans un nouvel onglet";
+        direct.style.cssText = "display:inline-block;margin-top:7px;color:inherit;text-decoration:underline;font-weight:700";
+        errorBox.appendChild(direct);
+      } else {
+        errorBox.textContent = "Connexion impossible : " + (error.message || "vérifie les identifiants.");
+      }
+    } finally {
+      if (submit) submit.disabled = false;
     }
   });
 
