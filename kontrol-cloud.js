@@ -30,7 +30,6 @@
   let chantierReferences = [];
   let chantierReferencesPromise = null;
   let activeChecklistSiteId = "";
-  let checklistLoadSeq = 0;
 
   function chantierName(site) {
     return String(site?.nom || site?.name || site?.site || "").trim();
@@ -348,56 +347,67 @@
         : "";
   }
 
-  async function applyChecklistForSite(site, doc = frame.contentDocument) {
+  // Les données du chantier sélectionné contiennent déjà sa configuration
+  // (chargée par le référentiel Firebase). Ne pas refaire de lecture distante :
+  // le gabarit général doit fonctionner même hors connexion momentanée.
+  function checklistForSite(site) {
+    const config = site?.kontrolChecklistV1;
+    const items = config?.customized === true && Array.isArray(config.items)
+      ? config.items.map(value => String(value || "").trim()).filter(Boolean)
+      : [];
+    return items.length ? { mode:"custom", items } : { mode:"default", items:[] };
+  }
+
+  function applyChecklistForSite(site, doc = frame.contentDocument) {
     const id = String(site?.id || "").trim();
-    if (!id || !doc?.body) return;
-    // Ne pas considérer un chantier comme chargé si le téléphone a perdu
-    // le rendu des lignes (restauration d'onglet ou ancien brouillon).
-    const visibleRows = doc.querySelectorAll("#tasksBody tr[data-task-id]").length;
-    if (activeChecklistSiteId === id && doc.body.dataset.ivChecklistLoadedFor === id && visibleRows > 0) return;
-    const seq = ++checklistLoadSeq;
+    if (!id || !doc?.body) return false;
+    const field = doc.getElementById("site");
+    if (field) field.dataset.ivChantierId = id;
     activeChecklistSiteId = id;
-    const siteField = doc.getElementById("site");
-    if (siteField) siteField.dataset.ivChantierId = id;
 
     const api = checklistApi();
-    if (!api) {
-      showToast("Le module de liste KONTROL n’est pas prêt.", true);
-      return;
+    if (!api?.useDefaultChecklist || !api?.replaceChecklist) {
+      doc.body.dataset.ivChecklistLoadedFor = "";
+      showToast("La liste de contrôle n’est pas prête. Réessaie la sélection du chantier.", true);
+      return false;
     }
 
-    // Toujours repartir du gabarit général dès qu'un chantier est choisi.
-    // La liste personnalisée, si elle existe réellement dans Firebase, remplace ensuite ce gabarit.
-    api.useDefaultChecklist({ silent:true });
-    setChecklistSource(doc, "default");
+    const source = chantierReferences.find(item => String(item.id) === id) || site;
+    const checklist = checklistForSite(source);
+    const displayed = doc.querySelectorAll("#tasksBody tr[data-task-id]").length;
+    // Ne jamais effacer les réponses en rechargeant le même chantier.
+    if (doc.body.dataset.ivChecklistLoadedFor === id && displayed > 0) return true;
+
+    doc.body.dataset.ivChecklistLoadedFor = "";
+    const apply = (mode, items) => {
+      if (mode === "custom") api.replaceChecklist(items, { silent:true });
+      else api.useDefaultChecklist({ silent:true });
+      if (!doc.querySelector("#tasksBody tr[data-task-id]")) {
+        throw new Error("Aucun point de contrôle n'a été affiché");
+      }
+      setChecklistSource(doc, mode);
+      doc.body.dataset.ivChecklistLoadedFor = id;
+      return true;
+    };
 
     try {
-      const snap = await db.collection("chantiers").doc(id).get();
-      if (seq !== checklistLoadSeq) return;
-      if (!snap.exists) {
-        doc.body.dataset.ivChecklistLoadedFor = id;
-        return;
-      }
-      const data = snap.data() || {};
-      const config = data.kontrolChecklistV1 || {};
-      const customItems = Array.isArray(config.items)
-        ? config.items.map(value => String(value || "").trim()).filter(Boolean)
-        : [];
-      if (config.customized === true && customItems.length > 0) {
-        api.replaceChecklist(customItems, { silent:true });
-        setChecklistSource(doc, "custom");
-      } else {
-        api.useDefaultChecklist({ silent:true });
-        setChecklistSource(doc, "default");
-      }
-      doc.body.dataset.ivChecklistLoadedFor = id;
+      return apply(checklist.mode, checklist.items);
     } catch (error) {
-      console.error("Chargement de la liste KONTROL impossible", error);
-      // Ne jamais conserver par erreur la liste personnalisée du chantier précédent.
-      api.useDefaultChecklist({ silent:true });
-      setChecklistSource(doc, "default");
-      doc.body.dataset.ivChecklistLoadedFor = id;
-      showToast("Liste personnalisée indisponible : le gabarit général est utilisé.", true);
+      console.error("Affichage du gabarit KONTROL impossible", error);
+      // Même une liste personnalisée défectueuse ne doit jamais bloquer
+      // le contrôle de la résidence : revenir au gabarit général.
+      try {
+        if (apply("default", [])) {
+          showToast("La liste personnalisée est indisponible : gabarit général chargé.", true);
+          return true;
+        }
+      } catch (fallbackError) {
+        console.error("Gabarit général KONTROL indisponible", fallbackError);
+      }
+      doc.body.dataset.ivChecklistLoadedFor = "";
+      setChecklistSource(doc, "");
+      showToast("Impossible d’afficher les points de contrôle. Reselectionne la résidence.", true);
+      return false;
     }
   }
 
@@ -498,7 +508,7 @@
     if (!siteField.isConnected) return;
     picker.disabled = false;
 
-    const previousId = String(siteField.dataset.ivChantierId || activeChecklistSiteId || "").trim();
+    const previousId = String(siteField.dataset.ivChantierId || (siteField.value?.trim() ? activeChecklistSiteId : "") || "").trim();
     const previousName = String(siteField.value || "").trim();
     picker.replaceChildren();
 
@@ -511,7 +521,7 @@
       const option = doc.createElement("option");
       const name = chantierName(site);
       const address = String(site?.adresse || "").trim();
-      option.value = name;
+      option.value = String(site.id);
       option.dataset.ivChantierId = String(site.id);
       option.textContent = address ? (name + " — " + address) : name;
       picker.appendChild(option);
@@ -550,7 +560,6 @@
           activeChecklistSiteId = "";
           delete siteField.dataset.ivChantierId;
           doc.body.dataset.ivChecklistLoadedFor = "";
-          checklistApi()?.useDefaultChecklist?.({ silent:true });
           setChecklistSource(doc, "");
         }
 
@@ -560,10 +569,9 @@
         siteField.dispatchEvent(new Event("change", { bubbles:true }));
 
         if (selected) {
-          // Force le rechargement du modèle lors d'un nouveau choix, même
-          // après une reprise de navigateur mobile depuis l'arrière-plan.
-          doc.body.dataset.ivChecklistLoadedFor = "";
-          void applyChecklistForSite(selected, doc);
+          // Une seule reconstruction de la liste, depuis la configuration
+          // déjà chargée avec les résidences (sans second appel Firebase).
+          applyChecklistForSite(selected, doc);
         }
       });
     }
@@ -571,7 +579,7 @@
     if (initial) {
       siteField.value = chantierName(initial);
       siteField.dataset.ivChantierId = String(initial.id);
-      void applyChecklistForSite(initial, doc);
+      applyChecklistForSite(initial, doc);
     } else if (previousName) {
       // Une ancienne valeur libre non reliée à un chantier ne doit plus rester active.
       siteField.value = "";
@@ -625,7 +633,7 @@
       if (doc.body.dataset.ivFreshControlPrepared === "1") {
         updateControlWorkspaceVisibility(doc);
         const site = resolveChantierReference(doc.getElementById("site")?.value || "");
-        if (site && !doc.querySelector("#tasksBody tr[data-task-id]")) void applyChecklistForSite(site, doc);
+        if (site && !doc.querySelector("#tasksBody tr[data-task-id]")) applyChecklistForSite(site, doc);
         return;
       }
       doc.body.dataset.ivFreshControlPrepared = "1";
@@ -1223,7 +1231,7 @@
       appShell.classList.remove("hidden");
       if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) {
         clearWorkingDraft();
-        frame.src = "KONTROL.html?v=20261014-mobile-checklist1";
+        frame.src = "KONTROL.html?v=20261014-kontrol-checklist-stable1";
       }
     } else {
       hideArchive();
