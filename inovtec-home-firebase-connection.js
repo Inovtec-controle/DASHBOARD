@@ -49,7 +49,16 @@ if(!sdk?.auth){
  return;
 }
 let auth;
-try{auth=sdk.auth()}catch(e){
+try{
+ // L'accueil utilise Firebase avant dashboard-index.js : initialiser l'app
+ // ici évite qu'auth() échoue sur Chrome/Edge alors que les autres pages fonctionnent.
+ if(!sdk.apps.length){
+  if(!window.INOVTEC_FIREBASE_CONFIG)throw new Error("Configuration Firebase absente");
+  sdk.initializeApp(window.INOVTEC_FIREBASE_CONFIG);
+ }
+ auth=sdk.auth();
+}catch(e){
+ console.warn("Connexion Firebase accueil : initialisation indisponible",e);
  box.hidden=false;form.hidden=true;
  desc.textContent="Impossible de démarrer la connexion Firebase sur cet appareil.";
  return;
