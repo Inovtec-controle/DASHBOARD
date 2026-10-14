@@ -250,16 +250,70 @@
   }
 
 
+  function cleanChantierReferences(rows) {
+    return (Array.isArray(rows) ? rows : [])
+      .filter(site => site && site.id && !site._hidden && chantierName(site))
+      .sort((a,b) => chantierName(a).localeCompare(chantierName(b), "fr", { sensitivity:"base" }));
+  }
+
+  function readyHubChantiers(hub) {
+    if (!hub?.readyChantiers) return null;
+    const sites = cleanChantierReferences(Array.from(hub.chantiers || []));
+    // Une liste vide issue d'une erreur Firebase n'est pas une liste définitive.
+    return sites.length || hub.firebaseSitesOk === true ? sites : null;
+  }
+
+  async function waitForDataHubChantiers(timeoutMs = 850) {
+    const hub = dataHub();
+    if (!hub) return null;
+    const ready = readyHubChantiers(hub);
+    if (ready !== null) return ready;
+    if (typeof hub.subscribe !== "function") return null;
+    return new Promise(resolve => {
+      let done = false, unsubscribe = null;
+      const finish = value => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        try { unsubscribe?.(); } catch (_e) {}
+        resolve(value);
+      };
+      const timer = setTimeout(() => finish(null), timeoutMs);
+      try {
+        unsubscribe = hub.subscribe(detail => {
+          if (!detail?.readyChantiers) return;
+          const sites = cleanChantierReferences(Array.from(detail.chantiers || []));
+          if (sites.length || detail.firebaseSitesOk === true) finish(sites);
+        });
+        if (done) { try { unsubscribe?.(); } catch (_e) {} }
+      } catch (_e) {
+        finish(null);
+      }
+    });
+  }
+
   async function loadChantierReferences(force = false) {
     if (!force && chantierReferences.length) return chantierReferences;
     if (!force && chantierReferencesPromise) return chantierReferencesPromise;
-    chantierReferencesPromise = db.collection("chantiers").get().then(snap => {
-      chantierReferences = snap.docs
-        .map(doc => ({ id:doc.id, ...(doc.data() || {}) }))
-        .filter(site => !site._hidden && chantierName(site))
-        .sort((a,b) => chantierName(a).localeCompare(chantierName(b), "fr", { sensitivity:"base" }));
+    chantierReferencesPromise = (async () => {
+      // Le Dashboard charge déjà le référentiel Firebase des chantiers.
+      // Le réutiliser évite une seconde lecture lourde sur téléphone.
+      if (!force) {
+        const shared = await waitForDataHubChantiers();
+        if (shared !== null) {
+          chantierReferences = shared;
+          return chantierReferences;
+        }
+      }
+
+      // Secours autonome : seuls les vrais chantiers ont le champ "nom".
+      // Les PDF, photos, historiques et documents techniques n'ont pas ce champ.
+      const snap = await db.collection("chantiers").orderBy("nom").get();
+      chantierReferences = cleanChantierReferences(
+        snap.docs.map(doc => ({ id:doc.id, ...(doc.data() || {}) }))
+      );
       return chantierReferences;
-    }).finally(() => { chantierReferencesPromise = null; });
+    })().finally(() => { chantierReferencesPromise = null; });
     return chantierReferencesPromise;
   }
 
@@ -408,8 +462,6 @@
   async function configureSitePicker(doc) {
     const siteField = doc?.getElementById("site");
     if (!siteField) return;
-    const sites = await loadChantierReferences();
-    if (!siteField.isConnected) return;
 
     let picker = doc.getElementById("ivKontrolSiteSelect");
     if (!picker) {
@@ -427,6 +479,24 @@
       const label = doc.querySelector('label[for="site"]');
       if (label) label.setAttribute("for", picker.id);
     }
+
+    // Afficher immédiatement le champ au lieu de laisser un emplacement vide
+    // pendant la synchronisation Firebase sur le téléphone.
+    picker.disabled = true;
+    const pending = doc.createElement("option");
+    pending.value = "";
+    pending.textContent = "Chargement des chantiers…";
+    picker.replaceChildren(pending);
+    let sites;
+    try {
+      sites = await loadChantierReferences();
+    } catch (error) {
+      pending.textContent = "Liste indisponible — rouvrir KONTROL";
+      picker.disabled = false;
+      throw error;
+    }
+    if (!siteField.isConnected) return;
+    picker.disabled = false;
 
     const previousId = String(siteField.dataset.ivChantierId || activeChecklistSiteId || "").trim();
     const previousName = String(siteField.value || "").trim();
