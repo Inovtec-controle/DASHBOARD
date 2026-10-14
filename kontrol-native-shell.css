@@ -1,0 +1,32 @@
+/* Native dashboard: no iframe around Firebase authentication. */
+body.iv-kontrol-native{background:#f5f9f7;overflow:hidden}
+body.iv-kontrol-native .iv-shell{height:100dvh}
+body.iv-kontrol-native .iv-main{height:100dvh}
+body.iv-kontrol-native .iv-sidebar-note span{display:block;margin-top:5px}
+body.iv-kontrol-native .iv-stage{position:relative;min-height:0;overflow:hidden}
+body.iv-kontrol-native #appShell{position:relative;inset:auto;width:100%;height:100%;min-height:0;background:#f7faf8}
+body.iv-kontrol-native #kontrolFrame{width:100%;height:100%;border:0;background:#f7faf8}
+body.iv-kontrol-native #archiveBtn{position:absolute;right:15px;bottom:15px}
+body.iv-kontrol-native #ivNativeMore[hidden]{display:none!important}
+body.iv-kontrol-native .iv-native-more{position:fixed;z-index:54;right:12px;bottom:74px;width:min(320px,calc(100vw - 24px));max-height:min(68dvh,600px);overflow-y:auto;background:#064e3b;border:1px solid #3a866a;border-radius:14px;padding:10px;box-shadow:0 20px 45px #052e2366}
+body.iv-kontrol-native .iv-native-more a{display:flex;gap:12px;align-items:center;padding:10px 12px;text-decoration:none;color:#fff;font-size:13px;font-weight:700;border-radius:10px}
+body.iv-kontrol-native .iv-native-more a:hover,body.iv-kontrol-native .iv-native-more a.active{background:#087b55}
+body.iv-kontrol-native .iv-native-more a span:first-child{width:22px;text-align:center}
+body.iv-kontrol-native #ivNativeMobile{grid-template-columns:repeat(5,minmax(0,1fr))}
+body.iv-kontrol-native #ivNativeMobile button{display:grid;place-items:center;align-content:center;gap:1px;border:0;background:none;color:#fff;font:800 8px Inter,system-ui,sans-serif;border-radius:9px;cursor:pointer}
+body.iv-kontrol-native #ivNativeMobile button span:first-child{font-size:16px}
+body.iv-kontrol-native .iv-summary-value{font-family:Inter,system-ui,sans-serif}
+@media(max-width:760px){
+ body.iv-kontrol-native .iv-main{height:100dvh;grid-template-rows:auto auto minmax(0,1fr)!important;padding-bottom:64px}
+ body.iv-kontrol-native .iv-hero{min-height:126px!important}
+ body.iv-kontrol-native .iv-summary{margin:8px 8px 5px}
+ body.iv-kontrol-native .iv-stage{margin:0 8px 6px!important}
+ body.iv-kontrol-native .iv-date{right:8px;bottom:8px;min-width:130px}
+ body.iv-kontrol-native .iv-hero-copy p{max-width:min(50vw,260px)}
+ body.iv-kontrol-native #archiveBtn{right:10px;bottom:10px}
+}
+@media(max-width:390px){
+ body.iv-kontrol-native .iv-hero{padding:14px 12px!important}
+ body.iv-kontrol-native .iv-hero h1{font-size:23px}
+ body.iv-kontrol-native .iv-summary-note{font-size:8px}
+}
