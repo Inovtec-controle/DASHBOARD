@@ -66,7 +66,12 @@ function poll(){
   if(local?.state==="loading"){apply("loading",local.message);return}
   // Une session Auth ouverte, ou un badge d'une page, ne prouve pas que Firestore répond.
   if(health?.ok!==true){
-    if(Date.now()-firebaseCheckStartedAt>10000){apply("error","Lecture Firebase non confirmée");return}
+    if(Date.now()-firebaseCheckStartedAt>10000){
+      // A slow mobile connection is not evidence of a failed Firestore read.
+      // The operational guard reports real errors and retries after reconnecting.
+      apply("loading","Compte connecté · attente de la réponse Firebase (réseau lent)");
+      return;
+    }
     apply("loading","Compte connecté · lecture Firestore non encore confirmée");return
   }
   if(local?.state==="connected"){
