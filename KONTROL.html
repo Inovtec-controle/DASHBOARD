@@ -655,7 +655,7 @@
   if(!state.dataByCategory || typeof state.dataByCategory !== 'object') state.dataByCategory = {};
   ['Residence','Bureau'].forEach(category => {
     const stored = state.dataByCategory[category];
-    if(!Array.isArray(stored)){
+    if(!Array.isArray(stored) || !stored.length){
       state.dataByCategory[category] = DEFAULTS[category].map(name=>({id:uid(),name,status:'',comment:''}));
       return;
     }
@@ -818,7 +818,9 @@
   }
 
   function renderTasks(){
-    els.tasksBody.innerHTML = '';
+    // Construire les lignes hors écran, puis les injecter d’un seul coup :
+    // évite des dizaines de mises en page pendant le chargement sur mobile.
+    const fragment = document.createDocumentFragment();
     const tasks = currentTasks();
     els.tasksCount.textContent = `${tasks.length} tâche${tasks.length>1?'s':''}`;
 
@@ -856,7 +858,7 @@
       tdStatus.appendChild(buildStatusGroup(t));
       tr.appendChild(tdStatus);
 
-      els.tasksBody.appendChild(tr);
+      fragment.appendChild(tr);
 
       // Ligne commentaire sous la tâche (colspan 2)
       const trComment = document.createElement('tr');
@@ -880,8 +882,9 @@
       tdComment.appendChild(ta);
       trComment.appendChild(tdComment);
 
-      els.tasksBody.appendChild(trComment);
+      fragment.appendChild(trComment);
     });
+    els.tasksBody.replaceChildren(fragment);
   }
 
   function buildStatusGroup(task){
