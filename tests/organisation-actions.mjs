@@ -55,7 +55,10 @@ try{
   await archiveCard.getByRole('button',{name:'Archiver',exact:true}).click();
   await page.waitForFunction(()=>window.__orgaActionsTest.personal.tasks.find(t=>t.id==='archive-1')?.archived===true);
   if(await page.locator('#board .task[data-id="archive-1"]').count()!==0)throw Error('La tâche archivée reste dans le tableau');
-  if(await page.locator('#archiveList').getByText('Tâche à archiver').count()!==1)throw Error('La tâche archivée n’apparaît pas dans les archives');
+  if(await page.locator('#archiveDialog').isVisible())throw Error('La fenêtre des archives doit être fermée par défaut');
+  await page.locator('#openArchiveBtn').click();
+  await page.locator('#archiveDialog').waitFor({state:'visible',timeout:5000});
+  if(await page.locator('#archiveList').getByText('Tâche à archiver').count()!==1)throw Error('La tâche archivée n’apparaît pas dans la fenêtre des archives');
 
   // 4. Restaurer remet la tâche dans son statut précédent.
   await page.locator('#archiveList').getByRole('button',{name:'Restaurer'}).click();
