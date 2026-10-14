@@ -1219,7 +1219,7 @@
   // Ne pas bloquer la connexion : essayer session, puis mémoire, uniquement
   // si Firebase renvoie une erreur liée au mode de persistance.
   function isPersistenceUnsupported(error) {
-    return /auth\\\/(?:unsupported|invalid)-persistence-type|unsupported-persistence-type/i
+    return /(?:unsupported|invalid)-persistence-type/i
       .test(String(error?.code || "") + " " + String(error?.message || ""));
   }
 
