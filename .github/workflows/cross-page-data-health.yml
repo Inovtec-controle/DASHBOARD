@@ -32,6 +32,10 @@ jobs:
           grep -q 'kontrolPdfMeta' dashboard-index-shared.js
           grep -q 'collection("kanban").doc(user.uid)' dashboard-index-shared.js
 
+      - name: Tester les gabarits KONTROL et le secours mobile
+        shell: bash
+        run: node tests/kontrol-checklist-stability.mjs
+
       - name: Vérifier le branchement des pages
         shell: bash
         run: |
