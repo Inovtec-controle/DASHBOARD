@@ -361,6 +361,32 @@
     }
   }
 
+  /* Contrôle réalisable au téléphone : les points et les choix restent
+     lisibles et cliquables sans défilement horizontal dans un tableau. */
+  @media (max-width:600px){
+    #tasksTable, #tasksBody{display:block; width:100%; min-width:0}
+    #tasksTable thead{display:none}
+    #tasksBody tr[data-task-id]{
+      display:block; width:100%; margin-top:10px;
+      border:1px solid var(--border); border-radius:12px;
+      overflow:hidden; background:#fff;
+    }
+    #tasksBody tr[data-task-id] td{
+      display:block; width:100%; padding:10px 11px; min-width:0;
+    }
+    #tasksBody tr[data-task-id] td + td{border-top:1px solid var(--border)}
+    #tasksBody tr.comment-row{display:block; width:100%}
+    #tasksBody tr.comment-row td{
+      display:block; width:100%; padding:8px 11px 12px;
+      border:1px solid var(--border); border-top:0;
+      border-radius:0 0 12px 12px;
+    }
+    #tasksBody .status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    #tasksBody .status label{min-width:0; min-height:44px; margin:0; padding:8px; font-size:12px}
+    #tasksBody .task-title-wrap{width:100%;min-width:0}
+    #tasksBody .task-title{white-space:normal;overflow-wrap:anywhere}
+  }
+
   @media (max-width:380px){
     main{
       padding:8px 6px 92px;
@@ -624,8 +650,27 @@
     form: { date:'', heure:'', site:'', agents:'', controleur:'', obs:'', ctrlNotes:'' }
   };
 
-  if(!state.photos) state.photos = [];
-  if(!state.form) state.form = { date:'', heure:'', site:'', agents:'', controleur:'', obs:'', ctrlNotes:'' };
+  // Les anciens brouillons (notamment sur mobile) peuvent ne plus contenir
+  // dataByCategory : sans normalisation le rendu des points de contrôle s'arrête.
+  if(!state.dataByCategory || typeof state.dataByCategory !== 'object') state.dataByCategory = {};
+  ['Residence','Bureau'].forEach(category => {
+    const stored = state.dataByCategory[category];
+    if(!Array.isArray(stored)){
+      state.dataByCategory[category] = DEFAULTS[category].map(name=>({id:uid(),name,status:'',comment:''}));
+      return;
+    }
+    state.dataByCategory[category] = stored.map(item => {
+      const name = typeof item === 'string' ? item : item?.name;
+      return {
+        id:String(item?.id || uid()),
+        name:String(name || '').trim(),
+        status:typeof item?.status === 'string' ? item.status : '',
+        comment:typeof item?.comment === 'string' ? item.comment : ''
+      };
+    }).filter(item=>item.name);
+  });
+  if(!Array.isArray(state.photos)) state.photos = [];
+  if(!state.form || typeof state.form !== 'object') state.form = { date:'', heure:'', site:'', agents:'', controleur:'', obs:'', ctrlNotes:'' };
 
   let pieChart = null;
 
