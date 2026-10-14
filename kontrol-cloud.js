@@ -1231,7 +1231,7 @@
       appShell.classList.remove("hidden");
       if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) {
         clearWorkingDraft();
-        frame.src = "KONTROL.html?v=20261014-kontrol-checklist-stable1";
+        frame.src = "KONTROL.html?v=20261014-kontrol-checklist-stable2";
       }
     } else {
       hideArchive();
