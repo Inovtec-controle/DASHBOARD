@@ -29,7 +29,7 @@ if(mode==="organisation") window.location.replace("ORGANISATION-V17.html?v=20261
 const navDefinitions=[
  ['Accueil','⌂','index.html','home'],
  ['Planning','▦','PLANNINGS.html?v=20261012-agent-hours-special1','planning'],
- ['KONTROL','✓','KONTROL-CLOUD.html','kontrol'],
+ ['KONTROL','✓','KONTROL-CLOUD.html?v=20261014-native-shell1','kontrol'],
  ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos'],
  ['Classeur agents','♙','AGENTS.html?v=20261013-incident-header-under-agent4','agents'],
  ['Matériel','▣','MATERIEL.html','materiel'],
