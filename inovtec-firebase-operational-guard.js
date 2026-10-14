@@ -96,16 +96,40 @@ function dataHubOperational(detail){
  if(d.firebasePersonalOk===true||(d.firebaseAgentsOk===true&&d.firebaseSitesOk===true)){clearTimeout(connectivityTimer);publishOperational(true);return true}
  return false;
 }
+// Verify actual server availability, not a previously cached Firestore result.
+let checkingUid="";
 async function connectivityCheck(){
- if(!user||!db||window.InovtecFirebaseOperational?.ok===true)return;
- try{await db.collection("kanban").doc(user.uid).get();publishOperational(true)}
- catch(e){publishOperational(false,e?.message||e)}
+ if(!user||!db||!navigator.onLine||checkingUid===user.uid)return;
+ const uid=user.uid;checkingUid=uid;
+ let timeoutId;
+ try{
+  await Promise.race([
+   db.collection("kanban").doc(uid).get({source:"server"}),
+   new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(Error("Délai de réponse Firebase dépassé")),18000)})
+  ]);
+  if(user?.uid===uid)publishOperational(true);
+ }catch(e){
+  if(user?.uid===uid){publishOperational(false,e?.code||e?.message||e);scheduleConnectivityCheck(10000)}
+ }finally{clearTimeout(timeoutId);if(checkingUid===uid)checkingUid=""}
 }
-function scheduleConnectivityCheck(delay=2500){clearTimeout(connectivityTimer);connectivityTimer=setTimeout(()=>{if(window.InovtecFirebaseOperational?.ok!==true)void connectivityCheck()},delay)}
+function scheduleConnectivityCheck(delay=2500){
+ clearTimeout(connectivityTimer);
+ if(!user||!navigator.onLine)return;
+ connectivityTimer=setTimeout(()=>{if(window.InovtecFirebaseOperational?.ok!==true)void connectivityCheck()},delay);
+}
+function retryConnectivity(){
+ if(!user)return;
+ window.InovtecFirebaseOperational=null;
+ window.dispatchEvent(new CustomEvent("inovtec:firebase-operational",{detail:{ok:null}}));
+ scheduleConnectivityCheck(200);
+}
+window.InovtecFirebaseOperationalRetry=retryConnectivity;
 function clearSubs(){unsubs.forEach(fn=>{try{fn()}catch{}});unsubs=[]}
 function start(u){
- clearSubs();user=u||null;
- if(!user){clearTimeout(connectivityTimer);return}
+ clearSubs();clearTimeout(connectivityTimer);
+ const previousUid=user?.uid||"";user=u||null;
+ if(!user){window.InovtecFirebaseOperational=null;return}
+ if(previousUid!==user.uid)window.InovtecFirebaseOperational=null;
  if(mode==="variables"){
   const p=db.collection("kanban").doc(user.uid),s=db.collection("chantiers").doc(SHARED_WORKSPACE_ID);
   unsubs.push(p.onSnapshot(()=>reconcileVariables(),()=>{}),s.onSnapshot(()=>reconcileVariables(),()=>{}));
@@ -118,9 +142,14 @@ function boot(){
   try{
    if(!firebase.apps.length)firebase.initializeApp(window.INOVTEC_FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();auth.onAuthStateChanged(start);
    window.addEventListener("inovtec:datahub",e=>dataHubOperational(e.detail));
-   window.addEventListener("online",()=>{if(!user)return;if(mode==="variables")reconcileVariables();scheduleConnectivityCheck(500)});
+   window.addEventListener("online",()=>{if(!user)return;if(mode==="variables")reconcileVariables();retryConnectivity()});
    window.addEventListener("focus",()=>{if(user&&mode==="variables")reconcileVariables()});
-   document.addEventListener("visibilitychange",()=>{if(!document.hidden&&user&&mode==="variables")reconcileVariables()});
+   document.addEventListener("visibilitychange",()=>{
+    if(document.hidden||!user)return;
+    if(mode==="variables")reconcileVariables();
+    const last=Date.parse(window.InovtecFirebaseOperational?.checkedAt||"")||0;
+    if(window.InovtecFirebaseOperational?.ok===false||Date.now()-last>120000)retryConnectivity();
+   });
    document.getElementById("legacyFrame")?.addEventListener("load",()=>setTimeout(patchAgentsMessage,350));
   }catch(e){console.warn("Démarrage garde-fou Firebase",e)}
 }
