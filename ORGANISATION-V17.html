@@ -247,11 +247,11 @@
     return [...items].sort((a,b)=>{
       const overdue = Number(isOverdue(b)) - Number(isOverdue(a));
       if(overdue) return overdue;
+      const p = priorityWeight(a.priority) - priorityWeight(b.priority);
+      if(p) return p;
       const ad = a.dueDate || "9999-12-31";
       const bd = b.dueDate || "9999-12-31";
       if(ad !== bd) return ad.localeCompare(bd);
-      const p = priorityWeight(a.priority) - priorityWeight(b.priority);
-      if(p) return p;
       return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
     });
   }
