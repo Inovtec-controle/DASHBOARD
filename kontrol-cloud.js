@@ -297,7 +297,10 @@
   async function applyChecklistForSite(site, doc = frame.contentDocument) {
     const id = String(site?.id || "").trim();
     if (!id || !doc?.body) return;
-    if (activeChecklistSiteId === id && doc.body.dataset.ivChecklistLoadedFor === id) return;
+    // Ne pas considérer un chantier comme chargé si le téléphone a perdu
+    // le rendu des lignes (restauration d'onglet ou ancien brouillon).
+    const visibleRows = doc.querySelectorAll("#tasksBody tr[data-task-id]").length;
+    if (activeChecklistSiteId === id && doc.body.dataset.ivChecklistLoadedFor === id && visibleRows > 0) return;
     const seq = ++checklistLoadSeq;
     activeChecklistSiteId = id;
     const siteField = doc.getElementById("site");
@@ -486,7 +489,12 @@
         siteField.dispatchEvent(new Event("input", { bubbles:true }));
         siteField.dispatchEvent(new Event("change", { bubbles:true }));
 
-        if (selected) void applyChecklistForSite(selected, doc);
+        if (selected) {
+          // Force le rechargement du modèle lors d'un nouveau choix, même
+          // après une reprise de navigateur mobile depuis l'arrière-plan.
+          doc.body.dataset.ivChecklistLoadedFor = "";
+          void applyChecklistForSite(selected, doc);
+        }
       });
     }
 
@@ -546,6 +554,8 @@
       if (!doc?.body) return;
       if (doc.body.dataset.ivFreshControlPrepared === "1") {
         updateControlWorkspaceVisibility(doc);
+        const site = resolveChantierReference(doc.getElementById("site")?.value || "");
+        if (site && !doc.querySelector("#tasksBody tr[data-task-id]")) void applyChecklistForSite(site, doc);
         return;
       }
       doc.body.dataset.ivFreshControlPrepared = "1";
@@ -1143,7 +1153,7 @@
       appShell.classList.remove("hidden");
       if (!frameLoaded || !frame.src || frame.src.endsWith("about:blank")) {
         clearWorkingDraft();
-        frame.src = "KONTROL.html?v=20261006-pdfpie2";
+        frame.src = "KONTROL.html?v=20261014-mobile-checklist1";
       }
     } else {
       hideArchive();
