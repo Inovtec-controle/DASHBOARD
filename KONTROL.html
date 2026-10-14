@@ -638,7 +638,7 @@
 
   /* ===== État ===== */
   const saved = loadState();
-  const state = saved || {
+  const state = (saved && typeof saved === 'object' && !Array.isArray(saved)) ? saved : {
     category: 'Residence',
     dataByCategory: {
       Residence: DEFAULTS.Residence.map(n=>({id:uid(), name:n, status:'', comment:''})),
@@ -1057,8 +1057,17 @@
     els.score.className = 'score-badge ' + (isFinite(pct) ? (pct>=85?'good':(pct>=65?'avg':'poor')) : '');
 
     if(state.chartReady && pieChart){
-      pieChart.data.datasets[0].data = [nOK, nMID, nBAD, nNA];
-      pieChart.update();
+      try{
+        pieChart.data.datasets[0].data = [nOK, nMID, nBAD, nNA];
+        pieChart.update('none');
+      }catch(error){
+        // Sur un téléphone, le graphique ne doit jamais bloquer les contrôles.
+        console.warn('Graphique KONTROL indisponible, bascule en barres', error);
+        state.chartReady = false;
+        try{ pieChart.destroy(); }catch(_){}
+        pieChart = null;
+        setDisplay('bars');
+      }
     }
     drawBars({nOK,nMID,nBAD,nNA,total});
   }
@@ -1077,7 +1086,9 @@
       cssVar('--bad')||'#dc2626',
       cssVar('--na')||'#000000'
     ];
+    try{
     const ctx = els.pieCanvas.getContext('2d');
+    if(!ctx) throw new Error('Canvas indisponible');
     pieChart = new Chart(ctx, {
       type: 'pie',
       data: {
@@ -1107,6 +1118,13 @@
     });
     state.chartReady = true;
     els.pieFallback.style.display = 'none';
+    }catch(error){
+      console.warn('Graphique KONTROL non initialisé, mode barres utilisé', error);
+      pieChart = null;
+      state.chartReady = false;
+      els.pieFallback.style.display = '';
+      setDisplay('bars');
+    }
   }
 
   function setDisplay(mode){
