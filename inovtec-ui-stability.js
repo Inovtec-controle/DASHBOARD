@@ -8,7 +8,7 @@ const pathname=location.pathname.split('/').pop().toUpperCase();
 const definitions=[
  ['Accueil','⌂','index.html','home'],
  ['Planning','▦','PLANNINGS.html','planning'],
- ['KONTROL','✓','KONTROL-CLOUD.html','kontrol'],
+ ['KONTROL','✓','KONTROL-CLOUD.html?v=20261014-native-shell1','kontrol'],
  ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos'],
  ['Classeur agents','♙','AGENTS.html','agents'],
  ['Matériel','▣','MATERIEL.html','materiel'],
@@ -41,7 +41,7 @@ function ensureStyle(){if(document.getElementById('ivUnifiedUiStyle'))return;con
 function decorate(){ensureStyle();document.querySelectorAll('#desktopNav,.c3-nav,.iv-sidebar .iv-nav,.side nav,.m1-sidebar .m1-nav,.sidebar .nav').forEach(renderDesktop);document.querySelectorAll('#mobileNav,.iv-mobile-nav,.mobile-nav').forEach(renderMobile);}
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&drawer)closeDrawer()});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate,{once:true});else decorate();
-const authRequired=!!document.querySelector('.iv-shell,.c3-app,.shell')&&mode!=='planning'&&(!mode||!['temps','salaire'].includes(mode));
+const authRequired=pathname!=='KONTROL-CLOUD-LEGACY.HTML'&&!!document.querySelector('.iv-shell,.c3-app,.shell')&&mode!=='planning'&&(!mode||!['temps','salaire'].includes(mode));
 if(!authRequired)return;
 document.body.classList.add('iv-unified-session');if(mode==='planning')document.body.classList.add('iv-planning-session-nonblocking');
 let overlay=null,auth=null,authBound=false,firebaseSdk=null;
