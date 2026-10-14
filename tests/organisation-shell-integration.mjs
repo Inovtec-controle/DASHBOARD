@@ -79,7 +79,11 @@ try{
   // Archivage sur cette même page autonome.
   await page.locator('.task[data-id="shell-archive"]').getByRole('button',{name:'Archiver',exact:true}).click();
   await page.locator('#board .task[data-id="shell-archive"]').waitFor({state:'detached',timeout:5000});
+  await page.locator('#openArchiveBtn').click();
+  await page.locator('#archiveDialog').waitFor({state:'visible',timeout:5000});
   await page.locator('#archiveList').getByText('Archiver depuis le shell').waitFor({state:'visible',timeout:5000});
+  await page.locator('#closeArchiveBtn').click();
+  if(await page.locator('#archiveDialog').isVisible())throw Error('La fenêtre des archives ne se ferme pas');
 
   const writes=await page.evaluate(()=>window.__orgaShellTest?.writes||0);
   if(writes<2)throw Error('Les actions Organisation LIVE ne sont pas envoyées à Firebase');
