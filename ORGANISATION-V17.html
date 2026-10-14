@@ -42,6 +42,20 @@
     .task-targets button:disabled{color:#334155;background:#e2e8f0;border-color:#e2e8f0;cursor:default;opacity:.85}
     .archive-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid var(--border)}
     .archive-item:last-child{border-bottom:0}
+    .iv-archive-dialog{box-sizing:border-box;width:min(740px,calc(100vw - 24px));max-width:740px;max-height:85dvh;margin:auto;padding:0;background:#fff;border:1px solid #dceae2;border-radius:18px;box-shadow:0 26px 72px rgba(15,23,42,.28);color:#183f31}
+    .iv-archive-dialog[open]{display:flex;flex-direction:column}
+    .iv-archive-dialog::backdrop{background:rgba(8,30,23,.56)}
+    .iv-archive-dialog-header{display:flex;justify-content:space-between;align-items:start;gap:12px;padding:17px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+    .iv-archive-dialog-header h2{font-size:18px;margin:0 0 5px}
+    .iv-archive-dialog-header p{font-size:12px;margin:0;color:#64748b}
+    .iv-archive-dialog-close{border:1px solid #dceae2;border-radius:10px;background:#f8fafc;color:#334155;padding:8px 12px;font-size:17px;cursor:pointer}
+    .iv-archive-dialog-list{overflow-y:auto;overscroll-behavior:contain;padding:6px 16px 14px;min-height:60px}
+    .iv-archive-dialog .archive-item{align-items:center;flex-wrap:wrap}
+    .iv-archive-dialog .archive-item .actions{display:flex;flex-wrap:wrap;gap:7px}
+    .iv-archive-dialog .archive-item .actions button{border:1px solid #cbd5e1;border-radius:9px;padding:8px 11px;background:white;cursor:pointer}
+    .iv-archive-dialog .archive-item .actions button.danger{color:#b91c1c;border-color:#fecdd3;background:#fff1f2}
+    .iv-archive-empty{padding:26px 12px;text-align:center;color:#64748b;font-size:13px}
+    @media(max-width:600px){.iv-archive-dialog{width:calc(100vw - 16px);max-height:80dvh}.iv-archive-dialog-header{padding:15px}.iv-archive-dialog-list{padding:5px 10px 12px}}
     @media(max-width:900px){.board{grid-template-columns:repeat(4,280px)}}
     /* Restore the dashboard page presentation without the former iframe/legacy business scripts. */
     body.iv-organisation-restored{overflow-y:auto;overflow-x:hidden;background:#f5f9f7}
@@ -144,6 +158,7 @@
     <div class="iv-toolbar" aria-label="Raccourcis Organisation">
       <a class="iv-tool primary" href="#taskForm"><span>＋</span><span>Nouvelle tâche</span></a>
       <a class="iv-tool" href="#board"><span>▦</span><span>Tableau des tâches</span></a>
+      <button id="openArchiveBtn" class="iv-tool" type="button" aria-haspopup="dialog" aria-controls="archiveDialog"><span>▤</span><span>Voir les archives (<span id="archiveCount">0</span>)</span></button>
     </div>
 
     <main class="page">
@@ -173,11 +188,14 @@
         <div id="board" class="board"></div>
       </section>
 
-      <section id="archiveCard" class="card hidden">
-        <div class="section-title"><h2>Archives</h2><span id="archiveCount" class="status">0</span></div>
-        <div id="archiveList" class="table-wrap"></div>
-      </section>
     </main>
+    <dialog id="archiveDialog" class="iv-archive-dialog" aria-labelledby="archiveDialogTitle">
+      <div class="iv-archive-dialog-header">
+        <div><h2 id="archiveDialogTitle">Tâches archivées</h2><p>Consulte les archives, restaure ou supprime une tâche.</p></div>
+        <button id="closeArchiveBtn" class="iv-archive-dialog-close" type="button" aria-label="Fermer les archives">✕</button>
+      </div>
+      <div id="archiveList" class="iv-archive-dialog-list"></div>
+    </dialog>
     </div>
     <nav class="iv-mobile-nav" aria-label="Navigation mobile">
       <a href="index.html"><span>⌂</span><span>Accueil</span></a>
@@ -641,9 +659,14 @@
   function renderArchive(){
     const archived = [...tasks].filter(t=>t.archived).sort((a,b)=>String(b.archivedAt||"").localeCompare(String(a.archivedAt||"")));
     $("archiveCount").textContent = String(archived.length);
-    $("archiveCard").classList.toggle("hidden", archived.length === 0);
     const list = $("archiveList");
     list.innerHTML = "";
+    if(!archived.length){
+      const empty = document.createElement("p");
+      empty.className = "iv-archive-empty";
+      empty.textContent = "Aucune tâche archivée.";
+      list.appendChild(empty);
+    }
     archived.forEach(task=>{
       const row = document.createElement("div");
       row.className = "archive-item";
@@ -706,6 +729,17 @@
     saveCloud();
   });
   $("cancelEditBtn").addEventListener("click",resetForm);
+  const archiveDialog = $("archiveDialog");
+  $("openArchiveBtn").addEventListener("click",()=>{
+    renderArchive();
+    if(typeof archiveDialog.showModal==="function")archiveDialog.showModal();
+    else archiveDialog.setAttribute("open","");
+    $("closeArchiveBtn").focus();
+  });
+  $("closeArchiveBtn").addEventListener("click",()=>{
+    if(typeof archiveDialog.close==="function")archiveDialog.close();
+    else archiveDialog.removeAttribute("open");
+  });
   $("logoutBtn").addEventListener("click",()=>auth.signOut());
   $("loginForm").addEventListener("submit",async e=>{
     e.preventDefault();
