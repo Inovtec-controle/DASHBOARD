@@ -8,24 +8,25 @@ await context.addInitScript(()=>{
     {id:'shell-move',title:'Déplacer depuis le shell',description:'',status:'todo',priority:'normal',dueDate:'',archived:false,archivedAt:'',createdAt:'2026-09-29T08:00:00.000Z',updatedAt:'2026-09-29T08:00:00.000Z'},
     {id:'shell-archive',title:'Archiver depuis le shell',description:'',status:'done',priority:'normal',dueDate:'',archived:false,archivedAt:'',createdAt:'2026-09-29T08:00:00.000Z',updatedAt:'2026-09-29T08:00:00.000Z'}
   ];
-  const state={personal:{tasks:initialTasks},shared:{},listeners:{kanban:[],chantiers:[]},writes:0};
+  const state={personal:{tasks:initialTasks},shared:{},orga:null,listeners:{kanban:[],chantiers:[],orga:[]},writes:0};
   window.__orgaShellTest=state;
   const snap=data=>({exists:!!data,data:()=>data||{},metadata:{fromCache:false,hasPendingWrites:false}});
   const notify=(name)=>queueMicrotask(()=>state.listeners[name].forEach(cb=>{
-    cb(snap(name==='kanban'?state.personal:state.shared));
+    cb(snap(state[name==='kanban'?'personal':name]));
   }));
   const collection=name=>({
     doc:id=>({
       // Le dashboard lit aussi la sous-collection des incidents agents.
       // Ce mock doit fournir sa lecture vide pour tester Organisation sans erreur hors sujet.
       collection(){return {get:()=>Promise.resolve({empty:true,docs:[],size:0})};},
-      onSnapshot(options,callback){const cb=typeof options==='function'?options:callback;state.listeners[name]?.push(cb);queueMicrotask(()=>cb(snap(name==='kanban'?state.personal:state.shared)));return()=>{state.listeners[name]=state.listeners[name].filter(x=>x!==cb)};},
-      get(){return Promise.resolve(snap(name==='kanban'?state.personal:state.shared));},
+      onSnapshot(options,callback){const cb=typeof options==='function'?options:callback;const key=name==='chantiers'&&id==='inovtec_organisation_tasks_v2'?'orga':name;state.listeners[key]?.push(cb);queueMicrotask(()=>cb(snap(state[key==='kanban'?'personal':key])));return()=>{state.listeners[key]=state.listeners[key].filter(x=>x!==cb)};},
+      get(){const key=name==='chantiers'&&id==='inovtec_organisation_tasks_v2'?'orga':name;return Promise.resolve(snap(state[key==='kanban'?'personal':key]));},
       set(data){
         state.writes++;
-        if(name==='kanban')state.personal={...(state.personal||{}),...JSON.parse(JSON.stringify(data))};
-        else state.shared={...(state.shared||{}),...JSON.parse(JSON.stringify(data))};
-        notify(name);
+        const key=name==='chantiers'&&id==='inovtec_organisation_tasks_v2'?'orga':name;
+        if(key==='kanban')state.personal={...(state.personal||{}),...JSON.parse(JSON.stringify(data))};
+        else state[key]={...(state[key]||{}),...JSON.parse(JSON.stringify(data))};
+        notify(key);
         return Promise.resolve();
       }
     }),
