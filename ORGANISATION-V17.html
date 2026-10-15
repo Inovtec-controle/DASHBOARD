@@ -225,7 +225,6 @@
     blocked:{label:"Bloqué",help:"En attente d’une information"},
     done:{label:"Fait",help:"Terminé, prêt à archiver"}
   };
-  const LOCAL_KEY = "orga_task_board_v2";
   let tasks = [];
   let currentUser = null;
   let unsubscribe = null;
@@ -300,15 +299,6 @@
     }));
   }
 
-  function loadLocal(){
-    try{
-      const raw = localStorage.getItem(LOCAL_KEY);
-      tasks = normalizeTasks(raw ? JSON.parse(raw) : []);
-    }catch{ tasks = []; }
-  }
-  function saveLocal(){
-    // Firebase seul : une sauvegarde ne doit jamais dépendre de localStorage.
-  }
   // Firestore réordonne parfois les clés des objets : comparer les valeurs, pas l'ordre des propriétés.
   function sameTasks(a,b){
     function canonical(v){
@@ -396,16 +386,10 @@
     try{
       const old=await personal.get({source:"server"});
       if(!currentUser||currentUser.uid!==owner)return;
-      let seed;
-      if(old.exists&&Array.isArray(old.data()?.tasks)){
-        // Même une liste vide provenant du serveur est prioritaire sur le cache.
-        seed=normalizeTasks(old.data().tasks);
-      }else{
-        try{
-          const local=localStorage.getItem(LOCAL_KEY);
-          seed=normalizeTasks(local?JSON.parse(local):[]);
-        }catch{seed=[];}
-      }
+      // Pas de réimportation automatique d'un cache navigateur périmé :
+      // une tâche supprimée sur Firebase ne doit jamais réapparaître.
+      const seed=old.exists&&Array.isArray(old.data()?.tasks)
+        ? normalizeTasks(old.data().tasks) : [];
       const canonical=fallbackRef();
       const data={
         _hidden:true,_type:"organisationTasks",version:2,
