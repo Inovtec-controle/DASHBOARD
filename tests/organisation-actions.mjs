@@ -11,13 +11,13 @@ try{
       {id:'archive-1',title:'Tâche à archiver',description:'',status:'done',priority:'normal',dueDate:'',archived:false,archivedAt:'',createdAt:'2026-09-28T08:00:00.000Z',updatedAt:'2026-09-28T08:00:00.000Z'}
     ]};
     localStorage.setItem('orga_task_board_v2',JSON.stringify(personal.tasks));
-    const state={personal,shared:{tasks:JSON.parse(JSON.stringify(personal.tasks))},writes:[],listeners:[]};
+    const state={personal,shared:{tasks:JSON.parse(JSON.stringify(personal.tasks))},writes:[],listeners:[],sharedListeners:[]};
     window.__orgaActionsTest=state;
     const snap=()=>({exists:true,data:()=>state.personal,metadata:{hasPendingWrites:false}});
     const db={collection:name=>({doc:id=>({
-      onSnapshot(cb){if(name==='kanban'){state.listeners.push(cb);queueMicrotask(()=>cb(snap()))}return()=>{}},
+      onSnapshot(options,callback){const cb=typeof options==='function'?options:callback;if(name==='kanban'){state.listeners.push(cb);queueMicrotask(()=>cb(snap()))}else{state.sharedListeners.push(cb);queueMicrotask(()=>cb({exists:!!state.shared,data:()=>state.shared||{},metadata:{fromCache:false,hasPendingWrites:false}}))}return()=>{}},
       get(){return Promise.resolve(name==='kanban'?snap():{exists:!!state.shared,data:()=>state.shared||{},metadata:{hasPendingWrites:false}})},
-      set(data){state.writes.push({name,id,data:JSON.parse(JSON.stringify(data))});if(name==='kanban'){state.personal={...(state.personal||{}),...data};queueMicrotask(()=>state.listeners.forEach(cb=>cb(snap())))}else if(name==='chantiers'){state.shared={...(state.shared||{}),...JSON.parse(JSON.stringify(data))}}return Promise.resolve()}
+      set(data){state.writes.push({name,id,data:JSON.parse(JSON.stringify(data))});if(name==='kanban'){state.personal={...(state.personal||{}),...data};queueMicrotask(()=>state.listeners.forEach(cb=>cb(snap())))}else if(name==='chantiers'){state.shared={...(state.shared||{}),...JSON.parse(JSON.stringify(data))};queueMicrotask(()=>state.sharedListeners.forEach(cb=>cb({exists:true,data:()=>state.shared,metadata:{fromCache:false,hasPendingWrites:false}})))}return Promise.resolve()}
     })})};
     const firebase={apps:[],initializeApp(){this.apps.push({})},auth(){return {onAuthStateChanged(cb){queueMicrotask(()=>cb({uid:'test-user'}));return()=>{}},signOut(){return Promise.resolve()}}},firestore(){return db}};
     firebase.firestore.FieldValue={serverTimestamp:()=> 'test-server-timestamp'};
