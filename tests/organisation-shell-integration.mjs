@@ -16,6 +16,9 @@ await context.addInitScript(()=>{
   }));
   const collection=name=>({
     doc:id=>({
+      // Le dashboard lit aussi la sous-collection des incidents agents.
+      // Ce mock doit fournir sa lecture vide pour tester Organisation sans erreur hors sujet.
+      collection(){return {get:()=>Promise.resolve({empty:true,docs:[],size:0})};},
       onSnapshot(options,callback){const cb=typeof options==='function'?options:callback;state.listeners[name]?.push(cb);queueMicrotask(()=>cb(snap(name==='kanban'?state.personal:state.shared)));return()=>{state.listeners[name]=state.listeners[name].filter(x=>x!==cb)};},
       get(){return Promise.resolve(snap(name==='kanban'?state.personal:state.shared));},
       set(data){

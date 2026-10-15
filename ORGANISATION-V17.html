@@ -229,12 +229,16 @@
   let tasks = [];
   let currentUser = null;
   let unsubscribe = null;
+  let unsubscribeFallback = null;
+  let fallbackActive = false;
   let editingId = null;
   let syncingFromCloud = false;
   let pendingWrites = 0;
   let saveChain = Promise.resolve();
   let realtimeWatchdog = null;
   let mutationRevision = 0;
+  let failedRevision = 0;
+  const FALLBACK_ID = "__inovtec_organisation_tasks_v1__";
 
   const $ = id => document.getElementById(id);
   const loginScreen = $("loginScreen");
@@ -302,6 +306,26 @@
   function saveLocal(){
     // Firebase seul : une sauvegarde ne doit jamais dépendre de localStorage.
   }
+  // Firestore réordonne parfois les clés des objets : comparer les valeurs, pas l'ordre des propriétés.
+  function sameTasks(a,b){
+    function canonical(v){
+      if(Array.isArray(v))return v.map(canonical);
+      if(v && typeof v==="object")return Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])]));
+      return v;
+    }
+    return Array.isArray(a)&&JSON.stringify(canonical(a))===JSON.stringify(canonical(b));
+  }
+  function firebaseErrorText(error){
+    const code=String(error?.code||"");
+    if(code.includes("permission-denied"))return "accès refusé (règles Firebase)";
+    if(code.includes("unauthenticated"))return "connexion au compte expirée";
+    if(code.includes("resource-exhausted")||/size|too large|1 mib|1mb|volumineux/i.test(String(error?.message||"")))return "document trop volumineux";
+    if(code.includes("unavailable")||code.includes("deadline-exceeded")||!navigator.onLine)return "réseau ou serveur indisponible";
+    return code||String(error?.message||"erreur inconnue").slice(0,110);
+  }
+  function fallbackRef(){
+    return db.collection("chantiers").doc(FALLBACK_ID);
+  }
   function saveCloud(){
     saveLocal();
     render();
@@ -309,65 +333,76 @@
       setSync("Connexion Firebase requise","warning");
       return Promise.resolve(false);
     }
-    const owner = currentUser.uid;
-    const ref = db.collection("kanban").doc(owner);
-    const sharedRef = db.collection("chantiers").doc("__inovtec_shared_workspace_v1__");
-    tasks = normalizeTasks(tasks);
-    const payload = JSON.parse(JSON.stringify(tasks));
-    const revision = ++mutationRevision;
-    pendingWrites += 1;
+    const owner=currentUser.uid;
+    const ref=db.collection("kanban").doc(owner);
+    const sharedRef=db.collection("chantiers").doc("__inovtec_shared_workspace_v1__");
+    tasks=normalizeTasks(tasks);
+    const payload=JSON.parse(JSON.stringify(tasks));
+    const revision=++mutationRevision;
+    pendingWrites++;
     setSync("Enregistrement…");
-
-    const write = async () => {
+    const write=async()=>{
+      let originalError=null,sharedFailed=false,usedFallback=fallbackActive;
       try{
-        // Une action Organisation doit atteindre immédiatement les deux sources
-        // Firebase utilisées par l'application. Cela évite qu'une ancienne copie
-        // partagée ne remette une tâche dans son état précédent juste après un
-        // déplacement, un archivage ou une restauration.
-        const [personalWrite,sharedWrite] = await Promise.allSettled([
-          ref.set({
-            tasks:payload,
-            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-          },{merge:true}),
-          sharedRef.set({
-            _hidden:true,
-            _type:"inovtecSharedWorkspace",
-            sharedVersion:1,
-            tasks:payload,
-            tasksUpdatedAtMs:Date.now()
-          },{merge:true})
+        // Continuer à alimenter les anciennes vues, sans faire dépendre
+        // l'enregistrement Organisation de documents Firestore devenus trop volumineux.
+        const mirrorWrites=Promise.allSettled([
+          ref.set({tasks:payload,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),tasksUpdatedAtMs:Date.now()},{merge:true}),
+          sharedRef.set({_hidden:true,_type:"inovtecSharedWorkspace",sharedVersion:1,tasks:payload,tasksUpdatedAtMs:Date.now()},{merge:true})
         ]);
-        if(personalWrite.status !== "fulfilled") throw personalWrite.reason;
-        if(sharedWrite.status !== "fulfilled"){
-          console.warn("Organisation Firebase shared save",sharedWrite.reason);
+        if(!fallbackActive){
+          const [personalWrite,sharedWrite]=await mirrorWrites;
+          sharedFailed=sharedWrite.status!=="fulfilled";
+          if(sharedFailed)console.warn("Organisation Firebase shared save",sharedWrite.reason);
+          if(personalWrite.status==="fulfilled"){
+            try{
+              const checked=await ref.get({source:"server"});
+              if(!checked.exists||!sameTasks(checked.data()?.tasks,payload))throw Error("Relecture du document personnel différente de la modification");
+            }catch(error){originalError=error}
+          }else originalError=personalWrite.reason;
+          if(originalError)usedFallback=true;
         }
-
-        // Ne jamais dépendre uniquement de onSnapshot pour valider une action.
-        // Après la dernière modification locale, relire explicitement le serveur.
-        if(currentUser?.uid === owner && revision === mutationRevision){
-          const check = await ref.get({source:"server"});
-          if(!check.exists || !Array.isArray(check.data()?.tasks)){
-            throw new Error("Firebase n’a pas confirmé la liste Organisation");
+        if(usedFallback){
+          // Document indépendant : un échec/une limite de taille de kanban ou de
+          // l'espace partagé ne doit plus empêcher de sauvegarder les tâches.
+          const independent=fallbackRef();
+          await independent.set({_hidden:true,_type:"organisationTasks",version:1,tasks:payload,tasksUpdatedAtMs:Date.now(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+          const checked=await independent.get({source:"server"});
+          if(!checked.exists||!sameTasks(checked.data()?.tasks,payload)){
+            throw Error("La sauvegarde indépendante Firebase n'a pas pu être confirmée");
           }
-          if(revision === mutationRevision){
-            tasks = normalizeTasks(check.data().tasks);
-            saveLocal();
-            render();
-            setSync("Synchronisé","ok");
+          fallbackActive=true;
+          if(usedFallback && !originalError){
+            const mirrors=await mirrorWrites;
+            sharedFailed=mirrors[1].status!=="fulfilled";
+            if(mirrors[0].status!=="fulfilled")console.warn("Organisation Firebase personal mirror",mirrors[0].reason);
+            if(sharedFailed)console.warn("Organisation Firebase shared mirror",mirrors[1].reason);
           }
+        }
+        if(currentUser?.uid===owner&&revision===mutationRevision){
+          failedRevision=0;
+          tasks=normalizeTasks(payload);
+          render();
+          const partial=sharedFailed;
+          const confirmedLabel=usedFallback?"Synchronisé (sauvegarde Firebase de secours)":"Synchronisé";
+          setSync(partial?confirmedLabel+" · copie partagée à vérifier":confirmedLabel,partial?"warning":"ok");
+          syncStatus.title=partial?"Enregistrement confirmé sur Firebase, mais la copie partagée n'est pas à jour.":"Enregistrement confirmé par une relecture sur le serveur Firebase.";
         }
         return true;
       }catch(error){
-        console.error("Organisation Firebase save",error);
-        if(currentUser?.uid === owner && revision === mutationRevision){
-          setSync("Enregistrement Firebase impossible","warning");
+        console.error("Organisation Firebase save",error,originalError);
+        if(currentUser?.uid===owner&&revision===mutationRevision){
+          failedRevision=revision;
+          const reason=firebaseErrorText(error);
+          setSync("Enregistrement Firebase impossible : "+reason,"warning");
+          syncStatus.title="Modification non confirmée. Ne ferme pas la page. "+String(error?.message||error);
         }
         return false;
       }finally{
-        pendingWrites = Math.max(0,pendingWrites-1);
+        pendingWrites=Math.max(0,pendingWrites-1);
       }
     };
-    saveChain = saveChain.then(write,write);
+    saveChain=saveChain.then(write,write);
     return saveChain;
   }
 
@@ -414,67 +449,92 @@
   }
 
   function startRealtime(){
-    if(unsubscribe){ unsubscribe(); unsubscribe = null; }
-    if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
-    const owner = currentUser.uid;
-    const ref = db.collection("kanban").doc(owner);
-    let firstRemoteState = false;
-    let recoveryStarted = false;
-    setSync("Synchronisation…");
+    if(unsubscribe){unsubscribe();unsubscribe=null;}
+    if(unsubscribeFallback){unsubscribeFallback();unsubscribeFallback=null;}
+    if(realtimeWatchdog){clearTimeout(realtimeWatchdog);realtimeWatchdog=null;}
+    fallbackActive=false;
+    const owner=currentUser.uid;
+    const ref=db.collection("kanban").doc(owner);
+    const independent=fallbackRef();
 
-    realtimeWatchdog = setTimeout(async ()=>{
-      if(firstRemoteState || !currentUser || currentUser.uid !== owner) return;
-      try{
-        const snap = await ref.get({source:"server"});
-        if(!currentUser || currentUser.uid !== owner) return;
-        firstRemoteState = true;
-        if(snap.exists && Array.isArray(snap.data()?.tasks)){
-          tasks = normalizeTasks(snap.data().tasks);
-          saveLocal();
+    function applyIndependent(snap){
+      if(!currentUser||currentUser.uid!==owner||!snap.exists||!Array.isArray(snap.data()?.tasks))return;
+      fallbackActive=true;
+      if(pendingWrites>0||failedRevision===mutationRevision&&failedRevision!==0)return;
+      tasks=normalizeTasks(snap.data().tasks);
+      render();
+      setSync("Synchronisé (Firebase de secours)","ok");
+    }
+    function subscribeFallback(){
+      if(!currentUser||currentUser.uid!==owner)return;
+      unsubscribeFallback=independent.onSnapshot(applyIndependent,error=>{
+        console.warn("Organisation Firebase secours en lecture",error);
+        // Ne pas désactiver l'ancienne lecture si le document de secours est inaccessible.
+      });
+    }
+    function subscribePersonal(){
+      if(!currentUser||currentUser.uid!==owner)return;
+      let firstRemoteState=false,recoveryStarted=false;
+      if(!fallbackActive)setSync("Synchronisation…");
+      realtimeWatchdog=setTimeout(async()=>{
+        if(fallbackActive||firstRemoteState||!currentUser||currentUser.uid!==owner)return;
+        try{
+          const snap=await ref.get({source:"server"});
+          if(fallbackActive||!currentUser||currentUser.uid!==owner)return;
+          firstRemoteState=true;
+          if(snap.exists&&Array.isArray(snap.data()?.tasks)){
+            if(pendingWrites===0&&failedRevision===0){
+              tasks=normalizeTasks(snap.data().tasks);
+              render();
+              setSync("Synchronisé","ok");
+            }
+          }else if(!recoveryStarted){recoveryStarted=true;await recoverRemoteTasks(owner,ref)}
+        }catch(error){
+          console.error("Organisation Firebase timeout",error);
+          if(currentUser?.uid===owner)setSync("Firebase inaccessible : "+firebaseErrorText(error),"warning");
+        }
+      },7000);
+      unsubscribe=ref.onSnapshot(snap=>{
+        firstRemoteState=true;
+        if(realtimeWatchdog){clearTimeout(realtimeWatchdog);realtimeWatchdog=null;}
+        if(fallbackActive||pendingWrites>0||failedRevision!==0)return;
+        syncingFromCloud=true;
+        if(snap.exists&&Array.isArray(snap.data()?.tasks)){
+          tasks=normalizeTasks(snap.data().tasks);
           render();
           setSync("Synchronisé","ok");
         }else if(!recoveryStarted){
-          recoveryStarted = true;
-          await recoverRemoteTasks(owner,ref);
-        }
-      }catch(error){
-        console.error("Organisation Firebase timeout",error);
-        if(currentUser?.uid === owner) setSync("Firebase inaccessible","warning");
-      }
-    },7000);
-
-    unsubscribe = ref.onSnapshot(snap=>{
-      firstRemoteState = true;
-      if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
-
-      // Les écritures locales sont déjà rendues à l'écran. Un instantané reçu
-      // pendant l'écriture ne doit jamais remettre l'ancienne version par-dessus.
-      if(pendingWrites > 0){
-        render();
-        return;
-      }
-
-      syncingFromCloud = true;
-      if(snap.exists && Array.isArray(snap.data()?.tasks)){
-        tasks = normalizeTasks(snap.data().tasks);
-        saveLocal();
-        render();
-        setSync("Synchronisé","ok");
-      }else if(!recoveryStarted){
-        recoveryStarted = true;
-        void recoverRemoteTasks(owner,ref);
-      }else{
-        render();
-      }
-      setTimeout(()=>{ syncingFromCloud = false; },0);
-    }, error=>{
-      firstRemoteState = true;
-      if(realtimeWatchdog){ clearTimeout(realtimeWatchdog); realtimeWatchdog = null; }
-      console.error("Organisation Firebase realtime",error);
-      render();
-      setSync("Firebase inaccessible","warning");
+          recoveryStarted=true;
+          void recoverRemoteTasks(owner,ref);
+        }else render();
+        setTimeout(()=>{syncingFromCloud=false;},0);
+      },error=>{
+        firstRemoteState=true;
+        if(realtimeWatchdog){clearTimeout(realtimeWatchdog);realtimeWatchdog=null;}
+        console.error("Organisation Firebase realtime",error);
+        if(!fallbackActive)setSync("Firebase inaccessible : "+firebaseErrorText(error),"warning");
+      });
+    }
+    // Lire la sauvegarde de secours AVANT les anciennes copies, pour éviter
+    // qu'une copie kanban obsolète ne remette des tâches supprimées ou déplacées.
+    independent.get({source:"server"}).then(snap=>{
+      if(!currentUser||currentUser.uid!==owner)return;
+      applyIndependent(snap);
+      subscribePersonal();
+      subscribeFallback();
+    }).catch(error=>{
+      console.warn("Organisation Firebase secours initial",error);
+      subscribePersonal();
+      subscribeFallback();
     });
   }
+  window.addEventListener("online",()=>{
+    if(currentUser&&failedRevision!==0&&pendingWrites===0)void saveCloud();
+  });
+  window.addEventListener("beforeunload",event=>{
+    if(pendingWrites>0||failedRevision!==0){event.preventDefault();event.returnValue="";}
+  });
+
   function makeButton(label, handler, className=""){
     const button = document.createElement("button");
     button.type = "button";
@@ -502,7 +562,9 @@
         feedback.textContent=confirmed?"Déplacement vers "+STATUS[status].label+" enregistré dans Firebase":"Déplacement non confirmé dans Firebase. Vérifie la connexion.";
         feedback.className="status "+(confirmed?"ok":"warning");
       }
-      if(!confirmed)setSync("Déplacement Firebase non confirmé","warning");
+      // Conserver l'erreur Firestore détaillée, sinon le diagnostic est immédiatement masqué.
+      if(!confirmed&&!syncStatus.textContent.includes("Enregistrement Firebase impossible"))
+        setSync("Déplacement Firebase non confirmé","warning");
     });
     return true;
   }
@@ -762,7 +824,10 @@
     }else{
       currentUser = null;
       if(unsubscribe){unsubscribe();unsubscribe=null;}
+      if(unsubscribeFallback){unsubscribeFallback();unsubscribeFallback=null;}
       if(realtimeWatchdog){clearTimeout(realtimeWatchdog);realtimeWatchdog=null;}
+      fallbackActive=false;
+      failedRevision=0;
       app.classList.add("hidden");
       loginScreen.classList.remove("hidden");
       setSync("Déconnecté");
