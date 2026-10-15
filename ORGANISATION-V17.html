@@ -384,7 +384,8 @@
           tasks=normalizeTasks(payload);
           render();
           const partial=sharedFailed;
-          setSync(partial?"Firebase confirmé · copie partagée à vérifier":usedFallback?"Synchronisé (sauvegarde Firebase de secours)":"Synchronisé",partial?"warning":"ok");
+          const confirmedLabel=usedFallback?"Synchronisé (sauvegarde Firebase de secours)":"Synchronisé";
+          setSync(partial?confirmedLabel+" · copie partagée à vérifier":confirmedLabel,partial?"warning":"ok");
           syncStatus.title=partial?"Enregistrement confirmé sur Firebase, mais la copie partagée n'est pas à jour.":"Enregistrement confirmé par une relecture sur le serveur Firebase.";
         }
         return true;
