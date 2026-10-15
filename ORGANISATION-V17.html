@@ -456,7 +456,7 @@
       if(!loaded&&currentUser?.uid===owner)
         setSync("En attente du serveur Firebase : vérifie la connexion","warning");
     },8000);
-    unsubscribe=fallbackRef().onSnapshot(snap=>{
+    unsubscribe=fallbackRef().onSnapshot({includeMetadataChanges:true},snap=>{
       if(!currentUser||currentUser.uid!==owner)return;
       // Un cache hors ligne ou une écriture encore locale n'est pas une preuve d'enregistrement.
       if(snap.metadata?.fromCache||snap.metadata?.hasPendingWrites)return;
