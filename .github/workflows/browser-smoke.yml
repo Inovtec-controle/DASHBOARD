@@ -63,6 +63,7 @@ jobs:
           node tests/planning-special-no-chantier.mjs
           node tests/firebase-org-migration.mjs
           node tests/organisation-actions.mjs
+          node tests/organisation-firebase-fallback.mjs
           node tests/organisation-shell-integration.mjs
           node tests/firebase-diagnostic.mjs
           node tests/shell-refresh-performance.mjs
