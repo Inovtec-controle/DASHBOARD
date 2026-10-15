@@ -11,12 +11,12 @@ await context.addInitScript(()=>{
   };
   const watchers={personal:[],shared:[],fallback:[]};
   const store=()=>sessionStorage.setItem('ivFallbackTestState',JSON.stringify(state));
-  const key=(name,id)=>name==='kanban'?'personal':id==='__inovtec_organisation_tasks_v1__'?'fallback':'shared';
+  const key=(name,id)=>name==='kanban'?'personal':id==='inovtec_organisation_tasks_v2'?'fallback':'shared';
   const snap=k=>({exists:!!state[k],data:()=>state[k]||{},metadata:{fromCache:false,hasPendingWrites:false}});
   const db={collection:name=>({doc:id=>{
     const k=key(name,id);
     return {
-      onSnapshot(cb){watchers[k].push(cb);queueMicrotask(()=>cb(snap(k)));return()=>{watchers[k]=watchers[k].filter(x=>x!==cb)};},
+      onSnapshot(options,callback){const cb=typeof options==='function'?options:callback;watchers[k].push(cb);queueMicrotask(()=>cb(snap(k)));return()=>{watchers[k]=watchers[k].filter(x=>x!==cb)};},
       get(){return Promise.resolve(snap(k));},
       set(data){
         if(k!=='fallback')return Promise.reject(Object.assign(Error('Document saturé'),{code:'resource-exhausted'}));
@@ -45,7 +45,7 @@ try{
   await page.goto('http://127.0.0.1:8765/ORGANISATION-V17.html',{waitUntil:'domcontentloaded'});
   await page.locator('#app:not(.hidden)').waitFor();
   await page.locator('.task[data-id="backup-test"] .task-targets button[data-target-status="blocked"]').click();
-  await page.waitForFunction(()=>document.getElementById('syncStatus')?.textContent.includes('Synchronisé (sauvegarde Firebase de secours)'));
+  await page.waitForFunction(()=>document.getElementById('syncStatus')?.textContent.includes('Synchronisé avec Firebase'));
   const persisted=await page.evaluate(()=>window.__ivFallbackTest.state.fallback?.tasks?.find(t=>t.id==='backup-test')?.status);
   if(persisted!=='blocked')throw Error('La modification n’a pas atteint le document de secours');
 

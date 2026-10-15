@@ -13,6 +13,7 @@ const set=(id,v)=>{const e=$(id);if(e)e.textContent=String(v)};
 const parse=(s,f=null)=>{try{const v=JSON.parse(String(s||""));return v??f}catch{return f}};
 const localJson=(key,f)=>{try{return parse(localStorage.getItem(key)||"",f)}catch{return f}};
 const SHARED_ID="__inovtec_shared_workspace_v1__";
+const ORGANISATION_ID="inovtec_organisation_tasks_v2";
 
 function monthKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
 function minutesLabel(min){
@@ -97,7 +98,8 @@ function mergedVariableStatuses(shared,personal){
     ...(localJson("inovtec_variables_v1",{})?.monthStatus||{})
   };
 }
-function mergedTasks(shared,personal){
+function mergedTasks(shared,personal,organisation){
+  if(Array.isArray(organisation?.tasks))return organisation.tasks;
   return mergeRows(
     Array.isArray(shared?.tasks)?shared.tasks:[],
     Array.isArray(personal?.tasks)?personal.tasks:[],
@@ -123,7 +125,8 @@ async function refresh(user){
     const db=firebase.firestore();
     const results=await Promise.allSettled([
       db.collection("chantiers").doc(SHARED_ID).get(),
-      db.collection("kanban").doc(user.uid).get()
+      db.collection("kanban").doc(user.uid).get(),
+      db.collection("chantiers").doc(ORGANISATION_ID).get()
     ]);
     if(seq!==refreshSeq)return;
     const shared=dataOf(results[0]),personal=dataOf(results[1]);
@@ -145,7 +148,7 @@ async function refresh(user){
     set("varEntries",variableCount);
     set("varReview",reviewCount);
 
-    const tasks=mergedTasks(shared,personal);
+    const tasks=mergedTasks(shared,personal,dataOf(results[2]));
     const active=tasks.filter(t=>!t?.archived&&t?.status!=="done");
     const todo=tasks.filter(t=>!t?.archived&&t?.status==="todo").length;
     const doing=tasks.filter(t=>!t?.archived&&(t?.status==="inprogress"||t?.status==="doing")).length;

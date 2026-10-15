@@ -60,7 +60,7 @@ function buildRows(sites,agents,tasks){
     label:String(t.title||"Tâche"),
     sub:[t.status==="done"?"Terminée":t.status==="inprogress"?"En cours":t.status==="blocked"?"Bloquée":"À faire",t.dueDate].filter(Boolean).join(" • "),
     search:norm([t.title,t.description,t.status,t.dueDate].filter(Boolean).join(" ")),
-    href:"ORGANISATION-V17.html?v=20261012-v17-direct",
+    href:"ORGANISATION-V17.html?v=20261015-orga-firebasefix2",
     handoff:{mode:"organisation",id:String(t.id||""),label:String(t.title||"")}
   }));
   rows=out;
@@ -68,7 +68,8 @@ function buildRows(sites,agents,tasks){
 function sourceData(result){
   return result&&result.status==="fulfilled"&&result.value?.exists?(result.value.data()||{}):{};
 }
-function moduleTasks(shared,personal){
+function moduleTasks(shared,personal,organisation){
+  if(Array.isArray(organisation?.tasks))return organisation.tasks;
   const all=[
     ...(Array.isArray(shared?.tasks)?shared.tasks:[]),
     ...(Array.isArray(personal?.tasks)?personal.tasks:[]),
@@ -81,10 +82,12 @@ async function load(user){
   try{
     const db=firebase.firestore();
     const sharedId="__inovtec_shared_workspace_v1__";
+    const organisationId="inovtec_organisation_tasks_v2";
     const result=await Promise.allSettled([
       db.collection("chantiers").orderBy("nom").get(),
       db.collection("chantiers").doc(sharedId).get(),
-      db.collection("kanban").doc(user.uid).get()
+      db.collection("kanban").doc(user.uid).get(),
+      db.collection("chantiers").doc(organisationId).get()
     ]);
     const sites=result[0].status==="fulfilled"
       ?result[0].value.docs.map(d=>({id:d.id,...(d.data()||{})})).filter(s=>s._hidden!==true)
@@ -92,7 +95,7 @@ async function load(user){
     const shared=sourceData(result[1]),personal=sourceData(result[2]);
     const agentLists=[agentsFrom(shared),agentsFrom(personal)],deletedAgents=agentDeletionState(...agentLists);
     const agents=unique(agentLists.flat().filter(a=>activeAgent(a,deletedAgents)),a=>String(a.id||agentName(a)));
-    buildRows(sites,agents,moduleTasks(shared,personal));
+    buildRows(sites,agents,moduleTasks(shared,personal,sourceData(result[3])));
     ready=true;
     if(input.value.trim())render();
   }catch(e){

@@ -8,6 +8,7 @@ const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLo
 const localJson=(k,f)=>{try{return parse(localStorage.getItem(k)||"",f)}catch{return f}};
 const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const SHARED_ID="__inovtec_shared_workspace_v1__";
+const ORGANISATION_ID="inovtec_organisation_tasks_v2";
 const monthKey=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
 const isoDate=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 function dataOf(r){return r&&r.status==="fulfilled"&&r.value?.exists?(r.value.data()||{}):{}}
@@ -38,7 +39,9 @@ async function refresh(user){
  ]);
  const shared=dataOf(res[0]),personal=dataOf(res[1]);
  const agents=mergeRows(agentsFrom(shared),agentsFrom(personal)).filter(a=>a&&a._deleted!==true&&norm(agentName(a))&&!["agent","sans nom","agent sans nom"].includes(norm(agentName(a))));
- const tasks=mergeRows(shared.tasks,personal.tasks,localJson("orga_task_board_v2",[])).filter(t=>t&&t.archived!==true);
+ const organisation=dataOf(res[4]);
+  const taskSource=Array.isArray(organisation.tasks)?organisation.tasks:mergeRows(shared.tasks,personal.tasks,localJson("orga_task_board_v2",[]));
+  const tasks=taskSource.filter(t=>t&&t.archived!==true);
  const variables=mergeRows(
    modulePayload(shared,"variables",{})?.entries||[],
    modulePayload(personal,"variables",{})?.entries||[],
