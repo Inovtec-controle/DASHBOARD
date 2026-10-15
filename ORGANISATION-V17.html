@@ -562,7 +562,9 @@
         feedback.textContent=confirmed?"Déplacement vers "+STATUS[status].label+" enregistré dans Firebase":"Déplacement non confirmé dans Firebase. Vérifie la connexion.";
         feedback.className="status "+(confirmed?"ok":"warning");
       }
-      if(!confirmed)setSync("Déplacement Firebase non confirmé","warning");
+      // Conserver l'erreur Firestore détaillée, sinon le diagnostic est immédiatement masqué.
+      if(!confirmed&&!syncStatus.textContent.includes("Enregistrement Firebase impossible"))
+        setSync("Déplacement Firebase non confirmé","warning");
     });
     return true;
   }
