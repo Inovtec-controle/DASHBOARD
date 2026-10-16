@@ -621,10 +621,6 @@ body{
               <label>Date de sortie</label>
               <input class="input" type="date" id="f_sortie">
             </div>
-            <div class="field">
-              <label>Site principal</label>
-              <input class="input" id="f_site" placeholder="Résidence / Bureau…">
-            </div>
             <div class="field" style="grid-column:1/-1">
               <label>Disponibilités / contraintes</label>
               <textarea class="input textarea" id="f_dispo" placeholder="Horaires, jours, restrictions…"></textarea>
@@ -960,7 +956,7 @@ function createEmptyAgent(){
     },
     job: {
       poste:"",typeContrat:"",dateEntree:"",dateSortie:"",
-      sitePrincipal:"",disponibilites:"",notes:""
+      disponibilites:"",notes:""
     },
     docs: [],
     incidents: []
@@ -1036,7 +1032,6 @@ async function saveAgentForm(){
   j.typeContrat = safeText($("#f_contrat").value);
   j.dateEntree = $("#f_entree").value || "";
   j.dateSortie = $("#f_sortie").value || "";
-  j.sitePrincipal = safeText($("#f_site").value);
   j.disponibilites = safeText($("#f_dispo").value);
   j.notes = safeText($("#f_notes").value);
 
@@ -1738,7 +1733,7 @@ function filteredAgents(){
       safeText(i.nom)+" "+safeText(i.prenom)+" "+
       safeText(i.telephone)+" "+safeText(i.email)+" "+
       safeText(i.adresse)+" "+safeText(j.poste)+" "+
-      safeText(j.sitePrincipal)+" "+safeText(j.typeContrat);
+      safeText(j.typeContrat);
     return hay.toLowerCase().indexOf(q) !== -1;
   });
 }
@@ -1787,7 +1782,7 @@ function renderList(){
     var a = agents[k];
     var i = a.identity || {};
     var fullName = (safeText(i.prenom)+" "+safeText(i.nom)).trim() || "Sans nom";
-    var sub = (safeText(a.job.sitePrincipal) || "—")+" • "+(safeText(i.telephone) || "Téléphone : —");
+    var sub = safeText(i.telephone) || "Téléphone : —";
     var incidents = a.incidents || [];
     var openCount = incidents.filter(function(x){return (x.statut||"Ouvert") !== "Clos";}).length;
 
@@ -1865,7 +1860,6 @@ function renderDetails(){
   $("#f_contrat").value = j.typeContrat || "";
   $("#f_entree").value = j.dateEntree || "";
   $("#f_sortie").value = j.dateSortie || "";
-  $("#f_site").value = j.sitePrincipal || "";
   $("#f_dispo").value = j.disponibilites || "";
   $("#f_notes").value = j.notes || "";
 
