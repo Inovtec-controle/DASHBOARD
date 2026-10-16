@@ -4,13 +4,15 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 const mode=(params.get("mode")||"planning").toLowerCase();
 let legacyPage=mode==="planning"?"PLANNINGS-APP.html?v=20261012-agent-hours-special1":(params.get("page")||"PLANNINGS-APP.html?v=20261012-agent-hours-special1");
+// Pour Agents, utiliser toujours la version canonique du formulaire, même depuis un ancien favori.
+if(mode==="agents") legacyPage="AGENTS-LEGACY.html?v=20261016-agent-exit-date2";
 const fuelIcon='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto"><path d="M5 21V4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v17"/><path d="M7 6h5v5H7z"/><path d="M14 8h2l2 2v7a2 2 0 1 0 4 0v-6l-2-2"/><path d="M3 21h13"/></svg>';
 const configs={
  planning:{label:"Planning",eyebrow:"PLANNING",title:'Planning des <em>équipes</em>',subtitle:"Organisez et suivez les interventions de vos agents sur l’ensemble de vos chantiers.",route:"PLANNINGS.html?v=20261012-agent-hours-special1",icon:"▦"},
  kontrol:{label:"KONTROL",eyebrow:"CONTRÔLES QUALITÉ",title:"KONTROL",subtitle:"Réalisez vos contrôles qualité sans modifier les critères, réponses, calculs ni archives déjà en place.",route:"KONTROL-CLOUD.html?v=20261001-checklist1",icon:"✓"},
  discipline:{label:"Discipline",eyebrow:"DISCIPLINE",title:"Gestion des dossiers <em>disciplinaires</em>",subtitle:"Consultez, enregistrez et suivez vos dossiers, photos et PDF avec la même logique de sauvegarde.",route:"DISCIPLINE-V9.html",icon:"⚑"},
  infos:{label:"Infos chantier",eyebrow:"INFOS CHANTIER",title:"Informations <em>chantiers</em>",subtitle:"Retrouvez les accès, contacts, plannings et consignes de chaque résidence dans une présentation plus lisible.",route:"INFOCHANTIERS-V2.html?v=20260927-savecontrols1",icon:"ⓘ"},
- agents:{label:"Classeur agents",eyebrow:"AGENTS",title:"Classeur <em>agents</em>",subtitle:"Consultez les profils et informations de vos agents dans une interface unifiée.",route:"AGENTS.html?v=20261013-incident-header-under-agent4",icon:"♙"},
+ agents:{label:"Classeur agents",eyebrow:"AGENTS",title:"Classeur <em>agents</em>",subtitle:"Consultez les profils et informations de vos agents dans une interface unifiée.",route:"AGENTS.html?v=20261016-agent-exit-date2",icon:"♙"},
  organisation:{label:"Organisation",eyebrow:"ORGANISATION",title:"Organisation",subtitle:"Planifiez, suivez et pilotez vos tâches, priorités et échéances sans changer leur stockage.",route:"ORGANISATION-V17.html?v=20261015-orga-firebasefix2",icon:"◎"},
  variables:{label:"Variables agents",eyebrow:"VARIABLES DE PAIE",title:"Variables <em>agents</em>",subtitle:"Centralisez les heures complémentaires, supplémentaires, dimanches, jours fériés, nuits et absences liées à chaque agent.",route:"VARIABLES.html?v=20260927-savecontrols1",icon:"◷"},
  temps:{label:"Conversion temps",eyebrow:"OUTILS",title:"Conversion <em>temps</em>",subtitle:"Convertissez vos durées avec le calculateur existant dans une présentation modernisée.",route:"TEMPS.html",icon:"◷"},
@@ -29,7 +31,7 @@ const navDefinitions=[
  ['Planning','▦','PLANNINGS.html?v=20261012-agent-hours-special1','planning'],
  ['KONTROL','✓','KONTROL-CLOUD.html','kontrol'],
  ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos'],
- ['Classeur agents','♙','AGENTS.html?v=20261013-incident-header-under-agent4','agents'],
+ ['Classeur agents','♙','AGENTS.html?v=20261016-agent-exit-date2','agents'],
  ['Matériel','▣','MATERIEL.html','materiel'],
  ['Réassort','↻','REASSORT.html','reassort'],
  ['Congés & absences','☂','CONGES.html?v=20261001-congesmonth1','conges'],
