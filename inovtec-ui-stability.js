@@ -10,7 +10,7 @@ const definitions=[
  ['Planning','▦','PLANNINGS.html','planning'],
  ['KONTROL','✓','KONTROL-CLOUD.html','kontrol'],
  ['Infos chantier','ⓘ','INFOCHANTIERS-V2.html','infos'],
- ['Classeur agents','♙','AGENTS.html?v=20261016-agent-exit-date2','agents'],
+ ['Classeur agents','♙','AGENTS.html?v=20261016-agent-remove-site-principal3','agents'],
  ['Matériel','▣','MATERIEL.html','materiel'],
  ['Réassort','↻','REASSORT.html','reassort'],
  ['Congés & absences','☂','CONGES.html','conges'],
