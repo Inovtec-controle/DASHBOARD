@@ -618,6 +618,10 @@ body{
               <input class="input" type="date" id="f_entree">
             </div>
             <div class="field">
+              <label>Date de sortie</label>
+              <input class="input" type="date" id="f_sortie">
+            </div>
+            <div class="field">
               <label>Site principal</label>
               <input class="input" id="f_site" placeholder="Résidence / Bureau…">
             </div>
@@ -955,7 +959,7 @@ function createEmptyAgent(){
       permis:"",vehicule:""
     },
     job: {
-      poste:"",typeContrat:"",dateEntree:"",
+      poste:"",typeContrat:"",dateEntree:"",dateSortie:"",
       sitePrincipal:"",disponibilites:"",notes:""
     },
     docs: [],
@@ -1031,6 +1035,7 @@ async function saveAgentForm(){
   j.poste = safeText($("#f_poste").value);
   j.typeContrat = safeText($("#f_contrat").value);
   j.dateEntree = $("#f_entree").value || "";
+  j.dateSortie = $("#f_sortie").value || "";
   j.sitePrincipal = safeText($("#f_site").value);
   j.disponibilites = safeText($("#f_dispo").value);
   j.notes = safeText($("#f_notes").value);
@@ -1859,6 +1864,7 @@ function renderDetails(){
   $("#f_poste").value = j.poste || "";
   $("#f_contrat").value = j.typeContrat || "";
   $("#f_entree").value = j.dateEntree || "";
+  $("#f_sortie").value = j.dateSortie || "";
   $("#f_site").value = j.sitePrincipal || "";
   $("#f_dispo").value = j.disponibilites || "";
   $("#f_notes").value = j.notes || "";
