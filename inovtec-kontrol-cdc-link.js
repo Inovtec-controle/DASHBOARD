@@ -31,7 +31,64 @@ function sourceSummary(rows){const types=new Set((rows||[]).map(r=>String(r.sour
 function escapeHtml(v){return String(v||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function statusType(site,normal="ok"){return String(site?.dateFinContrat||"").trim()?"lost":normal}
 function statusPrefix(site){const lost=String(site?.dateFinContrat||"").trim();return lost?`<strong>✕ Chantier marqué perdu — fin de contrat ${escapeHtml(fmtDate(lost))}.</strong> `:""}
-function applyRows(d,rows,force=false){if(!d?.body||syncing||!currentSiteId)return;const desired=desiredRows(rows);syncing=true;try{const wanted=new Set(desired.map(x=>x.key));let guard=0;while(guard++<500){const map=currentTaskMap(d),obsolete=[...map.entries()].find(([key])=>!wanted.has(key));if(!obsolete)break;const btn=obsolete[1].tr.querySelector('button[title="Supprimer"]');if(!btn)break;btn.click()}const input=d.getElementById("newTaskInput"),add=d.getElementById("addTaskBtn");if(input&&add){input.disabled=false;add.disabled=false;let have=currentTaskMap(d);desired.forEach(item=>{if(have.has(item.key))return;input.value=item.name;add.click();have=currentTaskMap(d)})}setManagedControls(d,true);decorateTasks(d,desired);const linked=resolveSite(d.getElementById("site")?.value||""),name=siteNameOf(linked)||"ce chantier",prefix=statusPrefix(linked);if(desired.length)setStatus(d,`${prefix}<strong>${desired.length} tâche${desired.length>1?"s":""} synchronisée${desired.length>1?"s":""}</strong> depuis le cahier des charges de ${escapeHtml(name)}.<span class="iv-kontrol-cdc-source">Zones, jours et fréquences sont conservés. Pour modifier cette liste, utilise Infos chantier → Cahier des charges. Source : ${escapeHtml(sourceSummary(rows))}.</span>`,statusType(linked,"ok"));else setStatus(d,`${prefix}<strong>Aucune tâche dans le cahier des charges de ${escapeHtml(name)}</strong><span class="iv-kontrol-cdc-source">Ajoute ou importe d’abord les prestations dans Infos chantier. KONTROL restera vide pour ce chantier.</span>`,statusType(linked,"warn"))}finally{syncing=false}}
+function applyRows(d,rows,force=false){
+  if(!d?.body||syncing||!currentSiteId)return;
+  const desired=desiredRows(rows);
+  const linked=resolveSite(d.getElementById("site")?.value||"");
+  const name=siteNameOf(linked)||"ce chantier",prefix=statusPrefix(linked);
+  const api=d.defaultView?.InovtecKontrolChecklist;
+  const previousSite=d.body.dataset.ivKontrolCdcSite||"";
+  const previousManaged=d.body.dataset.ivKontrolCdcManaged==="1";
+  syncing=true;
+  try{
+    if(!desired.length){
+      // Sans cahier des charges, utiliser le gabarit général ou la liste KONTROL.
+      // Ne jamais effacer les réponses déjà renseignées.
+      const config=linked?.kontrolChecklistV1;
+      const customItems=config?.customized===true&&Array.isArray(config.items)
+        ?config.items.map(x=>String(x||"").trim()).filter(Boolean):[];
+      const loadedByCloud=d.body.dataset.ivChecklistLoadedFor===currentSiteId&&taskRows(d).length>0;
+      const mustRestore=!taskRows(d).length
+        ||(previousManaged&&previousSite===currentSiteId)
+        ||(!loadedByCloud&&previousSite&&previousSite!==currentSiteId);
+      if(mustRestore&&api?.useDefaultChecklist){
+        if(customItems.length&&api.replaceChecklist)api.replaceChecklist(customItems,{silent:true});
+        else api.useDefaultChecklist({silent:true});
+      }
+      d.body.dataset.ivKontrolCdcManaged="0";
+      d.body.dataset.ivKontrolCdcSite=currentSiteId;
+      setManagedControls(d,false);
+      if(!taskRows(d).length){
+        setStatus(d,"<strong>Points de contrôle indisponibles.</strong> Réessaie de sélectionner le chantier.","error");
+      }else if(customItems.length){
+        setStatus(d,`${prefix}<strong>Liste personnalisée de ${escapeHtml(name)} chargée.</strong><span class="iv-kontrol-cdc-source">Tu peux effectuer le contrôle avec cette liste.</span>`,statusType(linked,"ok"));
+      }else{
+        setStatus(d,`${prefix}<strong>Gabarit général disponible pour ${escapeHtml(name)}.</strong><span class="iv-kontrol-cdc-source">Aucune tâche personnalisée enregistrée dans le cahier des charges : tu peux réaliser le contrôle avec la liste générale.</span>`,statusType(linked,"ok"));
+      }
+      return;
+    }
+    if(!api?.replaceChecklist){
+      setStatus(d,"<strong>Chargement des tâches en cours.</strong> La liste du chantier sera affichée dès que KONTROL sera prêt.","warn");
+      return;
+    }
+    const displayed=taskRows(d).map(tr=>norm(tr.querySelector(".task-title")?.textContent||""));
+    const expected=desired.map(item=>item.key);
+    // Une mise à jour Firebase ne doit pas effacer les réponses en cours.
+    const sameList=displayed.length===expected.length&&displayed.every((key,i)=>key===expected[i]);
+    if(!sameList||(previousSite&&previousSite!==currentSiteId&&d.body.dataset.ivChecklistLoadedFor!==currentSiteId)){
+      api.replaceChecklist(desired.map(item=>item.name),{silent:true});
+    }
+    d.body.dataset.ivKontrolCdcManaged="1";
+    d.body.dataset.ivKontrolCdcSite=currentSiteId;
+    setManagedControls(d,true);
+    decorateTasks(d,desired);
+    setStatus(d,`${prefix}<strong>${desired.length} tâche${desired.length>1?"s":""} synchronisée${desired.length>1?"s":""}</strong> depuis le cahier des charges de ${escapeHtml(name)}.<span class="iv-kontrol-cdc-source">Zones, jours et fréquences sont conservés. Pour modifier cette liste, utilise Infos chantier → Cahier des charges. Source : ${escapeHtml(sourceSummary(rows))}.</span>`,statusType(linked,"ok"));
+  }catch(error){
+    console.error("Affichage des points de contrôle KONTROL impossible",error);
+    setManagedControls(d,false);
+    setStatus(d,"<strong>Impossible d’afficher les points de contrôle.</strong> Réessaie de sélectionner le chantier.","error");
+  }finally{syncing=false}
+}
 function bindSelectedSite(d,force=false){ensureUi(d);const input=d.getElementById("site"),site=resolveSite(input?.value||"");if(!site){if(unsubscribeSite){try{unsubscribeSite()}catch{}unsubscribeSite=null}currentSiteId="";currentRows=[];setManagedControls(d,false);if((input?.value||"").trim())setStatus(d,"<strong>Chantier non reconnu.</strong> Choisis un chantier proposé dans la liste pour charger son cahier des charges.","warn");else setStatus(d,"Sélectionne un chantier enregistré pour charger automatiquement son cahier des charges.");return}rememberSite(input?.value||siteNameOf(site),site);if(input)input.dataset.ivChantierId=siteIdOf(site);const id=siteIdOf(site);if(!id){setManagedControls(d,false);setStatus(d,"<strong>Ce chantier n’a pas d’identifiant Firebase exploitable.</strong>","error");return}if(id===currentSiteId){if(force)applyRows(d,currentRows,true);return}if(unsubscribeSite){try{unsubscribeSite()}catch{}unsubscribeSite=null}currentSiteId=id;currentRows=[];setManagedControls(d,true);setStatus(d,`${statusPrefix(site)}Chargement du cahier des charges de <strong>${escapeHtml(siteNameOf(site))}</strong>…`,statusType(site,""));if(!db){setStatus(d,"<strong>Connexion Firebase indisponible.</strong> Impossible de charger le cahier des charges.","error");return}unsubscribeSite=db.collection("chantiers").doc(id).onSnapshot(snap=>{const block=snap.data()?.cahierDesChargesV1||{};currentRows=Array.isArray(block.rows)?block.rows:[];const nd=nestedDoc();if(nd)applyRows(nd,currentRows,true)},err=>{console.error("Liaison KONTROL / cahier des charges impossible",err);const nd=nestedDoc();if(nd)setStatus(nd,"<strong>Impossible de lire le cahier des charges dans Firebase.</strong>","error")})}
 function install(){const d=nestedDoc();if(!d?.body)return;if(d!==lastDoc){lastDoc=d;currentSiteId="";currentRows=[];if(unsubscribeSite){try{unsubscribeSite()}catch{}unsubscribeSite=null}}ensureUi(d);bindSelectedSite(d,false);if(currentSiteId&&currentRows.length)decorateTasks(d,desiredRows(currentRows))}
 function bindNestedLoad(){let nf;try{nf=shellFrame?.contentDocument?.getElementById("kontrolFrame")||null}catch{nf=null}if(!nf||nf===nestedFrame)return;nestedFrame=nf;nf.addEventListener("load",()=>{setTimeout(install,120);setTimeout(install,650)})}
