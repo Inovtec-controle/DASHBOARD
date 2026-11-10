@@ -15,7 +15,7 @@ const definitions=[
  ['Réassort','↻','REASSORT.html','reassort'],
  ['Congés & absences','☂','CONGES.html','conges'],
  ['Variables agents','◷','VARIABLES.html','variables'],
- ['Organisation','◎','ORGANISATION-V17.html?v=20261012-v17-direct','organisation'],
+ ['Organisation','◎','ORGANISATION-V17.html?v=20261110-firebase-global1','organisation'],
  ['Conversion temps','⇄','TEMPS.html','temps'],
  ['Salaire','€','SALAIRE.html','salaire'],
  ['Dépense carburant','⛽','ESSENCE.html','essence']
