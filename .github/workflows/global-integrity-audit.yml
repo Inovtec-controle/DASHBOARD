@@ -1,0 +1,29 @@
+name: Global integrity audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier toutes les pages et les routes
+        run: node tests/global-integrity-audit.mjs
+      - name: Vérifier la syntaxe de l'ensemble des scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+      - name: Contrôler les protections de synchronisation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/organisation-data-contract.mjs
