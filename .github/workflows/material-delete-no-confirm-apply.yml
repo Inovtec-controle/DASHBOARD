@@ -1,8 +1,6 @@
 name: Apply material direct deletion without confirmation
 on:
-  push:
-    paths:
-      - '.github/workflows/material-delete-no-confirm-apply.yml'
+  # Correctif historique disponible uniquement sur demande explicite.
   workflow_dispatch:
 permissions:
   contents: write
