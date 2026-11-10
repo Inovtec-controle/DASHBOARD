@@ -66,6 +66,8 @@ jobs:
           node tests/organisation-firebase-fallback.mjs
           node tests/organisation-shell-integration.mjs
           node tests/organisation-cross-device.mjs
+          node tests/conges-transaction-sync.mjs
+          node tests/variables-leave-transaction-sync.mjs
           node tests/firebase-org-migration.mjs
           node tests/firebase-diagnostic.mjs
           node tests/shell-refresh-performance.mjs
