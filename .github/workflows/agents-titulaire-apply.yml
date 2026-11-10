@@ -1,9 +1,7 @@
 name: Integrate agent titular status and replacements
 
 on:
-  push:
-    paths:
-      - .github/workflows/agents-titulaire-apply.yml
+  # Correctif historique disponible uniquement sur demande explicite.
   workflow_dispatch:
 
 permissions:
