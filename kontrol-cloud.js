@@ -30,6 +30,9 @@
   let chantierReferences = [];
   let chantierReferencesPromise = null;
   let activeChecklistSiteId = "";
+  // Conserver la référence d’un contrôle tant que sa sauvegarde n’est pas confirmée.
+  let pendingDirectControl = null;
+  let pendingPdfFingerprint = "";
 
   function chantierName(site) {
     return String(site?.nom || site?.name || site?.site || "").trim();
@@ -683,37 +686,77 @@
       if (saveControlBtn && saveControlBtn.dataset.ivDirectHistoryBound !== "1") {
         saveControlBtn.dataset.ivDirectHistoryBound = "1";
         saveControlBtn.textContent = "Enregistrer + PDF";
-        saveControlBtn.title = "Enregistrer ce contrôle dans l’historique du chantier puis générer le PDF";
+        saveControlBtn.title = "Télécharger le PDF, puis enregistrer ce contrôle dans l’historique du chantier";
         saveControlBtn.addEventListener("click", async event => {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
           if (saveControlBtn.disabled) return;
           saveControlBtn.disabled = true;
-          const oldText = saveControlBtn.textContent;
-          saveControlBtn.textContent = "Enregistrement…";
-          showToast("Enregistrement du contrôle dans le chantier…");
+
+          const fingerprint = currentControlFingerprint();
+          const alreadyHasPdf = fingerprint === pendingPdfFingerprint;
+          const oldText = "Enregistrer + PDF";
+          let previewTab = null;
+          let pdfReady = alreadyHasPdf;
+          let child = null;
+
+          // iOS bloque parfois un téléchargement déclenché après un await :
+          // réserver l’onglet dès le clic utilisateur, avant le traitement des photos.
+          if (!alreadyHasPdf && isIosSafariDevice()) {
+            try {
+              previewTab = window.open("about:blank", "_blank");
+              if (previewTab) {
+                previewTab.document.title = "Préparation du PDF KONTROL";
+                previewTab.document.body.textContent = "Préparation du PDF du contrôle…";
+              }
+            } catch (error) {
+              console.warn("Prévisualisation PDF iOS indisponible", error);
+              previewTab = null;
+            }
+          }
+
           try {
+            if (!alreadyHasPdf) {
+              saveControlBtn.textContent = "Génération du PDF…";
+              child = frame.contentWindow;
+              if (!child) throw new Error("La fenêtre KONTROL n’est pas disponible pour générer le PDF");
+              const generate = child.InovtecGenerateControlPdf;
+              if (typeof generate !== "function") throw new Error("La fonction PDF KONTROL n’est pas prête. Recharge KONTROL et réessaie.");
+              hookPdfSave();
+              child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ = true;
+              child.__INOVTEC_PDF_PREVIEW_TAB__ = previewTab;
+              const pdfResult = await generate();
+              if (!pdfResult?.ok) throw new Error("Le PDF KONTROL n’a pas pu être généré correctement");
+              pdfReady = true;
+              pendingPdfFingerprint = fingerprint;
+            }
+            saveControlBtn.textContent = "Enregistrement Firebase…";
+            showToast("PDF prêt. Enregistrement du contrôle dans l’historique du chantier…");
             await saveControlDirect();
-            saveControlBtn.textContent = "Génération du PDF…";
-            showToast("Contrôle enregistré. Génération du PDF…");
-            const child = frame.contentWindow;
-            if (!child) throw new Error("La fenêtre KONTROL n’est pas disponible pour générer le PDF");
-            const generate = child.InovtecGenerateControlPdf;
-            if (typeof generate !== "function") throw new Error("La fonction PDF KONTROL n’est pas prête. Recharge KONTROL et réessaie.");
-            child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ = true;
-            const pdfResult = await generate();
-            if (!pdfResult?.ok) throw new Error("Le PDF KONTROL n’a pas pu être généré correctement");
+            pendingPdfFingerprint = "";
             saveControlBtn.textContent = "Enregistré + PDF ✓";
-            showToast("Contrôle enregistré et PDF généré avec "+String(pdfResult.photoCount||0)+" photo"+((pdfResult.photoCount||0)>1?"s":"")+".");
+            showToast("PDF généré et contrôle enregistré dans l’historique du chantier.");
             setTimeout(() => {
               if (saveControlBtn.isConnected) saveControlBtn.textContent = oldText;
             }, 2200);
           } catch (error) {
-            console.error("Enregistrement direct KONTROL impossible", error);
-            saveControlBtn.textContent = "Réessayer";
-            showToast(error?.message || "Impossible d’enregistrer le contrôle.", true);
+            console.error("Enregistrement KONTROL ou PDF impossible", error);
+            saveControlBtn.textContent = pdfReady ? "Réessayer l’enregistrement" : "Réessayer";
+            showToast(
+              pdfReady
+                ? "Le PDF est prêt, mais Firebase n’a pas confirmé l’enregistrement : " + (error?.message || "réessaie.")
+                : "Le PDF n’a pas été généré : " + (error?.message || "réessaie."),
+              true
+            );
           } finally {
+            if (child) {
+              child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ = false;
+              child.__INOVTEC_PDF_PREVIEW_TAB__ = null;
+            }
+            if (!pdfReady && previewTab && !previewTab.closed) {
+              try { previewTab.close(); } catch {}
+            }
             saveControlBtn.disabled = false;
           }
         }, true);
@@ -763,6 +806,8 @@
   async function resolveChantierId(details) {
     const direct = String(details?.chantierId || "").trim();
     if (direct) {
+      const alreadyLoaded = chantierReferences.find(site => String(site.id) === direct && !site._hidden);
+      if (alreadyLoaded) return direct;
       try {
         const snap = await db.collection("chantiers").doc(direct).get();
         if (snap.exists && !snap.data()?._hidden) return direct;
@@ -770,6 +815,9 @@
     }
     const siteName = String(details?.site || "").trim();
     if (!siteName) return "";
+    // Le sélecteur a déjà chargé le référentiel : inutile de relire tous les chantiers.
+    const fromPicker = resolveChantierReference(siteName);
+    if (fromPicker?.id) return String(fromPicker.id);
     try {
       const exact = await db.collection("chantiers").where("nom", "==", siteName).limit(10).get();
       const rows = exact.docs.filter(doc => !doc.data()?._hidden);
@@ -929,6 +977,7 @@
 
   async function writeControlPhotos(recordId, chantierId, photos) {
     const refs = [];
+    const batches = [];
     let totalChars = 0;
     for (let index = 0; index < Math.min(photos.length, MAX_DIRECT_PHOTOS); index++) {
       const ph = photos[index];
@@ -959,7 +1008,7 @@
             data
           });
         });
-        await batch.commit();
+        batches.push(batch);
       }
       refs.push({
         photoId,
@@ -968,6 +1017,10 @@
         chunkIds,
         sizeChars:dataUrl.length
       });
+    }
+    // Deux lots à la fois réduisent l’attente sur mobile sans saturer la connexion.
+    for (let i = 0; i < batches.length; i += 2) {
+      await Promise.all(batches.slice(i, i + 2).map(batch => batch.commit()));
     }
     return refs;
   }
@@ -987,8 +1040,15 @@
     }
     if (!tasks.length) throw new Error("La liste de points de contrôle est vide");
     const photos = readKontrolPhotos();
-    const now = Date.now();
-    const recordId = "__kontrol_control__" + hash([user.uid, chantierId, now, details.controlDate, details.controlTime].join("|"));
+    const signature = hash(JSON.stringify([
+      user.uid, chantierId, details, tasks,
+      photos.map(photo => [photo.id, photo.caption, photo.dataUrl.length, photo.dataUrl.slice(-64)])
+    ]));
+    const now = pendingDirectControl?.signature === signature ? pendingDirectControl.createdAtMs : Date.now();
+    const recordId = pendingDirectControl?.signature === signature
+      ? pendingDirectControl.recordId
+      : "__kontrol_control__" + hash([user.uid, chantierId, now, details.controlDate, details.controlTime].join("|"));
+    pendingDirectControl = { signature, recordId, createdAtMs:now };
     const photoRefs = photos.length ? await writeControlPhotos(recordId, chantierId, photos) : [];
     const record = {
       _hidden: true,
@@ -1019,6 +1079,7 @@
       kontrolHistoryUpdatedAtMs: now
     }, { merge: true });
     await batch.commit();
+    pendingDirectControl = null;
     try {
       window.dispatchEvent(new CustomEvent("inovtec:kontrol-control-saved", { detail: { chantierId, recordId } }));
     } catch {}
@@ -1084,6 +1145,20 @@
     else showToast("PDF archivé, mais l’historique chantier n’a pas pu être confirmé.", true);
   }
 
+  function isIosSafariDevice() {
+    return /iPad|iPhone|iPod/i.test(navigator.userAgent || "")
+      || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function currentControlFingerprint() {
+    const details = readKontrolMetadata();
+    const tasks = readKontrolTasks();
+    const photos = readKontrolPhotos().map(photo => [
+      photo.id, photo.name, photo.caption, photo.dataUrl.length, photo.dataUrl.slice(-64)
+    ]);
+    return hash(JSON.stringify([details, tasks, photos]));
+  }
+
   function hookPdfSave() {
     if (!frame.contentWindow) return;
     const child = frame.contentWindow;
@@ -1096,27 +1171,37 @@
       const pdf = this;
       if (child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ === true) {
         child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ = false;
+        const previewTab = child.__INOVTEC_PDF_PREVIEW_TAB__;
+        child.__INOVTEC_PDF_PREVIEW_TAB__ = null;
+        if (previewTab && !previewTab.closed) {
+          try {
+            // Sur iPhone/iPad, un onglet réservé lors du clic évite le blocage
+            // des téléchargements qui interviennent après la préparation asynchrone.
+            previewTab.location.replace(pdf.output("bloburl"));
+            return pdf;
+          } catch (error) {
+            console.warn("Ouverture du PDF iOS indisponible", error);
+            try { previewTab.close(); } catch {}
+          }
+        }
         return originalSave.call(pdf, filename, options);
       }
+
+      // Même pour la sauvegarde historique manuelle, le téléchargement doit
+      // rester indépendant de l’archivage Firebase.
+      const result = originalSave.call(pdf, filename, options);
       let blob = null;
       try { blob = pdf.output("blob"); } catch (error) { console.warn("Création du PDF pour archivage impossible", error); }
-      const details = readKontrolMetadata();
-      if (!blob) return originalSave.call(pdf, filename, options);
-
-      archivePdfBlob(blob, filename, details)
-        .catch(error => {
+      if (blob) {
+        const details = readKontrolMetadata();
+        archivePdfBlob(blob, filename, details).catch(error => {
           console.error("Archivage KONTROL impossible", error);
-          showToast("L’archivage en ligne a échoué. Le PDF est tout de même téléchargé.", true);
-        })
-        .finally(() => {
-          try { originalSave.call(pdf, filename, options); }
-          catch (error) {
-            console.error("Téléchargement du PDF KONTROL impossible", error);
-            showToast("Le contrôle a été archivé, mais le téléchargement du PDF a échoué.", true);
-          }
+          showToast("PDF téléchargé, mais son archivage Firebase a échoué.", true);
         });
-      return pdf;
+      }
+      return result;
     };
+
     api.__inovtecCloudHooked = true;
   }
 
