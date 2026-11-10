@@ -95,6 +95,8 @@ jobs:
           PY
 
   smoke-live-site:
+    # Un PR valide sa branche localement ; le site public sert encore la branche main.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Vérifier que les principales pages publiques répondent et que Réassort est publié
@@ -109,9 +111,9 @@ jobs:
           # On vérifie le fichier réellement utilisé par l'accueil, sans dépendre de l'ancien shell.
           grep -q 'ORGANISATION-V17.html' /tmp/index.html || { echo "::error::L'accueil public pointe encore vers l'ancienne Organisation"; exit 1; }
           grep -q 'LIVE v17' /tmp/ORGANISATION-V17.html || { echo "::error::La page Organisation autonome publique n'est pas la v16"; exit 1; }
-          grep -q 'Promise.allSettled' /tmp/ORGANISATION-V17.html || { echo "::error::La page Organisation autonome n'a pas le moteur Firebase attendu"; exit 1; }
+          grep -q 'const ORGANISATION_DOC_ID' /tmp/ORGANISATION-V17.html || { echo "::error::Organisation ne lit pas son document Firebase canonique"; exit 1; }
           grep -q 'ORGANISATION-V17.html' /tmp/ORGA.html || { echo "::error::L'ancien ORGA.html ne redirige pas vers la nouvelle page"; exit 1; }
-          echo 'Organisation publique autonome v16 : confirmée.'
+          echo 'Organisation publique autonome v17 : confirmée.'
           for attempt in $(seq 1 12); do
             curl -fsSL --retry 2 --retry-delay 2 "$base/index.html?check=${GITHUB_SHA}" -o /tmp/inovtec-home.html
             if grep -Eq 'href="REASSORT\.html([?"][^"]*)?"' /tmp/inovtec-home.html; then
