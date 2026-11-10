@@ -23,6 +23,20 @@ await page.addInitScript(()=>{
 try{
  await page.goto('http://127.0.0.1:8765/CONGES-LEGACY.html',{waitUntil:'domcontentloaded',timeout:30000});
  await page.waitForFunction(()=>window.__INOVTEC_CONGES_SYNC_V2__&&document.querySelector('#congesSyncStatus')?.textContent==='Firebase synchronisé',{timeout:12000});
+ // Les périodes du scénario sont en octobre 2026 : ne pas dépendre du mois courant.
+ await page.evaluate(()=>{
+   const target='octobre 2026';
+   for(let step=0;step<60;step++){
+     const current=(document.querySelector('#monthLabel')?.textContent||'').toLowerCase();
+     if(current.includes(target))return;
+     const visible=current.match(/(\d{4})/); const year=visible?Number(visible[1]):new Date().getFullYear();
+     const months=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+     const index=months.findIndex(name=>current.includes(name));
+     const value=year*12+(index>=0?index:0),wanted=2026*12+9;
+     document.getElementById(value>wanted?'prevMonth':'nextMonth').click();
+   }
+   throw new Error('Impossible de sélectionner octobre 2026 pour le test');
+ });
  assert.equal(await page.locator('#newLeave').isDisabled(),false,'Connexion confirmée : création doit être possible');
  await page.click('#newLeave');await page.selectOption('#agentSelect','agent-1');await page.fill('#startDate','2026-10-21');await page.fill('#endDate','2026-10-22');await page.fill('#leaveComment','Premier congé');await page.click('#leaveForm [type=submit]');
  await page.waitForFunction(()=>JSON.parse(window.__congesFixture.doc.moduleSyncV1.conges.payload).length===1);
