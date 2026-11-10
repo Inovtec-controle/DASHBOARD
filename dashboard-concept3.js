@@ -35,7 +35,8 @@ async function refresh(user){
    db.collection("chantiers").doc(SHARED_ID).get(),
    db.collection("kanban").doc(user.uid).get(),
    db.collection("chantiers").where("_type","==","kontrolPdfMeta").get(),
-   db.collection("chantiers").where("_type","==","kontrolControlRecord").get()
+   db.collection("chantiers").where("_type","==","kontrolControlRecord").get(),
+   db.collection("chantiers").doc(ORGANISATION_ID).get()
  ]);
  const shared=dataOf(res[0]),personal=dataOf(res[1]);
  const agents=mergeRows(agentsFrom(shared),agentsFrom(personal)).filter(a=>a&&a._deleted!==true&&norm(agentName(a))&&!["agent","sans nom","agent sans nom"].includes(norm(agentName(a))));

@@ -1,63 +1,70 @@
-import { chromium } from 'playwright';
-
-const browser = await chromium.launch({headless:true,args:['--no-sandbox']});
-const scenarios = [
-  {name:'Reprise locale lorsque Firebase est vide',personal:null,shared:null,local:[{id:'local-1',title:'Tâche locale',status:'todo'}],expectedWrites:1,expectedId:'local-1'},
-  {name:'Reprise réelle des tâches partagées',personal:null,shared:{tasks:[{id:'shared-1',title:'Tâche partagée',status:'todo'}]},local:[{id:'stale-1',title:'Ancienne tâche',status:'todo'}],expectedWrites:1,expectedId:'shared-1'},
-  {name:'Respect d’une liste partagée volontairement vide',personal:null,shared:{tasks:[]},local:[{id:'deleted-1',title:'Ancienne tâche',status:'todo'}],expectedWrites:1,expectedId:null},
-  {name:'Priorité aux tâches déjà présentes dans Firebase',personal:{tasks:[{id:'remote-1',title:'Tâche distante',status:'todo'}]},shared:null,local:[{id:'stale-2',title:'Ancienne tâche',status:'todo'}],expectedWrites:0,expectedId:'remote-1'}
+import { chromium } from "playwright";
+const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
+const scenarios=[
+  {name:"Copie locale migrée uniquement si les sources Firebase n'existent pas",canonical:null,personal:null,shared:null,local:[{id:"local-a",title:"Depuis ordinateur"}],expected:["local-a"]},
+  {name:"Ancienne source Firebase partagée retrouvée",canonical:null,personal:null,shared:{tasks:[{id:"shared-a",title:"Depuis autre appareil"}]},local:[{id:"old-local",title:"Ancien cache"}],expected:["shared-a"]},
+  {name:"Liste distante vide respectée",canonical:null,personal:null,shared:{tasks:[]},local:[{id:"deleted",title:"Tâche effacée"}],expected:[]},
+  {name:"Tâches Firebase personnelles reprises",canonical:null,personal:{tasks:[{id:"personal-a",title:"Copie personnelle"}]},shared:null,local:[],expected:["personal-a"]},
+  {name:"Source principale prioritaire sans écrasement",canonical:{tasks:[{id:"current-a",title:"À conserver"}]},personal:{tasks:[{id:"old-a",title:"Sauvegarde ancienne"}]},shared:null,local:[],expected:["current-a"],offerRecovery:true},
+  {name:"Ancienne source récente prioritaire",canonical:null,personal:{tasks:[{id:"personal-new",title:"Nouveau"}],tasksUpdatedAtMs:300},shared:{tasks:[{id:"shared-old",title:"Ancien"}],tasksUpdatedAtMs:100},local:[],expected:["personal-new"]}
 ];
-let failures=0;
-try {
-  for(const sc of scenarios){
-    const context=await browser.newContext({serviceWorkers:'block'});
-    await context.addInitScript(testCase=>{
-      localStorage.setItem('orga_task_board_v2',JSON.stringify(testCase.local));
-      const personal=testCase.personal?JSON.parse(JSON.stringify(testCase.personal)):null;
-      const shared=testCase.shared?JSON.parse(JSON.stringify(testCase.shared)):null;
-      const state={personal,shared,writes:[],listeners:[]};
-      window.__firebaseOrgTest=state;
-      const snap=(name)=>{
-        const data=name==='kanban'?state.personal:state.shared;
-        return {exists:!!data,data:()=>data||{},metadata:{hasPendingWrites:false}};
+try{
+  for(const scenario of scenarios){
+    const context=await browser.newContext({serviceWorkers:"block"});
+    await context.addInitScript(sc=>{
+      localStorage.setItem("orga_task_board_v2",JSON.stringify(sc.local));
+      const clone=v=>v==null?null:JSON.parse(JSON.stringify(v));
+      const state={canonical:clone(sc.canonical),personal:clone(sc.personal),shared:clone(sc.shared),writes:[],watchers:{canonical:[],personal:[],shared:[]}};
+      window.__orgMigration=state;
+      const key=(collection,id)=>collection==="kanban"?"personal":id==="inovtec_organisation_tasks_v2"?"canonical":"shared";
+      const snap=k=>({exists:state[k]!==null,data:()=>state[k]||{},metadata:{fromCache:false,hasPendingWrites:false}});
+      const set=(k,data)=>{
+        state[k]={...(state[k]||{}),...clone(data)};
+        state.writes.push(k);
+        queueMicrotask(()=>state.watchers[k].forEach(cb=>cb(snap(k))));
       };
-      const db={collection:name=>({doc:id=>({
-        onSnapshot(cb){if(name==='kanban'){state.listeners.push(cb);queueMicrotask(()=>cb(snap(name)))}return()=>{}},
-        get(){return Promise.resolve(snap(name))},
-        set(data){state.writes.push({name,id,data});if(name==='kanban')state.personal={...(state.personal||{}),...data};else state.shared={...(state.shared||{}),...data};if(name==='kanban')queueMicrotask(()=>state.listeners.forEach(cb=>cb(snap(name))));return Promise.resolve()}
-      })})};
-      const firebase={apps:[],initializeApp(){this.apps.push({})},auth(){return {onAuthStateChanged(cb){queueMicrotask(()=>cb({uid:'test-user'}));return()=>{}},signOut(){return Promise.resolve()}}},firestore(){return db}};
-      firebase.firestore.FieldValue={serverTimestamp:()=> 'test-server-timestamp'};
-      window.firebase=firebase;
-      window.INOVTEC_FIREBASE_CONFIG={projectId:'test-only'};
-    },sc);
+      const db={
+        collection:collection=>({doc:id=>{
+          const k=key(collection,id);
+          return{
+            key:k,
+            onSnapshot(options,callback){const cb=typeof options==="function"?options:callback;state.watchers[k].push(cb);queueMicrotask(()=>cb(snap(k)));return()=>{state.watchers[k]=state.watchers[k].filter(fn=>fn!==cb)};},
+            get(){return Promise.resolve(snap(k))},
+            set(data){set(k,data);return Promise.resolve();}
+          };
+        }}),
+        async runTransaction(fn){
+          const writes=[];
+          const tx={get:ref=>Promise.resolve(snap(ref.key)),set:(ref,data)=>writes.push([ref.key,data])};
+          await fn(tx);
+          writes.forEach(([k,data])=>set(k,data));
+        }
+      };
+      const auth={currentUser:{uid:"test-user",email:"test@example.com"},onAuthStateChanged(cb){queueMicrotask(()=>cb(this.currentUser));return()=>{}},signOut(){return Promise.resolve()}};
+      const firestore=()=>db;firestore.FieldValue={serverTimestamp:()=>({toMillis:()=>Date.now()})};
+      window.firebase={apps:[],initializeApp(){this.apps.push({})},auth:()=>auth,firestore};
+      window.INOVTEC_FIREBASE_CONFIG={projectId:"test-only"};
+    },scenario);
     const page=await context.newPage();
-    await page.route('https://www.gstatic.com/firebasejs/**',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
-    await page.route('**/firebase-config.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:'window.INOVTEC_FIREBASE_CONFIG={projectId:"test-only"};'}));
-    const errors=[];page.on('pageerror',error=>errors.push(error.message));
-    try {
-      await page.goto('http://127.0.0.1:8765/ORGA-LEGACY.html',{waitUntil:'domcontentloaded',timeout:30000});
-      await page.locator('#app:not(.hidden)').waitFor({timeout:10000});
-      await page.waitForFunction(expected=>{
-        const test=window.__firebaseOrgTest;
-        const status=document.querySelector('#syncStatus')?.textContent||'';
-        return test && (expected===0?(status.includes('partagé')||status.includes('Synchronisé')):test.writes.length>=expected);
-      },sc.expectedWrites,{timeout:10000});
-      const result=await page.evaluate(()=>({
-        writes:window.__firebaseOrgTest.writes.map(w=>({name:w.name,id:w.id,tasks:w.data.tasks})),
-        items:JSON.parse(localStorage.getItem('orga_task_board_v2')||'[]'),
-        status:document.querySelector('#syncStatus')?.textContent||''
+    await page.route("https://www.gstatic.com/firebasejs/**",route=>route.fulfill({status:200,contentType:"application/javascript",body:""}));
+    await page.route("**/firebase-config.js*",route=>route.fulfill({status:200,contentType:"application/javascript",body:'window.INOVTEC_FIREBASE_CONFIG={projectId:"test-only"};'}));
+    const errors=[];page.on("pageerror",e=>errors.push(e.message));
+    try{
+      await page.goto("http://127.0.0.1:8765/ORGANISATION-V17.html",{waitUntil:"domcontentloaded",timeout:30000});
+      await page.waitForFunction(()=>document.querySelector("#syncStatus")?.textContent.includes("Synchronisé avec Firebase"),null,{timeout:15000});
+      const info=await page.evaluate(()=>({
+        ids:(window.__orgMigration.state||window.__orgMigration).canonical?.tasks?.map(x=>x.id)||[],
+        writes:window.__orgMigration.writes.slice(),
+        restore:document.getElementById("ivOrgaRestore")?.hidden===false
       }));
-      if(errors.length)throw Error('JavaScript : '+errors.join('; '));
-      if(result.writes.length!==sc.expectedWrites)throw Error('Écritures Firebase : '+result.writes.length+' au lieu de '+sc.expectedWrites);
-      if(result.writes.some(w=>w.name!=='kanban'||w.id!=='test-user'))throw Error('Mauvaise collection ou mauvais compte');
-      if(result.writes.length && result.writes.some(w=>!Array.isArray(w.tasks)))throw Error('Écriture Organisation sans liste tasks');
-      const firstId=result.items?.[0]?.id??null;
-      if(firstId!==sc.expectedId)throw Error('Liste Firebase/cache inattendue : '+JSON.stringify(result.items));
-      console.log('OK : '+sc.name);
-    }catch(error){failures++;console.error('ÉCHEC : '+sc.name+' : '+String(error?.message||error));}
-    finally {await context.close()}
+      if(JSON.stringify(info.ids)!==JSON.stringify(scenario.expected))throw Error("Liste inattendue : "+JSON.stringify(info));
+      if(scenario.canonical&&info.writes.includes("canonical"))throw Error("Écrasement d'une source Firebase déjà existante");
+      if(scenario.offerRecovery){
+        await page.waitForFunction(()=>document.getElementById("ivOrgaRestore")?.hidden===false,null,{timeout:7000});
+      }
+      if(errors.length)throw Error("JavaScript : "+errors.join("; "));
+      console.log("OK : "+scenario.name);
+    }finally{await context.close();}
   }
-}finally {await browser.close()}
-console.log('BILAN FIREBASE ORGANISATION : '+(failures?failures+' anomalie(s)':'4 scénarios validés avec des données fictives'));
-if(failures)process.exitCode=1;
+}finally{await browser.close();}
+console.log("Organisation : migration de six scénarios validée");

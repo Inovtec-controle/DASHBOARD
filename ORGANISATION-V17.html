@@ -332,6 +332,7 @@
     tasks=normalizeTasks(tasks);
     const payload=JSON.parse(JSON.stringify(tasks));
     const revision=++mutationRevision;
+    persistPending(owner,payload);
     pendingWrites++;
     setSync("Enregistrement Firebase…");
     const write=async()=>{
@@ -350,6 +351,7 @@
         }
         if(currentUser?.uid===owner&&revision===mutationRevision){
           failedRevision=0;
+          clearPending(owner,payload);
           tasks=normalizeTasks(payload);
           render();
           setSync("Synchronisé avec Firebase","ok");
@@ -382,42 +384,144 @@
     return saveChain;
   }
 
+  const LEGACY_SHARED_DOC_ID = "__inovtec_shared_workspace_v1__";
+  let legacyRecoveryChecked=false;
+  let availableLegacyTasks=[];
+  async function legacySources(owner){
+    const items=[
+      {kind:"personal",ref:db.collection("kanban").doc(owner)},
+      {kind:"shared",ref:db.collection("chantiers").doc(LEGACY_SHARED_DOC_ID)}
+    ];
+    const reads=await Promise.allSettled(items.map(item=>item.ref.get({source:"server"})));
+    if(reads.every(x=>x.status==="rejected"))throw Error("Anciennes données Firebase inaccessibles");
+    const sources=[];
+    reads.forEach((result,i)=>{
+      if(result.status!=="fulfilled")return;
+      const snap=result.value,data=snap.exists?(snap.data()||{}):{};
+      if(!Array.isArray(data.tasks))return;
+      const tm=Number(data.tasksUpdatedAtMs)||Number(data.updatedAtMs)||
+        (typeof data.updatedAt?.toMillis==="function"?data.updatedAt.toMillis():0);
+      sources.push({kind:items[i].kind,tasks:normalizeTasks(data.tasks),at:tm,remote:true});
+    });
+    try{
+      const raw=localStorage.getItem("orga_task_board_v2");
+      const list=raw?JSON.parse(raw):null;
+      if(Array.isArray(list))sources.push({kind:"local",tasks:normalizeTasks(list),at:0,remote:false});
+    }catch{}
+    try{
+      const raw=localStorage.getItem("iv_organisation_pending_v1_"+owner);
+      const data=raw?JSON.parse(raw):null;
+      if(Array.isArray(data?.tasks))sources.unshift({kind:"pending",tasks:normalizeTasks(data.tasks),at:Date.now(),remote:false});
+    }catch{}
+    return sources;
+  }
+  function pendingDraft(owner){
+    try{
+      const raw=localStorage.getItem("iv_organisation_pending_v1_"+owner);
+      const data=raw?JSON.parse(raw):null;
+      return Array.isArray(data?.tasks)?normalizeTasks(data.tasks):null;
+    }catch{return null;}
+  }
+  function persistPending(owner,payload){
+    try{localStorage.setItem("iv_organisation_pending_v1_"+owner,JSON.stringify({tasks:payload,savedAt:Date.now()}));}
+    catch(e){console.warn("Brouillon local Organisation indisponible",e);}
+  }
+  function clearPending(owner,payload){
+    try{const old=pendingDraft(owner);if(old&&sameTasks(old,payload))localStorage.removeItem("iv_organisation_pending_v1_"+owner);}
+    catch(e){console.warn("Nettoyage du brouillon Organisation",e);}
+  }
+  function restoreButton(){
+    let btn=document.getElementById("ivOrgaRestore");
+    if(btn)return btn;
+    const toolbar=document.querySelector(".iv-toolbar");if(!toolbar)return null;
+    btn=document.createElement("button");btn.type="button";btn.id="ivOrgaRestore";btn.className="iv-tool";
+    btn.hidden=true;btn.textContent="Récupérer les anciennes tâches";toolbar.appendChild(btn);
+    btn.addEventListener("click",()=>void restoreLegacyTasks());
+    return btn;
+  }
+  async function inspectLegacySources(owner){
+    try{
+      const src=await legacySources(owner);
+      if(!loaded||currentUser?.uid!==owner)return;
+      const now=new Map(tasks.map(x=>[x.id,x]));
+      const found=new Map();
+      for(const source of src)for(const task of source.tasks){
+        if(!task.id)continue;
+        const prior=now.get(task.id);
+        if(!prior){
+          if(!found.has(task.id))found.set(task.id,{...task,_ivRestorePending:false});
+        }else if(source.kind==="pending"&&!sameTasks([prior],[task])){
+          found.set(task.id,{...task,_ivRestorePending:true});
+        }
+      }
+      availableLegacyTasks=[...found.values()];
+      const btn=restoreButton();
+      if(btn){btn.hidden=!availableLegacyTasks.length;
+        btn.textContent="Récupérer "+availableLegacyTasks.length+" ancienne"+(availableLegacyTasks.length>1?"s":"")+" tâche"+(availableLegacyTasks.length>1?"s":"");}
+    }catch(error){console.warn("Diagnostic des anciennes données Organisation",error);}
+  }
+  async function restoreLegacyTasks(){
+    if(!loaded||!currentUser||pendingWrites>0||!availableLegacyTasks.length)return;
+    const owner=currentUser.uid,btn=restoreButton();
+    const preview=availableLegacyTasks.slice(0,8).map(t=>"• "+t.title).join("\n");
+    if(!confirm("Récupérer "+availableLegacyTasks.length+" tâche(s) depuis les anciennes sauvegardes ?\n\n"+
+      preview+"\n\nLes tâches actuelles restent prioritaires, sauf les modifications locales explicitement en attente."))return;
+    if(btn)btn.disabled=true;
+    setSync("Récupération Firebase…");
+    try{
+      if(typeof db.runTransaction!=="function")throw Error("Transactions Firebase indisponibles");
+      await db.runTransaction(async tx=>{
+        const ref=fallbackRef(),snap=await tx.get(ref);
+        const current=normalizeTasks(Array.isArray(snap.data()?.tasks)?snap.data().tasks:[]);
+        const merged=new Map(current.map(t=>[t.id,t]));
+        for(const item of availableLegacyTasks){
+          if(!merged.has(item.id)||item._ivRestorePending){
+            const {_ivRestorePending,...task}=item;merged.set(task.id,task);
+          }
+        }
+        tx.set(ref,{_hidden:true,_type:"organisationTasks",version:2,
+          tasks:[...merged.values()],tasksUpdatedAtMs:Date.now(),
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      });
+      const verified=await fallbackRef().get({source:"server"});
+      if(!verified.exists||!Array.isArray(verified.data()?.tasks))throw Error("Récupération non confirmée");
+      if(currentUser?.uid!==owner)return;
+      tasks=normalizeTasks(verified.data().tasks);
+      const old=pendingDraft(owner);if(old)clearPending(owner,old);
+      availableLegacyTasks=[];if(btn)btn.hidden=true;
+      render();setSync("Tâches récupérées et confirmées sur Firebase","ok");
+    }catch(error){console.error("Récupération Organisation",error);setSync("Récupération impossible : "+firebaseErrorText(error),"warning");}
+    finally{if(btn)btn.disabled=false;}
+  }
   async function recoverRemoteTasks(owner,personal){
     try{
-      const old=await personal.get({source:"server"});
-      if(!currentUser||currentUser.uid!==owner)return;
-      // Pas de réimportation automatique d'un cache navigateur périmé :
-      // une tâche supprimée sur Firebase ne doit jamais réapparaître.
-      const seed=old.exists&&Array.isArray(old.data()?.tasks)
-        ? normalizeTasks(old.data().tasks) : [];
+      const sources=await legacySources(owner);
+      if(currentUser?.uid!==owner)return;
+      const remote=sources.filter(s=>s.remote).sort((a,b)=>b.at-a.at||(a.kind==="shared"?-1:1));
+      // Une liste distante valide, même vide, prime toujours sur les anciens caches.
+      const selected=remote[0]||sources.find(s=>s.kind==="pending")||sources.find(s=>s.kind==="local");
+      const seed=selected?selected.tasks:[];
       const canonical=fallbackRef();
-      const data={
-        _hidden:true,_type:"organisationTasks",version:2,
+      const data={_hidden:true,_type:"organisationTasks",version:2,
         tasks:seed,tasksUpdatedAtMs:Date.now(),
-        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-      };
-      // Si un autre appareil a créé le document entre-temps, ne pas
-      // écraser ses tâches par la migration d'une ancienne copie.
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
       if(typeof db.runTransaction==="function"){
-        await db.runTransaction(async transaction=>{
-          const snap=await transaction.get(canonical);
-          if(!snap.exists)transaction.set(canonical,data,{merge:true});
+        await db.runTransaction(async tx=>{
+          const snap=await tx.get(canonical);
+          if(!snap.exists)tx.set(canonical,data,{merge:true});
         });
       }else{
         const snap=await canonical.get({source:"server"});
         if(!snap.exists)await canonical.set(data,{merge:true});
       }
-      const checked=await canonical.get({source:"server"});
-      if(!currentUser||currentUser.uid!==owner)return;
-      if(!checked.exists||!Array.isArray(checked.data()?.tasks)){
-        throw Error("Initialisation Firebase non confirmée");
-      }
+      const confirmed=await canonical.get({source:"server"});
+      if(currentUser?.uid!==owner)return;
+      if(!confirmed.exists||!Array.isArray(confirmed.data()?.tasks))throw Error("Initialisation non confirmée");
       if(pendingWrites===0&&failedRevision===0){
-        tasks=normalizeTasks(checked.data().tasks);
-        loaded=true;
+        tasks=normalizeTasks(confirmed.data().tasks);loaded=true;
         $("taskForm").querySelector('button[type="submit"]').disabled=false;
-        render();
-        setSync("Synchronisé avec Firebase","ok");
+        render();setSync("Synchronisé avec Firebase","ok");
+        if(!legacyRecoveryChecked){legacyRecoveryChecked=true;void inspectLegacySources(owner);}
       }
     }catch(error){
       console.error("Organisation Firebase migration",error);
@@ -430,6 +534,9 @@
     if(realtimeWatchdog){clearTimeout(realtimeWatchdog);realtimeWatchdog=null;}
     loaded=false;
     tasks=[];
+    legacyRecoveryChecked=false;
+    availableLegacyTasks=[];
+    const restore=restoreButton();if(restore)restore.hidden=true;
     $("taskForm").querySelector('button[type="submit"]').disabled=true;
     render();
     setSync("Chargement des tâches Firebase…");
@@ -462,6 +569,7 @@
       $("taskForm").querySelector('button[type="submit"]').disabled=false;
       render();
       setSync("Synchronisé avec Firebase","ok");
+      if(!legacyRecoveryChecked){legacyRecoveryChecked=true;void inspectLegacySources(owner);}
     },error=>{
       if(realtimeWatchdog){clearTimeout(realtimeWatchdog);realtimeWatchdog=null;}
       console.error("Organisation Firebase realtime",error);
