@@ -19,6 +19,8 @@ await page.addInitScript(()=>{
 });
 try{
  await page.goto('http://127.0.0.1:8765/VARIABLES-LEGACY.html',{waitUntil:'domcontentloaded',timeout:30000});
+ // La fiche fictive est datée de septembre 2026 ; ne pas chercher dans le mois courant.
+ await page.fill('#monthPick','2026-09');
  await page.waitForFunction(()=>document.querySelectorAll('#agentList .agent-btn').length===1&&document.querySelectorAll('#entries .entry').length===1,{timeout:15000});
  await page.fill('#monthPick','2026-09');await page.locator('#entries .entry .edit').first().click();
  await page.evaluate(()=>{const s=window.__varFixture,r=JSON.parse(s.doc.moduleSyncV1.conges.payload);r[0].comment='Téléphone';r[0].updatedAt='2026-09-18T14:00:00.000Z';s.doc.moduleSyncV1.conges.payload=JSON.stringify(r);s.emit()});
