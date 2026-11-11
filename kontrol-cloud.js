@@ -30,7 +30,7 @@
   let chantierReferences = [];
   let chantierReferencesPromise = null;
   let activeChecklistSiteId = "";
-  // Conserver la référence d’un contrôle tant que sa sauvegarde n’est pas confirmée.
+  // Conserver l'ID du dernier contrôle : les tentatives de PDF ne doivent jamais le dupliquer.
   let pendingDirectControl = null;
   let pendingPdfFingerprint = "";
 
@@ -699,6 +699,7 @@
           const oldText = "Enregistrer + PDF";
           let previewTab = null;
           let pdfReady = alreadyHasPdf;
+          let controlSaved = false;
           let child = null;
 
           // iOS bloque parfois un téléchargement déclenché après un await :
@@ -717,6 +718,14 @@
           }
 
           try {
+            // D'abord garantir l'historique Firebase, même si le PDF est lent
+            // ou impossible à télécharger sur le téléphone.
+            saveControlBtn.textContent = "Enregistrement Firebase…";
+            showToast("Enregistrement du contrôle dans l’historique de la résidence…");
+            await saveControlDirect();
+            controlSaved = true;
+            showToast("Contrôle enregistré. Préparation du PDF…");
+
             if (!alreadyHasPdf) {
               saveControlBtn.textContent = "Génération du PDF…";
               child = frame.contentWindow;
@@ -731,22 +740,21 @@
               pdfReady = true;
               pendingPdfFingerprint = fingerprint;
             }
-            saveControlBtn.textContent = "Enregistrement Firebase…";
-            showToast("PDF prêt. Enregistrement du contrôle dans l’historique du chantier…");
-            await saveControlDirect();
             pendingPdfFingerprint = "";
             saveControlBtn.textContent = "Enregistré + PDF ✓";
-            showToast("PDF généré et contrôle enregistré dans l’historique du chantier.");
+            showToast("Contrôle enregistré dans l’historique et PDF généré.");
             setTimeout(() => {
               if (saveControlBtn.isConnected) saveControlBtn.textContent = oldText;
             }, 2200);
           } catch (error) {
             console.error("Enregistrement KONTROL ou PDF impossible", error);
-            saveControlBtn.textContent = pdfReady ? "Réessayer l’enregistrement" : "Réessayer";
+            saveControlBtn.textContent = controlSaved
+              ? "Contrôle enregistré • Réessayer le PDF"
+              : "Réessayer l’enregistrement";
             showToast(
-              pdfReady
-                ? "Le PDF est prêt, mais Firebase n’a pas confirmé l’enregistrement : " + (error?.message || "réessaie.")
-                : "Le PDF n’a pas été généré : " + (error?.message || "réessaie."),
+              controlSaved
+                ? "Contrôle enregistré dans l’historique, mais le PDF n’a pas été téléchargé : " + (error?.message || "réessaie.")
+                : "Firebase n’a pas confirmé l’enregistrement du contrôle : " + (error?.message || "réessaie."),
               true
             );
           } finally {
@@ -1079,7 +1087,23 @@
       kontrolHistoryUpdatedAtMs: now
     }, { merge: true });
     await batch.commit();
-    pendingDirectControl = null;
+    // Un commit local ne suffit pas : vérifier sur le serveur le contrôle et
+    // son lien vers la fiche résidence avant d'afficher « Enregistré ».
+    const [storedRecord, storedSite] = await Promise.all([
+      db.collection("chantiers").doc(recordId).get({ source:"server" }),
+      db.collection("chantiers").doc(chantierId).get({ source:"server" })
+    ]);
+    if (!storedRecord.exists ||
+        storedRecord.data()?._type !== DIRECT_CONTROL_TYPE ||
+        String(storedRecord.data()?.chantierId || "") !== chantierId) {
+      throw new Error("Le contrôle n'a pas été retrouvé dans Firebase");
+    }
+    if (!storedSite.exists ||
+        !Array.isArray(storedSite.data()?.kontrolHistoryRecordIds) ||
+        !storedSite.data().kontrolHistoryRecordIds.includes(recordId)) {
+      throw new Error("Le lien vers l'historique de la résidence n'a pas été confirmé");
+    }
+    // Garder le même ID si le PDF doit être retenté après une sauvegarde réussie.
     try {
       window.dispatchEvent(new CustomEvent("inovtec:kontrol-control-saved", { detail: { chantierId, recordId } }));
     } catch {}
