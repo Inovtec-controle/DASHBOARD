@@ -68,13 +68,13 @@ const input={
   category:"Résidence",score:"88 %",observations:"RAS"
 };
 const fixture=new Function("deps",`
-  const {db,auth,firebase,hash,readKontrolMetadata,readKontrolTasks,readKontrolPhotos,window,CustomEvent}=deps;
+  const {db,auth,firebase,hash,resolveChantierId,readKontrolMetadata,readKontrolTasks,readKontrolPhotos,window,CustomEvent}=deps;
   let pendingDirectControl=null;
   const DIRECT_CONTROL_TYPE="kontrolControlRecord";
   ${source}
   return {saveControlDirect};
 `)({
-  db,firebase,hash,auth:{currentUser:{uid:"test-user",email:"test@example.invalid"}},
+  db,firebase,hash,resolveChantierId:async details=>details.chantierId,auth:{currentUser:{uid:"test-user",email:"test@example.invalid"}},
   readKontrolMetadata:()=>input,
   readKontrolTasks:()=>[{taskId:"task-1",title:"Hall",status:"ok",comment:""}],
   readKontrolPhotos:()=>[],
