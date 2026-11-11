@@ -686,7 +686,7 @@
       if (saveControlBtn && saveControlBtn.dataset.ivDirectHistoryBound !== "1") {
         saveControlBtn.dataset.ivDirectHistoryBound = "1";
         saveControlBtn.textContent = "Enregistrer + PDF";
-        saveControlBtn.title = "Télécharger le PDF, puis enregistrer ce contrôle dans l’historique du chantier";
+        saveControlBtn.title = "Enregistrer ce contrôle dans la fiche résidence et télécharger son PDF";
         saveControlBtn.addEventListener("click", async event => {
           event.preventDefault();
           event.stopPropagation();
@@ -718,28 +718,42 @@
           }
 
           try {
-            // D'abord garantir l'historique Firebase, même si le PDF est lent
-            // ou impossible à télécharger sur le téléphone.
-            saveControlBtn.textContent = "Enregistrement Firebase…";
-            showToast("Enregistrement du contrôle dans l’historique de la résidence…");
-            await saveControlDirect();
-            controlSaved = true;
-            showToast("Contrôle enregistré. Préparation du PDF…");
+            let saveError = null;
+            let pdfError = null;
+            // Le contrôle est enregistré en premier, mais les deux opérations
+            // restent indépendantes : le PDF doit être disponible hors Firebase.
+            try {
+              saveControlBtn.textContent = "Enregistrement Firebase…";
+              showToast("Enregistrement du contrôle dans l’historique de la résidence…");
+              await saveControlDirect();
+              controlSaved = true;
+              showToast("Contrôle enregistré. Préparation du PDF…");
+            } catch (error) {
+              saveError = error;
+              console.error("Historique Firebase KONTROL non confirmé", error);
+            }
 
             if (!alreadyHasPdf) {
-              saveControlBtn.textContent = "Génération du PDF…";
-              child = frame.contentWindow;
-              if (!child) throw new Error("La fenêtre KONTROL n’est pas disponible pour générer le PDF");
-              const generate = child.InovtecGenerateControlPdf;
-              if (typeof generate !== "function") throw new Error("La fonction PDF KONTROL n’est pas prête. Recharge KONTROL et réessaie.");
-              hookPdfSave();
-              child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ = true;
-              child.__INOVTEC_PDF_PREVIEW_TAB__ = previewTab;
-              const pdfResult = await generate();
-              if (!pdfResult?.ok) throw new Error("Le PDF KONTROL n’a pas pu être généré correctement");
-              pdfReady = true;
-              pendingPdfFingerprint = fingerprint;
+              try {
+                saveControlBtn.textContent = "Génération du PDF…";
+                child = frame.contentWindow;
+                if (!child) throw new Error("La fenêtre KONTROL n’est pas disponible pour générer le PDF");
+                const generate = child.InovtecGenerateControlPdf;
+                if (typeof generate !== "function") throw new Error("La fonction PDF KONTROL n’est pas prête. Recharge KONTROL et réessaie.");
+                hookPdfSave();
+                child.__INOVTEC_SKIP_CLOUD_ARCHIVE_ONCE__ = true;
+                child.__INOVTEC_PDF_PREVIEW_TAB__ = previewTab;
+                const pdfResult = await generate();
+                if (!pdfResult?.ok) throw new Error("Le PDF KONTROL n’a pas pu être généré correctement");
+                pdfReady = true;
+                pendingPdfFingerprint = fingerprint;
+              } catch (error) {
+                pdfError = error;
+                console.error("Téléchargement PDF KONTROL impossible", error);
+              }
             }
+
+            if (saveError || pdfError) throw saveError || pdfError;
             pendingPdfFingerprint = "";
             saveControlBtn.textContent = "Enregistré + PDF ✓";
             showToast("Contrôle enregistré dans l’historique et PDF généré.");
@@ -747,14 +761,15 @@
               if (saveControlBtn.isConnected) saveControlBtn.textContent = oldText;
             }, 2200);
           } catch (error) {
-            console.error("Enregistrement KONTROL ou PDF impossible", error);
             saveControlBtn.textContent = controlSaved
               ? "Contrôle enregistré • Réessayer le PDF"
-              : "Réessayer l’enregistrement";
+              : pdfReady ? "PDF téléchargé • Réessayer Firebase" : "Réessayer";
             showToast(
               controlSaved
                 ? "Contrôle enregistré dans l’historique, mais le PDF n’a pas été téléchargé : " + (error?.message || "réessaie.")
-                : "Firebase n’a pas confirmé l’enregistrement du contrôle : " + (error?.message || "réessaie."),
+                : pdfReady
+                  ? "PDF téléchargé, mais Firebase n’a pas confirmé l’historique : " + (error?.message || "réessaie.")
+                  : "Contrôle non confirmé dans Firebase et PDF indisponible : " + (error?.message || "réessaie."),
               true
             );
           } finally {
