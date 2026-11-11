@@ -698,11 +698,17 @@ function bindSelectedSiteIndex(){
   if(unsubActivities){try{unsubActivities()}catch{}unsubActivities=null}
   activityLog=[];
   if(!siteId||!authUser)return;
+  // Cette requête porte déjà sur tous les documents de la résidence :
+  // ne pas ignorer les contrôles et PDF quand l'abonnement global est lent ou échoue.
+  // Le même flux temps réel alimente ainsi l'historique sur PC et mobile.
   unsubActivities=db.collection("chantiers").where("chantierId","==",siteId).onSnapshot(snap=>{
     if(selectedSiteId()!==siteId)return;
-    activityLog=snap.docs.map(x=>({__docId:x.id,...(x.data()||{})})).filter(x=>x._type==="residenceActivity");
+    const linkedRows=snap.docs.map(x=>({__docId:x.id,...(x.data()||{})}));
+    activityLog=linkedRows.filter(x=>x._type==="residenceActivity");
+    upsertRecords(linkedRows.filter(x=>x._type===RECORD_TYPE));
+    upsertMetas(linkedRows.filter(x=>x._type===META_TYPE));
     scheduleRender(0);
-  },error=>console.warn("Lecture journal de résidence indisponible",error));
+  },error=>console.warn("Lecture journal et contrôles de résidence indisponible",error));
   unsubSite=db.collection("chantiers").doc(siteId).onSnapshot(async snap=>{
     if(!snap.exists)return;
     const data=snap.data()||{};
