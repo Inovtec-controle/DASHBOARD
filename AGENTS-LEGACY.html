@@ -1232,20 +1232,31 @@ window.addEventListener("inovtec:agents-cloud-updated", function(ev){
 });
 
 function duplicateAgent(){
-  var agent = getSelectedAgent();
-  if(!agent) return;
-  var copy = JSON.parse(JSON.stringify(agent));
-  copy.id = uid("agent");
-  var now = new Date().toISOString();
-  copy.createdAt = now;
-  copy.updatedAt = now;
-  copy.identity = copy.identity || {};
-  copy.identity.nom = safeText(copy.identity.nom) ? (safeText(copy.identity.nom)+" (copie)") : "Copie";
-  state.agents.push(copy);
-  state.selectedId = copy.id;
-  rememberSelectedAgent(copy.id);
-  save();
+  var agent=getSelectedAgent();
+  if(!agent||agentSaveInFlight)return;
+  if(agentFormDirty&&!confirm("Des modifications ne sont pas enregistrées. Dupliquer la dernière version enregistrée ?"))return;
+  var sourceId=agent.id,previousAgents=state.agents.slice();
+  var copy=JSON.parse(JSON.stringify(agent));
+  copy.id=uid("agent");
+  var now=new Date().toISOString();
+  copy.createdAt=now;copy.updatedAt=now;
+  copy.identity=copy.identity||{};
+  copy.identity.nom=safeText(copy.identity.nom)?(safeText(copy.identity.nom)+" (copie)"):"Copie";
+  // Une duplication de fiche ne doit pas copier les incidents ni les pièces confidentielles.
+  copy.incidents=[];copy.docs=[];copy.archivedAt="";
+  delete copy._deleted;delete copy._draft;delete copy.deletedAt;
+  copy.job=copy.job||{};
+  copy.job.estTitulaire=false;copy.job.titulaireRemplaceId="";
+  agentFormDirty=false;
+  state.agents.push(copy);state.selectedId=copy.id;
   renderAll();
+  save().then(function(ok){
+    if(!ok){
+      state.agents=previousAgents;
+      if(state.selectedId===copy.id)state.selectedId=sourceId;
+      renderAll();
+    }
+  });
 }
 
 /* ===== Docs ===== */
@@ -1286,30 +1297,50 @@ function renderDocs(agent){
   }
 
   // events
+  async function ensureDocumentMedia(doc){
+    if(doc.dataUrl)return doc.dataUrl;
+    var cloud=await getAgentsCloud();
+    if(typeof cloud.readMedia!=="function")throw new Error("Lecture Firebase des documents indisponible");
+    var url=await cloud.readMedia(doc);
+    if(!url)throw new Error("Le document est introuvable sur Firebase");
+    doc.dataUrl=url;
+    return url;
+  }
   $all("[data-doc-open]").forEach(function(btn){
-    btn.onclick = function(){
-      var id = btn.getAttribute("data-doc-open");
-      var doc = agent.docs.find(function(x){return x.id===id;});
-      if(!doc) return;
-      openDataUrl(doc.dataUrl);
+    btn.onclick = async function(){
+      var id=btn.getAttribute("data-doc-open");
+      var doc=agent.docs.find(function(x){return x.id===id;});
+      if(!doc)return;
+      var tab=window.open("about:blank","_blank");
+      if(tab){try{tab.document.body.textContent="Ouverture du document…";}catch(e){}}
+      btn.disabled=true;btn.textContent="Chargement…";
+      try{await openDataUrl(await ensureDocumentMedia(doc),tab);}
+      catch(e){try{tab&&tab.close();}catch(_){}alert("Ouverture impossible : "+(e?.message||"document indisponible"));}
+      finally{btn.disabled=false;btn.textContent="Ouvrir";}
     };
   });
   $all("[data-doc-dl]").forEach(function(btn){
-    btn.onclick = function(){
-      var id = btn.getAttribute("data-doc-dl");
-      var doc = agent.docs.find(function(x){return x.id===id;});
-      if(!doc) return;
-      downloadDataUrl(doc.dataUrl, doc.name || "document");
+    btn.onclick = async function(){
+      var id=btn.getAttribute("data-doc-dl");
+      var doc=agent.docs.find(function(x){return x.id===id;});
+      if(!doc)return;
+      btn.disabled=true;btn.textContent="Chargement…";
+      try{downloadDataUrl(await ensureDocumentMedia(doc),doc.name||"document");}
+      catch(e){alert("Téléchargement impossible : "+(e?.message||"document indisponible"));}
+      finally{btn.disabled=false;btn.textContent="Télécharger";}
     };
   });
   $all("[data-doc-del]").forEach(function(btn){
-    btn.onclick = function(){
-      var id = btn.getAttribute("data-doc-del");
-      if(confirm("Supprimer ce document ?")){
-        agent.docs = agent.docs.filter(function(x){return x.id!==id;});
-        touchAgent(agent);
-        save();
-        renderAll();
+    btn.onclick = async function(){
+      var id=btn.getAttribute("data-doc-del");
+      if(!confirm("Supprimer ce document ?"))return;
+      var previousDocs=agent.docs.slice(),previousUpdated=agent.updatedAt;
+      agent.docs=agent.docs.filter(function(x){return x.id!==id;});
+      touchAgent(agent);renderDocs(agent);
+      var ok=await save();
+      if(!ok){
+        var current=state.agents.find(function(a){return a&&String(a.id)===String(agent.id);});
+        if(current){current.docs=previousDocs;current.updatedAt=previousUpdated;renderDocs(current);}
       }
     };
   });
@@ -1318,13 +1349,22 @@ function renderDocs(agent){
 function addDocuments(files){
   var agent = getSelectedAgent();
   if(!agent) return;
+  if(agentSaveInFlight||agentFormDirty||agent._draft){
+    showAgentNotice("Enregistre d’abord la fiche agent avant d’ajouter des documents.",true);
+    $("#docUpload").value="";
+    return;
+  }
   if(!agent.docs) agent.docs = [];
   var list = Array.prototype.slice.call(files || []);
   if(!list.length) return;
 
   (function loop(idx){
     if(idx >= list.length){
-      touchAgent(agent); save(); renderAll(); $("#docUpload").value = ""; return;
+      touchAgent(agent);
+      renderDocs(agent);
+      $("#docUpload").value="";
+      void save();
+      return;
     }
     var f = list[idx];
     if(f.size > 12*1024*1024){
@@ -1944,63 +1984,61 @@ function exportJSON(){
 }
 
 function importJSONFile(file){
-  var r = new FileReader();
-  r.onload = function(){
+  if(agentSaveInFlight)return;
+  if(agentFormDirty&&!confirm("Des modifications ne sont pas enregistrées. Continuer l’import ?"))return;
+  var r=new FileReader();
+  r.onload=async function(){
     try{
-      var data = JSON.parse(r.result);
-      var agents = Object.prototype.toString.call(data)==="[object Array]" ? data : data.agents;
-      if(!agents || Object.prototype.toString.call(agents)!=="[object Array]"){
-        alert("Format JSON non reconnu.");
-        return;
-      }
-      var existingDeleted = state.agents.filter(isDeletedAgent);
-      var deletedIds = new Set(existingDeleted.map(function(a){return String(a.id||"");}));
-      state.agents = existingDeleted.concat(agents.filter(function(a){return !deletedIds.has(String(a && a.id || ""));}));
+      var data=JSON.parse(r.result);
+      var agents=Array.isArray(data)?data:data&&data.agents;
+      if(!Array.isArray(agents)){alert("Format JSON non reconnu.");return;}
+      var previousAgents=state.agents.slice(),previousSelected=state.selectedId;
+      var byId=new Map(previousAgents.filter(function(a){return a&&a.id;}).map(function(a){return [String(a.id),a];}));
+      var count=0;
+      agents.forEach(function(a){
+        if(!a||!a.id||!agentHasName(a)||isDeletedAgent(byId.get(String(a.id))))return;
+        var item=JSON.parse(JSON.stringify(a));
+        item.updatedAt=new Date().toISOString();
+        delete item._draft;
+        byId.set(String(item.id),item);count++;
+      });
+      state.agents=Array.from(byId.values());
       cleanupAgentState();
-      var visible = activeAgents().slice().sort(function(a,b){return compareAgentsByLastName(a,b);});
-      state.selectedId = visible.length ? visible[0].id : null;
-      rememberSelectedAgent(state.selectedId);
-      save();
+      restoreSelectedAgent();agentFormDirty=false;
       renderAll();
-      alert("Import terminé ✅");
-    }catch(e){
-      console.warn(e);
-      alert("Impossible d’importer ce fichier JSON.");
-    }
+      var ok=await save();
+      if(!ok){state.agents=previousAgents;state.selectedId=previousSelected;renderAll();return;}
+      showAgentNotice("✓ Import Firebase confirmé : "+count+" fiche(s) intégrée(s), sans effacer les autres.",false);
+    }catch(e){console.warn(e);alert("Impossible d’importer ce fichier JSON.");}
   };
+  r.onerror=function(){alert("Le fichier d’import est illisible.");};
   r.readAsText(file);
 }
 
-function resetAll(){
-  if(confirm("Supprimer toutes les fiches agents ?\n\nLa suppression sera synchronisée afin que les anciennes fiches ne reviennent pas.")){
-    var now = new Date().toISOString();
-    state.agents = state.agents.map(function(agent){
-      if(isDeletedAgent(agent)) return agent;
-      var i = agent.identity || {};
-      return {
-        id: agent.id,
-        _deleted: true,
-        deletedAt: now,
-        updatedAt: now,
-        createdAt: agent.createdAt || now,
-        deletedDisplayName: (safeText(i.prenom)+" "+safeText(i.nom)).trim(),
-        identity:{prenom:safeText(i.prenom),nom:safeText(i.nom)},
-        job:{},docs:[],incidents:[]
-      };
-    });
-    state.selectedId = null;
-    rememberSelectedAgent(null);
-    state.search = "";
-    $("#search").value = "";
-    save();
-    renderAll();
-  }
+async function resetAll(){
+  if(agentSaveInFlight)return;
+  if(!confirm("Supprimer toutes les fiches agents ?\n\nLa suppression sera synchronisée afin que les anciennes fiches ne reviennent pas."))return;
+  var previousAgents=state.agents.slice(),previousSelected=state.selectedId;
+  var now=new Date().toISOString();
+  state.agents=state.agents.map(function(agent){
+    return isDeletedAgent(agent)?agent:makeAgentTombstone(agent,"suppression-generale");
+  });
+  state.selectedId=null;agentFormDirty=false;state.search="";
+  $("#search").value="";
+  renderAll();
+  var ok=await save();
+  if(!ok){state.agents=previousAgents;state.selectedId=previousSelected;renderAll();}
 }
 
 /* ===== Open / download / modal ===== */
-function openDataUrl(dataUrl){
-  var w = window.open(dataUrl,"_blank");
-  if(!w) alert("Popup bloquée, autorise les popups pour ouvrir le document.");
+async function openDataUrl(dataUrl,existingWindow){
+  if(!dataUrl)throw new Error("Fichier non chargé");
+  var blob=await (await fetch(dataUrl)).blob();
+  var url=URL.createObjectURL(blob);
+  var w=existingWindow||window.open("about:blank","_blank");
+  if(!w){URL.revokeObjectURL(url);throw new Error("Fenêtre bloquée : autorise les popups");}
+  w.location.href=url;
+  setTimeout(function(){URL.revokeObjectURL(url);},120000);
 }
 function downloadDataUrl(dataUrl, filename){
   var a = document.createElement("a");
