@@ -529,7 +529,93 @@ async function compactAgentMedia(rows,forceUpload=false,maxAgentBytes=MEDIA_TARG
 
   return result;
 }
-async function mutateAgentRows(reason,makeNext,{forceUpload=false,forceIncidentId='',verify}={}){
+/* Écriture directe des fiches via HTTPS Firestore : le même transport
+   authentifié que les incidents, avec précondition de version. Cela évite
+   les transactions WebChannel bloquées tout en protégeant les autres modules
+   du document kanban et les modifications concurrentes. */
+function agentsRestPayload(doc){
+  const fields=doc?.fields?.moduleSyncV1?.mapValue?.fields?.agents?.mapValue?.fields;
+  return fields?.payload?.stringValue??'[]';
+}
+async function agentsRestPatch(fields,updateTime,exists){
+  const account=firebase.auth().currentUser;
+  if(!account||!user||account.uid!==user.uid)throw Error('Compte Firebase déconnecté');
+  const project=window.INOVTEC_FIREBASE_CONFIG?.projectId;
+  if(!project)throw Error('Projet Firebase introuvable');
+  const params=new URLSearchParams();
+  params.set('updateMask.fieldPaths','moduleSyncV1.agents');
+  if(exists&&updateTime)params.set('currentDocument.updateTime',updateTime);
+  else if(!exists)params.set('currentDocument.exists','false');
+  else throw Error('Version Firebase introuvable : modification annulée pour protéger les données.');
+  const url='https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(project)
+    +'/databases/(default)/documents/kanban/'+encodeURIComponent(user.uid)+'?'+params.toString();
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+  try{
+    const token=await boundedFirebase(account.getIdToken(),10000,'Authentification Firebase');
+    const response=await fetch(url,{
+      method:'PATCH',mode:'cors',cache:'no-store',signal:controller.signal,
+      headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',Accept:'application/json'},
+      body:JSON.stringify({fields:{moduleSyncV1:{mapValue:{fields:{
+        agents:{mapValue:{fields:{
+          payload:{stringValue:fields.payload},
+          updatedAtMs:{integerValue:String(fields.updatedAtMs)},
+          version:{integerValue:'8'},
+          reason:{stringValue:fields.reason}
+        }}}
+      }}}}})
+    });
+    let body={};try{body=await response.json()}catch(_e){}
+    if(!response.ok){
+      const error=Error('Firestore HTTPS '+(body?.error?.status||response.status)+
+        ' : '+(body?.error?.message||'écriture refusée'));
+      error.code=body?.error?.status||String(response.status);
+      throw error;
+    }
+    if(account.uid!==firebase.auth().currentUser?.uid)throw Error('Compte Firebase modifié pendant la sauvegarde');
+  }catch(error){
+    if(error?.name==='AbortError'){
+      const timeout=Error('Écriture HTTPS Firebase trop lente (20 s)');
+      timeout.code='DEADLINE_EXCEEDED';throw timeout;
+    }
+    throw error;
+  }finally{clearTimeout(timer)}
+}
+async function mutateAgentRowsRest(reason,makeNext,{forceUpload=false,forceIncidentId='',verify}={}){
+  await waitReady();
+  for(let attempt=0;attempt<5;attempt++){
+    status('Firebase — enregistrement HTTPS des agents…');
+    let currentDoc=null;
+    try{currentDoc=await incidentRestDoc('kanban',user.uid,'GET')}
+    catch(error){if(!['NOT_FOUND','404'].includes(String(error?.code)))throw error}
+    const currentRaw=agentsRestPayload(currentDoc);
+    const current=parse(currentRaw,null);
+    if(!Array.isArray(current))throw Error('Données agents illisibles : écriture arrêtée pour éviter une perte');
+    const proposed=makeNext(clone(current));
+    const compact=await compactAgentMedia(proposed,forceUpload,MEDIA_TARGET_BYTES,forceIncidentId);
+    const written=payloadOf(compact);
+    try{
+      await agentsRestPatch({payload:written,updatedAtMs:Date.now(),reason},currentDoc?.updateTime,!!currentDoc);
+    }catch(error){
+      if(['FAILED_PRECONDITION','ABORTED','ALREADY_EXISTS','409','412'].includes(String(error?.code))&&attempt<4)continue;
+      throw error;
+    }
+    const confirmed=await incidentRestDoc('kanban',user.uid,'GET',null,{maskFields:['moduleSyncV1.agents']});
+    const actual=agentsRestPayload(confirmed);
+    const rows=parse(actual,null);
+    if(!Array.isArray(rows)||actual!==written||(verify&&!verify(rows))){
+      if(attempt<4)continue;
+      throw Error('Une autre synchronisation a modifié les agents avant la relecture. Réessaie.');
+    }
+    lastBaseRaw=actual;
+    lastRealtimePayload=null;
+    if(overlayLoaded)publishMerged();
+    else{lastRealtimePayload=actual;emit('inovtec:agents-cloud-updated',{payload:actual,confirmed:true})}
+    status('Firebase — agents enregistrés et relus ✓',true);
+    return rows;
+  }
+  throw Error('Conflit de synchronisation Firebase : réessaie après quelques secondes.');
+}
+async function mutateAgentRowsSdk(reason,makeNext,{forceUpload=false,forceIncidentId='',verify}={}){
   await waitReady();
   status('Firebase — enregistrement…');
   for(let attempt=0;attempt<3;attempt++){
@@ -571,6 +657,23 @@ async function mutateAgentRows(reason,makeNext,{forceUpload=false,forceIncidentI
     return rows;
   }
   throw Error('Modifications simultanées : réessaye l’enregistrement.');
+}
+async function mutateAgentRows(reason,makeNext,options={}){
+  // Privilégier HTTPS car la sauvegarde classique restait bloquée sur certains navigateurs.
+  // La transaction Firestore d'origine reste un secours sur échec réseau HTTPS.
+  try{return await mutateAgentRowsRest(reason,makeNext,options)}
+  catch(restError){
+    console.warn('Écriture Agents HTTPS indisponible',restError);
+    // Les rejets explicites doivent être affichés, pas masqués par un nouvel essai.
+    if(['PERMISSION_DENIED','UNAUTHENTICATED','RESOURCE_EXHAUSTED','INVALID_ARGUMENT','403','401'].includes(String(restError?.code)))
+      throw restError;
+    try{return await boundedFirebase(mutateAgentRowsSdk(reason,makeNext,options),19000,'Sauvegarde Firebase classique')}
+    catch(sdkError){
+      const message='Écriture HTTPS : '+(restError?.message||'erreur')+
+        ' ; sauvegarde classique : '+(sdkError?.code||sdkError?.message||'erreur');
+      const error=Error(message);error.code=sdkError?.code||restError?.code||'SAVE_FAILED';throw error;
+    }
+  }
 }
 async function readMedia(item){
   if(item?.dataUrl)return item.dataUrl;
@@ -621,7 +724,11 @@ async function saveAgent(agent){
       remote[idx]=updated;
     }else remote.push(clone(agent));
     return remote;
-  },{verify:rows=>rows.some(a=>String(a?.id||'')===id)});
+  },{verify:rows=>rows.some(a=>String(a?.id||'')===id
+    &&String(a.updatedAt||'')===String(agent.updatedAt||'')
+    &&JSON.stringify(a.identity||{})===JSON.stringify(agent.identity||{})
+    &&JSON.stringify(a.job||{})===JSON.stringify(agent.job||{})
+    &&String(a.archivedAt||'')===String(agent.archivedAt||''))});
   emit('inovtec:agent-cloud-saved',{id});
   return clone(results.find(a=>String(a?.id||'')===id));
 }
