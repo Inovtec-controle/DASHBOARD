@@ -474,10 +474,9 @@ async function readEncryptedMedia(item){
 async function uploadAgentMedia(item,agent,kind,incident){
   if(!item?.dataUrl||item?.ivStorageV1?.path)return item;
   const path=mediaStoragePath(item,agent,kind,incident);
-  if(!path)return item;
+  if(!path)return encryptedMediaChunks(item,agent,incident);
   if(!firebase.storage){
-    if(kind==='photo')return encryptedMediaChunks(item,agent,incident);
-    throw Error('Stockage Firebase indisponible');
+    return encryptedMediaChunks(item,agent,incident);
   }
   const blob=toDataBlob(item.dataUrl);
   if(blob.size>12*1024*1024)throw Error('Fichier trop lourd (maximum 12 Mo).');
@@ -488,8 +487,7 @@ async function uploadAgentMedia(item,agent,kind,incident){
   }catch(error){
     // Certaines installations n'ont pas publié les règles Storage :
     // chiffrer et répartir les photos dans la collection déjà utilisée.
-    if(kind==='photo')return encryptedMediaChunks(item,agent,incident);
-    throw Error('Impossible de stocker la pièce jointe dans Firebase Storage : '+(error?.code||error?.message||'accès refusé'));
+    return encryptedMediaChunks(item,agent,incident);
   }
   mediaCache.set(path,item.dataUrl);
   const result={...item,ivStorageV1:{version:1,path,type:blob.type,size:blob.size}};
@@ -507,8 +505,7 @@ async function compactAgentMedia(rows,forceUpload=false,maxAgentBytes=MEDIA_TARG
         return;
       }
       if(item.dataUrl){
-        const path=mediaStoragePath(item,agent,kind,incident);
-        if(path)candidates.push({item,agent,kind,incident,index,array,bytes:byteSize(item.dataUrl)});
+        candidates.push({item,agent,kind,incident,index,array,bytes:byteSize(item.dataUrl)});
       }
     };
     (agent.docs||[]).forEach((item,index,array)=>append(item,'document',null,index,array));
@@ -567,8 +564,10 @@ async function mutateAgentRows(reason,makeNext,{forceUpload=false,forceIncidentI
     const rows=parse(actual,null);
     if(!Array.isArray(rows)||verify&&!verify(rows))throw Error('Firebase n’a pas confirmé les données enregistrées.');
     status('Firebase — synchronisé',true);
-    lastRealtimePayload=actual;
-    emit('inovtec:agents-cloud-updated',{payload:actual,confirmed:true});
+    lastBaseRaw=actual;
+    lastRealtimePayload=null;
+    if(overlayLoaded)publishMerged();
+    else {lastRealtimePayload=actual;emit('inovtec:agents-cloud-updated',{payload:actual,confirmed:true});}
     return rows;
   }
   throw Error('Modifications simultanées : réessaye l’enregistrement.');
@@ -604,12 +603,12 @@ async function writeRows(rows,reason='agents-direct-save'){
       if(!previous||incomingAt>=previousAt){
         // Les incidents ajoutés au document privé ne doivent jamais être
         // dupliqués dans le document principal lors d'une sauvegarde globale.
-        map.set(key,previous?{...row,incidents:Array.isArray(previous.incidents)?previous.incidents:[]}:row);
+        map.set(key,previous&&!row._deleted?{...row,incidents:Array.isArray(previous.incidents)?previous.incidents:[]}:row);
       }
     }
     return Array.from(map.values());
   });
-  return clone(results);
+  return clone(overlayLoaded?mergeIncidentRows(results):results);
 }
 async function saveAgent(agent){
   if(!agent?.id)throw Error('Fiche agent invalide');
@@ -740,7 +739,7 @@ function start(u){
       status('Firebase — '+(err.code||err.message||'erreur'));
     });
   }
-  status('Firebase — connecté',true);
+  status('Firebase — connexion établie, lecture en cours');
   readyResolve();
 }
 function boot(){
