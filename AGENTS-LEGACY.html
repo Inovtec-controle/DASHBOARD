@@ -1160,6 +1160,9 @@ async function saveAgentForm(){
     if(typeof cloud.saveAgent!=="function") throw new Error("Service Firebase Agents indisponible");
     await cloud.saveAgent(agent);
     agentFormDirty=false;
+    var feedback=document.getElementById("ivAgentSaveErrorDetail");
+    if(feedback)feedback.remove();
+    if(btn)btn.removeAttribute("title");
     showAgentNotice("✓ Fiche enregistrée et relue dans Firebase.",false);
     row.setAttribute("data-save-state","saved");
     if(btn){
@@ -1173,9 +1176,23 @@ async function saveAgentForm(){
   }catch(e){
     console.error("Sauvegarde Firebase agent",e);
     row.setAttribute("data-save-state","error");
-    if(btn){btn.disabled=false;btn.textContent="Erreur Firebase — réessayer";}
+    if(btn){
+      btn.disabled=false;
+      btn.textContent="Erreur Firebase — réessayer";
+      btn.title="Erreur "+(e?.code||"Firebase")+" : "+(e?.message||"échec de la sauvegarde");
+    }
     agentFormDirty=true;
-    showAgentNotice("Impossible d’enregistrer la fiche : "+(e?.message||"erreur Firebase")+". Réessaie sans quitter la page.",true);
+    var detail=(e?.code?"["+e.code+"] ":"")+(e?.message||"erreur Firebase");
+    showAgentNotice("Enregistrement non confirmé : "+detail+". La fiche reste affichée pour réessayer.",true);
+    var feedback=document.getElementById("ivAgentSaveErrorDetail");
+    if(!feedback&&btn){
+      feedback=document.createElement("div");
+      feedback.id="ivAgentSaveErrorDetail";
+      feedback.setAttribute("role","alert");
+      feedback.style.cssText="width:100%;margin:8px 0 0;padding:9px 11px;border:1px solid #fecaca;border-radius:10px;background:#fff1f2;color:#991b1b;font:600 12px/1.4 Inter,system-ui,sans-serif;white-space:normal;word-break:break-word";
+      btn.parentElement?.appendChild(feedback);
+    }
+    if(feedback)feedback.textContent="Détail Firebase : "+detail;
     return false;
   }finally{
     savingInputs.forEach(function(input,index){if(input.isConnected)input.disabled=savedDisabled[index];});
