@@ -710,7 +710,17 @@ async function writeRows(rows,reason='agents-direct-save'){
       }
     }
     return Array.from(map.values());
-  });
+  },{verify:rows=>incoming.every(requested=>{
+    const actual=rows.find(a=>String(a?.id||'')===String(requested.id));
+    if(!actual)return false;
+    if(requested._deleted===true)return actual._deleted===true;
+    return actual._deleted!==true
+      &&String(actual.updatedAt||'')===String(requested.updatedAt||'')
+      &&String(actual.archivedAt||'')===String(requested.archivedAt||'')
+      &&JSON.stringify(actual.identity||{})===JSON.stringify(requested.identity||{})
+      &&JSON.stringify(actual.job||{})===JSON.stringify(requested.job||{})
+      &&JSON.stringify((actual.docs||[]).map(d=>d.id))===JSON.stringify((requested.docs||[]).map(d=>d.id));
+  })});
   return clone(overlayLoaded?mergeIncidentRows(results):results);
 }
 async function saveAgent(agent){
