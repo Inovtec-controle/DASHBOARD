@@ -100,6 +100,93 @@ let incidentCrypto=null,incidentCryptoBytes=null,incidentCryptoEpoch=-1,secureIn
 const secureCollection=()=>db.collection('chantiers');
 const b64bytes=bytes=>btoa(Array.from(bytes,byte=>String.fromCharCode(byte)).join(''));
 const unb64=text=>Uint8Array.from(atob(String(text||'')),character=>character.charCodeAt(0));
+
+/* Transport HTTPS de secours pour les incidents. Le jeton Firebase utilisateur
+   conserve les contrôles d'accès Firestore et les contenus restent chiffrés. */
+function boundedFirebase(promise,ms,description){
+  let timer;
+  return Promise.race([promise,new Promise((_,reject)=>{
+    timer=setTimeout(()=>reject(Error(description+' : délai réseau dépassé')),ms);
+  })]).finally(()=>clearTimeout(timer));
+}
+async function incidentRestDoc(collection,id,method='GET',data=null,options={}){
+  const account=firebase.auth().currentUser;
+  if(!account||!user||account.uid!==user.uid)throw Error('Session Firebase expirée : reconnecte-toi.');
+  const project=window.INOVTEC_FIREBASE_CONFIG?.projectId;
+  if(!project)throw Error('Configuration Firebase introuvable.');
+  const params=new URLSearchParams();
+  if(method==='PATCH'){
+    Object.keys(data||{}).forEach(k=>params.append('updateMask.fieldPaths',k));
+    if(options.updateTime)params.set('currentDocument.updateTime',options.updateTime);
+    if(options.exists===false)params.set('currentDocument.exists','false');
+  }
+  if(options.maskFields)options.maskFields.forEach(k=>params.append('mask.fieldPaths',k));
+  const url='https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(project)
+    +'/databases/(default)/documents/'+encodeURIComponent(collection)+'/'+encodeURIComponent(String(id))
+    +(params.toString()?'?'+params.toString():'');
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+  try{
+    const token=await boundedFirebase(account.getIdToken(),10000,'Identification Firebase');
+    const request={method,headers:{Authorization:'Bearer '+token,Accept:'application/json'},signal:controller.signal,cache:'no-store'};
+    if(method==='PATCH'){
+      request.headers['Content-Type']='application/json';
+      const fields={};
+      Object.entries(data||{}).forEach(([key,value])=>{
+        fields[key]=typeof value==='boolean'?{booleanValue:value}
+          :typeof value==='number'?{integerValue:String(value)}
+          :{stringValue:String(value??'')};
+      });
+      request.body=JSON.stringify({fields});
+    }
+    const response=await fetch(url,request);
+    let result={};try{result=await response.json()}catch(_e){}
+    if(!response.ok){
+      const code=result?.error?.status||String(response.status);
+      const error=Error('Firebase '+code+' : '+(result?.error?.message||'requête refusée'));
+      error.code=code;throw error;
+    }
+    if(account.uid!==firebase.auth().currentUser?.uid)throw Error('Compte Firebase modifié pendant la sauvegarde.');
+    return result;
+  }catch(error){
+    if(error?.name==='AbortError'){
+      const timeout=Error('Connexion HTTPS Firebase trop lente');timeout.code='DEADLINE_EXCEEDED';throw timeout;
+    }
+    throw error;
+  }finally{clearTimeout(timer)}
+}
+async function incidentSecretRest(create){
+  const field='_ivIncidentEncryptionKeyV1';
+  for(let attempt=0;attempt<(create?6:1);attempt++){
+    let doc=null;
+    try{doc=await incidentRestDoc('kanban',user.uid,'GET',null,{maskFields:[field]})}
+    catch(error){if(error?.code!=='NOT_FOUND'&&error?.code!=='404')throw error}
+    const existing=doc?.fields?.[field]?.stringValue;
+    if(existing||!create)return existing||null;
+    const proposed=b64bytes(crypto.getRandomValues(new Uint8Array(32)));
+    try{
+      await incidentRestDoc('kanban',user.uid,'PATCH',{[field]:proposed},
+        doc?.updateTime?{updateTime:doc.updateTime}:{exists:false});
+      return proposed;
+    }catch(error){
+      if(['ABORTED','FAILED_PRECONDITION','ALREADY_EXISTS','409','412'].includes(error?.code))continue;
+      throw error;
+    }
+  }
+  throw Error('Le document Firebase a changé plusieurs fois : réessaie.');
+}
+async function saveEncryptedDoc(docId,body){
+  try{
+    const saved=await incidentRestDoc('chantiers',docId,'PATCH',body);
+    if(saved?.fields?.encryptedPayload?.stringValue!==body.encryptedPayload)
+      throw Error('Firebase n’a pas confirmé le contenu chiffré.');
+    return;
+  }catch(error){
+    if(['PERMISSION_DENIED','UNAUTHENTICATED','INVALID_ARGUMENT','RESOURCE_EXHAUSTED','403','401'].includes(error?.code))throw error;
+    console.warn('Transport REST incident, reprise Firestore SDK',error?.message||error);
+    await boundedFirebase(secureCollection().doc(docId).set(body),18000,'Écriture Firestore');
+  }
+}
+
 function requireCrypto(){
   if(!window.crypto?.subtle||!window.crypto?.getRandomValues)
     throw Error('Le chiffrement nécessaire aux incidents est indisponible. Ouvre KONTROL avec HTTPS.');
@@ -108,26 +195,31 @@ async function getIncidentCrypto(create=false){
   requireCrypto();
   if(incidentCrypto&&incidentCryptoEpoch===authEpoch)return incidentCrypto;
   if(!ref||!user)throw Error('Connexion Firebase requise');
-  const snap=await ref.get({source:'server'});
-  let secret=snap.exists?snap.data()?._ivIncidentEncryptionKeyV1:null;
-  if(!secret&&create){
-    // Écriture minuscule et isolée dans le document personnel. Ne pas
-    // remplacer les autres données (planning, fiches, anciennes pièces).
-    await db.runTransaction(async tx=>{
-      const current=await tx.get(ref);
-      secret=current.exists?current.data()?._ivIncidentEncryptionKeyV1:null;
-      if(!secret){
-        secret=b64bytes(crypto.getRandomValues(new Uint8Array(32)));
-        tx.set(ref,{_ivIncidentEncryptionKeyV1:secret},{merge:true});
-      }
-    });
+  const epoch=authEpoch;
+  let secret=null;
+  try{secret=await incidentSecretRest(create)}
+  catch(error){
+    if(['PERMISSION_DENIED','UNAUTHENTICATED','403','401'].includes(error?.code))throw error;
+    console.warn('Clé privée incidents : reprise Firestore SDK',error?.message||error);
+    const snap=await boundedFirebase(ref.get({source:'server'}),16000,'Lecture de la clé Firebase');
+    secret=snap.exists?snap.data()?._ivIncidentEncryptionKeyV1:null;
+    if(!secret&&create){
+      await boundedFirebase(db.runTransaction(async tx=>{
+        const current=await tx.get(ref);
+        secret=current.exists?current.data()?._ivIncidentEncryptionKeyV1:null;
+        if(!secret){
+          secret=b64bytes(crypto.getRandomValues(new Uint8Array(32)));
+          tx.set(ref,{_ivIncidentEncryptionKeyV1:secret},{merge:true});
+        }
+      }),18000,'Création de la clé Firebase');
+    }
   }
+  if(epoch!==authEpoch)throw Error('Compte Firebase modifié pendant la sauvegarde.');
   if(!secret)return null;
   const bytes=unb64(secret);
   if(bytes.length!==32)throw Error('Clé personnelle des incidents invalide');
   incidentCrypto=await crypto.subtle.importKey('raw',bytes,{name:'AES-GCM'},false,['encrypt','decrypt']);
-  incidentCryptoBytes=bytes;
-  incidentCryptoEpoch=authEpoch;
+  incidentCryptoBytes=bytes;incidentCryptoEpoch=epoch;
   return incidentCrypto;
 }
 async function secureIncidentDocumentId(agentId,incidentId){
@@ -174,7 +266,7 @@ async function persistEncryptedIncident(record){
   await getIncidentCrypto(true);
   const docId=await secureIncidentDocumentId(record.agentId,record.incidentId);
   const ciphertext=await sealIncidentRecord(record);
-  await secureCollection().doc(docId).set(ciphertext);
+  await saveEncryptedDoc(docId,ciphertext);
   return record;
 }
 async function refreshEncryptedIncidentOverlay(){
@@ -337,7 +429,7 @@ async function encryptedMediaChunks(item,agent,incident){
   if(!raw.startsWith('data:'))throw Error('Photo illisible');
   const baseId=await secureIncidentDocumentId(agent.id,String(incident?.id||'doc')+'|'+String(item.id||item.name||'photo'));
   const chunks=[];
-  const chunkSize=140000;
+  const chunkSize=400000;
   for(let i=0;i<raw.length;i+=chunkSize)chunks.push(raw.slice(i,i+chunkSize));
   if(chunks.length>120)throw Error('Photo trop volumineuse, maximum 12 Mo.');
   const ids=chunks.map((_,i)=>'__iv_agent_photo_'+baseId.slice(15)+'_'+String(i).padStart(3,'0'));
@@ -346,7 +438,7 @@ async function encryptedMediaChunks(item,agent,incident){
       const index=offset+i,iv=crypto.getRandomValues(new Uint8Array(12));
       const encoded=new TextEncoder().encode(part);
       const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},incidentCrypto,encoded));
-      await secureCollection().doc(ids[index]).set({
+      await saveEncryptedDoc(ids[index],{
         _hidden:true,_type:'inovtecPrivateEncryptedIncidentPhotoV1',
         ownerUid:String(user.uid),iv:b64bytes(iv),encryptedPayload:b64bytes(encrypted),version:1
       });
@@ -390,7 +482,9 @@ async function uploadAgentMedia(item,agent,kind,incident){
   const blob=toDataBlob(item.dataUrl);
   if(blob.size>12*1024*1024)throw Error('Fichier trop lourd (maximum 12 Mo).');
   try{
-    await firebase.storage().ref().child(path).put(blob,{contentType:blob.type});
+    const task=firebase.storage().ref().child(path).put(blob,{contentType:blob.type});
+    try{await boundedFirebase(task,15000,'Envoi de la photo Firebase Storage')}
+    catch(error){try{task.cancel()}catch(_e){}throw error}
   }catch(error){
     // Certaines installations n'ont pas publié les règles Storage :
     // chiffrer et répartir les photos dans la collection déjà utilisée.
