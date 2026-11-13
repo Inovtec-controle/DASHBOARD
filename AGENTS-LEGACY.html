@@ -1367,13 +1367,13 @@ function hydrateAgentMedia(agentId){
 }
 async function waitForIncidentFirebase(promise,hasPhotos){
   var timer;
-  var deadline=hasPhotos?60000:25000;
+  var deadline=hasPhotos?150000:55000;
   try{
     return await Promise.race([
       promise,
       new Promise(function(_resolve,reject){
         timer=setTimeout(function(){
-          reject(new Error("Firebase ne répond pas après "+Math.round(deadline/1000)+" secondes. La saisie est conservée, réessaie ou actualise pour vérifier l’enregistrement."));
+          reject(new Error("Firebase n’a pas confirmé l’enregistrement après "+Math.round(deadline/1000)+" secondes. La saisie est conservée ; vérifie la connexion avant de réessayer."));
         },deadline);
       })
     ]);
