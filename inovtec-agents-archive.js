@@ -93,6 +93,7 @@ function install(){
           if(!validAgent(agent)||restore.disabled)return;
           if(w.agentFormHasUnsavedChanges?.()&&!w.confirm("Une fiche contient des modifications non enregistrées. Continuer ?"))return;
           const previousArchive=agent.archivedAt,previousUpdated=agent.updatedAt,previousSelected=w.state.selectedId;
+          w.discardAgentFormChanges?.();
           restore.disabled=true;restore.textContent="Restauration…";
           agent.archivedAt="";agent.updatedAt=new Date().toISOString();
           w.state.selectedId=agent.id;
@@ -149,6 +150,7 @@ function install(){
         if(w.agentFormHasUnsavedChanges?.()&&!w.confirm("Les modifications en cours ne sont pas enregistrées. Archiver la dernière version enregistrée ?"))return;
         if(!w.confirm(`Archiver ${label(agent)} ? La fiche restera conservée et pourra être restaurée depuis « Agents archivés ».`))return;
         const previousArchive=agent.archivedAt,previousUpdated=agent.updatedAt,previousSelected=w.state.selectedId;
+        w.discardAgentFormChanges?.();
         archiveBtn.disabled=true;
         agent.archivedAt=new Date().toISOString();
         agent.updatedAt=agent.archivedAt;
