@@ -60,7 +60,7 @@ if((new URLSearchParams(location.search).get("mode")||"").toLowerCase()==="agent
 {
   const shellMode=(new URLSearchParams(location.search).get("mode")||"").toLowerCase();
   if(shellMode==="agents"){
-    document.write('<script src="inovtec-agents-firebase-direct.js?v=20261013-incidents-encrypted-working1"><\/script>');
+    document.write('<script src="inovtec-agents-firebase-direct.js?v=20261113-incident-rest-resilient1"><\/script>');
   }else if(shellMode!=="kontrol"&&shellMode!=="planning"){
     document.write('<script src="inovtec-cloud-sync.js?v=20260927-authfix1"><\/script>');
   }
