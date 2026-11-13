@@ -1146,6 +1146,11 @@ async function saveAgentForm(){
 
   var btn=$("#btnSaveAgent");
   agentSaveInFlight=true;
+  // Bloquer la modification des champs seulement pendant cette écriture :
+  // une frappe tardive ne doit pas être prise à tort pour une donnée sauvegardée.
+  var savingInputs=$all('[id^="f_"]');
+  var savedDisabled=savingInputs.map(function(input){return input.disabled;});
+  savingInputs.forEach(function(input){input.disabled=true;});
   if(btn){btn.disabled=true;btn.textContent="Enregistrement Firebase…";}
 
   // 2. Écriture directe de CET agent dans Firebase.
@@ -1173,6 +1178,7 @@ async function saveAgentForm(){
     showAgentNotice("Impossible d’enregistrer la fiche : "+(e?.message||"erreur Firebase")+". Réessaie sans quitter la page.",true);
     return false;
   }finally{
+    savingInputs.forEach(function(input,index){if(input.isConnected)input.disabled=savedDisabled[index];});
     agentSaveInFlight=false;
     if(btn)btn.disabled=false;
   }
