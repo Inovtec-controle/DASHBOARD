@@ -89,28 +89,42 @@ function install(){
         info.append(strong,meta);
         const actions=d.createElement("div");actions.className="ivArchiveActions";
         const restore=d.createElement("button");restore.type="button";restore.className="ivRestoreBtn";restore.textContent="Restaurer";
-        restore.onclick=()=>{
-          if(!validAgent(agent))return;
-          agent.archivedAt="";
-          agent.updatedAt=new Date().toISOString();
+        restore.onclick=async()=>{
+          if(!validAgent(agent)||restore.disabled)return;
+          if(w.agentFormHasUnsavedChanges?.()&&!w.confirm("Une fiche contient des modifications non enregistrées. Continuer ?"))return;
+          const previousArchive=agent.archivedAt,previousUpdated=agent.updatedAt,previousSelected=w.state.selectedId;
+          restore.disabled=true;restore.textContent="Restauration…";
+          agent.archivedAt="";agent.updatedAt=new Date().toISOString();
           w.state.selectedId=agent.id;
-          try{w.rememberSelectedAgent?.(agent.id)}catch{}
-          w.save();
-          w.renderAll();
-          renderArchives();
+          w.renderAll();renderArchives();
+          const ok=await w.save();
+          if(!ok){
+            agent.archivedAt=previousArchive;agent.updatedAt=previousUpdated;
+            w.state.selectedId=previousSelected;
+            w.renderAll();renderArchives();
+          }
+          restore.disabled=false;restore.textContent="Restaurer";
         };
         const del=d.createElement("button");del.type="button";del.className="ivDeleteArchivedBtn";del.textContent="Supprimer définitivement";
-        del.onclick=()=>{
+        del.onclick=async()=>{
+          if(del.disabled)return;
           if(!w.confirm(`Supprimer définitivement la fiche de ${label(agent)} ? La suppression sera synchronisée et ne pourra plus être restaurée.`))return;
+          const previousAgents=w.state.agents.slice(),previousSelected=w.state.selectedId;
           const tombstone=typeof w.makeAgentTombstone==="function"
             ?w.makeAgentTombstone(agent,"suppression-archives")
             :{id:agent.id,_deleted:true,deletedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdAt:agent.createdAt||new Date().toISOString(),deletedDisplayName:label(agent),identity:{prenom:String(agent?.identity?.prenom||""),nom:String(agent?.identity?.nom||"")},job:{},docs:[],incidents:[]};
+          del.disabled=true;del.textContent="Suppression…";
           w.state.agents=w.state.agents.map(a=>a?.id===agent.id?tombstone:a);
           selectFirstActive();
-          w.save();
-          try{w.dispatchEvent(new CustomEvent("inovtec:agent-deleted",{detail:{id:agent.id,name:label(agent),deletedAt:new Date().toISOString(),source:"archives"}}))}catch{}
-          w.renderAll();
-          renderArchives();
+          w.renderAll();renderArchives();
+          const ok=await w.save();
+          if(!ok){
+            w.state.agents=previousAgents;w.state.selectedId=previousSelected;
+            w.renderAll();renderArchives();
+          }else{
+            try{w.dispatchEvent(new CustomEvent("inovtec:agent-deleted",{detail:{id:agent.id,name:label(agent),deletedAt:new Date().toISOString(),source:"archives"}}))}catch{}
+          }
+          del.disabled=false;del.textContent="Supprimer définitivement";
         };
         actions.append(restore,del);row.append(info,actions);body.appendChild(row);
       });
@@ -129,16 +143,23 @@ function install(){
     const deleteBtn=d.getElementById("btnDeleteAgent");
     const archiveBtn=d.getElementById("btnArchiveAgent");
     if(archiveBtn){
-      archiveBtn.onclick=()=>{
+      archiveBtn.onclick=async()=>{
         const agent=w.getSelectedAgent?.();
-        if(!validAgent(agent)||agent?.archivedAt)return;
+        if(!validAgent(agent)||agent?.archivedAt||archiveBtn.disabled)return;
+        if(w.agentFormHasUnsavedChanges?.()&&!w.confirm("Les modifications en cours ne sont pas enregistrées. Archiver la dernière version enregistrée ?"))return;
         if(!w.confirm(`Archiver ${label(agent)} ? La fiche restera conservée et pourra être restaurée depuis « Agents archivés ».`))return;
+        const previousArchive=agent.archivedAt,previousUpdated=agent.updatedAt,previousSelected=w.state.selectedId;
+        archiveBtn.disabled=true;
         agent.archivedAt=new Date().toISOString();
         agent.updatedAt=agent.archivedAt;
-        selectFirstActive();
-        w.save();
-        w.renderAll();
-        updateArchiveButton();
+        selectFirstActive();w.renderAll();updateArchiveButton();
+        const ok=await w.save();
+        if(!ok){
+          agent.archivedAt=previousArchive;agent.updatedAt=previousUpdated;
+          w.state.selectedId=previousSelected;
+          w.renderAll();updateArchiveButton();
+        }
+        archiveBtn.disabled=false;
       };
     }
     if(deleteBtn){
