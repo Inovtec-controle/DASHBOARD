@@ -112,24 +112,6 @@ if(typeof window.renderList==='function'){
   const original=window.renderList;
   window.renderList=function(...args){const result=original.apply(this,args);decorateList();return result;};
 }
-// La sauvegarde de estTitulaire / titulaireRemplaceId est centralisée dans
-// saveAgentForm() de la fiche Agents afin de garder un seul chemin d'enregistrement.
-if(typeof window.duplicateAgent==='function'){
-  const original=window.duplicateAgent;
-  window.duplicateAgent=function(...args){
-    const source=selected();
-    const result=original.apply(this,args);
-    const copy=selected();
-    if(copy&&copy!==source){
-      copy.job=copy.job||{};
-      // Une fiche dupliquée ne crée pas automatiquement un deuxième titulaire.
-      copy.job.estTitulaire=false;
-      copy.job.titulaireRemplaceId='';
-      if(typeof touchAgent==='function')touchAgent(copy);
-      if(typeof save==='function')save();
-      if(typeof renderAll==='function')renderAll();
-    }
-    return result;
-  };
-}
+// La sauvegarde de estTitulaire / titulaireRemplaceId et la duplication
+// sont centralisées dans AGENTS-LEGACY.html pour éviter une seconde écriture concurrente.
 })();
