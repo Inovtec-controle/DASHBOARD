@@ -1,0 +1,39 @@
+
+/* Jauge discrète d'occupation du document personnel Firestore */
+.iv-cap-widget{flex:0 0 155px;min-width:155px;max-width:190px;border:1px solid #dbe8df;border-radius:12px;background:#fff;padding:8px 11px;display:grid;gap:5px;text-align:left;color:#214434;font:inherit;cursor:pointer;box-shadow:0 5px 15px rgba(16,55,32,.05)}
+.iv-cap-widget:hover,.iv-cap-widget:focus-visible{border-color:#168a55;outline:none}
+.iv-cap-widget-head{display:flex;align-items:center;justify-content:space-between;gap:6px;white-space:nowrap}
+.iv-cap-widget-head small{font-size:10px;font-weight:700}
+.iv-cap-widget-head strong{font-size:12px}
+.iv-cap-meter{height:7px;border-radius:10px;background:#e7eee9;overflow:hidden;width:100%}
+.iv-cap-meter-fill{width:0;height:100%;background:#17814f;transition:width .35s ease}
+.iv-cap-widget[data-level="warning"] .iv-cap-meter-fill{background:#d4a11a}
+.iv-cap-widget[data-level="urgent"] .iv-cap-meter-fill{background:#e27722}
+.iv-cap-widget[data-level="critique"] .iv-cap-meter-fill{background:#d73d35}
+.iv-cap-widget[data-level="unknown"] .iv-cap-meter-fill{background:#9ca3af}
+.iv-cap-modal-open{overflow:hidden}
+.iv-cap-modal[hidden]{display:none!important}
+.iv-cap-modal{position:fixed;inset:0;z-index:1002;background:rgba(9,30,19,.66);display:flex;justify-content:center;align-items:center;padding:14px;overflow:auto}
+.iv-cap-dialog{width:min(590px,100%);max-height:min(90vh,820px);overflow:auto;background:#fff;border-radius:17px;padding:22px;color:#173729;box-shadow:0 25px 75px rgba(0,0,0,.28)}
+.iv-cap-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.iv-cap-dialog h2{font-size:20px;margin:0 0 5px}
+.iv-cap-dialog h3{font-size:15px;margin:17px 0 8px}
+.iv-cap-dialog p{font-size:13px;line-height:1.5;color:#496052;margin:7px 0}
+.iv-cap-dialog small{font-size:11px}
+.iv-cap-detail{padding:11px 12px;background:#f4f8f5;border-radius:10px;margin:14px 0;font-size:13px}
+.iv-cap-detail strong{font-size:18px;display:block;margin-bottom:3px}
+.iv-cap-detail span{color:#566a60}
+.iv-cap-alert{padding:10px 12px;background:#fff7e5;border:1px solid #f1e0b9;border-radius:9px}
+.iv-cap-breakdown{font-size:12px;line-height:1.7;overflow-wrap:anywhere}
+.iv-cap-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.iv-cap-btn{font:inherit;font-weight:700;font-size:12px;border-radius:10px;border:1px solid #cbded2;background:#fff;color:#146d42;padding:10px 12px;cursor:pointer}
+.iv-cap-btn.primary{color:#fff;background:#087a3e;border-color:#087a3e}
+.iv-cap-btn.close{padding:5px 10px;font-size:20px;line-height:1}
+.iv-cap-btn:focus-visible{outline:2px solid #0b8f49;outline-offset:2px}
+.iv-cap-select{border:1px solid #cbded2;border-radius:8px;padding:9px;font:inherit;font-size:12px}
+.iv-cap-feedback{margin-top:13px;border-radius:8px;background:#eff7f2;padding:10px;font-size:12px;line-height:1.5}
+.iv-cap-feedback[data-error="1"]{background:#fff0ef;color:#8a2521}
+.iv-cap-private{font-size:12px!important;color:#885a15!important}
+@media(max-width:1100px){.iv-cap-widget{flex-basis:135px;min-width:135px}}
+@media(max-width:860px){.iv-cap-widget{order:2;flex:1 1 100%;max-width:none}}
+@media(max-width:520px){.iv-cap-dialog{padding:17px}.iv-cap-widget{flex-basis:100%}}
