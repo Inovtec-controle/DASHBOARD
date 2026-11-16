@@ -112,6 +112,13 @@ $('read').addEventListener('click',async()=>{
    const modules=info.moduleSyncV1&&typeof info.moduleSyncV1==='object'?info.moduleSyncV1:{};
    const biggest=Object.entries(modules).map(([name,value])=>({name,size:approxBytes(value)})).sort((a,b)=>b.size-a.size).slice(0,5);
    if(biggest.length)add('MODULES LES PLUS VOLUMINEUX',biggest.map(x=>x.name+' '+kib(x.size)).join(' ; '));
+   const master=info?.moduleSyncV1?.planning?.payload;
+   const oldBackup=info?.planningDirectV1?.payload;
+   if(typeof oldBackup==="string"&&oldBackup){
+     add("DOUBLE COPIE DU PLANNING",master===oldBackup
+       ?"Copies strictement identiques ; la copie principale peut être conservée"
+       :"Copies différentes ; ne pas supprimer avant vérification");
+   }else add("DOUBLE COPIE DU PLANNING","Aucun doublon de planning détecté");
    if(personalApproxBytes>900*1024)add('ATTENTION TAILLE','document proche de la limite : ne pas retirer ou vider les données');
    await within(db.collection('chantiers').limit(1).get({source:'server'}),18000);
    add('LECTURE CHANTIERS','OK depuis le serveur');readPassed=true;$('write').hidden=false;$('write').disabled=false;status('Lecture Firebase confirmée. Tu peux tester une écriture temporaire.');
