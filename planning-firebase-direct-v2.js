@@ -199,7 +199,11 @@ async function writeFirebase(payload,source="planning"){
       const backup=current?.planningDirectV1||null;
       const primaryPayload=typeof primary?.payload==="string"&&validPayload(primary.payload)?primary.payload:"";
       const backupPayload=typeof backup?.payload==="string"&&validPayload(backup.payload)?backup.payload:"";
-      const remote=backupPayload||primaryPayload;
+      // Si les deux anciennes copies divergent, ne surtout pas perdre de données.
+      if(primaryPayload&&backupPayload&&primaryPayload!==backupPayload){
+        throw Error("Planning Firebase : deux versions divergentes. Aucune version supprimée.");
+      }
+      const remote=primaryPayload||backupPayload;
       written=remote&&remote!==baseBeforeWrite&&remote!==payload
         ?mergePlanningPayload(baseBeforeWrite,payload,remote)
         :payload;
@@ -214,14 +218,8 @@ async function writeFirebase(payload,source="planning"){
           version:7,
           protocol:"firebase-direct"
         }},
-        planningDirectV1:{
-          payload:written,
-          updatedAtMs:stamp,
-          client,
-          writeId,
-          version:2,
-          protocol:"firebase-direct"
-        }
+        // Le planning est désormais stocké une seule fois, dans moduleSyncV1.planning.
+        planningDirectV1:firebase.firestore.FieldValue.delete()
       },{merge:true});
     });
     if(token!==generation)return;
@@ -232,7 +230,7 @@ async function writeFirebase(payload,source="planning"){
     const backup=data?.planningDirectV1||null;
     const actual=typeof entry?.payload==="string"&&validPayload(entry.payload)?entry.payload:"";
     const direct=typeof backup?.payload==="string"&&validPayload(backup.payload)?backup.payload:"";
-    const confirmed=entry?.writeId===writeId||backup?.writeId===writeId||direct===written||actual===written;
+    const confirmed=entry?.writeId===writeId&&actual===written&&!backup?.payload;
     if(!confirmed){
       // Une autre page/appareil a écrit juste après notre transaction.
       // Ce n'est pas un échec Firebase : on refusionne silencieusement avec
