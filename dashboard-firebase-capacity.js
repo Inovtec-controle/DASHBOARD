@@ -25,6 +25,8 @@ function render(data,server=true){
  if(root){root.dataset.level=lvl.name;root.setAttribute("aria-label","Document Firebase principal : "+pct+" pour cent utilisé")}
  if(label)label.textContent=pct+" %";
  if(meter){meter.style.width=Math.min(100,Math.max(0,pct))+"%";meter.setAttribute("aria-valuenow",String(Math.max(0,Math.min(100,pct))))}
+ const modalMeter=$("ivCapModalBar");
+ if(modalMeter)modalMeter.style.width=Math.min(100,Math.max(0,pct))+"%";
  const state=$("ivCapState"),size=$("ivCapSize"),alert=$("ivCapAlert"),details=$("ivCapBreakdown");
  if(state)state.textContent=server?"Document principal — "+pct+" %":"Mesure non vérifiée";
  if(size)size.textContent=kib(bytes)+" / 1 024 Kio (estimation JSON)";
@@ -115,7 +117,7 @@ async function exportOldWeeks(){
    const months=Number($("ivCapMonths")?.value||12);
    const list=oldWeeks(planning,months);
    if(!list.length){setMessage("Aucune semaine antérieure à "+months+" mois à exporter. Aucun changement réalisé.");return}
-   const weeks=Object.fromEntries(list);
+   const weeks={};list.forEach(([key,rows])=>{weeks[key]=rows});
    const archive={format:"inovtec-planning-weeks-archive-v1",createdAt:new Date().toISOString(),projectId:"inovtec-chantiers",accountUid:signedUid,olderThanMonths:months,weekCount:list.length,agents:planning.agents||[],weeks};
    download("INOVTEC-anciennes-semaines-"+months+"mois-"+fileStamp()+".json",archive);
    setMessage(list.length+" semaine(s) copiée(s) dans une archive JSON. Rien n'a été effacé de Firebase.");
