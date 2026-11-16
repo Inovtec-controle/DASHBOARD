@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="dashboard-concept3.css?v=20260829-readability20-2">
 <link rel="stylesheet" href="dashboard-conges-overview.css?v=20261012-overview1">
 <link rel="stylesheet" href="inovtec-firebase-indicator.css?v=20260815-1">
+<link rel="stylesheet" href="dashboard-firebase-capacity.css?v=20261116-capacity-ui1">
 </head>
 <body>
 <div class="c3-app">
@@ -55,6 +56,10 @@
         <div id="globalSearchResults" class="m1-search-results" hidden></div>
       </div>
 
+      <button id="ivCapToggle" class="iv-cap-widget" data-level="unknown" type="button" aria-label="Afficher la capacité du document Firebase et les sauvegardes" title="Capacité du document Firebase principal">
+        <span class="iv-cap-widget-head"><small>Firebase · Document</small><strong id="ivCapText">—</strong></span>
+        <span class="iv-cap-meter"><span id="ivCapFill" class="iv-cap-meter-fill" role="progressbar" aria-label="Occupation du document principal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></span></span>
+      </button>
       <span id="weatherIcon" class="weather-icon" title="Météo locale" aria-label="Météo locale"></span>
       <div class="c3-status">
         <span id="cloudDot" class="c3-status-dot"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -69,6 +74,40 @@
       </div>
       <span id="dateLabel" class="c3-compat">—</span>
     </header>
+    <div id="ivCapModal" class="iv-cap-modal" hidden>
+      <section class="iv-cap-dialog" role="dialog" aria-modal="true" aria-labelledby="ivCapModalTitle">
+        <div class="iv-cap-dialog-head">
+          <h2 id="ivCapModalTitle">Capacité Firebase</h2>
+          <button id="ivCapClose" class="iv-cap-btn close" type="button" aria-label="Fermer">×</button>
+        </div>
+        <p>Cette jauge mesure uniquement le <strong>document principal de ton compte</strong>, limité à 1 Mio par Firebase. Elle ne représente pas le stockage total du projet.</p>
+        <div class="iv-cap-detail">
+          <strong id="ivCapState">Connexion à Firebase…</strong>
+          <span id="ivCapSize">—</span>
+          <div class="iv-cap-meter" style="margin-top:10px"><span class="iv-cap-meter-fill" id="ivCapModalBar" aria-hidden="true" style="width:0%"></span></div>
+        </div>
+        <p id="ivCapAlert" class="iv-cap-alert">Lecture en cours…</p>
+        <h3>Modules les plus volumineux</h3>
+        <div id="ivCapBreakdown" class="iv-cap-breakdown">—</div>
+        <div class="iv-cap-actions">
+          <button id="ivCapRefresh" class="iv-cap-btn" type="button">Actualiser</button>
+          <button id="ivCapBackup" class="iv-cap-btn primary" type="button">Télécharger la sauvegarde du document</button>
+        </div>
+        <h3>Préparer un archivage du Planning</h3>
+        <p>Exporter les semaines les plus anciennes dans un fichier séparé, avant d'envisager leur retrait du Planning actif.</p>
+        <label for="ivCapMonths" style="font-size:12px;font-weight:700">Semaines de plus de</label>
+        <select id="ivCapMonths" class="iv-cap-select" aria-label="Âge minimum des semaines à sauvegarder">
+          <option value="6">6 mois</option>
+          <option value="12" selected>12 mois</option>
+          <option value="18">18 mois</option>
+          <option value="24">24 mois</option>
+        </select>
+        <div class="iv-cap-actions"><button id="ivCapArchive" class="iv-cap-btn" type="button">Exporter les anciennes semaines</button></div>
+        <p><strong>Aucune donnée n'est supprimée automatiquement.</strong> Les exports ne libèrent pas d'espace tant que les anciennes données restent dans Firebase.</p>
+        <p class="iv-cap-private">Confidentiel : les sauvegardes peuvent contenir des données de salariés et des clés techniques. Conserve-les sur un ordinateur protégé. Les pièces jointes Firebase Storage et les collections séparées ne sont pas incluses dans la sauvegarde du document.</p>
+        <div id="ivCapFeedback" class="iv-cap-feedback" role="status" aria-live="polite">Connecte-toi à Firebase pour commencer.</div>
+      </section>
+    </div>
 
     <main class="c3-content">
       <section class="c3-hero-banner" aria-label="Bienvenue">
@@ -245,6 +284,7 @@
 <script src="dashboard-index-shared.js?v=20261013-incident-header-under-agent4"></script>
 <script src="dashboard-mark1.js?v=20260829-variables-dashboard1"></script>
 <script src="dashboard-concept3.js?v=20261110-firebase-global1"></script>
+<script src="dashboard-firebase-capacity.js?v=20261116-capacity-ui1"></script>
 <script src="dashboard-global-search.js?v=20261002-organisation-live16"></script>
 <script src="inovtec-contract-reminders.js?v=20260816-1"></script>
 <script src="inovtec-firebase-indicator.js?v=20261014-mobile-connect1"></script>
