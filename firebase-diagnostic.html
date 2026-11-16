@@ -36,8 +36,53 @@ const add=(label,detail)=>{report.push(label+(detail?' — '+detail:''));$('repo
 function status(text,error=false){$('startup').textContent=text;$('startup').className='status'+(error?' error':' ok')}
 function errorCode(e){return String(e?.code||'erreur-inconnue').replace(/[^a-z0-9/_-]/gi,'').slice(0,90)}
 function hint(code){if(/invalid-credential|wrong-password|user-not-found|invalid-login-credentials/.test(code))return 'Identifiants non validés : vérifier le compte habituel et la méthode e-mail/mot de passe dans Authentication.';if(/operation-not-allowed/.test(code))return 'Méthode de connexion désactivée : vérifier Authentication > Mode de connexion.';if(/permission-denied/.test(code))return 'Lecture ou écriture interdite : vérifier les règles Firestore réellement publiées pour ce compte.';if(/unavailable|network-request-failed|deadline-exceeded/.test(code))return 'Serveur inaccessible ou connexion interrompue : vérifier réseau, restrictions du navigateur et disponibilité du service.';if(/resource-exhausted/.test(code))return 'Quota ou limite Firebase atteint : vérifier les quotas et la taille du document.';if(/failed-precondition/.test(code))return 'Précondition Firebase non satisfaite : examiner la configuration et les index.';return 'Copier ce code pour identifier précisément la panne.'}
-function problem(stage,e){const code=errorCode(e);add('ÉCHEC '+stage,code+' ; '+hint(code));status('Le diagnostic a identifié une erreur à l’étape « '+stage+' ».',true)}
+function problem(stage,e){
+ const code=errorCode(e);
+ add('ÉCHEC '+stage,code+' ; '+hint(code));
+ if(code==='invalid-argument'){
+  const uid=String(currentUser?.uid||'');
+  let detail=String(e?.message||'').slice(0,440);
+  if(uid)detail=detail.split(uid).join('[compte masqué]');
+  detail=detail.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[adresse masquée]');
+  if(detail)add('PRÉCISION TECHNIQUE',detail);
+ }
+ status('Le diagnostic a identifié une erreur à l’étape « '+stage+' ».',true);
+}
 const within=(promise,ms)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject({code:'diagnostic/timeout'}),ms))]);
+const approxBytes=value=>{try{return new Blob([JSON.stringify(value)]).size}catch{return 0}};
+const kib=value=>(value/1024).toFixed(0)+' Kio';
+let personalApproxBytes=0;
+async function isolateWriteError(){
+ // Une sonde indépendante sans données métier.
+ const id='__inovtec_firebase_diagnostic_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+ const nonce='test-'+Math.random().toString(36).slice(2);
+ const ref=db.collection('chantiers').doc(id);
+ let confirmed=false,mayExist=false;
+ add('TEST COMPLÉMENTAIRE','écriture isolée sans toucher au document personnel');
+ try{
+  mayExist=true;
+  await within(ref.set({_hidden:true,_type:'inovtecFirebaseDiagnosticV1',value:nonce}),15000);
+  const snap=await within(ref.get({source:'server'}),15000);
+  if(!snap.exists||snap.get('value')!==nonce)throw{code:'diagnostic/isolated-readback-mismatch'};
+  confirmed=true;
+  add('ÉCRITURE ISOLÉE','OK depuis le serveur : Firebase accepte les nouveaux documents');
+  add('INTERPRÉTATION',personalApproxBytes>=900*1024
+   ?'Document personnel proche de la limite : surcharge probable ; ne rien supprimer sans sauvegarde'
+   :'Le refus concerne le document personnel ; vérifier le détail technique, sa taille et les règles');
+ }catch(error){
+  add('ÉCRITURE ISOLÉE','échec '+errorCode(error)+' ; vérifier la connexion, les règles et le détail du refus');
+ }finally{
+  if(mayExist){
+   try{
+    const snap=await within(ref.get({source:'server'}),10000);
+    if(snap.exists&&snap.get('value')===nonce){
+     await within(ref.delete(),15000);
+     add('NETTOYAGE SONDE','document de test isolé supprimé');
+    }else if(confirmed)add('NETTOYAGE SONDE','document de test introuvable : aucune suppression');
+   }catch(error){add('NETTOYAGE SONDE','non confirmé ('+errorCode(error)+') ; sonde sans donnée métier')}
+  }
+ }
+}
 function updateAuth(user){currentUser=user||null;readPassed=false;$('read').disabled=!currentUser;$('write').disabled=true;$('write').hidden=true;$('login').hidden=!!currentUser;if(currentUser){$('password').value='';status('Compte Firebase connecté. Lance le test de lecture.');add('AUTH','session présente (identité masquée)')}else{status('Aucune session active : connecte-toi avec ton compte habituel.',true);add('AUTH','aucune session dans cette page')}}
 function loadScript(url){return within(new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=url;script.onload=resolve;script.onerror=()=>reject({code:'diagnostic/sdk-load-failed'});document.head.appendChild(script)}),12000)}
 async function boot(){
@@ -61,6 +106,13 @@ $('read').addEventListener('click',async()=>{
  const uid=currentUser.uid;try{
    const doc=await within(db.collection('kanban').doc(uid).get({source:'server'}),18000);
    add('LECTURE PERSONNELLE','OK depuis le serveur'+(doc.exists?' ; document présent':' ; document absent'));
+   const info=doc.exists?(doc.data()||{}):{};
+   personalApproxBytes=approxBytes(info);
+   add('TAILLE DOCUMENT PERSONNEL','environ '+kib(personalApproxBytes)+' en JSON (estimation, maximum Firestore 1024 Kio)');
+   const modules=info.moduleSyncV1&&typeof info.moduleSyncV1==='object'?info.moduleSyncV1:{};
+   const biggest=Object.entries(modules).map(([name,value])=>({name,size:approxBytes(value)})).sort((a,b)=>b.size-a.size).slice(0,5);
+   if(biggest.length)add('MODULES LES PLUS VOLUMINEUX',biggest.map(x=>x.name+' '+kib(x.size)).join(' ; '));
+   if(personalApproxBytes>900*1024)add('ATTENTION TAILLE','document proche de la limite : ne pas retirer ou vider les données');
    await within(db.collection('chantiers').limit(1).get({source:'server'}),18000);
    add('LECTURE CHANTIERS','OK depuis le serveur');readPassed=true;$('write').hidden=false;$('write').disabled=false;status('Lecture Firebase confirmée. Tu peux tester une écriture temporaire.');
  }catch(err){problem('lecture Firestore',err)}finally{busy=false;$('read').disabled=!currentUser}
@@ -73,7 +125,7 @@ $('write').addEventListener('click',async()=>{
    const check=await within(doc.get({source:'server'}),18000);
    if(check.get(field)!==nonce)throw{code:'diagnostic/readback-mismatch'};
    add('RELECTURE','OK ; valeur confirmée sur le serveur');status('Connexion, lecture, écriture et relecture confirmées.');
- }catch(err){problem(wrote?'relecture après écriture':'écriture Firestore',err)}
+ }catch(err){problem(wrote?'relecture après écriture':'écriture Firestore',err);if(!wrote&&errorCode(err)==='invalid-argument')await isolateWriteError()}
  finally{
    if(wrote){try{const check=await within(doc.get({source:'server'}),12000);if(check.get(field)===nonce){await within(doc.update({[field]:firebase.firestore.FieldValue.delete()}),18000);add('NETTOYAGE','champ temporaire retiré')}else add('NETTOYAGE','champ changé : aucune suppression effectuée')}
    catch(e){add('NETTOYAGE','non confirmé ('+errorCode(e)+') ; aucun document métier supprimé')}}
