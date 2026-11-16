@@ -83,6 +83,14 @@ window.INOVTEC_FIREBASE_CONFIG = Object.freeze({
       header.async = false;
       (document.head || document.documentElement).appendChild(header);
     }
+    // Réduire sans perte un doublon Firebase uniquement après comparaison transactionnelle.
+    if (!document.querySelector('script[data-iv-firebase-capacity="1"]') && !window.__IV_FIREBASE_CAPACITY_V1__) {
+      const repair = document.createElement("script");
+      repair.src = "inovtec-firebase-capacity-fix.js?v=20261116-capacity1";
+      repair.dataset.ivFirebaseCapacity = "1";
+      repair.async = false;
+      (document.head || document.documentElement).appendChild(repair);
+    }
     if (!document.querySelector('script[data-inovtec-firebase-operational="1"]')) {
       const script = document.createElement("script");
       script.src = "inovtec-firebase-operational-guard.js?v=20261014-mobile-retry1";
