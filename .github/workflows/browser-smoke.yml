@@ -70,4 +70,5 @@ jobs:
           node tests/variables-leave-transaction-sync.mjs
           node tests/firebase-org-migration.mjs
           node tests/firebase-diagnostic.mjs
+          node tests/firebase-capacity-fix.mjs
           node tests/shell-refresh-performance.mjs
