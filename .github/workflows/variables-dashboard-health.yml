@@ -13,6 +13,7 @@ on:
       - 'variables-editor-nav.js'
       - 'inovtec-variables-sync-bridge.js'
       - 'inovtec-page-shell.html'
+      - 'inovtec-shell-modules.js'
       - 'tests/variables-sync-bridge.mjs'
       - '.github/workflows/variables-dashboard-health.yml'
   workflow_dispatch:
@@ -36,6 +37,7 @@ jobs:
           grep -Fq 'variables-dashboard-navigation.js' VARIABLES-DASHBOARD.html
           grep -Fq 'variables-editor-nav.js' VARIABLES-LEGACY.html
           grep -Fq 'VARIABLES-LEGACY.html' variables-dashboard.js
-          grep -Fq 'inovtec-variables-sync-bridge.js' inovtec-page-shell.html
+          grep -Fq 'inovtec-shell-modules.js?v=' inovtec-page-shell.html
+          grep -Fq 'inovtec-variables-sync-bridge.js' inovtec-shell-modules.js
           node tests/variables-sync-bridge.mjs
           echo 'Variables : fusion conservatrice et liens valides.'
