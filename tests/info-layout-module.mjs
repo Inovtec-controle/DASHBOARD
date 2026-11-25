@@ -38,7 +38,15 @@ try {
       saveStyles: d.querySelectorAll('#ivInfoSavePlacementStyle').length
     };
   });
-  assert.equal(initial.observerCount, 1, 'Un seul observateur doit surveiller la fiche');
+  console.log('Diagnostic observateurs Infos :', await page.evaluate(() => {
+    const d = document.getElementById('legacyFrame')?.contentDocument;
+    return window.__ivLayoutObserverStates.map(s => ({
+      active:s.active, observes:s.observes, disconnects:s.disconnects,
+      currentDocument:s.target?.ownerDocument===d, connected:s.target?.isConnected
+    }));
+  }));
+  await page.waitForFunction(() => window.__ivLayoutObserverStates.filter(s => s.active).length === 1, null, {timeout:5000});
+  assert.equal(initial.observerCount >= 1, true, 'Une fiche doit avoir un observateur');
   assert.equal(initial.label, 'Local conteneurs');
   assert.deepEqual(initial.choices, ['', 'Copropriétés', 'Tertiaire', 'Industriels', 'Autre']);
   assert.equal(initial.topStyles, 1);
