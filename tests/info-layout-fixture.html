@@ -3,10 +3,16 @@
 <body>
 <iframe id="legacyFrame" title="Fiche Infos chantier"></iframe>
 <script>
-window.__ivLayoutObserverCount=0;
+window.__ivLayoutObserverStates=[];
 const NativeObserver=window.MutationObserver;
 window.MutationObserver=class extends NativeObserver{
-  constructor(fn){ super(fn);window.__ivLayoutObserverCount++ }
+  constructor(fn){
+    super(fn);
+    this.__ivState={active:false};
+    window.__ivLayoutObserverStates.push(this.__ivState);
+  }
+  observe(target,opts){this.__ivState.active=true;return super.observe(target,opts)}
+  disconnect(){this.__ivState.active=false;return super.disconnect()}
 };
 window.inovtecInfoFixture=()=>{
   document.getElementById('legacyFrame').srcdoc=`
