@@ -31,7 +31,7 @@ try {
   const initial = await page.evaluate(() => {
     const d = document.getElementById('legacyFrame').contentDocument;
     return {
-      observerCount: window.__ivLayoutObserverCount,
+      observerCount: window.__ivLayoutObserverStates.filter(state => state.active).length,
       label: d.querySelector('label[for="locauxConteneurs"]')?.textContent,
       choices: [...d.getElementById('ivTypeChantier').options].map(o => o.value),
       topStyles: d.querySelectorAll('#ivInfoTopLayoutStyle').length,
@@ -71,7 +71,7 @@ try {
   // Lorsqu'une nouvelle fiche est chargée dans le cadre, un seul observateur est créé.
   await page.evaluate(() => window.inovtecInfoFixture());
   await page.waitForFunction(ready, { timeout: 10000 });
-  await page.waitForFunction(() => window.__ivLayoutObserverCount === 2, { timeout: 5000 });
+  await page.waitForFunction(() => window.__ivLayoutObserverStates.filter(state => state.active).length === 1, null, { timeout: 5000 });
   assert.deepEqual(errors, [], 'Aucune erreur JavaScript sur la fiche');
   console.log('OK — Infos chantier : affichage, enregistrement, historique dynamique et recharge du cadre.');
 } finally {
