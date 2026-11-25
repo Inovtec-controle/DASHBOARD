@@ -37,6 +37,7 @@ jobs:
             if curl -fsS http://127.0.0.1:8765/index.html -o /dev/null; then break; fi
             sleep 1
           done
+          node tests/info-layout-module.mjs
           node tests/browser-smoke.mjs
           node tests/agents-firebase-direct.mjs
           node tests/agent-replacement-hours-field.mjs

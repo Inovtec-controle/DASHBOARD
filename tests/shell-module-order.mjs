@@ -29,7 +29,14 @@ for (const [mode, expected] of Object.entries(baseline.modes)) {
   assert.equal(written.length, 1, mode + ' : chargement synchrone du registre');
   const emitted = [...written[0].matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*><\/script>/gi)].map(match => match[1]);
   const actual = [shellScripts[0], ...emitted];
-  assert.deepEqual(actual, expected, mode + ' : ordre et présence des dépendances modifiés');
+  // Une seule consolidation intentionnelle des deux scripts de mise en page Infos :
+  // l'historique reste gelé dans baseline.json, pour vérifier les autres dépendances.
+  const expectedCurrent = mode === 'infos'
+    ? expected.map(src => src.startsWith('inovtec-info-save-placement.js?')
+        ? 'inovtec-info-layout.js?v=20261125-layout-one-observer1'
+        : src).filter(src => !src.startsWith('inovtec-info-top-layout.js?'))
+    : expected;
+  assert.deepEqual(actual, expectedCurrent, mode + ' : ordre et présence des dépendances modifiés');
   assert.deepEqual(Array.from(window.INOVTEC_SHELL_LOADED_SCRIPTS), emitted, mode + ' : état de diagnostic');
   assert.equal(new Set(actual).size, actual.length, mode + ' : script chargé plusieurs fois');
   for (const src of actual) {

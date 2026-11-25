@@ -19,6 +19,20 @@ Le registre utilise encore `document.write` **uniquement pendant l'analyse initi
 
 Le fichier `tests/shell-module-order.baseline.json` décrit l'ordre avant cette refonte. Exécuter `node tests/shell-module-order.mjs` avant de changer ce registre. Le contrôle est intégré à la CI.
 
+## Simplification Infos chantier — 25 novembre 2026
+
+Les deux anciens scripts de mise en page `inovtec-info-save-placement.js`
+et `inovtec-info-top-layout.js` sont remplacés par
+`inovtec-info-layout.js`. La fiche dispose maintenant d'un seul observateur
+DOM, qui repositionne les cartes principales puis le bouton Enregistrer
+après l'historique (ou le cahier des charges si l'historique est absent).
+
+La gestion Firebase et l'enregistrement des champs sont **inchangés**.
+Le test `tests/info-layout-module.mjs` vérifie le rendu dans une iframe fictive,
+les ajouts et suppressions dynamiques, la recharge du cadre et l'absence
+de doubles observateurs actifs. Il s'exécute dans `browser-smoke.yml`.
+Les scripts supprimés restent consultables dans l'historique Git.
+
 ## Règles pour les développements suivants
 
 1. Ne plus ajouter de blocs de chargement conditionnel dans `inovtec-page-shell.html`. Utiliser le registre commun.
