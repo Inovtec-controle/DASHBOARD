@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Test non destructif — Infos chantier</title></head>
+<body>
+<iframe id="legacyFrame" title="Fiche Infos chantier"></iframe>
+<script>
+window.__ivLayoutObserverCount=0;
+const NativeObserver=window.MutationObserver;
+window.MutationObserver=class extends NativeObserver{
+  constructor(fn){ super(fn);window.__ivLayoutObserverCount++ }
+};
+window.inovtecInfoFixture=()=>{
+  document.getElementById('legacyFrame').srcdoc=`
+<!doctype html><html lang="fr"><head><meta charset="utf-8"></head><body class="iv-mode-infos">
+<form id="siteForm">
+  <section class="card" id="contactCard"><h2>Contacts</h2><div>Contact syndic</div></section>
+  <section class="card" id="generalCard"><h2>Informations générales</h2>
+    <div class="section-title">Données du chantier</div>
+    <select id="ivTypeChantier"><option value="Copropriété">Copropriété</option></select>
+    <label for="locauxConteneurs">Ancien libellé</label>
+  </section>
+  <div id="ivContractFields">Contrat du chantier</div>
+  <section class="card" id="ivCdcCard">Cahier des charges</section>
+  <section class="card" id="ivControlHistoryCard">Historique des contrôles</section>
+  <div class="sticky-save"><button type="submit" class="btn">Enregistrer</button></div>
+</form>
+</body></html>`;
+};
+window.inovtecInfoFixture();
+</script>
+<script src="../inovtec-info-layout.js"></script>
+</body></html>
