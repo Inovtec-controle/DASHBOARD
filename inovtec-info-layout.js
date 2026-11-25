@@ -53,7 +53,7 @@ function ensureTypeOptions(d){
 }
 function arrange(d){
   const containerLabel=d?.querySelector?.('label[for="locauxConteneurs"]');
-  if(containerLabel)containerLabel.textContent="Local conteneurs";
+  if(containerLabel&&containerLabel.textContent!=="Local conteneurs")containerLabel.textContent="Local conteneurs";
   const form=d?.getElementById("siteForm");if(!form)return;
   ensureTypeOptions(d);
   const general=findCard(d,/informations?\s+g[eé]n[eé]rales?/i);
