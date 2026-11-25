@@ -42,7 +42,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'inovtec-cross-page-data.js?v=' inovtec-page-shell.html
+          grep -q 'inovtec-shell-modules.js?v=' inovtec-page-shell.html
+          grep -q 'inovtec-cross-page-data.js?v=' inovtec-shell-modules.js
           grep -q 'inovtec-page-shell.html?build=.*&amp;mode=infos' inovtec-info-shell-stable.html
           grep -q 'inovtec-kontrol-ref-metadata.js?v=' KONTROL-CLOUD-LEGACY.html
           grep -q 'dashboard-index-shared.js?v=' index.html
