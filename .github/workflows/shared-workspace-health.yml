@@ -33,7 +33,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'inovtec-shared-workspace.js?v=' inovtec-page-shell.html
+          grep -q 'inovtec-shell-modules.js?v=' inovtec-page-shell.html
+          grep -q 'inovtec-shared-workspace.js?v=' inovtec-shell-modules.js
           grep -q 'firebase-firestore-compat.js' KONTROL-CLOUD-LEGACY.html
           grep -q 'inovtec-kontrol-shared-archive.js?v=' KONTROL-CLOUD-LEGACY.html
           grep -q 'inovtec-firebase-operational-guard.js?v=' firebase-config.js
