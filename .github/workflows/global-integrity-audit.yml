@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Vérifier toutes les pages et les routes
         run: node tests/global-integrity-audit.mjs
+      - name: Vérifier le chargement identique des modules du shell
+        run: node tests/shell-module-order.mjs
       - name: Vérifier la syntaxe de l'ensemble des scripts
         shell: bash
         run: |
