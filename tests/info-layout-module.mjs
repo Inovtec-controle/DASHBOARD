@@ -31,22 +31,14 @@ try {
   const initial = await page.evaluate(() => {
     const d = document.getElementById('legacyFrame').contentDocument;
     return {
-      observerCount: window.__ivLayoutObserverStates.filter(state => state.active).length,
+      observerCount: window.__ivLayoutObserverStates.filter(state => state.active && state.source.includes('inovtec-info-layout.js')).length,
       label: d.querySelector('label[for="locauxConteneurs"]')?.textContent,
       choices: [...d.getElementById('ivTypeChantier').options].map(o => o.value),
       topStyles: d.querySelectorAll('#ivInfoTopLayoutStyle').length,
       saveStyles: d.querySelectorAll('#ivInfoSavePlacementStyle').length
     };
   });
-  console.log('Diagnostic observateurs Infos :', await page.evaluate(() => {
-    const d = document.getElementById('legacyFrame')?.contentDocument;
-    return window.__ivLayoutObserverStates.map(s => ({
-      active:s.active, observes:s.observes, disconnects:s.disconnects,
-      currentDocument:s.target?.ownerDocument===d, connected:s.target?.isConnected
-    }));
-  }));
-  await page.waitForFunction(() => window.__ivLayoutObserverStates.filter(s => s.active).length === 1, null, {timeout:5000});
-  assert.equal(initial.observerCount >= 1, true, 'Une fiche doit avoir un observateur');
+  assert.equal(initial.observerCount, 1, 'Un seul observateur Infos chantier doit être actif');
   assert.equal(initial.label, 'Local conteneurs');
   assert.deepEqual(initial.choices, ['', 'Copropriétés', 'Tertiaire', 'Industriels', 'Autre']);
   assert.equal(initial.topStyles, 1);
@@ -79,7 +71,7 @@ try {
   // Lorsqu'une nouvelle fiche est chargée dans le cadre, un seul observateur est créé.
   await page.evaluate(() => window.inovtecInfoFixture());
   await page.waitForFunction(ready, { timeout: 10000 });
-  await page.waitForFunction(() => window.__ivLayoutObserverStates.filter(state => state.active).length === 1, null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__ivLayoutObserverStates.filter(state => state.active && state.source.includes('inovtec-info-layout.js')).length === 1, null, { timeout: 5000 });
   assert.deepEqual(errors, [], 'Aucune erreur JavaScript sur la fiche');
   console.log('OK — Infos chantier : affichage, enregistrement, historique dynamique et recharge du cadre.');
 } finally {
