@@ -8,7 +8,7 @@ const NativeObserver=window.MutationObserver;
 window.MutationObserver=class extends NativeObserver{
   constructor(fn){
     super(fn);
-    this.__ivState={active:false,observes:0,disconnects:0,target:null};
+    this.__ivState={active:false,observes:0,disconnects:0,target:null,source:String(new Error().stack||'')};
     window.__ivLayoutObserverStates.push(this.__ivState);
   }
   observe(target,opts){this.__ivState.active=true;this.__ivState.target=target;this.__ivState.observes++;return super.observe(target,opts)}
