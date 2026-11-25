@@ -8,11 +8,11 @@ const NativeObserver=window.MutationObserver;
 window.MutationObserver=class extends NativeObserver{
   constructor(fn){
     super(fn);
-    this.__ivState={active:false};
+    this.__ivState={active:false,observes:0,disconnects:0,target:null};
     window.__ivLayoutObserverStates.push(this.__ivState);
   }
-  observe(target,opts){this.__ivState.active=true;return super.observe(target,opts)}
-  disconnect(){this.__ivState.active=false;return super.disconnect()}
+  observe(target,opts){this.__ivState.active=true;this.__ivState.target=target;this.__ivState.observes++;return super.observe(target,opts)}
+  disconnect(){this.__ivState.active=false;this.__ivState.disconnects++;return super.disconnect()}
 };
 window.inovtecInfoFixture=()=>{
   document.getElementById('legacyFrame').srcdoc=`
